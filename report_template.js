@@ -1,4 +1,16 @@
-function generateReportHTML(unitName, startDate, endDate, totalReach, totalConversations, totalSpend, costPerConversation, comparisonData, comparisonMetrics, topTwoAds) {
+export function generateReportHTML(unitName, startDate, endDate, totalReach, totalConversations, totalSpend, costPerConversation, comparisonData, comparisonMetrics, topTwoAds) {
+    console.log('Gerando HTML do relatório com os seguintes dados:', {
+        unitName,
+        startDate,
+        endDate,
+        totalReach,
+        totalConversations,
+        totalSpend,
+        costPerConversation,
+        comparisonData,
+        comparisonMetrics,
+        topTwoAds
+    });
     return `
         <div class="bg-white rounded-xl shadow-lg p-6">
             <div class="text-center mb-6">

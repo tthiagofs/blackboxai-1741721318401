@@ -1,14 +1,18 @@
 // Event listener for form submission
 document.getElementById('appLoginForm').addEventListener('submit', function(e) {
     e.preventDefault();
-    console.log('Formulário de login submetido');
-    const formData = new FormData(e.target);
-    console.log('Dados do formulário:', formData);
-
-    // Simulate login failure for testing
-    const errorDiv = document.getElementById('appLoginError');
-    errorDiv.classList.remove('hidden');
-    errorDiv.querySelector('.error-text').textContent = 'Usuário ou senha inválidos.';
+    const username = document.getElementById('username').value;
+    const password = document.getElementById('password').value;
+    
+    if (username === '@admin' && password === '134679') {
+        console.log('Login bem-sucedido');
+        showScreen('reportSelectionScreen');
+    } else {
+        console.log('Login falhou');
+        const errorDiv = document.getElementById('appLoginError');
+        errorDiv.classList.remove('hidden');
+        errorDiv.querySelector('.error-text').textContent = 'Usuário ou senha inválidos.';
+    }
 });
 
 // Function to show/hide screens

@@ -864,6 +864,71 @@ async function generateReport() {
     }
 }
 
+// Função para calcular métricas de comparação
+async function calculateComparisonMetrics(unitId, startDate, endDate) {
+    let compareSpend = 0;
+    let compareConversations = 0;
+    let compareReach = 0;
+
+    try {
+        if (isFilterActivated) {
+            if (selectedCampaigns.size > 0) {
+                for (const campaignId of selectedCampaigns) {
+                    const insights = await getCampaignInsights(campaignId, startDate, endDate);
+                    if (insights && insights.spend) compareSpend += parseFloat(insights.spend) || 0;
+                    if (insights && insights.reach) compareReach += parseInt(insights.reach) || 0;
+                    (insights.actions || []).forEach(action => {
+                        if (action.action_type === 'onsite_conversion.messaging_conversation_started_7d') {
+                            compareConversations += parseInt(action.value) || 0;
+                        }
+                    });
+                }
+            } else if (selectedAdSets.size > 0) {
+                for (const adSetId of selectedAdSets) {
+                    const insights = await getAdSetInsights(adSetId, startDate, endDate);
+                    if (insights && insights.spend) compareSpend += parseFloat(insights.spend) || 0;
+                    if (insights && insights.reach) compareReach += parseInt(insights.reach) || 0;
+                    (insights.actions || []).forEach(action => {
+                        if (action.action_type === 'onsite_conversion.messaging_conversation_started_7d') {
+                            compareConversations += parseInt(action.value) || 0;
+                        }
+                    });
+                }
+            }
+        } else {
+            const response = await new Promise(resolve => {
+                FB.api(
+                    `/${unitId}/insights`,
+                    { fields: ['spend', 'actions', 'reach'], time_range: { since: startDate, until: endDate }, level: 'account', access_token: currentAccessToken },
+                    resolve
+                );
+            });
+
+            if (response && !response.error && response.data.length > 0) {
+                response.data.forEach(data => {
+                    if (data.spend) compareSpend += parseFloat(data.spend) || 0;
+                    if (data.reach) compareReach += parseInt(data.reach) || 0;
+                    (data.actions || []).forEach(action => {
+                        if (action.action_type === 'onsite_conversion.messaging_conversation_started_7d') {
+                            compareConversations += parseInt(action.value) || 0;
+                        }
+                    });
+                });
+            }
+        }
+
+        const compareCostPerConversation = compareConversations > 0 ? (compareSpend / compareConversations).toFixed(2) : '0';
+        return {
+            reach: compareReach,
+            conversations: compareConversations,
+            costPerConversation: parseFloat(compareCostPerConversation)
+        };
+    } catch (error) {
+        console.error('Erro ao calcular métricas de comparação:', error);
+        return null;
+    }
+}
+
 // Compartilhar no WhatsApp
 shareWhatsAppBtn.addEventListener('click', () => {
     const reportText = reportContainer.innerText;

@@ -32,4 +32,20 @@ function showScreen(screenId) {
 document.addEventListener('DOMContentLoaded', function() {
     console.log('Mostrando tela de login inicial');
     showScreen('appLoginScreen');
+
+    // Add event listeners for report selection buttons
+    const simpleReportBtn = document.getElementById('simpleReportBtn');
+    const completeReportBtn = document.getElementById('completeReportBtn');
+
+    simpleReportBtn.addEventListener('click', function() {
+        console.log('Relatório Simplificado selecionado');
+        document.querySelector('#mainContent h1').textContent = 'Relatório Simplificado';
+        showScreen('mainContent');
+    });
+
+    completeReportBtn.addEventListener('click', function() {
+        console.log('Relatório Completo selecionado');
+        document.querySelector('#mainContent h1').textContent = 'Relatório Completo';
+        showScreen('mainContent');
+    });
 });

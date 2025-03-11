@@ -1,0 +1,50 @@
+/* Custom styles that complement Tailwind CSS */
+
+/* Filter option styles */
+.filter-option {
+    @apply p-3 mb-2 bg-gray-50 rounded-lg cursor-pointer transition-all duration-300 hover:bg-gray-100;
+}
+
+.filter-option.selected {
+    @apply bg-primary text-white hover:bg-primary-light;
+}
+
+/* Button styles */
+.btn-filter-toggle {
+    @apply w-full mt-4 bg-primary text-white py-2 px-4 rounded-lg transition-all duration-300 hover:bg-primary-light disabled:bg-gray-400 disabled:cursor-not-allowed;
+}
+
+/* Modal styles */
+.modal {
+    @apply fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center p-4 z-50;
+}
+
+.modal-content {
+    @apply bg-white rounded-xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-6;
+}
+
+/* Loading state */
+.loading {
+    @apply animate-pulse bg-gray-200;
+}
+
+/* Error message */
+.error-message {
+    @apply text-red-500 text-sm mt-2;
+}
+
+/* Success message */
+.success-message {
+    @apply text-green-500 text-sm mt-2;
+}
+
+/* Responsive adjustments */
+@media (max-width: 640px) {
+    .modal-content {
+        @apply p-4;
+    }
+    
+    .filter-option {
+        @apply p-2;
+    }
+}

@@ -11,6 +11,14 @@ export function generateReportHTML(unitName, startDate, endDate, totalReach, tot
         comparisonMetrics,
         topTwoAds
     });
+
+    function calculateVariation(currentValue, previousValue) {
+        if (!previousValue || previousValue === 0) return { percentage: "0%", icon: '' };
+        const percentage = ((currentValue - previousValue) / previousValue) * 100;
+        const icon = percentage >= 0 ? 'arrow-up' : 'arrow-down';
+        return { percentage: `${percentage.toFixed(2)}%`, icon };
+    }
+
     return `
         <div class="bg-white rounded-xl shadow-lg p-6">
             <div class="text-center mb-6">
@@ -26,6 +34,7 @@ export function generateReportHTML(unitName, startDate, endDate, totalReach, tot
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+                ${comparisonMetrics ? `
                 <div class="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-6 transform transition-transform hover:scale-105">
                     <div class="flex items-center justify-between">
                         <div>
@@ -37,13 +46,17 @@ export function generateReportHTML(unitName, startDate, endDate, totalReach, tot
                             <i class="fas fa-bullhorn"></i>
                         </div>
                     </div>
-                    ${comparisonMetrics ? `
-                        <div class="mt-2 ${comparisonMetrics.reach <= totalReach ? 'text-green-600' : 'text-red-600'} text-sm flex items-center">
-                            <i class="fas fa-${comparisonMetrics.reach <= totalReach ? 'arrow-up' : 'arrow-down'} mr-1"></i>
-                            ${calculateVariation(totalReach, comparisonMetrics.reach).percentage}%
-                        </div>
-                    ` : ''}
+                    ${(() => {
+                        const variation = calculateVariation(totalReach, comparisonMetrics.reach);
+                        return `
+                            <div class="mt-2 text-sm flex items-center ${variation.icon === 'arrow-up' ? 'text-green-600' : 'text-red-600'}">
+                                <i class="fas fa-${variation.icon} mr-1"></i>
+                                ${variation.percentage}
+                            </div>
+                        `;
+                    })()}
                 </div>
+                ` : ''}
 
                 <div class="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl p-6 transform transition-transform hover:scale-105">
                     <div class="flex items-center justify-between">
@@ -55,12 +68,15 @@ export function generateReportHTML(unitName, startDate, endDate, totalReach, tot
                             <i class="fas fa-comments"></i>
                         </div>
                     </div>
-                    ${comparisonMetrics ? `
-                        <div class="mt-2 ${comparisonMetrics.conversations <= totalConversations ? 'text-green-600' : 'text-red-600'} text-sm flex items-center">
-                            <i class="fas fa-${comparisonMetrics.conversations <= totalConversations ? 'arrow-up' : 'arrow-down'} mr-1"></i>
-                            ${calculateVariation(totalConversations, comparisonMetrics.conversations).percentage}%
-                        </div>
-                    ` : ''}
+                    ${comparisonMetrics ? (() => {
+                        const variation = calculateVariation(totalConversations, comparisonMetrics.conversations);
+                        return `
+                            <div class="mt-2 text-sm flex items-center ${variation.icon === 'arrow-up' ? 'text-green-600' : 'text-red-600'}">
+                                <i class="fas fa-${variation.icon} mr-1"></i>
+                                ${variation.percentage}
+                            </div>
+                        `;
+                    })() : ''}
                 </div>
 
                 <div class="bg-gradient-to-br from-yellow-50 to-yellow-100 rounded-xl p-6 transform transition-transform hover:scale-105">
@@ -73,12 +89,15 @@ export function generateReportHTML(unitName, startDate, endDate, totalReach, tot
                             <i class="fas fa-coins"></i>
                         </div>
                     </div>
-                    ${comparisonMetrics ? `
-                        <div class="mt-2 ${comparisonMetrics.costPerConversation >= parseFloat(costPerConversation) ? 'text-green-600' : 'text-red-600'} text-sm flex items-center">
-                            <i class="fas fa-${comparisonMetrics.costPerConversation >= parseFloat(costPerConversation) ? 'arrow-down' : 'arrow-up'} mr-1"></i>
-                            ${calculateVariation(parseFloat(costPerConversation), comparisonMetrics.costPerConversation).percentage}%
-                        </div>
-                    ` : ''}
+                    ${comparisonMetrics ? (() => {
+                        const variation = calculateVariation(parseFloat(costPerConversation), comparisonMetrics.costPerConversation);
+                        return `
+                            <div class="mt-2 text-sm flex items-center ${variation.icon === 'arrow-up' ? 'text-red-600' : 'text-green-600'}">
+                                <i class="fas fa-${variation.icon} mr-1"></i>
+                                ${variation.percentage}
+                            </div>
+                        `;
+                    })() : ''}
                 </div>
 
                 <div class="bg-gradient-to-br from-green-50 to-green-100 rounded-xl p-6 transform transition-transform hover:scale-105">

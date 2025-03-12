@@ -71,3 +71,30 @@
 }
 
 
+/* 🔹 Configuração Padrão dos Modais - Fixação Centralizada */
+.modal {
+    display: none; /* Inicialmente escondido */
+    position: fixed; /* Mantém o modal fixo na tela */
+    inset: 0; /* Faz ocupar a tela inteira */
+    background: rgba(0, 0, 0, 0.5); /* Fundo escurecido */
+    justify-content: center; /* Centraliza na horizontal */
+    align-items: center; /* Centraliza na vertical */
+    z-index: 1000; /* Garante que fique acima de outros elementos */
+}
+
+/* 🔹 Caixa interna do Modal */
+.modal-content {
+    background: white;
+    border-radius: 12px;
+    max-width: 500px;
+    width: 90%;
+    padding: 20px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+}
+
+/* 🔹 Ajuste para mobile */
+@media (max-width: 640px) {
+    .modal-content {
+        width: 95%;
+    }
+}

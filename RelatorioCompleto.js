@@ -1,13 +1,9 @@
-// Import the report template
+// Importa o template do relatório
 import { generateReportHTML } from './report_template.js';
 
-// Initialize variables and check imports
+// Verifica se o script está carregado corretamente
 console.log('RelatorioCompleto.js carregado');
-if (typeof generateReportHTML !== 'function') {
-    console.error('generateReportHTML não foi importado corretamente');
-}
 
-const mainContent = document.getElementById('mainContent');
 const form = document.getElementById('form');
 const reportContainer = document.getElementById('reportContainer');
 const shareWhatsAppBtn = document.getElementById('shareWhatsAppBtn');
@@ -21,6 +17,88 @@ const closeCampaignsModalBtn = document.getElementById('closeCampaignsModal');
 const closeAdSetsModalBtn = document.getElementById('closeAdSetsModal');
 const confirmComparisonBtn = document.getElementById('confirmComparison');
 const cancelComparisonBtn = document.getElementById('cancelComparison');
+
+// Event listeners para abrir os modais como pop-ups
+filterCampaignsBtn.addEventListener('click', () => {
+    campaignsModal.style.display = 'flex';
+});
+
+filterAdSetsBtn.addEventListener('click', () => {
+    adSetsModal.style.display = 'flex';
+});
+
+comparePeriodsBtn.addEventListener('click', () => {
+    comparisonModal.style.display = 'flex';
+});
+
+// Fechar os modais ao clicar no botão de fechar
+closeCampaignsModalBtn.addEventListener('click', () => {
+    campaignsModal.style.display = 'none';
+});
+
+closeAdSetsModalBtn.addEventListener('click', () => {
+    adSetsModal.style.display = 'none';
+});
+
+cancelComparisonBtn.addEventListener('click', () => {
+    comparisonModal.style.display = 'none';
+});
+
+// Permitir fechar os modais ao clicar fora deles
+[ campaignsModal, adSetsModal, comparisonModal ].forEach(modal => {
+    modal.addEventListener('click', (event) => {
+        if (event.target === modal) {
+            modal.style.display = 'none';
+        }
+    });
+});
+
+// Confirmação da comparação de períodos
+confirmComparisonBtn.addEventListener('click', async () => {
+    console.log('Confirmando comparação de períodos');
+    const option = document.querySelector('input[name="comparisonOption"]:checked')?.value;
+    if (!option) {
+        alert('Selecione uma opção de comparação.');
+        return;
+    }
+
+    const startDate = document.getElementById('startDate')?.value;
+    const endDate = document.getElementById('endDate')?.value;
+    
+    if (!startDate || !endDate) {
+        alert('Preencha as datas do período principal.');
+        return;
+    }
+
+    let comparisonData;
+    if (option === 'custom') {
+        const compareStartDate = document.getElementById('compareStartDate')?.value;
+        const compareEndDate = document.getElementById('compareEndDate')?.value;
+        if (!compareStartDate || !compareEndDate) {
+            alert('Preencha as datas do período de comparação.');
+            return;
+        }
+        comparisonData = { startDate: compareStartDate, endDate: compareEndDate, isPrevious: false };
+    } else if (option === 'previous') {
+        const previousPeriod = calculatePreviousPeriod(startDate, endDate);
+        comparisonData = { startDate: previousPeriod.start, endDate: previousPeriod.end, isPrevious: true };
+    }
+    console.log('Comparação salva:', comparisonData);
+    comparisonModal.style.display = 'none';
+});
+
+// Calcula período anterior para comparação
+function calculatePreviousPeriod(startDate, endDate) {
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    const diffDays = (end - start) / (1000 * 60 * 60 * 24);
+    const previousEnd = new Date(start);
+    previousEnd.setDate(previousEnd.getDate() - 1);
+    const previousStart = new Date(previousEnd);
+    previousStart.setDate(previousStart.getDate() - diffDays);
+    return { start: previousStart.toISOString().split('T')[0], end: previousEnd.toISOString().split('T')[0] };
+}
+
 
 // Mapa para armazenar os nomes das contas, IDs dos ad sets e campanhas
 const adAccountsMap = JSON.parse(localStorage.getItem('adAccountsMap')) || {};

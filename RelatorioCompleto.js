@@ -114,7 +114,6 @@ if (comparePeriodsBtn) {
 
 if (confirmComparisonBtn) {
     confirmComparisonBtn.addEventListener('click', async () => {
-        console.log('Confirmando comparação de períodos');
         const option = document.querySelector('input[name="comparisonOption"]:checked')?.value;
         if (!option) {
             console.error('Nenhuma opção de comparação selecionada');
@@ -129,6 +128,7 @@ if (confirmComparisonBtn) {
             return;
         }
 
+        // Captura as datas de comparação
         if (option === 'custom') {
             const compareStartDate = document.getElementById('compareStartDate')?.value;
             const compareEndDate = document.getElementById('compareEndDate')?.value;
@@ -828,7 +828,7 @@ async function generateReport() {
             return ad.imageUrl && !ad.imageUrl.includes('dummyimage');
         });
 
-        // Calculate comparison metrics if needed
+        // Calcular comparação se necessário
         if (comparisonData && comparisonData.startDate && comparisonData.endDate) {
             comparisonMetrics = await calculateComparisonMetrics(unitId, comparisonData.startDate, comparisonData.endDate);
         }
@@ -857,12 +857,29 @@ async function generateReport() {
             topTwoAds
         );
 
+        // Adicionar cálculo de variação
+        if (comparisonMetrics) {
+            const reachVariation = calculateVariation(totalReach, comparisonMetrics.reach);
+            const conversationsVariation = calculateVariation(totalConversations, comparisonMetrics.conversations);
+            const spendVariation = calculateVariation(totalSpend, comparisonMetrics.spend);
+
+            reportContainer.innerHTML += `
+                <div class="mt-4">
+                    <h3 class="text-lg font-semibold">Variação em Relação ao Período de Comparação</h3>
+                    <p>Alcance: ${reachVariation.percentage}%</p>
+                    <p>Mensagens Iniciadas: ${conversationsVariation.percentage}%</p>
+                    <p>Investimento Total: ${spendVariation.percentage}%</p>
+                </div>
+            `;
+        }
+
         shareWhatsAppBtn.style.display = 'block';
     } catch (error) {
         console.error('Erro durante a geração do relatório:', error);
         reportContainer.innerHTML = '<p class="text-red-500 text-center">Erro ao gerar relatório. Por favor, tente novamente.</p>';
     }
 }
+
 
 // Função para calcular métricas de comparação
 async function calculateComparisonMetrics(unitId, startDate, endDate) {

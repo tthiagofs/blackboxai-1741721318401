@@ -101,8 +101,14 @@ if (filterAdSetsBtn) {
 if (comparePeriodsBtn) {
     comparePeriodsBtn.addEventListener('click', () => {
     console.log('Abrindo modal de comparação de períodos');
-    comparisonModal.style.display = 'flex'; // Isso forçará a exibição do modal
+    comparisonModal.style.display = 'flex'; // Garante que o modal aparece corretamente
 });
+
+// Fechamento do modal ao clicar no botão
+cancelComparisonBtn.addEventListener('click', () => {
+    comparisonModal.style.display = 'none';
+});
+
 
 } else {
     console.error('Botão de comparação de períodos não encontrado');

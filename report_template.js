@@ -135,3 +135,9 @@ export function generateReportHTML(unitName, startDate, endDate, totalReach, tot
         </div>
     `;
 }
+
+function calculateVariation(currentValue, previousValue) {
+    if (!previousValue || previousValue === 0) return { percentage: 0 };
+    const percentage = ((currentValue - previousValue) / previousValue) * 100;
+    return { percentage: Math.abs(percentage).toFixed(2) };
+}

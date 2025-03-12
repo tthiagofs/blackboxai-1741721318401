@@ -24,7 +24,6 @@ backToReportSelectionBtn.addEventListener('click', () => {
     showScreen('reportSelectionScreen');
 });
 
-
 // Mapa para armazenar os nomes das contas, IDs dos ad sets e campanhas
 const adAccountsMap = {};
 const adSetsMap = {};
@@ -484,7 +483,6 @@ function handleCompleteReportLoginResponse(response) {
         document.getElementById('loginError').style.display = 'block';
     }
 }
-
 
 // Carrega os ad sets e campanhas quando o formulário é preenchido
 form.addEventListener('input', async function(e) {

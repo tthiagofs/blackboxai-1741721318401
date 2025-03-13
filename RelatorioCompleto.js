@@ -1,9 +1,43 @@
-// Importa o template do relatório
+// Import the report template
 import { generateReportHTML } from './report_template.js';
 
-// Verifica se o script está carregado corretamente
+// Initialize variables and check imports
 console.log('RelatorioCompleto.js carregado');
+if (typeof generateReportHTML !== 'function') {
+    console.error('generateReportHTML não foi importado corretamente');
+}
 
+let lastFocusedElement = null;
+
+// Create bound event handlers for each modal
+const modalHandlers = new Map();
+
+// Focus trap function
+function createTabHandler(modal) {
+    return function handleTabKey(e) {
+        if (e.key === 'Tab') {
+            const focusableElements = modal.querySelectorAll(
+                'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+            );
+            const firstFocusable = focusableElements[0];
+            const lastFocusable = focusableElements[focusableElements.length - 1];
+
+            if (e.shiftKey) {
+                if (document.activeElement === firstFocusable) {
+                    e.preventDefault();
+                    lastFocusable.focus();
+                }
+            } else {
+                if (document.activeElement === lastFocusable) {
+                    e.preventDefault();
+                    firstFocusable.focus();
+                }
+            }
+        }
+    };
+}
+
+const mainContent = document.getElementById('mainContent');
 const form = document.getElementById('form');
 const reportContainer = document.getElementById('reportContainer');
 const shareWhatsAppBtn = document.getElementById('shareWhatsAppBtn');
@@ -18,87 +52,35 @@ const closeAdSetsModalBtn = document.getElementById('closeAdSetsModal');
 const confirmComparisonBtn = document.getElementById('confirmComparison');
 const cancelComparisonBtn = document.getElementById('cancelComparison');
 
-// Event listeners para abrir os modais como pop-ups
-filterCampaignsBtn.addEventListener('click', () => {
-    campaignsModal.style.display = 'flex';
-});
-
-filterAdSetsBtn.addEventListener('click', () => {
-    adSetsModal.style.display = 'flex';
-});
-
-comparePeriodsBtn.addEventListener('click', () => {
-    comparisonModal.style.display = 'flex';
-});
-
-// Fechar os modais ao clicar no botão de fechar
+// Add event listeners for modal close buttons
 closeCampaignsModalBtn.addEventListener('click', () => {
-    campaignsModal.style.display = 'none';
+    toggleModal(campaignsModal, false, true);
 });
 
 closeAdSetsModalBtn.addEventListener('click', () => {
-    adSetsModal.style.display = 'none';
+    toggleModal(adSetsModal, false, false);
 });
 
-cancelComparisonBtn.addEventListener('click', () => {
-    comparisonModal.style.display = 'none';
-});
-
-// Permitir fechar os modais ao clicar fora deles
-[ campaignsModal, adSetsModal, comparisonModal ].forEach(modal => {
-    modal.addEventListener('click', (event) => {
-        if (event.target === modal) {
-            modal.style.display = 'none';
+// Add click outside listeners for modals
+[campaignsModal, adSetsModal, comparisonModal].forEach(modal => {
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+            toggleModal(modal, false, modal === campaignsModal);
         }
     });
 });
 
-// Confirmação da comparação de períodos
-confirmComparisonBtn.addEventListener('click', async () => {
-    console.log('Confirmando comparação de períodos');
-    const option = document.querySelector('input[name="comparisonOption"]:checked')?.value;
-    if (!option) {
-        alert('Selecione uma opção de comparação.');
-        return;
-    }
-
-    const startDate = document.getElementById('startDate')?.value;
-    const endDate = document.getElementById('endDate')?.value;
-    
-    if (!startDate || !endDate) {
-        alert('Preencha as datas do período principal.');
-        return;
-    }
-
-    let comparisonData;
-    if (option === 'custom') {
-        const compareStartDate = document.getElementById('compareStartDate')?.value;
-        const compareEndDate = document.getElementById('compareEndDate')?.value;
-        if (!compareStartDate || !compareEndDate) {
-            alert('Preencha as datas do período de comparação.');
-            return;
+// Add keyboard listener for Escape key
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+        const visibleModal = [campaignsModal, adSetsModal, comparisonModal].find(
+            modal => modal.style.display !== 'none'
+        );
+        if (visibleModal) {
+            toggleModal(visibleModal, false, visibleModal === campaignsModal);
         }
-        comparisonData = { startDate: compareStartDate, endDate: compareEndDate, isPrevious: false };
-    } else if (option === 'previous') {
-        const previousPeriod = calculatePreviousPeriod(startDate, endDate);
-        comparisonData = { startDate: previousPeriod.start, endDate: previousPeriod.end, isPrevious: true };
     }
-    console.log('Comparação salva:', comparisonData);
-    comparisonModal.style.display = 'none';
 });
-
-// Calcula período anterior para comparação
-function calculatePreviousPeriod(startDate, endDate) {
-    const start = new Date(startDate);
-    const end = new Date(endDate);
-    const diffDays = (end - start) / (1000 * 60 * 60 * 24);
-    const previousEnd = new Date(start);
-    previousEnd.setDate(previousEnd.getDate() - 1);
-    const previousStart = new Date(previousEnd);
-    previousStart.setDate(previousStart.getDate() - diffDays);
-    return { start: previousStart.toISOString().split('T')[0], end: previousEnd.toISOString().split('T')[0] };
-}
-
 
 // Mapa para armazenar os nomes das contas, IDs dos ad sets e campanhas
 const adAccountsMap = JSON.parse(localStorage.getItem('adAccountsMap')) || {};
@@ -178,16 +160,14 @@ if (filterAdSetsBtn) {
 // Event listeners para comparação de períodos
 if (comparePeriodsBtn) {
     comparePeriodsBtn.addEventListener('click', () => {
-    console.log('Abrindo modal de comparação de períodos');
-    comparisonModal.style.display = 'flex'; // Garante que o modal aparece corretamente
-});
-
-// Fechamento do modal ao clicar no botão
-cancelComparisonBtn.addEventListener('click', () => {
-    comparisonModal.style.display = 'none';
-});
-
-
+        console.log('Iniciando comparação de períodos');
+        if (comparisonModal) {
+            console.log('Abrindo modal de comparação de períodos');
+            toggleModal(comparisonModal, true, false);
+        } else {
+            console.error('Modal de comparação não encontrado');
+        }
+    });
 } else {
     console.error('Botão de comparação de períodos não encontrado');
 }
@@ -198,6 +178,7 @@ if (confirmComparisonBtn) {
         const option = document.querySelector('input[name="comparisonOption"]:checked')?.value;
         if (!option) {
             console.error('Nenhuma opção de comparação selecionada');
+            alert('Por favor, selecione uma opção de comparação.');
             return;
         }
 
@@ -206,26 +187,41 @@ if (confirmComparisonBtn) {
 
         if (!startDate || !endDate) {
             console.error('Datas do período principal não preenchidas');
+            alert('Por favor, preencha as datas do período principal primeiro.');
             return;
         }
 
-        if (option === 'custom') {
-            const compareStartDate = document.getElementById('compareStartDate')?.value;
-            const compareEndDate = document.getElementById('compareEndDate')?.value;
-            if (!compareStartDate || !compareEndDate) {
-                alert('Por favor, preencha as datas do período de comparação.');
-                return;
+        try {
+            if (option === 'custom') {
+                const compareStartDate = document.getElementById('compareStartDate')?.value;
+                const compareEndDate = document.getElementById('compareEndDate')?.value;
+                if (!compareStartDate || !compareEndDate) {
+                    alert('Por favor, preencha as datas do período de comparação.');
+                    return;
+                }
+                if (new Date(compareStartDate) > new Date(compareEndDate)) {
+                    alert('A data inicial do período de comparação deve ser anterior à data final.');
+                    return;
+                }
+                comparisonData = { startDate: compareStartDate, endDate: compareEndDate, isPrevious: false };
+            } else if (option === 'previous') {
+                const previousPeriod = calculatePreviousPeriod(startDate, endDate);
+                comparisonData = { startDate: previousPeriod.start, endDate: previousPeriod.end, isPrevious: true };
+            } else {
+                comparisonData = null;
             }
-            comparisonData = { startDate: compareStartDate, endDate: compareEndDate, isPrevious: false };
-        } else if (option === 'previous') {
-            const previousPeriod = calculatePreviousPeriod(startDate, endDate);
-            comparisonData = { startDate: previousPeriod.start, endDate: previousPeriod.end, isPrevious: true };
-        } else {
-            comparisonData = null;
-        }
 
-        console.log('Dados de comparação salvos:', comparisonData);
-        toggleModal(comparisonModal, false, false);
+            console.log('Dados de comparação salvos:', comparisonData);
+            toggleModal(comparisonModal, false, false);
+
+            // Trigger report generation immediately after setting comparison data
+            if (form) {
+                await generateReport();
+            }
+        } catch (error) {
+            console.error('Erro ao configurar período de comparação:', error);
+            alert('Erro ao configurar período de comparação. Por favor, tente novamente.');
+        }
     });
 } else {
     console.error('Botão de confirmar comparação não encontrado');
@@ -566,8 +562,44 @@ function toggleModal(modal, show, isCampaign) {
         return;
     }
 
-    modal.style.display = show ? 'block' : 'none';
     if (show) {
+        // Store the currently focused element
+        lastFocusedElement = document.activeElement;
+        document.body.classList.add('modal-open');
+        
+        // Set up keyboard trap
+        if (!modalHandlers.has(modal)) {
+            const handler = function(e) {
+                if (e.key === 'Tab') {
+                    const focusableElements = modal.querySelectorAll(
+                        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+                    );
+                    const firstFocusable = focusableElements[0];
+                    const lastFocusable = focusableElements[focusableElements.length - 1];
+
+                    if (e.shiftKey && document.activeElement === firstFocusable) {
+                        e.preventDefault();
+                        lastFocusable.focus();
+                    } else if (!e.shiftKey && document.activeElement === lastFocusable) {
+                        e.preventDefault();
+                        firstFocusable.focus();
+                    }
+                }
+            };
+            modalHandlers.set(modal, handler);
+        }
+        modal.addEventListener('keydown', modalHandlers.get(modal));
+        
+        // Use setTimeout to trigger the transition
+        requestAnimationFrame(() => {
+            modal.classList.add('show');
+            // Focus the first focusable element
+            const focusable = modal.querySelector('input, button, [tabindex="-1"]');
+            if (focusable) {
+                focusable.focus();
+            }
+        });
+        
         if (isCampaign) {
             isCampaignFilterActive = true;
             isAdSetFilterActive = false;
@@ -579,6 +611,7 @@ function toggleModal(modal, show, isCampaign) {
             filterCampaignsBtn.disabled = isFilterActivated;
             filterCampaignsBtn.style.cursor = isFilterActivated ? 'not-allowed' : 'pointer';
         }
+
         if (modal === comparisonModal && comparisonData) {
             if (comparisonData.startDate && comparisonData.endDate) {
                 document.querySelector('input[name="comparisonOption"][value="custom"]').checked = true;
@@ -591,6 +624,27 @@ function toggleModal(modal, show, isCampaign) {
             }
         }
     } else {
+        modal.classList.remove('show');
+        // Remove keyboard trap and clean up
+        const handler = modalHandlers.get(modal);
+        if (handler) {
+            modal.removeEventListener('keydown', handler);
+            modalHandlers.delete(modal);
+        }
+        
+        // Only remove modal-open if no other modals are visible
+        const anyModalVisible = [campaignsModal, adSetsModal, comparisonModal].some(
+            m => m !== modal && m.classList.contains('show')
+        );
+        if (!anyModalVisible) {
+            document.body.classList.remove('modal-open');
+            // Restore focus to the last focused element
+            if (lastFocusedElement) {
+                lastFocusedElement.focus();
+                lastFocusedElement = null;
+            }
+        }
+
         if (isCampaign) {
             isCampaignFilterActive = false;
             if (isFilterActivated && selectedCampaigns.size === 0) {
@@ -648,6 +702,12 @@ function renderOptions(containerId, options, selectedSet, isCampaign) {
     container.innerHTML = options.length === 0 ? '<p>Carregando dados, por favor aguarde...</p>' : '';
 
     if (options.length > 0) {
+        // Create a wrapper div for the scrollable content
+        const optionsWrapper = document.createElement('div');
+        optionsWrapper.id = isCampaign ? 'campaignsList' : 'adSetsList';
+        optionsWrapper.className = 'options-wrapper';
+        container.appendChild(optionsWrapper);
+
         function filterOptions(searchText) {
             const filteredOptions = options.filter(option => 
                 option.label.toLowerCase().includes(searchText.toLowerCase())
@@ -656,7 +716,7 @@ function renderOptions(containerId, options, selectedSet, isCampaign) {
         }
 
         function renderFilteredOptions(filteredOptions, set, isCampaignParam) {
-            container.innerHTML = '';
+            optionsWrapper.innerHTML = '';
             filteredOptions.forEach(option => {
                 const div = document.createElement('div');
                 div.className = `filter-option ${set.has(option.value) ? 'selected' : ''}`;
@@ -664,7 +724,17 @@ function renderOptions(containerId, options, selectedSet, isCampaign) {
                 const spendColor = spend > 0 ? 'green' : 'gray';
                 div.innerHTML = `${option.label} <span style="margin-left: 10px; color: ${spendColor};">R$ ${spend.toFixed(2).replace('.', ',')}</span>`;
                 div.dataset.value = option.value;
-                div.addEventListener('click', () => {
+                
+                // Create a clickable button for better interaction
+                const button = document.createElement('button');
+                button.type = 'button';
+                button.className = 'w-full text-left';
+                button.innerHTML = div.innerHTML;
+                div.innerHTML = '';
+                div.appendChild(button);
+
+                button.addEventListener('click', (e) => {
+                    e.preventDefault();
                     const value = option.value;
                     if (set.has(value)) {
                         set.delete(value);
@@ -687,7 +757,7 @@ function renderOptions(containerId, options, selectedSet, isCampaign) {
                     }
                     updateFilterButton();
                 });
-                container.appendChild(div);
+                optionsWrapper.appendChild(div);
             });
 
             const existingButton = container.querySelector('.btn-filter-toggle');

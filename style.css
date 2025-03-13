@@ -2,11 +2,19 @@
 
 /* Filter option styles */
 .filter-option {
-    @apply p-3 mb-2 bg-gray-50 rounded-lg cursor-pointer transition-all duration-300 hover:bg-gray-100;
+    @apply p-3 mb-2 bg-gray-50 rounded-lg transition-all duration-300;
+}
+
+.filter-option button {
+    @apply w-full p-2 rounded-lg cursor-pointer transition-all duration-300 hover:bg-gray-200;
 }
 
 .filter-option.selected {
-    @apply bg-primary text-white hover:bg-primary-light;
+    @apply bg-primary text-white;
+}
+
+.filter-option.selected button {
+    @apply hover:bg-primary-dark;
 }
 
 /* Button styles */
@@ -16,11 +24,61 @@
 
 /* Modal styles */
 .modal {
-    @apply fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center p-4 z-50;
+    @apply fixed inset-0 bg-black bg-opacity-50 justify-center items-center p-4;
+    display: flex;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+    z-index: 9999;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: none;
+}
+
+.modal.show {
+    opacity: 1;
+    pointer-events: auto;
 }
 
 .modal-content {
     @apply bg-white rounded-xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-6;
+    transform: scale(0.95);
+    transition: transform 0.2s ease;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    position: relative;
+    z-index: 10000;
+    will-change: transform;
+}
+
+.modal.show .modal-content {
+    transform: scale(1);
+}
+
+/* Prevent body scroll when modal is open */
+body.modal-open {
+    overflow: hidden;
+}
+
+/* Campaign and Ad Set list containers */
+#campaignsList, #adSetsList {
+    @apply max-h-[60vh] overflow-y-auto pr-2;
+    scrollbar-width: thin;
+    scrollbar-color: #4F46E5 #E5E7EB;
+}
+
+#campaignsList::-webkit-scrollbar, #adSetsList::-webkit-scrollbar {
+    width: 8px;
+}
+
+#campaignsList::-webkit-scrollbar-track, #adSetsList::-webkit-scrollbar-track {
+    @apply bg-gray-200 rounded-full;
+}
+
+#campaignsList::-webkit-scrollbar-thumb, #adSetsList::-webkit-scrollbar-thumb {
+    @apply bg-primary rounded-full;
+}
+
+#campaignsList::-webkit-scrollbar-thumb:hover, #adSetsList::-webkit-scrollbar-thumb:hover {
+    @apply bg-primary-dark;
 }
 
 /* Loading state */
@@ -40,61 +98,17 @@
 
 /* Responsive adjustments */
 @media (max-width: 640px) {
+    .modal {
+        @apply p-2;
+    }
+    
     .modal-content {
-        @apply p-4;
+        @apply p-4 max-h-[80vh];
+        margin: 1rem;
+        width: calc(100% - 2rem);
     }
     
     .filter-option {
         @apply p-2;
-    }
-}
-
-/* Modais de Filtro e Comparação - Padrão do Relatório Simplificado */
-#campaignsModal, #adSetsModal, #comparisonModal {
-    display: none; /* Inicia escondido */
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.5);
-    justify-content: center;
-    align-items: center;
-    z-index: 50;
-}
-
-/* Caixa de conteúdo dentro dos modais */
-.modal-content {
-    background: white;
-    border-radius: 12px;
-    max-width: 500px;
-    width: 90%;
-    padding: 20px;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
-}
-
-
-/* 🔹 Configuração Padrão dos Modais - Fixação Centralizada */
-.modal {
-    display: none; /* Inicialmente escondido */
-    position: fixed; /* Mantém o modal fixo na tela */
-    inset: 0; /* Faz ocupar a tela inteira */
-    background: rgba(0, 0, 0, 0.5); /* Fundo escurecido */
-    justify-content: center; /* Centraliza na horizontal */
-    align-items: center; /* Centraliza na vertical */
-    z-index: 1000; /* Garante que fique acima de outros elementos */
-}
-
-/* 🔹 Caixa interna do Modal */
-.modal-content {
-    background: white;
-    border-radius: 12px;
-    max-width: 500px;
-    width: 90%;
-    padding: 20px;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
-}
-
-/* 🔹 Ajuste para mobile */
-@media (max-width: 640px) {
-    .modal-content {
-        width: 95%;
     }
 }

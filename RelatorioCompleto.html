@@ -83,7 +83,7 @@
     </div>
 
     <!-- Modals -->
-    <div id="campaignsModal" class="modal" role="dialog" aria-labelledby="campaignsModalTitle" aria-modal="true">
+    <div id="campaignsModal" class="modal" role="dialog" aria-labelledby="campaignsModalTitle" aria-modal="true" style="display: none; visibility: hidden;">
         <div class="modal-content" tabindex="-1">
             <h2 id="campaignsModalTitle" class="text-xl font-semibold text-primary mb-4">Selecione as Campanhas</h2>
             <input type="text" id="campaignSearch" class="w-full px-4 py-2 border border-gray-300 rounded-lg mb-4" placeholder="Pesquisar campanhas..." aria-label="Pesquisar campanhas">
@@ -94,7 +94,7 @@
         </div>
     </div>
 
-    <div id="adSetsModal" class="modal" role="dialog" aria-labelledby="adSetsModalTitle" aria-modal="true">
+    <div id="adSetsModal" class="modal" role="dialog" aria-labelledby="adSetsModalTitle" aria-modal="true" style="display: none; visibility: hidden;">
         <div class="modal-content" tabindex="-1">
             <h2 id="adSetsModalTitle" class="text-xl font-semibold text-primary mb-4">Selecione os Conjuntos de Anúncios</h2>
             <input type="text" id="adSetSearch" class="w-full px-4 py-2 border border-gray-300 rounded-lg mb-4" placeholder="Pesquisar conjuntos..." aria-label="Pesquisar conjuntos de anúncios">
@@ -105,7 +105,7 @@
         </div>
     </div>
 
-    <div id="comparisonModal" class="modal" role="dialog" aria-labelledby="comparisonModalTitle" aria-modal="true">
+    <div id="comparisonModal" class="modal" role="dialog" aria-labelledby="comparisonModalTitle" aria-modal="true" style="display: none; visibility: hidden;">
         <div class="modal-content" tabindex="-1">
             <h2 id="comparisonModalTitle" class="text-xl font-semibold text-primary mb-4">Comparação de Períodos</h2>
             <p class="text-gray-600 mb-4">Deseja adicionar um período de comparação?</p>
@@ -161,6 +161,6 @@
             FB.AppEvents.logPageView();
         };
     </script>
-    <script type="module" src="RelatorioCompleto.js"></script>
+    <script type="module" src="./RelatorioCompleto.js"></script>
 </body>
 </html>

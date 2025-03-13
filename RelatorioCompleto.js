@@ -569,35 +569,24 @@ function toggleModal(modal, show, isCampaign) {
         
         // Set up keyboard trap
         if (!modalHandlers.has(modal)) {
-            const handler = function(e) {
-                if (e.key === 'Tab') {
-                    const focusableElements = modal.querySelectorAll(
-                        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
-                    );
-                    const firstFocusable = focusableElements[0];
-                    const lastFocusable = focusableElements[focusableElements.length - 1];
-
-                    if (e.shiftKey && document.activeElement === firstFocusable) {
-                        e.preventDefault();
-                        lastFocusable.focus();
-                    } else if (!e.shiftKey && document.activeElement === lastFocusable) {
-                        e.preventDefault();
-                        firstFocusable.focus();
-                    }
-                }
-            };
+            const handler = createTabHandler(modal);
             modalHandlers.set(modal, handler);
         }
         modal.addEventListener('keydown', modalHandlers.get(modal));
         
-        // Use setTimeout to trigger the transition
+        // Show modal with transition
+        modal.style.visibility = 'visible';
+        modal.style.display = 'flex';
+        // Use double RAF to ensure the transition works
         requestAnimationFrame(() => {
-            modal.classList.add('show');
-            // Focus the first focusable element
-            const focusable = modal.querySelector('input, button, [tabindex="-1"]');
-            if (focusable) {
-                focusable.focus();
-            }
+            requestAnimationFrame(() => {
+                modal.classList.add('show');
+                // Focus the first focusable element
+                const focusable = modal.querySelector('input, button, [tabindex="-1"]');
+                if (focusable) {
+                    focusable.focus();
+                }
+            });
         });
         
         if (isCampaign) {
@@ -625,25 +614,30 @@ function toggleModal(modal, show, isCampaign) {
         }
     } else {
         modal.classList.remove('show');
-        // Remove keyboard trap and clean up
-        const handler = modalHandlers.get(modal);
-        if (handler) {
-            modal.removeEventListener('keydown', handler);
-            modalHandlers.delete(modal);
-        }
-        
-        // Only remove modal-open if no other modals are visible
-        const anyModalVisible = [campaignsModal, adSetsModal, comparisonModal].some(
-            m => m !== modal && m.classList.contains('show')
-        );
-        if (!anyModalVisible) {
-            document.body.classList.remove('modal-open');
-            // Restore focus to the last focused element
-            if (lastFocusedElement) {
-                lastFocusedElement.focus();
-                lastFocusedElement = null;
+        // Wait for transition to complete before hiding
+        setTimeout(() => {
+            modal.style.visibility = 'hidden';
+            modal.style.display = 'none';
+            // Remove keyboard trap and clean up
+            const handler = modalHandlers.get(modal);
+            if (handler) {
+                modal.removeEventListener('keydown', handler);
+                modalHandlers.delete(modal);
             }
-        }
+            
+            // Only remove modal-open if no other modals are visible
+            const anyModalVisible = [campaignsModal, adSetsModal, comparisonModal].some(
+                m => m !== modal && m.classList.contains('show')
+            );
+            if (!anyModalVisible) {
+                document.body.classList.remove('modal-open');
+                // Restore focus to the last focused element
+                if (lastFocusedElement) {
+                    lastFocusedElement.focus();
+                    lastFocusedElement = null;
+                }
+            }
+        }, 300); // Match the transition duration from CSS
 
         if (isCampaign) {
             isCampaignFilterActive = false;

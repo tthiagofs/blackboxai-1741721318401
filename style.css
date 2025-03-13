@@ -25,24 +25,27 @@
 /* Modal styles */
 .modal {
     @apply fixed inset-0 bg-black bg-opacity-50 justify-center items-center p-4;
-    display: flex;
+    display: none;
     opacity: 0;
     pointer-events: none;
-    transition: opacity 0.2s ease;
+    transition: all 0.3s ease;
     z-index: 9999;
     -webkit-tap-highlight-color: transparent;
     touch-action: none;
+    visibility: hidden;
 }
 
 .modal.show {
+    display: flex !important;
     opacity: 1;
     pointer-events: auto;
+    visibility: visible;
 }
 
 .modal-content {
     @apply bg-white rounded-xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-6;
     transform: scale(0.95);
-    transition: transform 0.2s ease;
+    transition: transform 0.3s ease;
     box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
     position: relative;
     z-index: 10000;

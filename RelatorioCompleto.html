@@ -83,41 +83,31 @@
     </div>
 
     <!-- Modals -->
-    <div id="campaignsModal" class="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center p-4 z-50" style="display: none;">
-    <div class="bg-white rounded-xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-6">
-        <h2 class="text-xl font-semibold text-primary mb-4">Selecione as Campanhas</h2>
-        <input type="text" id="campaignSearch" class="w-full px-4 py-2 border border-gray-300 rounded-lg mb-4" placeholder="Pesquisar campanhas...">
-        <div id="campaignsList" class="space-y-2 mb-4"></div>
-        <button type="button" id="closeCampaignsModal" class="w-full bg-primary text-white py-2 px-4 rounded-lg hover:bg-primary-light transition duration-300">
-            Fechar
-        </button>
-    </div>
-</div>
-
-        <div class="modal-content">
-            <h2 class="text-xl font-semibold text-primary mb-4">Selecione as Campanhas</h2>
-            <input type="text" id="campaignSearch" class="w-full px-4 py-2 border border-gray-300 rounded-lg mb-4" placeholder="Pesquisar campanhas...">
+    <div id="campaignsModal" class="modal" role="dialog" aria-labelledby="campaignsModalTitle" aria-modal="true">
+        <div class="modal-content" tabindex="-1">
+            <h2 id="campaignsModalTitle" class="text-xl font-semibold text-primary mb-4">Selecione as Campanhas</h2>
+            <input type="text" id="campaignSearch" class="w-full px-4 py-2 border border-gray-300 rounded-lg mb-4" placeholder="Pesquisar campanhas..." aria-label="Pesquisar campanhas">
             <div id="campaignsList" class="space-y-2 mb-4"></div>
-            <button type="button" id="closeCampaignsModal" class="w-full bg-primary text-white py-2 px-4 rounded-lg hover:bg-primary-light transition duration-300">
+            <button type="button" id="closeCampaignsModal" class="w-full bg-primary text-white py-2 px-4 rounded-lg hover:bg-primary-light transition duration-300" aria-label="Fechar modal de campanhas">
                 Fechar
             </button>
         </div>
     </div>
 
-    <div id="adSetsModal" class="modal" style="display: none;">
-        <div class="modal-content">
-            <h2 class="text-xl font-semibold text-primary mb-4">Selecione os Conjuntos de Anúncios</h2>
-            <input type="text" id="adSetSearch" class="w-full px-4 py-2 border border-gray-300 rounded-lg mb-4" placeholder="Pesquisar conjuntos...">
+    <div id="adSetsModal" class="modal" role="dialog" aria-labelledby="adSetsModalTitle" aria-modal="true">
+        <div class="modal-content" tabindex="-1">
+            <h2 id="adSetsModalTitle" class="text-xl font-semibold text-primary mb-4">Selecione os Conjuntos de Anúncios</h2>
+            <input type="text" id="adSetSearch" class="w-full px-4 py-2 border border-gray-300 rounded-lg mb-4" placeholder="Pesquisar conjuntos..." aria-label="Pesquisar conjuntos de anúncios">
             <div id="adSetsList" class="space-y-2 mb-4"></div>
-            <button type="button" id="closeAdSetsModal" class="w-full bg-primary text-white py-2 px-4 rounded-lg hover:bg-primary-light transition duration-300">
+            <button type="button" id="closeAdSetsModal" class="w-full bg-primary text-white py-2 px-4 rounded-lg hover:bg-primary-light transition duration-300" aria-label="Fechar modal de conjuntos de anúncios">
                 Fechar
             </button>
         </div>
     </div>
 
-    <div id="comparisonModal" class="modal" style="display: none;">
-        <div class="modal-content">
-            <h2 class="text-xl font-semibold text-primary mb-4">Comparação de Períodos</h2>
+    <div id="comparisonModal" class="modal" role="dialog" aria-labelledby="comparisonModalTitle" aria-modal="true">
+        <div class="modal-content" tabindex="-1">
+            <h2 id="comparisonModalTitle" class="text-xl font-semibold text-primary mb-4">Comparação de Períodos</h2>
             <p class="text-gray-600 mb-4">Deseja adicionar um período de comparação?</p>
             
             <div class="space-y-4">
@@ -149,10 +139,10 @@
             </div>
 
             <div class="mt-6 flex space-x-3">
-                <button type="button" id="confirmComparison" class="flex-1 bg-primary text-white py-2 px-4 rounded-lg hover:bg-primary-light transition duration-300">
+                <button type="button" id="confirmComparison" class="flex-1 bg-primary text-white py-2 px-4 rounded-lg hover:bg-primary-light transition duration-300" aria-label="Confirmar período de comparação">
                     Confirmar
                 </button>
-                <button type="button" id="cancelComparison" class="flex-1 bg-gray-500 text-white py-2 px-4 rounded-lg hover:bg-gray-600 transition duration-300">
+                <button type="button" id="cancelComparison" class="flex-1 bg-gray-500 text-white py-2 px-4 rounded-lg hover:bg-gray-600 transition duration-300" aria-label="Cancelar período de comparação">
                     Cancelar
                 </button>
             </div>
@@ -172,76 +162,5 @@
         };
     </script>
     <script type="module" src="RelatorioCompleto.js"></script>
-<!-- 🔹 Modal de Filtro de Campanhas -->
-<div id="campaignsModal" class="modal">
-    <div class="modal-content">
-        <h2 class="text-xl font-semibold text-primary mb-4">Selecione as Campanhas</h2>
-        <input type="text" id="campaignSearch" class="w-full px-4 py-2 border border-gray-300 rounded-lg mb-4" placeholder="Pesquisar campanhas...">
-        <div id="campaignsList" class="space-y-2 mb-4"></div>
-        <button type="button" id="closeCampaignsModal" class="w-full bg-primary text-white py-2 px-4 rounded-lg hover:bg-primary-light transition duration-300">
-            Fechar
-        </button>
-    </div>
-</div>
-
-<!-- 🔹 Modal de Filtro de Conjuntos de Anúncios -->
-<div id="adSetsModal" class="modal">
-    <div class="modal-content">
-        <h2 class="text-xl font-semibold text-primary mb-4">Selecione os Conjuntos de Anúncios</h2>
-        <input type="text" id="adSetSearch" class="w-full px-4 py-2 border border-gray-300 rounded-lg mb-4" placeholder="Pesquisar conjuntos...">
-        <div id="adSetsList" class="space-y-2 mb-4"></div>
-        <button type="button" id="closeAdSetsModal" class="w-full bg-primary text-white py-2 px-4 rounded-lg hover:bg-primary-light transition duration-300">
-            Fechar
-        </button>
-    </div>
-</div>
-
-<!-- 🔹 Modal de Comparação de Períodos -->
-<div id="comparisonModal" class="modal">
-    <div class="modal-content">
-        <h2 class="text-xl font-semibold text-primary mb-4">Comparação de Períodos</h2>
-        <p class="text-gray-600 mb-4">Deseja adicionar um período de comparação?</p>
-
-        <div class="space-y-4">
-            <label class="flex items-center space-x-2">
-                <input type="radio" name="comparisonOption" value="custom" checked class="text-primary">
-                <span>Sim, período personalizado</span>
-            </label>
-
-            <div id="customPeriod" class="ml-6 space-y-3">
-                <div>
-                    <label for="compareStartDate" class="block text-sm font-medium text-gray-700 mb-1">Data Início:</label>
-                    <input type="date" id="compareStartDate" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent">
-                </div>
-                <div>
-                    <label for="compareEndDate" class="block text-sm font-medium text-gray-700 mb-1">Data Fim:</label>
-                    <input type="date" id="compareEndDate" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent">
-                </div>
-            </div>
-
-            <label class="flex items-center space-x-2">
-                <input type="radio" name="comparisonOption" value="previous" class="text-primary">
-                <span>Sim, mesmo período anterior</span>
-            </label>
-
-            <label class="flex items-center space-x-2">
-                <input type="radio" name="comparisonOption" value="none" class="text-primary">
-                <span>Não</span>
-            </label>
-        </div>
-
-        <div class="mt-6 flex space-x-3">
-            <button type="button" id="confirmComparison" class="flex-1 bg-primary text-white py-2 px-4 rounded-lg hover:bg-primary-light transition duration-300">
-                Confirmar
-            </button>
-            <button type="button" id="cancelComparison" class="flex-1 bg-gray-500 text-white py-2 px-4 rounded-lg hover:bg-gray-600 transition duration-300">
-                Cancelar
-            </button>
-        </div>
-    </div>
-</div>
-
-
-
 </body>
 </html>

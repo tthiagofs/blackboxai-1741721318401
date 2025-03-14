@@ -356,8 +356,13 @@ function renderCampaignOptions() {
         </div>
     `).join('');
 
-    container.querySelectorAll('.filter-option').forEach(option => {
-        option.addEventListener('click', () => {
+    // Remover listener antigo se existir
+    container.removeEventListener('click', container.clickHandler);
+    
+    // Adicionar novo listener usando event delegation
+    container.clickHandler = (e) => {
+        const option = e.target.closest('.filter-option');
+        if (option) {
             const id = option.dataset.id;
             if (selectedCampaigns.has(id)) {
                 selectedCampaigns.delete(id);
@@ -367,8 +372,10 @@ function renderCampaignOptions() {
                 option.classList.add('selected');
             }
             updateFilterButtons();
-        });
-    });
+        }
+    };
+    
+    container.addEventListener('click', container.clickHandler);
 }
 
 function renderAdSetOptions() {
@@ -398,8 +405,13 @@ function renderAdSetOptions() {
         </div>
     `).join('');
 
-    container.querySelectorAll('.filter-option').forEach(option => {
-        option.addEventListener('click', () => {
+    // Remover listener antigo se existir
+    container.removeEventListener('click', container.clickHandler);
+    
+    // Adicionar novo listener usando event delegation
+    container.clickHandler = (e) => {
+        const option = e.target.closest('.filter-option');
+        if (option) {
             const id = option.dataset.id;
             if (selectedAdSets.has(id)) {
                 selectedAdSets.delete(id);
@@ -409,8 +421,10 @@ function renderAdSetOptions() {
                 option.classList.add('selected');
             }
             updateFilterButtons();
-        });
-    });
+        }
+    };
+    
+    container.addEventListener('click', container.clickHandler);
 }
 
 // Função para atualizar botões de filtro
@@ -609,8 +623,9 @@ loginBtn.addEventListener('click', (event) => {
 });
 
 // Voltar para a seleção de relatório
-backToReportSelectionBtn.addEventListener('click', () => {
-    window.location.href = 'index.html?screen=reportSelection';
+backToReportSelectionBtn.addEventListener('click', (e) => {
+    e.preventDefault();
+    window.location.replace('index.html?screen=reportSelection');
 });
 
 // Verificar autenticação e decidir a tela inicial

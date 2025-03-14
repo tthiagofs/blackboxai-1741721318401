@@ -1,9 +1,16 @@
+// Classe para autenticação do aplicativo
 class AppAuth {
-    static validateAppLogin(username, password) {
-        return username === '@admin' && password === '134679';
+    constructor() {
+        this.username = '@admin';
+        this.password = '134679';
+    }
+
+    validateAppLogin(username, password) {
+        return username === this.username && password === this.password;
     }
 }
 
+// Classe para autenticação do Facebook
 class FacebookAuth {
     constructor() {
         this.accessToken = localStorage.getItem('fbAccessToken');
@@ -32,7 +39,6 @@ class FacebookAuth {
                     localStorage.setItem('fbAccessToken', this.accessToken);
                     
                     try {
-                        // Carregar todas as contas de anúncios disponíveis
                         await this.loadAllAdAccounts();
                         resolve(response);
                     } catch (error) {
@@ -50,13 +56,9 @@ class FacebookAuth {
 
     async loadAllAdAccounts() {
         try {
-            // 1. Carregar contas de anúncios pessoais
             await this.loadPersonalAdAccounts();
-            
-            // 2. Carregar Business Managers
             const businesses = await this.getBusinesses();
             
-            // 3. Para cada Business Manager, carregar contas próprias e compartilhadas
             for (const business of businesses) {
                 await Promise.all([
                     this.loadOwnedAccounts(business.id),
@@ -64,7 +66,6 @@ class FacebookAuth {
                 ]);
             }
 
-            // Salvar no localStorage
             localStorage.setItem('adAccountsMap', JSON.stringify(this.adAccountsMap));
             return this.adAccountsMap;
         } catch (error) {
@@ -82,7 +83,7 @@ class FacebookAuth {
                 if (response && !response.error) {
                     const accounts = response.data || [];
                     accounts.forEach(account => {
-                        if (account.account_status === 1) { // 1 = ativo
+                        if (account.account_status === 1) {
                             this.adAccountsMap[account.id] = account.name;
                         }
                     });
@@ -110,7 +111,7 @@ class FacebookAuth {
     }
 
     async loadOwnedAccounts(businessId) {
-        return new Promise((resolve, reject) => {
+        return new Promise((resolve) => {
             FB.api(`/${businessId}/owned_ad_accounts`, {
                 fields: 'id,name,account_status',
                 access_token: this.accessToken
@@ -124,14 +125,14 @@ class FacebookAuth {
                     });
                     resolve(accounts);
                 } else {
-                    resolve([]); // Não rejeitar se não tiver acesso
+                    resolve([]);
                 }
             });
         });
     }
 
     async loadClientAccounts(businessId) {
-        return new Promise((resolve, reject) => {
+        return new Promise((resolve) => {
             FB.api(`/${businessId}/client_ad_accounts`, {
                 fields: 'id,name,account_status',
                 access_token: this.accessToken
@@ -145,7 +146,7 @@ class FacebookAuth {
                     });
                     resolve(accounts);
                 } else {
-                    resolve([]); // Não rejeitar se não tiver acesso
+                    resolve([]);
                 }
             });
         });
@@ -172,6 +173,8 @@ class FacebookAuth {
     }
 }
 
-// Exportar classes
-export const appAuth = new AppAuth();
-export const fbAuth = new FacebookAuth();
+// Criar e exportar instâncias únicas
+const appAuth = new AppAuth();
+const fbAuth = new FacebookAuth();
+
+export { appAuth, fbAuth };

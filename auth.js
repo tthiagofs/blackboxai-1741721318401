@@ -19,32 +19,63 @@ class FacebookAuth {
     }
 
     initializeFacebookSDK() {
-        return new Promise((resolve) => {
-            const initFB = () => {
-                FB.init({
-                    appId: '618519427538646',
-                    cookie: true,
-                    xfbml: true,
-                    version: 'v20.0'
-                });
-                FB.AppEvents.logPageView();
-                console.log("Facebook SDK inicializado com sucesso!");
-                resolve();
-            };
+        return new Promise((resolve, reject) => {
+            try {
+                const initFB = () => {
+                    FB.init({
+                        appId: '618519427538646',
+                        cookie: true,
+                        xfbml: true,
+                        version: 'v20.0'
+                    });
+                    
+                    // Check login status first
+                    FB.getLoginStatus((response) => {
+                        if (response.status === 'connected') {
+                            this.accessToken = response.authResponse.accessToken;
+                            localStorage.setItem('fbAccessToken', this.accessToken);
+                            console.log("Facebook SDK inicializado e usuário já conectado!");
+                        } else {
+                            console.log("Facebook SDK inicializado com sucesso!");
+                        }
+                        resolve();
+                    });
+                };
 
-            const waitForFB = () => {
+                // Check if FB SDK is loaded
                 if (window.FB) {
                     initFB();
                 } else {
-                    setTimeout(waitForFB, 100);
-                }
-            };
+                    // If not loaded, set up async init and wait
+                    window.fbAsyncInit = initFB;
+                    
+                    // Create script element if not exists
+                    if (!document.getElementById('facebook-jssdk')) {
+                        const js = document.createElement('script');
+                        js.id = 'facebook-jssdk';
+                        js.src = "https://connect.facebook.net/en_US/sdk.js";
+                        js.crossOrigin = "anonymous";
+                        js.async = true;
+                        js.defer = true;
+                        document.head.appendChild(js);
+                    }
+                    
+                    // Wait for SDK to load
+                    const checkFB = setInterval(() => {
+                        if (window.FB) {
+                            clearInterval(checkFB);
+                            initFB();
+                        }
+                    }, 100);
 
-            if (document.getElementById('facebook-jssdk')) {
-                waitForFB();
-            } else {
-                window.fbAsyncInit = initFB;
-                waitForFB();
+                    // Timeout after 10 seconds
+                    setTimeout(() => {
+                        clearInterval(checkFB);
+                        reject(new Error('Timeout ao carregar Facebook SDK'));
+                    }, 10000);
+                }
+            } catch (error) {
+                reject(error);
             }
         });
     }
@@ -52,28 +83,47 @@ class FacebookAuth {
     async login() {
         try {
             await this.initializeFacebookSDK();
-            return new Promise((resolve, reject) => {
+            
+            // First check if we already have a valid session
+            const statusResponse = await new Promise((resolve) => {
+                FB.getLoginStatus((response) => resolve(response));
+            });
+
+            if (statusResponse.status === 'connected') {
+                this.accessToken = statusResponse.authResponse.accessToken;
+                localStorage.setItem('fbAccessToken', this.accessToken);
+                await this.loadAllAdAccounts();
+                return statusResponse;
+            }
+
+            // If no valid session, proceed with login
+            const loginResponse = await new Promise((resolve, reject) => {
                 FB.login(async (response) => {
                     if (response.authResponse) {
-                        this.accessToken = response.authResponse.accessToken;
-                        localStorage.setItem('fbAccessToken', this.accessToken);
-                        
                         try {
+                            this.accessToken = response.authResponse.accessToken;
+                            localStorage.setItem('fbAccessToken', this.accessToken);
                             await this.loadAllAdAccounts();
                             resolve(response);
                         } catch (error) {
+                            console.error('Erro ao carregar contas após login:', error);
                             reject(error);
                         }
                     } else {
-                        reject(new Error('Login do Facebook falhou'));
+                        console.error('Login negado ou cancelado pelo usuário');
+                        reject(new Error('Login do Facebook não autorizado'));
                     }
                 }, {
                     scope: 'ads_read,ads_management,business_management',
-                    return_scopes: true
+                    return_scopes: true,
+                    auth_type: 'rerequest'  // Force re-authentication
                 });
             });
+
+            return loginResponse;
         } catch (error) {
-            throw new Error(`Erro ao inicializar Facebook SDK: ${error.message}`);
+            console.error('Erro durante o processo de login:', error);
+            throw new Error(`Falha no login do Facebook: ${error.message}`);
         }
     }
 

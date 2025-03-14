@@ -94,29 +94,33 @@ completeReportBtn.addEventListener('click', () => {
 async function handleFacebookLogin() {
     const loginError = document.getElementById('loginError');
     loginError.style.display = 'none';
+    loginBtn.disabled = true;
+    loginBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Conectando...';
 
     try {
+        // Limpar qualquer token antigo
+        localStorage.removeItem('fbAccessToken');
+        localStorage.removeItem('adAccountsMap');
+        
         const response = await fbAuth.login();
         if (response && response.authResponse) {
             currentAccessToken = response.authResponse.accessToken;
             
+            // Verificar se temos permissões necessárias
+            const permissions = await new Promise((resolve) => {
+                FB.api('/me/permissions', (response) => resolve(response.data || []));
+            });
+
+            const hasAllPermissions = ['ads_read', 'ads_management', 'business_management']
+                .every(perm => permissions.some(p => p.permission === perm && p.status === 'granted'));
+
+            if (!hasAllPermissions) {
+                throw new Error('Permissões necessárias não foram concedidas');
+            }
+
             if (simpleReportBtn.classList.contains('active')) {
                 showScreen(mainContent);
-                
-                // Preencher select de unidades
-                const unitSelect = document.getElementById('unitId');
-                const adAccounts = fbAuth.getAdAccounts();
-                const sortedAccounts = Object.entries(adAccounts)
-                    .map(([id, name]) => ({ id, name }))
-                    .sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
-
-                unitSelect.innerHTML = '<option value="">Escolha a unidade</option>';
-                sortedAccounts.forEach(account => {
-                    const option = document.createElement('option');
-                    option.value = account.id;
-                    option.textContent = account.name;
-                    unitSelect.appendChild(option);
-                });
+                await loadAdAccounts();
             } else {
                 window.location.href = 'RelatorioCompleto.html';
             }
@@ -124,8 +128,47 @@ async function handleFacebookLogin() {
             throw new Error('Login não autorizado');
         }
     } catch (error) {
+        console.error('Erro detalhado:', error);
         loginError.textContent = `Erro no login: ${error.message}`;
         loginError.style.display = 'block';
+        
+        // Limpar tokens em caso de erro
+        localStorage.removeItem('fbAccessToken');
+        localStorage.removeItem('adAccountsMap');
+    } finally {
+        loginBtn.disabled = false;
+        loginBtn.innerHTML = '<i class="fab fa-facebook-f mr-2"></i>Continuar com Facebook';
+    }
+}
+
+// Função para carregar contas de anúncio
+async function loadAdAccounts() {
+    const unitSelect = document.getElementById('unitId');
+    unitSelect.innerHTML = '<option value="">Carregando unidades...</option>';
+    unitSelect.disabled = true;
+
+    try {
+        const adAccounts = fbAuth.getAdAccounts();
+        if (!adAccounts || Object.keys(adAccounts).length === 0) {
+            throw new Error('Nenhuma conta de anúncio encontrada');
+        }
+
+        const sortedAccounts = Object.entries(adAccounts)
+            .map(([id, name]) => ({ id, name }))
+            .sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
+
+        unitSelect.innerHTML = '<option value="">Escolha a unidade</option>';
+        sortedAccounts.forEach(account => {
+            const option = document.createElement('option');
+            option.value = account.id;
+            option.textContent = account.name;
+            unitSelect.appendChild(option);
+        });
+    } catch (error) {
+        console.error('Erro ao carregar contas:', error);
+        unitSelect.innerHTML = '<option value="">Erro ao carregar unidades</option>';
+    } finally {
+        unitSelect.disabled = false;
     }
 }
 

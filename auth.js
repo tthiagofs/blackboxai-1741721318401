@@ -89,38 +89,33 @@ class FacebookAuth {
                 FB.getLoginStatus((response) => resolve(response));
             });
 
+            let response;
             if (statusResponse.status === 'connected') {
-                this.accessToken = statusResponse.authResponse.accessToken;
-                localStorage.setItem('fbAccessToken', this.accessToken);
-                await this.loadAllAdAccounts();
-                return statusResponse;
+                response = statusResponse;
+            } else {
+                // If no valid session, proceed with login
+                response = await new Promise((resolve, reject) => {
+                    FB.login((loginResponse) => {
+                        if (loginResponse.authResponse) {
+                            resolve(loginResponse);
+                        } else {
+                            console.error('Login negado ou cancelado pelo usuário');
+                            reject(new Error('Login do Facebook não autorizado'));
+                        }
+                    }, {
+                        scope: 'ads_read,ads_management,business_management',
+                        return_scopes: true,
+                        auth_type: 'rerequest'  // Force re-authentication
+                    });
+                });
             }
 
-            // If no valid session, proceed with login
-            const loginResponse = await new Promise((resolve, reject) => {
-                FB.login(async (response) => {
-                    if (response.authResponse) {
-                        try {
-                            this.accessToken = response.authResponse.accessToken;
-                            localStorage.setItem('fbAccessToken', this.accessToken);
-                            await this.loadAllAdAccounts();
-                            resolve(response);
-                        } catch (error) {
-                            console.error('Erro ao carregar contas após login:', error);
-                            reject(error);
-                        }
-                    } else {
-                        console.error('Login negado ou cancelado pelo usuário');
-                        reject(new Error('Login do Facebook não autorizado'));
-                    }
-                }, {
-                    scope: 'ads_read,ads_management,business_management',
-                    return_scopes: true,
-                    auth_type: 'rerequest'  // Force re-authentication
-                });
-            });
-
-            return loginResponse;
+            // Set access token and load accounts after successful login/status check
+            this.accessToken = response.authResponse.accessToken;
+            localStorage.setItem('fbAccessToken', this.accessToken);
+            await this.loadAllAdAccounts();
+            
+            return response;
         } catch (error) {
             console.error('Erro durante o processo de login:', error);
             throw new Error(`Falha no login do Facebook: ${error.message}`);

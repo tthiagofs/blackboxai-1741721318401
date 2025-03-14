@@ -125,6 +125,140 @@ form.addEventListener('input', async function(e) {
 });
 
 // Funções para carregar dados do Facebook
+async function loadAds(unitId, startDate, endDate, filteredCampaigns = null, filteredAdSets = null) {
+    try {
+        let adsMap = {};
+        let apiEndpoint = filteredAdSets && filteredAdSets.size > 0 
+            ? null 
+            : `/${unitId}/ads`;
+
+        if (filteredAdSets && filteredAdSets.size > 0) {
+            const adPromises = Array.from(filteredAdSets).map(adSetId => 
+                new Promise((resolve) => {
+                    FB.api(
+                        `/${adSetId}/ads`,
+                        { fields: 'id,creative', access_token: currentAccessToken },
+                        async function(adResponse) {
+                            if (adResponse && !adResponse.error) {
+                                const adIds = adResponse.data.map(ad => ad.id);
+                                const insightPromises = adIds.map(adId => getAdInsights(adId, startDate, endDate));
+                                const creativePromises = adResponse.data.map(ad => getCreativeData(ad.creative.id));
+                                const [insights, creatives] = await Promise.all([
+                                    Promise.all(insightPromises),
+                                    Promise.all(creativePromises)
+                                ]);
+                                adIds.forEach((adId, index) => {
+                                    adsMap[adId] = {
+                                        insights: insights[index],
+                                        creative: creatives[index]
+                                    };
+                                });
+                                resolve();
+                            } else {
+                                console.error(`Erro ao carregar anúncios do ad set ${adSetId}:`, adResponse.error);
+                                resolve();
+                            }
+                        }
+                    );
+                })
+            );
+            await Promise.all(adPromises);
+        } else {
+            const adResponse = await new Promise(resolve => {
+                FB.api(
+                    apiEndpoint,
+                    { fields: 'id,creative', limit: 100, access_token: currentAccessToken },
+                    resolve
+                );
+            });
+
+            if (adResponse && !adResponse.error) {
+                const adIds = adResponse.data.map(ad => ad.id);
+                const insightPromises = adIds.map(adId => getAdInsights(adId, startDate, endDate));
+                const creativePromises = adResponse.data.map(ad => getCreativeData(ad.creative.id));
+                const [insights, creatives] = await Promise.all([
+                    Promise.all(insightPromises),
+                    Promise.all(creativePromises)
+                ]);
+
+                adIds.forEach((adId, index) => {
+                    adsMap[adId] = {
+                        insights: insights[index],
+                        creative: creatives[index]
+                    };
+                });
+            }
+        }
+        return adsMap;
+    } catch (error) {
+        console.error('Erro ao carregar anúncios:', error);
+        return {};
+    }
+}
+
+async function getCreativeData(creativeId) {
+    return new Promise((resolve) => {
+        FB.api(
+            `/${creativeId}`,
+            { fields: 'object_story_spec,thumbnail_url,effective_object_story_id,image_hash', access_token: currentAccessToken },
+            async function(response) {
+                if (response && !response.error) {
+                    let imageUrl = 'https://dummyimage.com/600x600/ccc/fff';
+
+                    if (response.image_hash) {
+                        const imageResponse = await new Promise((imageResolve) => {
+                            FB.api(
+                                `/adimages`,
+                                { hashes: [response.image_hash], fields: 'url', access_token: currentAccessToken },
+                                imageResolve
+                            );
+                        });
+                        if (imageResponse && !imageResponse.error && imageResponse.data && imageResponse.data.length > 0) {
+                            imageUrl = imageResponse.data[0].url;
+                        }
+                    }
+                    if (imageUrl.includes('dummyimage') && response.object_story_spec) {
+                        const { photo_data, video_data, link_data } = response.object_story_spec;
+                        if (photo_data && photo_data.images && photo_data.images.length > 0) {
+                            const largestImage = photo_data.images.reduce((prev, current) => 
+                                (prev.width > current.width) ? prev : current, photo_data.images[0]);
+                            imageUrl = largestImage.original_url || largestImage.url || photo_data.url;
+                        } else if (video_data && video_data.picture) {
+                            imageUrl = video_data.picture;
+                        } else if (link_data && link_data.picture) {
+                            imageUrl = link_data.picture;
+                        }
+                    }
+                    if (imageUrl.includes('dummyimage') && response.effective_object_story_id) {
+                        try {
+                            const storyResponse = await new Promise((storyResolve) => {
+                                FB.api(
+                                    `/${response.effective_object_story_id}`,
+                                    { fields: 'full_picture', access_token: currentAccessToken },
+                                    storyResolve
+                                );
+                            });
+                            if (storyResponse && !storyResponse.error && storyResponse.full_picture) {
+                                imageUrl = storyResponse.full_picture;
+                            }
+                        } catch (error) {
+                            console.error('Erro ao buscar full_picture:', error);
+                        }
+                    }
+                    if (imageUrl.includes('dummyimage') && response.thumbnail_url) {
+                        imageUrl = response.thumbnail_url;
+                    }
+
+                    resolve({ imageUrl: imageUrl });
+                } else {
+                    console.error(`Erro ao carregar criativo ${creativeId}:`, response.error);
+                    resolve({ imageUrl: 'https://dummyimage.com/600x600/ccc/fff' });
+                }
+            }
+        );
+    });
+}
+
 async function loadCampaigns(unitId, startDate, endDate) {
     try {
         const response = await new Promise((resolve) => {

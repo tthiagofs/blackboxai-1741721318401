@@ -335,6 +335,68 @@ async function loadAdSets(unitId, startDate, endDate) {
     }
 }
 
+// Funções para obter insights
+async function getCampaignInsights(campaignId, startDate, endDate) {
+    return new Promise((resolve) => {
+        FB.api(
+            `/${campaignId}/insights`,
+            {
+                fields: ['spend', 'actions', 'reach'],
+                time_range: { since: startDate, until: endDate },
+                level: 'campaign',
+                access_token: currentAccessToken
+            },
+            (response) => {
+                if (response && !response.error && response.data && response.data.length > 0) {
+                    resolve(response.data[0]);
+                } else {
+                    resolve({});
+                }
+            }
+        );
+    });
+}
+
+async function getAdSetInsights(adSetId, startDate, endDate) {
+    return new Promise((resolve) => {
+        FB.api(
+            `/${adSetId}/insights`,
+            {
+                fields: ['spend', 'actions', 'reach'],
+                time_range: { since: startDate, until: endDate },
+                access_token: currentAccessToken
+            },
+            (response) => {
+                if (response && !response.error && response.data && response.data.length > 0) {
+                    resolve(response.data[0]);
+                } else {
+                    resolve({ spend: '0', actions: [], reach: '0' });
+                }
+            }
+        );
+    });
+}
+
+async function getAdInsights(adId, startDate, endDate) {
+    return new Promise((resolve) => {
+        FB.api(
+            `/${adId}/insights`,
+            {
+                fields: ['spend', 'actions', 'reach'],
+                time_range: { since: startDate, until: endDate },
+                access_token: currentAccessToken
+            },
+            (response) => {
+                if (response && !response.error && response.data && response.data.length > 0) {
+                    resolve(response.data[0]);
+                } else {
+                    resolve({ spend: '0', actions: [], reach: '0' });
+                }
+            }
+        );
+    });
+}
+
 // Funções de renderização
 function renderCampaignOptions() {
     const unitId = document.getElementById('unitId').value;
@@ -478,48 +540,6 @@ function calculatePreviousPeriod(startDate, endDate) {
         start: previousStart.toISOString().split('T')[0],
         end: previousEnd.toISOString().split('T')[0]
     };
-}
-
-// Funções para obter insights
-async function getCampaignInsights(campaignId, startDate, endDate) {
-    return new Promise((resolve) => {
-        FB.api(
-            `/${campaignId}/insights`,
-            {
-                fields: ['spend', 'actions', 'reach'],
-                time_range: { since: startDate, until: endDate },
-                level: 'campaign',
-                access_token: currentAccessToken
-            },
-            (response) => {
-                if (response && !response.error && response.data && response.data.length > 0) {
-                    resolve(response.data[0]);
-                } else {
-                    resolve({});
-                }
-            }
-        );
-    });
-}
-
-async function getAdSetInsights(adSetId, startDate, endDate) {
-    return new Promise((resolve) => {
-        FB.api(
-            `/${adSetId}/insights`,
-            {
-                fields: ['spend', 'actions', 'reach'],
-                time_range: { since: startDate, until: endDate },
-                access_token: currentAccessToken
-            },
-            (response) => {
-                if (response && !response.error && response.data && response.data.length > 0) {
-                    resolve(response.data[0]);
-                } else {
-                    resolve({ spend: '0', actions: [], reach: '0' });
-                }
-            }
-        );
-    });
 }
 
 // Geração do relatório

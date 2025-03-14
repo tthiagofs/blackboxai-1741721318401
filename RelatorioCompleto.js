@@ -439,8 +439,13 @@ function renderCampaignOptions() {
         </div>
     `).join('');
 
-    container.querySelectorAll('.filter-option').forEach(option => {
-        option.addEventListener('click', () => {
+    // Remover listener antigo se existir
+    container.removeEventListener('click', container.clickHandler);
+    
+    // Adicionar novo listener usando event delegation
+    container.clickHandler = (e) => {
+        const option = e.target.closest('.filter-option');
+        if (option) {
             const id = option.dataset.id;
             if (selectedCampaigns.has(id)) {
                 selectedCampaigns.delete(id);
@@ -450,8 +455,10 @@ function renderCampaignOptions() {
                 option.classList.add('selected');
             }
             updateFilterButtons();
-        });
-    });
+        }
+    };
+    
+    container.addEventListener('click', container.clickHandler);
 }
 
 function renderAdSetOptions() {
@@ -481,8 +488,13 @@ function renderAdSetOptions() {
         </div>
     `).join('');
 
-    container.querySelectorAll('.filter-option').forEach(option => {
-        option.addEventListener('click', () => {
+    // Remover listener antigo se existir
+    container.removeEventListener('click', container.clickHandler);
+    
+    // Adicionar novo listener usando event delegation
+    container.clickHandler = (e) => {
+        const option = e.target.closest('.filter-option');
+        if (option) {
             const id = option.dataset.id;
             if (selectedAdSets.has(id)) {
                 selectedAdSets.delete(id);
@@ -492,8 +504,10 @@ function renderAdSetOptions() {
                 option.classList.add('selected');
             }
             updateFilterButtons();
-        });
-    });
+        }
+    };
+    
+    container.addEventListener('click', container.clickHandler);
 }
 
 // Event Listeners
@@ -561,7 +575,31 @@ function calculatePreviousPeriod(startDate, endDate) {
 // Geração do relatório
 form.addEventListener('submit', async (e) => {
     e.preventDefault();
-    await generateReport();
+    try {
+        const unitId = document.getElementById('unitId').value;
+        const startDate = document.getElementById('startDate').value;
+        const endDate = document.getElementById('endDate').value;
+
+        if (!unitId || !startDate || !endDate) {
+            alert('Preencha todos os campos obrigatórios');
+            return;
+        }
+
+        // Desabilitar o botão de submit durante a geração
+        const submitButton = form.querySelector('button[type="submit"]');
+        const originalText = submitButton.innerHTML;
+        submitButton.disabled = true;
+        submitButton.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Gerando...';
+
+        await generateReport();
+
+        // Reabilitar o botão após a geração
+        submitButton.disabled = false;
+        submitButton.innerHTML = originalText;
+    } catch (error) {
+        console.error('Erro ao gerar relatório:', error);
+        alert('Ocorreu um erro ao gerar o relatório. Por favor, tente novamente.');
+    }
 });
 
 async function generateReport() {
@@ -836,6 +874,7 @@ shareWhatsAppBtn.addEventListener('click', () => {
 });
 
 // Navegação
-backToReportSelectionBtn.addEventListener('click', () => {
-    window.location.href = 'index.html?screen=reportSelection';
+backToReportSelectionBtn.addEventListener('click', (e) => {
+    e.preventDefault();
+    window.location.replace('index.html?screen=reportSelection');
 });

@@ -95,9 +95,13 @@ appLoginForm.addEventListener('submit', async (e) => {
 });
 
 // Seleção de relatório simplificado
-simpleReportBtn.addEventListener('click', () => {
-    showScreen(mainContent);
+simpleReportBtn.addEventListener('click', async () => {
     simpleReportBtn.classList.add('active');
+    const isLoggedIn = await validateFacebookLogin();
+    if (isLoggedIn) {
+        showScreen(mainContent);
+        await loadAdAccounts();
+    }
 });
 
 // Seleção de relatório completo
@@ -422,7 +426,7 @@ function toggleModal(modal, show, isCampaign) {
         if (isCampaign) {
             isCampaignFilterActive = false;
             campaignSearchText = '';
-            document.getElementById('campaignSearch').value = '';
+            document.getPageById('campaignSearch').value = '';
         } else {
             isAdSetFilterActive = false;
             adSetSearchText = '';

@@ -405,6 +405,43 @@ async function generateReport() {
         return;
     }
 
+    // Load ads data first
+    const adsData = await loadAds(unitId, startDate, endDate, 
+        selectedCampaigns.size > 0 ? selectedCampaigns : null, 
+        selectedAdSets.size > 0 ? selectedAdSets : null
+    );
+
+    // Process ads to find top performers
+    const topAds = [];
+    Object.entries(adsData).forEach(([adId, ad]) => {
+        let messages = 0;
+        let spend = parseFloat(ad.insights.spend) || 0;
+        
+        if (ad.insights && ad.insights.actions) {
+            ad.insights.actions.forEach(action => {
+                if (action.action_type === 'onsite_conversion.messaging_conversation_started_7d') {
+                    messages += parseInt(action.value) || 0;
+                }
+            });
+        }
+
+        if (messages > 0) {
+            topAds.push({
+                id: adId,
+                imageUrl: ad.creative.imageUrl,
+                messages: messages,
+                spend: spend,
+                costPerMessage: messages > 0 ? (spend / messages).toFixed(2) : '0'
+            });
+        }
+    });
+
+    // Sort and get top 2 ads
+    topAds.sort((a, b) => b.messages - a.messages);
+    const bestAds = topAds.slice(0, 2).filter(ad => {
+        return ad.imageUrl && !ad.imageUrl.includes('dummyimage');
+    });
+
     let currentMetrics = await calculateMetrics(unitId, startDate, endDate);
     let comparisonMetrics = null;
 
@@ -416,7 +453,7 @@ async function generateReport() {
         );
     }
 
-    renderReport(unitName, startDate, endDate, currentMetrics, comparisonMetrics);
+    renderReport(unitName, startDate, endDate, currentMetrics, comparisonMetrics, bestAds);
 }
 
 async function calculateMetrics(unitId, startDate, endDate) {
@@ -495,7 +532,7 @@ function calculateVariation(current, previous) {
     return { percentage: Math.abs(percentage).toFixed(2), icon, direction };
 }
 
-function renderReport(unitName, startDate, endDate, metrics, comparisonMetrics) {
+function renderReport(unitName, startDate, endDate, metrics, comparisonMetrics, bestAds) {
     const formattedStartDate = startDate.split('-').reverse().join('/');
     const formattedEndDate = endDate.split('-').reverse().join('/');
 
@@ -580,6 +617,41 @@ function renderReport(unitName, startDate, endDate, metrics, comparisonMetrics) 
                     </div>
                 </div>
             </div>
+
+            ${bestAds && bestAds.length > 0 ? `
+                <div class="mt-8">
+                    <h3 class="text-xl font-bold text-white mb-4">
+                        <i class="fas fa-star mr-2"></i>Anúncios com Melhor Desempenho
+                    </h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        ${bestAds.map(ad => `
+                            <div class="bg-white/10 backdrop-blur rounded-lg p-4">
+                                <div class="aspect-video mb-4 rounded-lg overflow-hidden">
+                                    <img src="${ad.imageUrl}" 
+                                        alt="Anúncio" 
+                                        class="w-full h-full object-cover"
+                                        crossorigin="anonymous"
+                                        loading="lazy">
+                                </div>
+                                <div class="space-y-2 text-white">
+                                    <div class="flex justify-between items-center">
+                                        <span>Mensagens:</span>
+                                        <span class="font-bold">${ad.messages}</span>
+                                    </div>
+                                    <div class="flex justify-between items-center">
+                                        <span>Custo por Mensagem:</span>
+                                        <span class="font-bold">R$ ${ad.costPerMessage.replace('.', ',')}</span>
+                                    </div>
+                                    <div class="flex justify-between items-center">
+                                        <span>Investimento:</span>
+                                        <span class="font-bold">R$ ${ad.spend.toFixed(2).replace('.', ',')}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            ` : ''}
         </div>
     `;
 

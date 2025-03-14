@@ -20,7 +20,7 @@ class FacebookAuth {
 
     initializeFacebookSDK() {
         return new Promise((resolve) => {
-            if (window.FB) {
+            const initFB = () => {
                 FB.init({
                     appId: '618519427538646',
                     cookie: true,
@@ -30,18 +30,21 @@ class FacebookAuth {
                 FB.AppEvents.logPageView();
                 console.log("Facebook SDK inicializado com sucesso!");
                 resolve();
+            };
+
+            const waitForFB = () => {
+                if (window.FB) {
+                    initFB();
+                } else {
+                    setTimeout(waitForFB, 100);
+                }
+            };
+
+            if (document.getElementById('facebook-jssdk')) {
+                waitForFB();
             } else {
-                window.fbAsyncInit = () => {
-                    FB.init({
-                        appId: '618519427538646',
-                        cookie: true,
-                        xfbml: true,
-                        version: 'v20.0'
-                    });
-                    FB.AppEvents.logPageView();
-                    console.log("Facebook SDK inicializado com sucesso!");
-                    resolve();
-                };
+                window.fbAsyncInit = initFB;
+                waitForFB();
             }
         });
     }

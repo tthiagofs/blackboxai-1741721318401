@@ -81,23 +81,29 @@ simpleReportBtn.addEventListener('click', () => {
 });
 
 // Seleção de relatório completo
-completeReportBtn.addEventListener('click', () => {
+completeReportBtn.addEventListener('click', async () => {
     if (!currentAccessToken) {
         showScreen(loginScreen);
-        fbAuth.login().then(response => {
-            currentAccessToken = response.authResponse.accessToken;
-            window.location.href = 'RelatorioCompleto.html';
-        }).catch(error => {
-            document.getElementById('loginError').textContent = `Erro no login: ${error.message}`;
-            document.getElementById('loginError').style.display = 'block';
-        });
+        try {
+            const response = await fbAuth.login();
+            if (response && response.authResponse) {
+                currentAccessToken = response.authResponse.accessToken;
+                window.location.href = 'RelatorioCompleto.html';
+            } else {
+                throw new Error('Login não autorizado');
+            }
+        } catch (error) {
+            const loginError = document.getElementById('loginError');
+            loginError.textContent = `Erro no login: ${error.message}`;
+            loginError.style.display = 'block';
+        }
     } else {
         window.location.href = 'RelatorioCompleto.html';
     }
 });
 
 // Login com Facebook
-loginBtn.addEventListener('click', (event) => {
+loginBtn.addEventListener('click', async (event) => {
     event.preventDefault();
 
     if (!simpleReportBtn.classList.contains('active')) {
@@ -107,28 +113,33 @@ loginBtn.addEventListener('click', (event) => {
     const loginError = document.getElementById('loginError');
     loginError.style.display = 'none';
 
-    fbAuth.login().then(response => {
-        currentAccessToken = response.authResponse.accessToken;
-        showScreen(mainContent);
-        
-        // Preencher select de unidades
-        const unitSelect = document.getElementById('unitId');
-        const adAccounts = fbAuth.getAdAccounts();
-        const sortedAccounts = Object.entries(adAccounts)
-            .map(([id, name]) => ({ id, name }))
-            .sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
+    try {
+        const response = await fbAuth.login();
+        if (response && response.authResponse) {
+            currentAccessToken = response.authResponse.accessToken;
+            showScreen(mainContent);
+            
+            // Preencher select de unidades
+            const unitSelect = document.getElementById('unitId');
+            const adAccounts = fbAuth.getAdAccounts();
+            const sortedAccounts = Object.entries(adAccounts)
+                .map(([id, name]) => ({ id, name }))
+                .sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
 
-        unitSelect.innerHTML = '<option value="">Escolha a unidade</option>';
-        sortedAccounts.forEach(account => {
-            const option = document.createElement('option');
-            option.value = account.id;
-            option.textContent = account.name;
-            unitSelect.appendChild(option);
-        });
-    }).catch(error => {
+            unitSelect.innerHTML = '<option value="">Escolha a unidade</option>';
+            sortedAccounts.forEach(account => {
+                const option = document.createElement('option');
+                option.value = account.id;
+                option.textContent = account.name;
+                unitSelect.appendChild(option);
+            });
+        } else {
+            throw new Error('Login não autorizado');
+        }
+    } catch (error) {
         loginError.textContent = `Erro no login: ${error.message}`;
         loginError.style.display = 'block';
-    });
+    }
 });
 
 // Voltar para a seleção de relatório

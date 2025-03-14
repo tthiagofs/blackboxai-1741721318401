@@ -19,39 +19,59 @@ class FacebookAuth {
     }
 
     initializeFacebookSDK() {
-        window.fbAsyncInit = () => {
-            FB.init({
-                appId: '618519427538646',
-                cookie: true,
-                xfbml: true,
-                version: 'v20.0'
-            });
-            FB.AppEvents.logPageView();
-            console.log("Facebook SDK inicializado com sucesso!");
-        };
+        return new Promise((resolve) => {
+            if (window.FB) {
+                FB.init({
+                    appId: '618519427538646',
+                    cookie: true,
+                    xfbml: true,
+                    version: 'v20.0'
+                });
+                FB.AppEvents.logPageView();
+                console.log("Facebook SDK inicializado com sucesso!");
+                resolve();
+            } else {
+                window.fbAsyncInit = () => {
+                    FB.init({
+                        appId: '618519427538646',
+                        cookie: true,
+                        xfbml: true,
+                        version: 'v20.0'
+                    });
+                    FB.AppEvents.logPageView();
+                    console.log("Facebook SDK inicializado com sucesso!");
+                    resolve();
+                };
+            }
+        });
     }
 
     async login() {
-        return new Promise((resolve, reject) => {
-            FB.login(async (response) => {
-                if (response.authResponse) {
-                    this.accessToken = response.authResponse.accessToken;
-                    localStorage.setItem('fbAccessToken', this.accessToken);
-                    
-                    try {
-                        await this.loadAllAdAccounts();
-                        resolve(response);
-                    } catch (error) {
-                        reject(error);
+        try {
+            await this.initializeFacebookSDK();
+            return new Promise((resolve, reject) => {
+                FB.login(async (response) => {
+                    if (response.authResponse) {
+                        this.accessToken = response.authResponse.accessToken;
+                        localStorage.setItem('fbAccessToken', this.accessToken);
+                        
+                        try {
+                            await this.loadAllAdAccounts();
+                            resolve(response);
+                        } catch (error) {
+                            reject(error);
+                        }
+                    } else {
+                        reject(new Error('Login do Facebook falhou'));
                     }
-                } else {
-                    reject(new Error('Login do Facebook falhou'));
-                }
-            }, {
-                scope: 'ads_read,ads_management,business_management',
-                return_scopes: true
+                }, {
+                    scope: 'ads_read,ads_management,business_management',
+                    return_scopes: true
+                });
             });
-        });
+        } catch (error) {
+            throw new Error(`Erro ao inicializar Facebook SDK: ${error.message}`);
+        }
     }
 
     async loadAllAdAccounts() {

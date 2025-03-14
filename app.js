@@ -18,6 +18,8 @@ const campaignsModal = document.getElementById('campaignsModal');
 const adSetsModal = document.getElementById('adSetsModal');
 const closeCampaignsModalBtn = document.getElementById('closeCampaignsModal');
 const closeAdSetsModalBtn = document.getElementById('closeAdSetsModal');
+const applyCampaignsBtn = document.getElementById('applyCampaigns');
+const applyAdSetsBtn = document.getElementById('applyAdSets');
 const backToReportSelectionBtn = document.getElementById('backToReportSelectionBtn');
 
 // Mapa para armazenar os nomes das contas, IDs dos ad sets e campanhas
@@ -194,79 +196,91 @@ async function loadAdAccounts() {
     }
 }
 
-// Função para carregar campanhas
+// Função para carregar campanhas (com paginação)
 async function loadCampaigns(unitId, startDate, endDate) {
     try {
-        const response = await new Promise((resolve) => {
-            FB.api(
-                `/${unitId}/campaigns`,
-                { fields: 'id,name', access_token: currentAccessToken },
-                resolve
-            );
-        });
+        campaignsMap[unitId] = {};
+        let allCampaigns = [];
+        let url = `/${unitId}/campaigns?fields=id,name&access_token=${currentAccessToken}`;
 
-        if (response && !response.error) {
-            campaignsMap[unitId] = {};
-            const campaignIds = response.data.map(camp => camp.id);
-            const insights = await Promise.all(
-                campaignIds.map(id => getCampaignInsights(id, startDate, endDate))
-            );
-
-            campaignIds.forEach((id, index) => {
-                const campaign = response.data.find(c => c.id === id);
-                const spend = insights[index].spend ? parseFloat(insights[index].spend) : 0;
-                campaignsMap[unitId][id] = {
-                    name: campaign.name.toLowerCase(),
-                    insights: { 
-                        spend,
-                        reach: insights[index].reach || 0,
-                        actions: insights[index].actions || []
-                    }
-                };
+        // Paginação para buscar todas as campanhas
+        while (url) {
+            const response = await new Promise((resolve) => {
+                FB.api(url, resolve);
             });
 
-            renderCampaignOptions();
+            if (response && !response.error) {
+                allCampaigns = allCampaigns.concat(response.data);
+                url = response.paging && response.paging.next ? response.paging.next : null;
+            } else {
+                throw new Error(response.error?.message || 'Erro ao carregar campanhas');
+            }
         }
+
+        const campaignIds = allCampaigns.map(camp => camp.id);
+        const insights = await Promise.all(
+            campaignIds.map(id => getCampaignInsights(id, startDate, endDate))
+        );
+
+        campaignIds.forEach((id, index) => {
+            const campaign = allCampaigns.find(c => c.id === id);
+            const spend = insights[index].spend ? parseFloat(insights[index].spend) : 0;
+            campaignsMap[unitId][id] = {
+                name: campaign.name.toLowerCase(),
+                insights: { 
+                    spend,
+                    reach: insights[index].reach || 0,
+                    actions: insights[index].actions || []
+                }
+            };
+        });
+
+        renderCampaignOptions();
     } catch (error) {
         console.error('Erro ao carregar campanhas:', error);
     }
 }
 
-// Função para carregar conjuntos de anúncios
+// Função para carregar conjuntos de anúncios (com paginação)
 async function loadAdSets(unitId, startDate, endDate) {
     try {
-        const response = await new Promise((resolve) => {
-            FB.api(
-                `/${unitId}/adsets`,
-                { fields: 'id,name', access_token: currentAccessToken },
-                resolve
-            );
-        });
+        adSetsMap[unitId] = {};
+        let allAdSets = [];
+        let url = `/${unitId}/adsets?fields=id,name&access_token=${currentAccessToken}`;
 
-        if (response && !response.error) {
-            adSetsMap[unitId] = {};
-            const adSetIds = response.data.map(set => set.id);
-            const insights = await Promise.all(
-                adSetIds.map(id => getAdSetInsights(id, startDate, endDate))
-            );
-
-            adSetIds.forEach((id, index) => {
-                const adSet = response.data.find(s => s.id === id);
-                const spend = insights[index].spend ? parseFloat(insights[index].spend) : 0;
-                if (spend > 0) {
-                    adSetsMap[unitId][id] = {
-                        name: adSet.name.toLowerCase(),
-                        insights: {
-                            spend,
-                            reach: insights[index].reach || 0,
-                            actions: insights[index].actions || []
-                        }
-                    };
-                }
+        // Paginação para buscar todos os ad sets
+        while (url) {
+            const response = await new Promise((resolve) => {
+                FB.api(url, resolve);
             });
 
-            renderAdSetOptions();
+            if (response && !response.error) {
+                allAdSets = allAdSets.concat(response.data);
+                url = response.paging && response.paging.next ? response.paging.next : null;
+            } else {
+                throw new Error(response.error?.message || 'Erro ao carregar ad sets');
+            }
         }
+
+        const adSetIds = allAdSets.map(set => set.id);
+        const insights = await Promise.all(
+            adSetIds.map(id => getAdSetInsights(id, startDate, endDate))
+        );
+
+        adSetIds.forEach((id, index) => {
+            const adSet = allAdSets.find(s => s.id === id);
+            const spend = insights[index].spend ? parseFloat(insights[index].spend) : 0;
+            adSetsMap[unitId][id] = {
+                name: adSet.name.toLowerCase(),
+                insights: {
+                    spend,
+                    reach: insights[index].reach || 0,
+                    actions: insights[index].actions || []
+                }
+            };
+        });
+
+        renderAdSetOptions();
     } catch (error) {
         console.error('Erro ao carregar conjuntos:', error);
     }
@@ -426,7 +440,7 @@ function toggleModal(modal, show, isCampaign) {
         if (isCampaign) {
             isCampaignFilterActive = false;
             campaignSearchText = '';
-            document.getPageById('campaignSearch').value = '';
+            document.getElementById('campaignSearch').value = '';
         } else {
             isAdSetFilterActive = false;
             adSetSearchText = '';
@@ -569,6 +583,8 @@ filterCampaignsBtn.addEventListener('click', () => toggleModal(campaignsModal, t
 filterAdSetsBtn.addEventListener('click', () => toggleModal(adSetsModal, true, false));
 closeCampaignsModalBtn.addEventListener('click', () => toggleModal(campaignsModal, false, true));
 closeAdSetsModalBtn.addEventListener('click', () => toggleModal(adSetsModal, false, false));
+applyCampaignsBtn.addEventListener('click', () => toggleModal(campaignsModal, false, true));
+applyAdSetsBtn.addEventListener('click', () => toggleModal(adSetsModal, false, false));
 
 document.getElementById('campaignSearch').addEventListener('input', (e) => {
     campaignSearchText = e.target.value;

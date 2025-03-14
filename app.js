@@ -72,11 +72,7 @@ appLoginForm.addEventListener('submit', async (e) => {
 
 // Seleção de relatório simplificado
 simpleReportBtn.addEventListener('click', () => {
-    if (currentAccessToken) {
-        showScreen(mainContent);
-    } else {
-        showScreen(loginScreen);
-    }
+    showScreen(mainContent);
     simpleReportBtn.classList.add('active');
 });
 

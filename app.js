@@ -81,23 +81,23 @@ simpleReportBtn.addEventListener('click', () => {
 });
 
 // Seleção de relatório completo
-completeReportBtn.addEventListener('click', async () => {
+completeReportBtn.addEventListener('click', () => {
     if (!currentAccessToken) {
-        try {
-            const response = await fbAuth.login();
+        showScreen(loginScreen);
+        fbAuth.login().then(response => {
             currentAccessToken = response.authResponse.accessToken;
             window.location.href = 'RelatorioCompleto.html';
-        } catch (error) {
+        }).catch(error => {
             document.getElementById('loginError').textContent = `Erro no login: ${error.message}`;
             document.getElementById('loginError').style.display = 'block';
-        }
+        });
     } else {
         window.location.href = 'RelatorioCompleto.html';
     }
 });
 
 // Login com Facebook
-loginBtn.addEventListener('click', async (event) => {
+loginBtn.addEventListener('click', (event) => {
     event.preventDefault();
 
     if (!simpleReportBtn.classList.contains('active')) {
@@ -107,8 +107,7 @@ loginBtn.addEventListener('click', async (event) => {
     const loginError = document.getElementById('loginError');
     loginError.style.display = 'none';
 
-    try {
-        const response = await fbAuth.login();
+    fbAuth.login().then(response => {
         currentAccessToken = response.authResponse.accessToken;
         showScreen(mainContent);
         
@@ -126,10 +125,10 @@ loginBtn.addEventListener('click', async (event) => {
             option.textContent = account.name;
             unitSelect.appendChild(option);
         });
-    } catch (error) {
+    }).catch(error => {
         loginError.textContent = `Erro no login: ${error.message}`;
         loginError.style.display = 'block';
-    }
+    });
 });
 
 // Voltar para a seleção de relatório

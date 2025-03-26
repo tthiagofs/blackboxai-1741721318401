@@ -28,6 +28,14 @@ const applyAdSetsBtn = document.getElementById('applyAdSets');
 const confirmComparisonBtn = document.getElementById('confirmComparison');
 const cancelComparisonBtn = document.getElementById('cancelComparison');
 
+// Verificar se os elementos existem antes de adicionar eventos
+if (applyCampaignsBtn) {
+    applyCampaignsBtn.addEventListener('click', () => toggleModal(campaignsModal, false, true));
+}
+if (applyAdSetsBtn) {
+    applyAdSetsBtn.addEventListener('click', () => toggleModal(adSetsModal, false, false));
+}
+
 // Estado
 let selectedCampaigns = new Set();
 let selectedAdSets = new Set();
@@ -876,5 +884,6 @@ shareWhatsAppBtn.addEventListener('click', () => {
 // Navegação
 backToReportSelectionBtn.addEventListener('click', (e) => {
     e.preventDefault();
-    window.location.replace('index.html?screen=reportSelection');
+    console.log('Botão Voltar clicado - Redirecionando para seleção de relatório');
+    window.location.href = 'index.html?screen=reportSelection';
 });

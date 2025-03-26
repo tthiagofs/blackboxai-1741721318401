@@ -623,9 +623,10 @@ loginBtn.addEventListener('click', (event) => {
 });
 
 // Voltar para a seleção de relatório
-backToReportSelectionBtn.addEventListener('click', (e) => {
+bbackToReportSelectionBtn.addEventListener('click', (e) => {
     e.preventDefault();
-    window.location.replace('index.html?screen=reportSelection');
+    console.log('Botão Voltar clicado - Redirecionando para seleção de relatório');
+    window.location.href = 'index.html?screen=reportSelection';
 });
 
 // Verificar autenticação e decidir a tela inicial

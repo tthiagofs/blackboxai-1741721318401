@@ -885,5 +885,5 @@ shareWhatsAppBtn.addEventListener('click', () => {
 backToReportSelectionBtn.addEventListener('click', (e) => {
     e.preventDefault();
     console.log('Botão Voltar clicado - Redirecionando para seleção de relatório');
-    window.location.href = 'index.html?screen=reportSelection';
+    window.location.href = 'index.html?screen=reportSelection&appLoggedIn=true';
 });

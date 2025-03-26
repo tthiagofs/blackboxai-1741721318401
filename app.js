@@ -43,16 +43,19 @@ function showScreen(screen) {
     mainContent.style.display = 'none';
     screen.style.display = 'block';
 
-    // Registrar o evento do botão "Voltar" quando mainContent for exibido
     if (screen === mainContent) {
         const backBtn = document.getElementById('backToReportSelectionBtn');
         if (backBtn) {
-            // Remover listener anterior, se existir, para evitar duplicatas
             backBtn.removeEventListener('click', backBtn.clickHandler);
             backBtn.clickHandler = (e) => {
                 e.preventDefault();
                 console.log('Botão Voltar clicado - Redirecionando para seleção de relatório');
-                window.location.href = 'index.html?screen=reportSelection';
+                // Verifica se o usuário já fez login no app
+                if (localStorage.getItem('appLoggedIn') === 'true') {
+                    showScreen(reportSelectionScreen);  // Mostra direto sem recarregar
+                } else {
+                    window.location.href = 'index.html?screen=reportSelection';
+                }
             };
             backBtn.addEventListener('click', backBtn.clickHandler);
         } else {
@@ -60,7 +63,6 @@ function showScreen(screen) {
         }
     }
 }
-
 
 // Validate Facebook login status
 async function validateFacebookLogin() {
@@ -653,10 +655,12 @@ backToReportSelectionBtn.addEventListener('click', (e) => {
 // Verificar autenticação e decidir a tela inicial
 const storedToken = localStorage.getItem('fbAccessToken');
 const appLoggedIn = localStorage.getItem('appLoggedIn') === 'true';
-const targetScreen = new URLSearchParams(window.location.search).get('screen');
+const urlParams = new URLSearchParams(window.location.search);
+const targetScreen = urlParams.get('screen');
+const appLoggedInParam = urlParams.get('appLoggedIn') === 'true';
 
 if (targetScreen === 'reportSelection') {
-    if (appLoggedIn) {
+    if (appLoggedIn || appLoggedInParam) {
         showScreen(reportSelectionScreen);
     } else {
         showScreen(appLoginScreen);
@@ -664,7 +668,7 @@ if (targetScreen === 'reportSelection') {
 } else if (storedToken) {
     currentAccessToken = storedToken;
     validateFacebookLogin().then(isLoggedIn => {
-        if (isLoggedIn && appLoggedIn) {
+        if (isLoggedIn && (appLoggedIn || appLoggedInParam)) {
             showScreen(reportSelectionScreen);
         } else if (isLoggedIn) {
             showScreen(loginScreen);

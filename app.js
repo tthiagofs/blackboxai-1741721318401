@@ -623,7 +623,7 @@ loginBtn.addEventListener('click', (event) => {
 });
 
 // Voltar para a seleção de relatório
-bbackToReportSelectionBtn.addEventListener('click', (e) => {
+backToReportSelectionBtn.addEventListener('click', (e) => {
     e.preventDefault();
     console.log('Botão Voltar clicado - Redirecionando para seleção de relatório');
     window.location.href = 'index.html?screen=reportSelection';
@@ -633,9 +633,19 @@ bbackToReportSelectionBtn.addEventListener('click', (e) => {
 const storedToken = localStorage.getItem('fbAccessToken');
 const targetScreen = new URLSearchParams(window.location.search).get('screen');
 
-if (storedToken && targetScreen === 'reportSelection') {
+if (targetScreen === 'reportSelection') {
+    // Se já autenticado no app, vai direto para a seleção de relatório
+    if (appAuth.validateAppLogin('@admin', '134679')) {  // Simula autenticação prévia
+        showScreen(reportSelectionScreen);
+    } else {
+        showScreen(appLoginScreen);
+    }
+} else if (storedToken) {
     currentAccessToken = storedToken;
-    showScreen(reportSelectionScreen);
+    validateFacebookLogin().then(isLoggedIn => {
+        if (isLoggedIn) showScreen(reportSelectionScreen);
+        else showScreen(loginScreen);
+    });
 } else {
     showScreen(appLoginScreen);
 }

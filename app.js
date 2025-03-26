@@ -655,13 +655,22 @@ const storedToken = localStorage.getItem('fbAccessToken');
 const appLoggedIn = localStorage.getItem('appLoggedIn') === 'true';
 const targetScreen = new URLSearchParams(window.location.search).get('screen');
 
-if (targetScreen === 'reportSelection' && appLoggedIn) {
-    showScreen(reportSelectionScreen);
-} else if (storedToken && appLoggedIn) {
+if (targetScreen === 'reportSelection') {
+    if (appLoggedIn) {
+        showScreen(reportSelectionScreen);
+    } else {
+        showScreen(appLoginScreen);
+    }
+} else if (storedToken) {
     currentAccessToken = storedToken;
     validateFacebookLogin().then(isLoggedIn => {
-        if (isLoggedIn) showScreen(reportSelectionScreen);
-        else showScreen(loginScreen);
+        if (isLoggedIn && appLoggedIn) {
+            showScreen(reportSelectionScreen);
+        } else if (isLoggedIn) {
+            showScreen(loginScreen);
+        } else {
+            showScreen(appLoginScreen);
+        }
     });
 } else {
     showScreen(appLoginScreen);

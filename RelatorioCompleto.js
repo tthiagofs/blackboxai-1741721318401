@@ -885,7 +885,7 @@ shareWhatsAppBtn.addEventListener('click', () => {
 backToReportSelectionBtn.addEventListener('click', (e) => {
     e.preventDefault();
     console.log('Botão Voltar clicado - Redirecionando para seleção de relatório');
-    console.log('Estado appLoggedIn no localStorage:', localStorage.getItem('appLoggedIn'));
-    console.log('Estado fbAccessToken no localStorage:', localStorage.getItem('fbAccessToken'));
+    console.log('Antes de voltar - appLoggedIn:', localStorage.getItem('appLoggedIn'));
+    console.log('Antes de voltar - fbAccessToken:', localStorage.getItem('fbAccessToken') ? 'Sim' : 'Não');
     window.location.href = 'index.html?screen=reportSelection&appLoggedIn=true';
 });

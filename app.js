@@ -659,23 +659,27 @@ const urlParams = new URLSearchParams(window.location.search);
 const targetScreen = urlParams.get('screen');
 const appLoggedInParam = urlParams.get('appLoggedIn') === 'true';
 
-if (targetScreen === 'reportSelection') {
-    if (appLoggedIn || appLoggedInParam) {
-        showScreen(reportSelectionScreen);
-    } else {
-        showScreen(appLoginScreen);
-    }
+console.log('Estado inicial - appLoggedIn:', appLoggedIn, 'appLoggedInParam:', appLoggedInParam, 'storedToken:', !!storedToken);
+
+if (targetScreen === 'reportSelection' && (appLoggedIn || appLoggedInParam)) {
+    console.log('Indo direto para reportSelectionScreen porque appLoggedIn ou appLoggedInParam é true');
+    showScreen(reportSelectionScreen);
 } else if (storedToken) {
     currentAccessToken = storedToken;
     validateFacebookLogin().then(isLoggedIn => {
+        console.log('Resultado validateFacebookLogin:', isLoggedIn);
         if (isLoggedIn && (appLoggedIn || appLoggedInParam)) {
+            console.log('Indo para reportSelectionScreen após validar Facebook');
             showScreen(reportSelectionScreen);
         } else if (isLoggedIn) {
+            console.log('Indo para loginScreen (apenas Facebook logado)');
             showScreen(loginScreen);
         } else {
+            console.log('Indo para appLoginScreen (sem login válido)');
             showScreen(appLoginScreen);
         }
     });
 } else {
+    console.log('Indo para appLoginScreen (sem token salvo)');
     showScreen(appLoginScreen);
 }

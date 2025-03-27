@@ -653,14 +653,12 @@ backToReportSelectionBtn.addEventListener('click', (e) => {
 
 
 // Verificar autenticação e decidir a tela inicial
-// Verificar autenticação e decidir a tela inicial
 const storedToken = localStorage.getItem('fbAccessToken');
 const appLoggedIn = localStorage.getItem('appLoggedIn') === 'true';
 const urlParams = new URLSearchParams(window.location.search);
 const targetScreen = urlParams.get('screen');
 const appLoggedInParam = urlParams.get('appLoggedIn') === 'true';
 
-// Adicionar mensagens para entender o que está acontecendo
 console.log('Checando estado inicial...');
 console.log('appLoggedIn (do localStorage):', appLoggedIn);
 console.log('appLoggedInParam (da URL):', appLoggedInParam);

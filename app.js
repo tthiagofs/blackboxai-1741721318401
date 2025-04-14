@@ -378,25 +378,33 @@ function renderCampaignOptions() {
         </div>
     `).join('');
 
-    // Remover listener antigo se existir
-    container.removeEventListener('click', container.clickHandler);
-    
-    // Adicionar novo listener usando event delegation
+    // Remover listener antigo, se existir
+    if (container.clickHandler) {
+        container.removeEventListener('click', container.clickHandler);
+    }
+
+    // Adicionar novo listener com depuração
     container.clickHandler = (e) => {
+        console.log('Clique detectado no container campaignsList', e.target); // Log de depuração
         const option = e.target.closest('.filter-option');
         if (option) {
+            console.log('Item filter-option encontrado:', option.dataset.id); // Log de depuração
             const id = option.dataset.id;
             if (selectedCampaigns.has(id)) {
                 selectedCampaigns.delete(id);
                 option.classList.remove('selected');
+                console.log(`Campanha ${id} removida de selectedCampaigns`);
             } else {
                 selectedCampaigns.add(id);
                 option.classList.add('selected');
+                console.log(`Campanha ${id} adicionada a selectedCampaigns`);
             }
             updateFilterButtons();
+        } else {
+            console.log('Nenhum filter-option encontrado no clique');
         }
     };
-    
+
     container.addEventListener('click', container.clickHandler);
 }
 
@@ -427,27 +435,36 @@ function renderAdSetOptions() {
         </div>
     `).join('');
 
-    // Remover listener antigo se existir
-    container.removeEventListener('click', container.clickHandler);
-    
-    // Adicionar novo listener usando event delegation
+    // Remover listener antigo, se existir
+    if (container.clickHandler) {
+        container.removeEventListener('click', container.clickHandler);
+    }
+
+    // Adicionar novo listener com depuração
     container.clickHandler = (e) => {
+        console.log('Clique detectado no container adSetsList', e.target); // Log de depuração
         const option = e.target.closest('.filter-option');
         if (option) {
+            console.log('Item filter-option encontrado:', option.dataset.id); // Log de depuração
             const id = option.dataset.id;
             if (selectedAdSets.has(id)) {
                 selectedAdSets.delete(id);
                 option.classList.remove('selected');
+                console.log(`Conjunto ${id} removido de selectedAdSets`);
             } else {
                 selectedAdSets.add(id);
                 option.classList.add('selected');
+                console.log(`Conjunto ${id} adicionado a selectedAdSets`);
             }
             updateFilterButtons();
+        } else {
+            console.log('Nenhum filter-option encontrado no clique');
         }
     };
-    
+
     container.addEventListener('click', container.clickHandler);
 }
+
 
 // Função para atualizar botões de filtro
 function updateFilterButtons() {

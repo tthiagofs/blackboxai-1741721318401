@@ -27,11 +27,18 @@
     </script>
     <style>
         .filter-option {
-            @apply p-3 my-2 bg-gray-50 rounded-md cursor-pointer transition-colors duration-200 hover:bg-gray-100;
-        }
-        .filter-option.selected {
-            @apply bg-primary text-white hover:bg-secondary;
-        }
+        @apply p-3 my-2 bg-gray-50 rounded-md cursor-pointer transition-colors duration-200 hover:bg-gray-100;
+        position: relative; /* Garantir que o elemento esteja no fluxo de cliques */
+        pointer-events: auto; /* Garantir que cliques sejam capturados */
+    }
+
+    .filter-option * {
+        pointer-events: none; /* Impedir que elementos filhos capturem o clique */
+    }
+
+    .filter-option.selected {
+        @apply bg-primary text-white hover:bg-secondary;
+    }
         .metric-card {
             @apply bg-white p-6 rounded-lg shadow-lg transition-transform duration-300 hover:transform hover:-translate-y-1;
         }

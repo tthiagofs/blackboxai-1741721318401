@@ -431,9 +431,19 @@ async function getAdInsights(adId, startDate, endDate) {
             },
             (response) => {
                 if (response && !response.error && response.data && response.data.length > 0) {
-                    resolve(response.data[0]);
+                    const insights = response.data[0];
+                    let conversations = 0;
+                    if (insights.actions) {
+                        const conversationAction = insights.actions.find(action => action.action_type === 'onsite_conversion.messaging_conversation_started_7d');
+                        conversations = conversationAction ? parseInt(conversationAction.value) : 0;
+                    }
+                    resolve({
+                        spend: insights.spend || '0',
+                        reach: insights.reach || '0',
+                        conversations: conversations
+                    });
                 } else {
-                    resolve({ spend: '0', actions: [], reach: '0' });
+                    resolve({ spend: '0', actions: [], reach: '0', conversations: 0 });
                 }
             }
         );
@@ -635,7 +645,7 @@ form.addEventListener('submit', async (e) => {
         submitButton.disabled = true;
         submitButton.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Gerando...';
 
-        await generateReport(e); // Passar o evento e
+        await generateReport();
 
         // Reabilitar o botão após a geração
         submitButton.disabled = false;
@@ -646,27 +656,23 @@ form.addEventListener('submit', async (e) => {
     }
 });
 
-async function generateReport(event) {
-    event.preventDefault();
+async function generateReport() {
     reportContainer.innerHTML = '<p class="text-gray-500">Carregando relatório...</p>';
     shareWhatsAppBtn.style.display = 'none';
 
     try {
-        const formData = new FormData(event.target);
+        const formData = new FormData(form);
         const unitId = formData.get('unitId');
         const startDate = formData.get('startDate');
         const endDate = formData.get('endDate');
-        const comparisonStartDate = formData.get('comparisonStartDate');
-        const comparisonEndDate = formData.get('comparisonEndDate');
+        const comparisonStartDate = comparisonData ? comparisonData.startDate : null;
+        const comparisonEndDate = comparisonData ? comparisonData.endDate : null;
         const selectedCampaigns = new Set(formData.getAll('campaigns'));
         const selectedAdSets = new Set(formData.getAll('adSets'));
 
         await loadCampaigns(unitId, startDate, endDate);
         await loadAdSets(unitId, startDate, endDate);
         const adsMap = await loadAds(unitId, startDate, endDate, selectedCampaigns.size > 0 ? selectedCampaigns : null, selectedAdSets.size > 0 ? selectedAdSets : null);
-
-        // Log para depurar o retorno de loadAds
-        console.log('adsMap retornado por loadAds:', adsMap);
 
         let metrics = {
             reach: 0,
@@ -684,17 +690,11 @@ async function generateReport(event) {
 
         metrics.costPerConversation = metrics.conversations > 0 ? metrics.spend / metrics.conversations : 0;
 
-        // Log para depurar o estado de metrics
-        console.log('metrics após agregação:', metrics);
-
         let comparisonMetrics = null;
         if (comparisonStartDate && comparisonEndDate) {
             await loadCampaigns(unitId, comparisonStartDate, comparisonEndDate);
             await loadAdSets(unitId, comparisonStartDate, comparisonEndDate);
             const comparisonAdsMap = await loadAds(unitId, comparisonStartDate, comparisonEndDate, selectedCampaigns.size > 0 ? selectedCampaigns : null, selectedAdSets.size > 0 ? selectedAdSets : null);
-
-            // Log para depurar o retorno de loadAds para o período de comparação
-            console.log('comparisonAdsMap retornado por loadAds:', comparisonAdsMap);
 
             comparisonMetrics = {
                 reach: 0,
@@ -711,9 +711,6 @@ async function generateReport(event) {
             }
 
             comparisonMetrics.costPerConversation = comparisonMetrics.conversations > 0 ? comparisonMetrics.spend / comparisonMetrics.conversations : 0;
-
-            // Log para depurar o estado de comparisonMetrics
-            console.log('comparisonMetrics após agregação:', comparisonMetrics);
         }
 
         const bestAds = Object.entries(adsMap)
@@ -822,9 +819,9 @@ function calculateVariation(current, previous, metric) {
 function renderReport(metrics, comparisonMetrics, bestAds) {
     const topAds = bestAds || [];
     const variations = comparisonMetrics ? {
-        reach: calculateVariation(metrics?.reach || 0, comparisonMetrics?.reach || 0, 'reach'),
-        conversations: calculateVariation(metrics?.conversations || 0, comparisonMetrics?.conversations || 0, 'conversations'),
-        costPerConversation: calculateVariation(metrics?.costPerConversation || 0, comparisonMetrics?.costPerConversation || 0, 'costPerConversation')
+        reach: calculateVariation(metrics.reach, comparisonMetrics.reach, 'reach'),
+        conversations: calculateVariation(metrics.conversations, comparisonMetrics.conversations, 'conversations'),
+        costPerConversation: calculateVariation(metrics.costPerConversation, comparisonMetrics.costPerConversation, 'costPerConversation')
     } : null;
 
     reportContainer.innerHTML = `
@@ -836,7 +833,7 @@ function renderReport(metrics, comparisonMetrics, bestAds) {
                         <i class="fas fa-bullhorn mr-2"></i>Alcance Total
                     </div>
                     <div class="text-2xl font-bold">
-                        ${(metrics?.reach || 0).toLocaleString('pt-BR')}
+                        ${metrics.reach.toLocaleString('pt-BR')}
                     </div>
                     ${comparisonMetrics ? `
                         <div class="mt-2 text-sm font-medium ${variations.reach.direction === 'positive' ? 'text-green-400' : variations.reach.direction === 'negative' ? 'text-red-400' : 'text-gray-400'}">
@@ -851,7 +848,7 @@ function renderReport(metrics, comparisonMetrics, bestAds) {
                         <i class="fas fa-comments mr-2"></i>Mensagens
                     </div>
                     <div class="text-2xl font-bold">
-                        ${(metrics?.conversations || 0).toLocaleString('pt-BR')}
+                        ${metrics.conversations.toLocaleString('pt-BR')}
                     </div>
                     ${comparisonMetrics ? `
                         <div class="mt-2 text-sm font-medium ${variations.conversations.direction === 'positive' ? 'text-green-400' : variations.conversations.direction === 'negative' ? 'text-red-400' : 'text-gray-400'}">
@@ -866,7 +863,7 @@ function renderReport(metrics, comparisonMetrics, bestAds) {
                         <i class="fas fa-dollar-sign mr-2"></i>Custo por Mensagem
                     </div>
                     <div class="text-2xl font-bold">
-                        R$ ${(metrics?.costPerConversation || 0).toFixed(2).replace('.', ',')}
+                        R$ ${metrics.costPerConversation.toFixed(2).replace('.', ',')}
                     </div>
                     ${comparisonMetrics ? `
                         <div class="mt-2 text-sm font-medium ${variations.costPerConversation.direction === 'positive' ? 'text-green-400' : variations.costPerConversation.direction === 'negative' ? 'text-red-400' : 'text-gray-400'}">
@@ -881,7 +878,7 @@ function renderReport(metrics, comparisonMetrics, bestAds) {
                         <i class="fas fa-coins mr-2"></i>Investimento Total
                     </div>
                     <div class="text-2xl font-bold">
-                        R$ ${(metrics?.spend || 0).toFixed(2).replace('.', ',')}
+                        R$ ${metrics.spend.toFixed(2).replace('.', ',')}
                     </div>
                 </div>
             </div>
@@ -892,7 +889,7 @@ function renderReport(metrics, comparisonMetrics, bestAds) {
                     <div class="space-y-4">
                         ${topAds.map(ad => `
                             <div class="flex items-center bg-white rounded-lg shadow-sm p-4">
-                                <img src="${ad.creative.thumbnail_url}" alt="Thumbnail" class="w-20 h-20 object-cover rounded-md mr-4">
+                                <img src="${ad.creative.imageUrl}" alt="Thumbnail" class="w-20 h-20 object-cover rounded-md mr-4">
                                 <div class="flex-1">
                                     <div class="text-sm text-gray-600">
                                         Mensagens: <span class="font-medium text-gray-800">${ad.insights.conversations || 0}</span>

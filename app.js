@@ -14,8 +14,6 @@ const reportContainer = document.getElementById('reportContainer');
 const shareWhatsAppBtn = document.getElementById('shareWhatsAppBtn');
 const filterCampaignsBtn = document.getElementById('filterCampaigns');
 const filterAdSetsBtn = document.getElementById('filterAdSets');
-const campaignsModal = document.getElementById('campaignsModal');
-const adSetsModal = document.getElementById('adSetsModal');
 const closeCampaignsModalBtn = document.getElementById('closeCampaignsModal');
 const closeAdSetsModalBtn = document.getElementById('closeAdSetsModal');
 const applyCampaignsBtn = document.getElementById('applyCampaigns');
@@ -114,7 +112,6 @@ appLoginForm.addEventListener('submit', async (e) => {
         passwordInput.value = '';
     }
 });
-
 
 // Seleção de relatório simplificado
 simpleReportBtn.addEventListener('click', async () => {
@@ -375,13 +372,26 @@ function renderCampaignOptions() {
             </div>
         `;
 
+        // Aplicar estilo inicial diretamente
+        if (selectedCampaigns.has(campaign.id)) {
+            option.style.background = '#2563eb';
+            option.style.color = '#ffffff';
+        } else {
+            option.style.background = '#ffffff';
+            option.style.color = '';
+        }
+
         option.addEventListener('click', () => {
             if (selectedCampaigns.has(campaign.id)) {
                 selectedCampaigns.delete(campaign.id);
                 option.classList.remove('selected');
+                option.style.background = '#ffffff';
+                option.style.color = '';
             } else {
                 selectedCampaigns.add(campaign.id);
                 option.classList.add('selected');
+                option.style.background = '#2563eb';
+                option.style.color = '#ffffff';
             }
             updateFilterButtons();
         });
@@ -416,13 +426,26 @@ function renderAdSetOptions() {
             </div>
         `;
 
+        // Aplicar estilo inicial diretamente
+        if (selectedAdSets.has(adSet.id)) {
+            option.style.background = '#2563eb';
+            option.style.color = '#ffffff';
+        } else {
+            option.style.background = '#ffffff';
+            option.style.color = '';
+        }
+
         option.addEventListener('click', () => {
             if (selectedAdSets.has(adSet.id)) {
                 selectedAdSets.delete(adSet.id);
                 option.classList.remove('selected');
+                option.style.background = '#ffffff';
+                option.style.color = '';
             } else {
                 selectedAdSets.add(adSet.id);
                 option.classList.add('selected');
+                option.style.background = '#2563eb';
+                option.style.color = '#ffffff';
             }
             updateFilterButtons();
         });
@@ -430,7 +453,6 @@ function renderAdSetOptions() {
         container.appendChild(option);
     });
 }
-
 
 // Função para atualizar botões de filtro
 function updateFilterButtons() {
@@ -444,6 +466,10 @@ function updateFilterButtons() {
 // Função para alternar modais
 function toggleModal(modalId, show) {
     const modal = document.getElementById(modalId);
+    if (!modal) {
+        console.error(`Modal com ID "${modalId}" não encontrado no DOM.`);
+        return;
+    }
     if (show) {
         modal.classList.remove('hidden');
         if (modalId === 'campaignsModal') {
@@ -455,6 +481,7 @@ function toggleModal(modalId, show) {
         modal.classList.add('hidden');
     }
 }
+
 // Carregar dados ao preencher o formulário
 form.addEventListener('input', async function(e) {
     const unitId = document.getElementById('unitId').value;
@@ -584,13 +611,24 @@ form.addEventListener('submit', async (e) => {
 });
 
 // Event listeners for filters
-filterCampaignsBtn.addEventListener('click', () => toggleModal(campaignsModal, true, true));
-filterAdSetsBtn.addEventListener('click', () => toggleModal(adSetsModal, true, false));
-closeCampaignsModalBtn.addEventListener('click', () => toggleModal(campaignsModal, false, true));
-closeAdSetsModalBtn.addEventListener('click', () => toggleModal(adSetsModal, false, false));
-applyCampaignsBtn.addEventListener('click', () => toggleModal(campaignsModal, false, true));
-applyAdSetsBtn.addEventListener('click', () => toggleModal(adSetsModal, false, false));
-
+if (filterCampaignsBtn) {
+    filterCampaignsBtn.addEventListener('click', () => toggleModal('campaignsModal', true));
+}
+if (filterAdSetsBtn) {
+    filterAdSetsBtn.addEventListener('click', () => toggleModal('adSetsModal', true));
+}
+if (closeCampaignsModalBtn) {
+    closeCampaignsModalBtn.addEventListener('click', () => toggleModal('campaignsModal', false));
+}
+if (closeAdSetsModalBtn) {
+    closeAdSetsModalBtn.addEventListener('click', () => toggleModal('adSetsModal', false));
+}
+if (applyCampaignsBtn) {
+    applyCampaignsBtn.addEventListener('click', () => toggleModal('campaignsModal', false));
+}
+if (applyAdSetsBtn) {
+    applyAdSetsBtn.addEventListener('click', () => toggleModal('adSetsModal', false));
+}
 
 // Compartilhar no WhatsApp
 shareWhatsAppBtn.addEventListener('click', () => {
@@ -610,7 +648,6 @@ backToReportSelectionBtn.addEventListener('click', (e) => {
     console.log('Botão Voltar clicado - Redirecionando para seleção de relatório');
     window.location.href = 'index.html?screen=reportSelection';
 });
-
 
 // Verificar autenticação e decidir a tela inicial
 const storedToken = localStorage.getItem('fbAccessToken');

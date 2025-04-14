@@ -18,23 +18,12 @@ const comparePeriodsBtn = document.getElementById('comparePeriods');
 const backToReportSelectionBtn = document.getElementById('backToReportSelectionBtn');
 
 // Modais
-const campaignsModal = document.getElementById('campaignsModal');
-const adSetsModal = document.getElementById('adSetsModal');
-const comparisonModal = document.getElementById('comparisonModal');
 const closeCampaignsModalBtn = document.getElementById('closeCampaignsModal');
 const closeAdSetsModalBtn = document.getElementById('closeAdSetsModal');
 const applyCampaignsBtn = document.getElementById('applyCampaigns');
 const applyAdSetsBtn = document.getElementById('applyAdSets');
 const confirmComparisonBtn = document.getElementById('confirmComparison');
 const cancelComparisonBtn = document.getElementById('cancelComparison');
-
-// Verificar se os elementos existem antes de adicionar eventos
-if (applyCampaignsBtn) {
-    applyCampaignsBtn.addEventListener('click', () => toggleModal(campaignsModal, false, true));
-}
-if (applyAdSetsBtn) {
-    applyAdSetsBtn.addEventListener('click', () => toggleModal(adSetsModal, false, false));
-}
 
 // Estado
 let selectedCampaigns = new Set();
@@ -66,6 +55,10 @@ sortedAccounts.forEach(account => {
 // Funções de Modal
 function toggleModal(modalId, show) {
     const modal = document.getElementById(modalId);
+    if (!modal) {
+        console.error(`Modal com ID "${modalId}" não encontrado no DOM.`);
+        return;
+    }
     if (show) {
         modal.classList.remove('hidden');
         if (modalId === 'campaignsModal') {
@@ -77,7 +70,6 @@ function toggleModal(modalId, show) {
         modal.classList.add('hidden');
     }
 }
-
 
 function setupComparisonModal() {
     if (comparisonData) {
@@ -428,13 +420,26 @@ function renderCampaignOptions() {
             </div>
         `;
 
+        // Aplicar estilo inicial diretamente
+        if (selectedCampaigns.has(campaign.id)) {
+            option.style.background = '#2563eb';
+            option.style.color = '#ffffff';
+        } else {
+            option.style.background = '#ffffff';
+            option.style.color = '';
+        }
+
         option.addEventListener('click', () => {
             if (selectedCampaigns.has(campaign.id)) {
                 selectedCampaigns.delete(campaign.id);
                 option.classList.remove('selected');
+                option.style.background = '#ffffff';
+                option.style.color = '';
             } else {
                 selectedCampaigns.add(campaign.id);
                 option.classList.add('selected');
+                option.style.background = '#2563eb';
+                option.style.color = '#ffffff';
             }
             updateFilterButtons();
         });
@@ -469,13 +474,26 @@ function renderAdSetOptions() {
             </div>
         `;
 
+        // Aplicar estilo inicial diretamente
+        if (selectedAdSets.has(adSet.id)) {
+            option.style.background = '#2563eb';
+            option.style.color = '#ffffff';
+        } else {
+            option.style.background = '#ffffff';
+            option.style.color = '';
+        }
+
         option.addEventListener('click', () => {
             if (selectedAdSets.has(adSet.id)) {
                 selectedAdSets.delete(adSet.id);
                 option.classList.remove('selected');
+                option.style.background = '#ffffff';
+                option.style.color = '';
             } else {
                 selectedAdSets.add(adSet.id);
                 option.classList.add('selected');
+                option.style.background = '#2563eb';
+                option.style.color = '#ffffff';
             }
             updateFilterButtons();
         });
@@ -483,18 +501,32 @@ function renderAdSetOptions() {
         container.appendChild(option);
     });
 }
+
 // Event Listeners
-filterCampaignsBtn.addEventListener('click', () => toggleModal(campaignsModal, true, true));
-filterAdSetsBtn.addEventListener('click', () => toggleModal(adSetsModal, true, false));
-comparePeriodsBtn.addEventListener('click', () => toggleModal(comparisonModal, true));
-
-closeCampaignsModalBtn.addEventListener('click', () => toggleModal(campaignsModal, false, true));
-closeAdSetsModalBtn.addEventListener('click', () => toggleModal(adSetsModal, false, false));
-applyCampaignsBtn.addEventListener('click', () => toggleModal(campaignsModal, false, true));
-applyAdSetsBtn.addEventListener('click', () => toggleModal(adSetsModal, false, false));
-cancelComparisonBtn.addEventListener('click', () => toggleModal(comparisonModal, false));
-
-
+if (filterCampaignsBtn) {
+    filterCampaignsBtn.addEventListener('click', () => toggleModal('campaignsModal', true));
+}
+if (filterAdSetsBtn) {
+    filterAdSetsBtn.addEventListener('click', () => toggleModal('adSetsModal', true));
+}
+if (comparePeriodsBtn) {
+    comparePeriodsBtn.addEventListener('click', () => toggleModal('comparisonModal', true));
+}
+if (closeCampaignsModalBtn) {
+    closeCampaignsModalBtn.addEventListener('click', () => toggleModal('campaignsModal', false));
+}
+if (closeAdSetsModalBtn) {
+    closeAdSetsModalBtn.addEventListener('click', () => toggleModal('adSetsModal', false));
+}
+if (applyCampaignsBtn) {
+    applyCampaignsBtn.addEventListener('click', () => toggleModal('campaignsModal', false));
+}
+if (applyAdSetsBtn) {
+    applyAdSetsBtn.addEventListener('click', () => toggleModal('adSetsModal', false));
+}
+if (cancelComparisonBtn) {
+    cancelComparisonBtn.addEventListener('click', () => toggleModal('comparisonModal', false));
+}
 
 // Funções de comparação
 confirmComparisonBtn.addEventListener('click', () => {
@@ -517,7 +549,7 @@ confirmComparisonBtn.addEventListener('click', () => {
         comparisonData = null;
     }
 
-    toggleModal(comparisonModal, false);
+    toggleModal('comparisonModal', false);
 });
 
 function calculatePreviousPeriod(startDate, endDate) {

@@ -112,10 +112,8 @@ form.addEventListener('input', async function(e) {
 async function loadAds(unitId, startDate, endDate, filteredCampaigns = null, filteredAdSets = null) {
     try {
         let adsMap = {};
-        let apiEndpoint = filteredAdSets && filteredAdSets.size > 0 
-            ? null 
-            : `/${unitId}/ads`;
 
+        // Caso 1: Filtrado por conjuntos de anúncios (filteredAdSets)
         if (filteredAdSets && filteredAdSets.size > 0) {
             const adPromises = Array.from(filteredAdSets).map(adSetId => 
                 new Promise((resolve) => {
@@ -147,10 +145,65 @@ async function loadAds(unitId, startDate, endDate, filteredCampaigns = null, fil
                 })
             );
             await Promise.all(adPromises);
-        } else {
+        } 
+        // Caso 2: Filtrado por campanhas (filteredCampaigns)
+        else if (filteredCampaigns && filteredCampaigns.size > 0) {
+            // Primeiro, buscar os conjuntos de anúncios associados às campanhas selecionadas
+            let allAdSets = [];
+            for (const campaignId of filteredCampaigns) {
+                let url = `/${campaignId}/adsets?fields=id&access_token=${currentAccessToken}`;
+                while (url) {
+                    const adSetResponse = await new Promise((resolve) => {
+                        FB.api(url, resolve);
+                    });
+                    if (adSetResponse && !adSetResponse.error) {
+                        allAdSets = allAdSets.concat(adSetResponse.data);
+                        url = adSetResponse.paging && adSetResponse.paging.next ? adSetResponse.paging.next : null;
+                    } else {
+                        console.error(`Erro ao carregar ad sets da campanha ${campaignId}:`, adSetResponse.error);
+                        url = null;
+                    }
+                }
+            }
+
+            // Agora, buscar os anúncios para cada conjunto de anúncios
+            const adSetIds = allAdSets.map(adSet => adSet.id);
+            const adPromises = adSetIds.map(adSetId => 
+                new Promise((resolve) => {
+                    FB.api(
+                        `/${adSetId}/ads`,
+                        { fields: 'id,creative', access_token: currentAccessToken },
+                        async function(adResponse) {
+                            if (adResponse && !adResponse.error) {
+                                const adIds = adResponse.data.map(ad => ad.id);
+                                const insightPromises = adIds.map(adId => getAdInsights(adId, startDate, endDate));
+                                const creativePromises = adResponse.data.map(ad => getCreativeData(ad.creative.id));
+                                const [insights, creatives] = await Promise.all([
+                                    Promise.all(insightPromises),
+                                    Promise.all(creativePromises)
+                                ]);
+                                adIds.forEach((adId, index) => {
+                                    adsMap[adId] = {
+                                        insights: insights[index],
+                                        creative: creatives[index]
+                                    };
+                                });
+                                resolve();
+                            } else {
+                                console.error(`Erro ao carregar anúncios do ad set ${adSetId}:`, adResponse.error);
+                                resolve();
+                            }
+                        }
+                    );
+                })
+            );
+            await Promise.all(adPromises);
+        } 
+        // Caso 3: Sem filtros, carrega todos os anúncios da conta
+        else {
             const adResponse = await new Promise(resolve => {
                 FB.api(
-                    apiEndpoint,
+                    `/${unitId}/ads`,
                     { fields: 'id,creative', limit: 100, access_token: currentAccessToken },
                     resolve
                 );

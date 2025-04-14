@@ -465,7 +465,6 @@ function renderAdSetOptions() {
     container.addEventListener('click', container.clickHandler);
 }
 
-
 // Função para atualizar botões de filtro
 function updateFilterButtons() {
     filterCampaignsBtn.disabled = isFilterActivated && selectedAdSets.size > 0;

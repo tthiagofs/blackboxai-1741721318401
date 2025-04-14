@@ -887,37 +887,23 @@ const variations = {
 
             ${bestAds && bestAds.length > 0 ? `
                 <div class="mt-8">
-                    <h3 class="text-xl font-bold text-white mb-4">
-                        <i class="fas fa-star mr-2"></i>Anúncios com Melhor Desempenho
-                    </h3>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        ${bestAds.map(ad => `
-                            <div class="bg-white/10 backdrop-blur rounded-lg p-4">
-                                <div class="aspect-video mb-4 rounded-lg overflow-hidden">
-                                    <img src="${ad.imageUrl}" 
-                                        alt="Anúncio" 
-                                        class="w-full h-full object-cover"
-                                        crossorigin="anonymous"
-                                        loading="lazy">
-                                </div>
-                                <div class="space-y-2 text-white">
-                                    <div class="flex justify-between items-center">
-                                        <span>Mensagens:</span>
-                                        <span class="font-bold">${ad.messages}</span>
-                                    </div>
-                                    <div class="flex justify-between items-center">
-                                        <span>Custo por Mensagem:</span>
-                                        <span class="font-bold">R$ ${ad.costPerMessage.replace('.', ',')}</span>
-                                    </div>
-                                    <div class="flex justify-between items-center">
-                                        <span>Investimento:</span>
-                                        <span class="font-bold">R$ ${ad.spend.toFixed(2).replace('.', ',')}</span>
-                                    </div>
-                                </div>
-                            </div>
-                        `).join('')}
+    <h2 class="text-xl font-semibold mb-4 text-gray-800">Anúncios em Destaque</h2>
+    <div class="space-y-4">
+        ${topAds.map(ad => `
+            <div class="flex items-center bg-white rounded-lg shadow-sm p-4">
+                <img src="${ad.creative.thumbnail_url}" alt="Thumbnail" class="w-20 h-20 object-cover rounded-md mr-4">
+                <div class="flex-1">
+                    <div class="text-sm text-gray-600">
+                        Mensagens: <span class="font-medium text-gray-800">${ad.insights.conversations || 0}</span>
+                    </div>
+                    <div class="text-sm text-gray-600">
+                        Custo por Msg: <span class="font-medium text-gray-800">R$ ${(ad.insights.costPerConversation || 0).toFixed(2).replace('.', ',')}</span>
                     </div>
                 </div>
+            </div>
+        `).join('')}
+    </div>
+</div>
             ` : ''}
         </div>
     `;

@@ -1020,42 +1020,40 @@ async function generateReport() {
     // Limpar o container de relatórios antes de gerar novos
     reportContainer.innerHTML = '';
 
+    // Carregar todos os anúncios do período (sem filtros White ou Black) para os melhores anúncios
+    const allAdsData = await loadAds(unitId, startDate, endDate);
+
+    const topAds = [];
+    Object.entries(allAdsData).forEach(([adId, ad]) => {
+        let messages = 0;
+        let spend = parseFloat(ad.insights.spend) || 0;
+
+        if (ad.insights && ad.insights.actions) {
+            ad.insights.actions.forEach(action => {
+                if (action.action_type === 'onsite_conversion.messaging_conversation_started_7d') {
+                    messages += parseInt(action.value) || 0;
+                }
+            });
+        }
+
+        if (messages > 0) {
+            topAds.push({
+                id: adId,
+                imageUrl: ad.creative.imageUrl,
+                messages: messages,
+                spend: spend,
+                costPerMessage: messages > 0 ? (spend / messages).toFixed(2) : '0'
+            });
+        }
+    });
+
+    topAds.sort((a, b) => b.messages - a.messages);
+    const bestAds = topAds.slice(0, 2).filter(ad => {
+        return ad.imageUrl && !ad.imageUrl.includes('dummyimage');
+    });
+
     if (hasBlack) {
-        // Gerar relatório White
-        const whiteAdsData = await loadAds(unitId, startDate, endDate, 
-            selectedWhiteCampaigns.size > 0 ? selectedWhiteCampaigns : null, 
-            selectedWhiteAdSets.size > 0 ? selectedWhiteAdSets : null
-        );
-
-        const whiteTopAds = [];
-        Object.entries(whiteAdsData).forEach(([adId, ad]) => {
-            let messages = 0;
-            let spend = parseFloat(ad.insights.spend) || 0;
-
-            if (ad.insights && ad.insights.actions) {
-                ad.insights.actions.forEach(action => {
-                    if (action.action_type === 'onsite_conversion.messaging_conversation_started_7d') {
-                        messages += parseInt(action.value) || 0;
-                    }
-                });
-            }
-
-            if (messages > 0) {
-                whiteTopAds.push({
-                    id: adId,
-                    imageUrl: ad.creative.imageUrl,
-                    messages: messages,
-                    spend: spend,
-                    costPerMessage: messages > 0 ? (spend / messages).toFixed(2) : '0'
-                });
-            }
-        });
-
-        whiteTopAds.sort((a, b) => b.messages - a.messages);
-        const whiteBestAds = whiteTopAds.slice(0, 2).filter(ad => {
-            return ad.imageUrl && !ad.imageUrl.includes('dummyimage');
-        });
-
+        // Calcular métricas White
         let whiteMetrics = await calculateMetrics(unitId, startDate, endDate, selectedWhiteCampaigns, selectedWhiteAdSets);
         let whiteComparisonMetrics = null;
 
@@ -1069,41 +1067,7 @@ async function generateReport() {
             );
         }
 
-        // Gerar relatório Black
-        const blackAdsData = await loadAds(unitId, startDate, endDate, 
-            selectedBlackCampaigns.size > 0 ? selectedBlackCampaigns : null, 
-            selectedBlackAdSets.size > 0 ? selectedBlackAdSets : null
-        );
-
-        const blackTopAds = [];
-        Object.entries(blackAdsData).forEach(([adId, ad]) => {
-            let messages = 0;
-            let spend = parseFloat(ad.insights.spend) || 0;
-
-            if (ad.insights && ad.insights.actions) {
-                ad.insights.actions.forEach(action => {
-                    if (action.action_type === 'onsite_conversion.messaging_conversation_started_7d') {
-                        messages += parseInt(action.value) || 0;
-                    }
-                });
-            }
-
-            if (messages > 0) {
-                blackTopAds.push({
-                    id: adId,
-                    imageUrl: ad.creative.imageUrl,
-                    messages: messages,
-                    spend: spend,
-                    costPerMessage: messages > 0 ? (spend / messages).toFixed(2) : '0'
-                });
-            }
-        });
-
-        blackTopAds.sort((a, b) => b.messages - a.messages);
-        const blackBestAds = blackTopAds.slice(0, 2).filter(ad => {
-            return ad.imageUrl && !ad.imageUrl.includes('dummyimage');
-        });
-
+        // Calcular métricas Black
         let blackMetrics = await calculateMetrics(unitId, startDate, endDate, selectedBlackCampaigns, selectedBlackAdSets);
         let blackComparisonMetrics = null;
 
@@ -1117,45 +1081,10 @@ async function generateReport() {
             );
         }
 
-        // Renderizar ambos os relatórios
-        renderReport(unitName, startDate, endDate, whiteMetrics, whiteComparisonMetrics, whiteBestAds, 'White');
-        renderReport(unitName, startDate, endDate, blackMetrics, blackComparisonMetrics, blackBestAds, 'Black');
+        // Renderizar o relatório com métricas White, Black e os melhores anúncios gerais
+        renderReport(unitName, startDate, endDate, whiteMetrics, whiteComparisonMetrics, blackMetrics, blackComparisonMetrics, bestAds);
     } else {
         // Comportamento padrão (sem Black)
-        const adsData = await loadAds(unitId, startDate, endDate, 
-            selectedCampaigns.size > 0 ? selectedCampaigns : null, 
-            selectedAdSets.size > 0 ? selectedAdSets : null
-        );
-
-        const topAds = [];
-        Object.entries(adsData).forEach(([adId, ad]) => {
-            let messages = 0;
-            let spend = parseFloat(ad.insights.spend) || 0;
-
-            if (ad.insights && ad.insights.actions) {
-                ad.insights.actions.forEach(action => {
-                    if (action.action_type === 'onsite_conversion.messaging_conversation_started_7d') {
-                        messages += parseInt(action.value) || 0;
-                    }
-                });
-            }
-
-            if (messages > 0) {
-                topAds.push({
-                    id: adId,
-                    imageUrl: ad.creative.imageUrl,
-                    messages: messages,
-                    spend: spend,
-                    costPerMessage: messages > 0 ? (spend / messages).toFixed(2) : '0'
-                });
-            }
-        });
-
-        topAds.sort((a, b) => b.messages - a.messages);
-        const bestAds = topAds.slice(0, 2).filter(ad => {
-            return ad.imageUrl && !ad.imageUrl.includes('dummyimage');
-        });
-
         let currentMetrics = await calculateMetrics(unitId, startDate, endDate, selectedCampaigns, selectedAdSets);
         let comparisonMetrics = null;
 
@@ -1169,7 +1098,8 @@ async function generateReport() {
             );
         }
 
-        renderReport(unitName, startDate, endDate, currentMetrics, comparisonMetrics, bestAds);
+        // Renderizar o relatório com métricas padrão e os melhores anúncios gerais
+        renderReport(unitName, startDate, endDate, currentMetrics, comparisonMetrics, null, null, bestAds);
     }
 
     // Exibir o botão de compartilhar no WhatsApp
@@ -1258,7 +1188,7 @@ function calculateVariation(current, previous, metric) {
     return { percentage: Math.abs(percentage).toFixed(2), direction };
 }
 
-function renderReport(unitName, startDate, endDate, metrics, comparisonMetrics, bestAds, type = null) {
+function renderReport(unitName, startDate, endDate, metrics, comparisonMetrics, blackMetrics, blackComparisonMetrics, bestAds) {
     const formattedStartDate = startDate.split('-').reverse().join('/');
     const formattedEndDate = endDate.split('-').reverse().join('/');
 
@@ -1273,61 +1203,153 @@ function renderReport(unitName, startDate, endDate, metrics, comparisonMetrics, 
         `;
     }
 
-    const variations = {
-        reach: calculateVariation(metrics.reach, comparisonMetrics?.reach, 'reach'),
+    let variations = {
         conversations: calculateVariation(metrics.conversations, comparisonMetrics?.conversations, 'conversations'),
         costPerConversation: calculateVariation(metrics.costPerConversation, comparisonMetrics?.costPerConversation, 'costPerConversation')
     };
 
-    const reportTitle = type ? `Relatório ${type} - ${unitName}` : `Relatório Completo - ${unitName}`;
+    let blackVariations = {};
+    if (blackMetrics && blackComparisonMetrics) {
+        blackVariations = {
+            conversations: calculateVariation(blackMetrics.conversations, blackComparisonMetrics?.conversations, 'conversations'),
+            costPerConversation: calculateVariation(blackMetrics.costPerConversation, blackComparisonMetrics?.costPerConversation, 'costPerConversation')
+        };
+    }
 
     const reportHTML = `
         <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
-            <h2 class="text-2xl font-semibold text-primary mb-4">${reportTitle}</h2>
+            <h2 class="text-2xl font-semibold text-primary mb-4">Relatório Completo - ${unitName}</h2>
             <p class="text-gray-600 mb-4">
-                <i class="fas fa-calendar-alt mr-2"></i>Período: ${formattedStartDate} a ${formattedEndDate}
+                <i class="fas fa-calendar-alt mr-2"></i>Período Analisado: ${formattedStartDate} a ${formattedEndDate}
             </p>
             ${comparisonPeriod}
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-                <div class="metric-card">
-                    <h3 class="text-lg font-medium text-gray-700 mb-2">Investimento</h3>
-                    <p class="text-2xl font-semibold text-primary">R$ ${metrics.spend.toFixed(2).replace('.', ',')}</p>
-                </div>
-                <div class="metric-card">
-                    <h3 class="text-lg font-medium text-gray-700 mb-2">Conversas Iniciadas</h3>
-                    <p class="text-2xl font-semibold text-primary">${metrics.conversations}</p>
-                    ${
-                        comparisonMetrics
-                            ? `
-                                <p class="metric-comparison ${
-                                    variations.conversations.direction === 'positive' ? 'increase' : 'decrease'
-                                }">
-                                    <i class="fas fa-arrow-${
-                                        variations.conversations.direction === 'positive' ? 'up' : 'down'
-                                    } mr-1"></i>
-                                    ${variations.conversations.percentage}% em relação ao período anterior
-                                </p>`
-                            : ''
-                    }
-                </div>
-                <div class="metric-card">
-                    <h3 class="text-lg font-medium text-gray-700 mb-2">Custo por Conversa</h3>
-                    <p class="text-2xl font-semibold text-primary">R$ ${metrics.costPerConversation.toFixed(2).replace('.', ',')}</p>
-                    ${
-                        comparisonMetrics
-                            ? `
-                                <p class="metric-comparison ${
-                                    variations.costPerConversation.direction === 'positive' ? 'increase' : 'decrease'
-                                }">
-                                    <i class="fas fa-arrow-${
-                                        variations.costPerConversation.direction === 'positive' ? 'down' : 'up'
-                                    } mr-1"></i>
-                                    ${variations.costPerConversation.percentage}% em relação ao período anterior
-                                </p>`
-                            : ''
-                    }
-                </div>
-            </div>
+            ${
+                hasBlack
+                    ? `
+                        <h3 class="text-lg font-semibold text-primary mb-2">Métricas White</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                            <div class="metric-card">
+                                <h4 class="text-lg font-medium text-gray-700 mb-2">Investimento</h4>
+                                <p class="text-2xl font-semibold text-primary">R$ ${metrics.spend.toFixed(2).replace('.', ',')}</p>
+                            </div>
+                            <div class="metric-card">
+                                <h4 class="text-lg font-medium text-gray-700 mb-2">Conversas Iniciadas</h4>
+                                <p class="text-2xl font-semibold text-primary">${metrics.conversations}</p>
+                                ${
+                                    comparisonMetrics
+                                        ? `
+                                            <p class="metric-comparison ${
+                                                variations.conversations.direction === 'positive' ? 'increase' : 'decrease'
+                                            }">
+                                                <i class="fas fa-arrow-${
+                                                    variations.conversations.direction === 'positive' ? 'up' : 'down'
+                                                } mr-1"></i>
+                                                ${variations.conversations.percentage}% em relação ao período anterior
+                                            </p>`
+                                        : ''
+                                }
+                            </div>
+                            <div class="metric-card">
+                                <h4 class="text-lg font-medium text-gray-700 mb-2">Custo por Conversa</h4>
+                                <p class="text-2xl font-semibold text-primary">R$ ${metrics.costPerConversation.toFixed(2).replace('.', ',')}</p>
+                                ${
+                                    comparisonMetrics
+                                        ? `
+                                            <p class="metric-comparison ${
+                                                variations.costPerConversation.direction === 'positive' ? 'increase' : 'decrease'
+                                            }">
+                                                <i class="fas fa-arrow-${
+                                                    variations.costPerConversation.direction === 'positive' ? 'down' : 'up'
+                                                } mr-1"></i>
+                                                ${variations.costPerConversation.percentage}% em relação ao período anterior
+                                            </p>`
+                                        : ''
+                                }
+                            </div>
+                        </div>
+                        <h3 class="text-lg font-semibold text-primary mb-2">Métricas Black</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                            <div class="metric-card">
+                                <h4 class="text-lg font-medium text-gray-700 mb-2">Investimento</h4>
+                                <p class="text-2xl font-semibold text-primary">R$ ${blackMetrics.spend.toFixed(2).replace('.', ',')}</p>
+                            </div>
+                            <div class="metric-card">
+                                <h4 class="text-lg font-medium text-gray-700 mb-2">Conversas Iniciadas</h4>
+                                <p class="text-2xl font-semibold text-primary">${blackMetrics.conversations}</p>
+                                ${
+                                    blackComparisonMetrics
+                                        ? `
+                                            <p class="metric-comparison ${
+                                                blackVariations.conversations.direction === 'positive' ? 'increase' : 'decrease'
+                                            }">
+                                                <i class="fas fa-arrow-${
+                                                    blackVariations.conversations.direction === 'positive' ? 'up' : 'down'
+                                                } mr-1"></i>
+                                                ${blackVariations.conversations.percentage}% em relação ao período anterior
+                                            </p>`
+                                        : ''
+                                }
+                            </div>
+                            <div class="metric-card">
+                                <h4 class="text-lg font-medium text-gray-700 mb-2">Custo por Conversa</h4>
+                                <p class="text-2xl font-semibold text-primary">R$ ${blackMetrics.costPerConversation.toFixed(2).replace('.', ',')}</p>
+                                ${
+                                    blackComparisonMetrics
+                                        ? `
+                                            <p class="metric-comparison ${
+                                                blackVariations.costPerConversation.direction === 'positive' ? 'increase' : 'decrease'
+                                            }">
+                                                <i class="fas fa-arrow-${
+                                                    blackVariations.costPerConversation.direction === 'positive' ? 'down' : 'up'
+                                                } mr-1"></i>
+                                                ${blackVariations.costPerConversation.percentage}% em relação ao período anterior
+                                            </p>`
+                                        : ''
+                                }
+                            </div>
+                        </div>`
+                    : `
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                            <div class="metric-card">
+                                <h4 class="text-lg font-medium text-gray-700 mb-2">Investimento</h4>
+                                <p class="text-2xl font-semibold text-primary">R$ ${metrics.spend.toFixed(2).replace('.', ',')}</p>
+                            </div>
+                            <div class="metric-card">
+                                <h4 class="text-lg font-medium text-gray-700 mb-2">Conversas Iniciadas</h4>
+                                <p class="text-2xl font-semibold text-primary">${metrics.conversations}</p>
+                                ${
+                                    comparisonMetrics
+                                        ? `
+                                            <p class="metric-comparison ${
+                                                variations.conversations.direction === 'positive' ? 'increase' : 'decrease'
+                                            }">
+                                                <i class="fas fa-arrow-${
+                                                    variations.conversations.direction === 'positive' ? 'up' : 'down'
+                                                } mr-1"></i>
+                                                ${variations.conversations.percentage}% em relação ao período anterior
+                                            </p>`
+                                        : ''
+                                }
+                            </div>
+                            <div class="metric-card">
+                                <h4 class="text-lg font-medium text-gray-700 mb-2">Custo por Conversa</h4>
+                                <p class="text-2xl font-semibold text-primary">R$ ${metrics.costPerConversation.toFixed(2).replace('.', ',')}</p>
+                                ${
+                                    comparisonMetrics
+                                        ? `
+                                            <p class="metric-comparison ${
+                                                variations.costPerConversation.direction === 'positive' ? 'increase' : 'decrease'
+                                            }">
+                                                <i class="fas fa-arrow-${
+                                                    variations.costPerConversation.direction === 'positive' ? 'down' : 'up'
+                                                } mr-1"></i>
+                                                ${variations.costPerConversation.percentage}% em relação ao período anterior
+                                            </p>`
+                                        : ''
+                                }
+                            </div>
+                        </div>`
+            }
             ${
                 bestAds.length > 0
                     ? `
@@ -1362,30 +1384,44 @@ shareWhatsAppBtn.addEventListener('click', () => {
     const endDate = document.getElementById('endDate').value.split('-').reverse().join('/');
 
     let message = `Relatório Completo - ${unitName}\n`;
-    message += `Período: ${startDate} a ${endDate}\n\n`;
+    message += `Período Analisado: ${startDate} a ${endDate}\n\n`;
 
-    const reports = reportContainer.querySelectorAll('.bg-white');
-    reports.forEach((report, index) => {
-        const title = report.querySelector('h2').textContent;
-        const metrics = report.querySelectorAll('.metric-card');
-        message += `${title}\n`;
-        metrics.forEach(metric => {
-            const label = metric.querySelector('h3').textContent;
+    const report = reportContainer.querySelector('.bg-white');
+    if (hasBlack) {
+        message += `Métricas White:\n`;
+        const whiteMetrics = report.querySelectorAll('.metric-card')[0].parentElement.querySelectorAll('.metric-card');
+        whiteMetrics.forEach(metric => {
+            const label = metric.querySelector('h4').textContent;
             const value = metric.querySelector('p.text-2xl').textContent;
             message += `${label}: ${value}\n`;
         });
-        const bestAds = report.querySelectorAll('.top-ad-card');
-        if (bestAds.length > 0) {
-            message += `\nMelhores Anúncios:\n`;
-            bestAds.forEach((ad, adIndex) => {
-                const conversations = ad.querySelector('p:nth-child(2)').textContent;
-                const spend = ad.querySelector('p:nth-child(3)').textContent;
-                const costPerMessage = ad.querySelector('p:nth-child(4)').textContent;
-                message += `Anúncio ${adIndex + 1}:\n${conversations}\n${spend}\n${costPerMessage}\n`;
-            });
-        }
-        message += '\n';
-    });
+
+        message += `\nMétricas Black:\n`;
+        const blackMetrics = report.querySelectorAll('.metric-card')[3].parentElement.querySelectorAll('.metric-card');
+        blackMetrics.forEach(metric => {
+            const label = metric.querySelector('h4').textContent;
+            const value = metric.querySelector('p.text-2xl').textContent;
+            message += `${label}: ${value}\n`;
+        });
+    } else {
+        const metrics = report.querySelectorAll('.metric-card');
+        metrics.forEach(metric => {
+            const label = metric.querySelector('h4').textContent;
+            const value = metric.querySelector('p.text-2xl').textContent;
+            message += `${label}: ${value}\n`;
+        });
+    }
+
+    const bestAds = report.querySelectorAll('.top-ad-card');
+    if (bestAds.length > 0) {
+        message += `\nMelhores Anúncios:\n`;
+        bestAds.forEach((ad, adIndex) => {
+            const conversations = ad.querySelector('p:nth-child(2)').textContent;
+            const spend = ad.querySelector('p:nth-child(3)').textContent;
+            const costPerMessage = ad.querySelector('p:nth-child(4)').textContent;
+            message += `Anúncio ${adIndex + 1}:\n${conversations}\n${spend}\n${costPerMessage}\n`;
+        });
+    }
 
     const encodedMessage = encodeURIComponent(message);
     const whatsappUrl = `https://api.whatsapp.com/send?text=${encodedMessage}`;

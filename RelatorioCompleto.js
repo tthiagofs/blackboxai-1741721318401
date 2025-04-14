@@ -796,114 +796,92 @@ function calculateVariation(current, previous, metric) {
     return { percentage: Math.abs(percentage).toFixed(2), direction };
 }
 
-function renderReport(unitName, startDate, endDate, metrics, comparisonMetrics, bestAds) {
-    const formattedStartDate = startDate.split('-').reverse().join('/');
-    const formattedEndDate = endDate.split('-').reverse().join('/');
-
-    let comparisonPeriod = '';
-    if (comparisonMetrics && comparisonData) {
-        comparisonPeriod = `
-            <p class="text-gray-600">
-                <i class="fas fa-calendar-alt mr-2"></i>Comparação: 
-                ${comparisonData.startDate.split('-').reverse().join('/')} a 
-                ${comparisonData.endDate.split('-').reverse().join('/')}
-            </p>
-        `;
-    }
-
-const variations = {
-    reach: calculateVariation(metrics.reach, comparisonMetrics?.reach, 'reach'),
-    conversations: calculateVariation(metrics.conversations, comparisonMetrics?.conversations, 'conversations'),
-    costPerConversation: calculateVariation(metrics.costPerConversation, comparisonMetrics?.costPerConversation, 'costPerConversation')
-};
+function renderReport(metrics, comparisonMetrics, bestAds) {
+    const topAds = bestAds || [];
+    const variations = comparisonMetrics ? {
+        reach: calculateVariation(metrics.reach, comparisonMetrics?.reach, 'reach'),
+        conversations: calculateVariation(metrics.conversations, comparisonMetrics?.conversations, 'conversations'),
+        costPerConversation: calculateVariation(metrics.costPerConversation, comparisonMetrics?.costPerConversation, 'costPerConversation')
+    } : null;
 
     reportContainer.innerHTML = `
-        <div class="bg-gradient-to-br from-primary to-secondary text-white rounded-xl p-6 shadow-lg">
-            <div class="text-center mb-6">
-                <h2 class="text-2xl font-bold mb-2">
-                    <i class="fas fa-chart-pie mr-2"></i>Relatório Completo - ${unitName}
-                </h2>
-                <p class="text-gray-200">
-                    <i class="fas fa-calendar-alt mr-2"></i>${formattedStartDate} a ${formattedEndDate}
-                </p>
-                ${comparisonPeriod}
-            </div>
-
-         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-    <div class="metric-card bg-white/10 backdrop-blur">
-        <div class="text-lg font-semibold mb-2">
-            <i class="fas fa-bullhorn mr-2"></i>Alcance Total
-        </div>
-        <div class="text-2xl font-bold">
-            ${metrics.reach.toLocaleString('pt-BR')}
-        </div>
-        ${comparisonMetrics ? `
-            <div class="mt-2 text-sm font-medium ${variations.reach.direction === 'positive' ? 'text-green-400' : variations.reach.direction === 'negative' ? 'text-red-400' : 'text-gray-400'}">
-                <i class="fas ${variations.reach.direction === 'positive' ? 'fa-arrow-up' : variations.reach.direction === 'negative' ? 'fa-arrow-down' : 'fa-minus'} mr-1"></i>
-                ${variations.reach.percentage}%
-            </div>
-        ` : ''}
-    </div>
-
-    <div class="metric-card bg-white/10 backdrop-blur">
-        <div class="text-lg font-semibold mb-2">
-            <i class="fas fa-comments mr-2"></i>Mensagens
-        </div>
-        <div class="text-2xl font-bold">
-            ${metrics.conversations.toLocaleString('pt-BR')}
-        </div>
-        ${comparisonMetrics ? `
-            <div class="mt-2 text-sm font-medium ${variations.conversations.direction === 'positive' ? 'text-green-400' : variations.conversations.direction === 'negative' ? 'text-red-400' : 'text-gray-400'}">
-                <i class="fas ${variations.conversations.direction === 'positive' ? 'fa-arrow-up' : variations.conversations.direction === 'negative' ? 'fa-arrow-down' : 'fa-minus'} mr-1"></i>
-                ${variations.conversations.percentage}%
-            </div>
-        ` : ''}
-    </div>
-
-    <div class="metric-card bg-white/10 backdrop-blur">
-        <div class="text-lg font-semibold mb-2">
-            <i class="fas fa-dollar-sign mr-2"></i>Custo por Mensagem
-        </div>
-        <div class="text-2xl font-bold">
-            R$ ${metrics.costPerConversation.toFixed(2).replace('.', ',')}
-        </div>
-        ${comparisonMetrics ? `
-            <div class="mt-2 text-sm font-medium ${variations.costPerConversation.direction === 'positive' ? 'text-green-400' : variations.costPerConversation.direction === 'negative' ? 'text-red-400' : 'text-gray-400'}">
-                <i class="fas ${variations.costPerConversation.direction === 'positive' ? 'fa-arrow-up' : variations.costPerConversation.direction === 'negative' ? 'fa-arrow-down' : 'fa-minus'} mr-1"></i>
-                ${variations.costPerConversation.percentage}%
-            </div>
-        ` : ''}
-    </div>
-
-    <div class="metric-card bg-white/10 backdrop-blur">
-        <div class="text-lg font-semibold mb-2">
-            <i class="fas fa-coins mr-2"></i>Investimento Total
-        </div>
-        <div class="text-2xl font-bold">
-            R$ ${metrics.spend.toFixed(2).replace('.', ',')}
-        </div>
-    </div>
-</div>
-
-            ${bestAds && bestAds.length > 0 ? `
-                <div class="mt-8">
-    <h2 class="text-xl font-semibold mb-4 text-gray-800">Anúncios em Destaque</h2>
-    <div class="space-y-4">
-        ${topAds.map(ad => `
-            <div class="flex items-center bg-white rounded-lg shadow-sm p-4">
-                <img src="${ad.creative.thumbnail_url}" alt="Thumbnail" class="w-20 h-20 object-cover rounded-md mr-4">
-                <div class="flex-1">
-                    <div class="text-sm text-gray-600">
-                        Mensagens: <span class="font-medium text-gray-800">${ad.insights.conversations || 0}</span>
+        <div class="p-6 rounded-lg">
+            <h1 class="text-2xl font-bold mb-6">Relatório Completo - CA - Oral Center Paracatu</h1>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div class="metric-card bg-white/10 backdrop-blur">
+                    <div class="text-lg font-semibold mb-2">
+                        <i class="fas fa-bullhorn mr-2"></i>Alcance Total
                     </div>
-                    <div class="text-sm text-gray-600">
-                        Custo por Msg: <span class="font-medium text-gray-800">R$ ${(ad.insights.costPerConversation || 0).toFixed(2).replace('.', ',')}</span>
+                    <div class="text-2xl font-bold">
+                        ${metrics.reach.toLocaleString('pt-BR')}
+                    </div>
+                    ${comparisonMetrics ? `
+                        <div class="mt-2 text-sm font-medium ${variations.reach.direction === 'positive' ? 'text-green-400' : variations.reach.direction === 'negative' ? 'text-red-400' : 'text-gray-400'}">
+                            <i class="fas ${variations.reach.direction === 'positive' ? 'fa-arrow-up' : variations.reach.direction === 'negative' ? 'fa-arrow-down' : 'fa-minus'} mr-1"></i>
+                            ${variations.reach.percentage}%
+                        </div>
+                    ` : ''}
+                </div>
+
+                <div class="metric-card bg-white/10 backdrop-blur">
+                    <div class="text-lg font-semibold mb-2">
+                        <i class="fas fa-comments mr-2"></i>Mensagens
+                    </div>
+                    <div class="text-2xl font-bold">
+                        ${metrics.conversations.toLocaleString('pt-BR')}
+                    </div>
+                    ${comparisonMetrics ? `
+                        <div class="mt-2 text-sm font-medium ${variations.conversations.direction === 'positive' ? 'text-green-400' : variations.conversations.direction === 'negative' ? 'text-red-400' : 'text-gray-400'}">
+                            <i class="fas ${variations.conversations.direction === 'positive' ? 'fa-arrow-up' : variations.conversations.direction === 'negative' ? 'fa-arrow-down' : 'fa-minus'} mr-1"></i>
+                            ${variations.conversations.percentage}%
+                        </div>
+                    ` : ''}
+                </div>
+
+                <div class="metric-card bg-white/10 backdrop-blur">
+                    <div class="text-lg font-semibold mb-2">
+                        <i class="fas fa-dollar-sign mr-2"></i>Custo por Mensagem
+                    </div>
+                    <div class="text-2xl font-bold">
+                        R$ ${metrics.costPerConversation.toFixed(2).replace('.', ',')}
+                    </div>
+                    ${comparisonMetrics ? `
+                        <div class="mt-2 text-sm font-medium ${variations.costPerConversation.direction === 'positive' ? 'text-green-400' : variations.costPerConversation.direction === 'negative' ? 'text-red-400' : 'text-gray-400'}">
+                            <i class="fas ${variations.costPerConversation.direction === 'positive' ? 'fa-arrow-up' : variations.costPerConversation.direction === 'negative' ? 'fa-arrow-down' : 'fa-minus'} mr-1"></i>
+                            ${variations.costPerConversation.percentage}%
+                        </div>
+                    ` : ''}
+                </div>
+
+                <div class="metric-card bg-white/10 backdrop-blur">
+                    <div class="text-lg font-semibold mb-2">
+                        <i class="fas fa-coins mr-2"></i>Investimento Total
+                    </div>
+                    <div class="text-2xl font-bold">
+                        R$ ${metrics.spend.toFixed(2).replace('.', ',')}
                     </div>
                 </div>
             </div>
-        `).join('')}
-    </div>
-</div>
+
+            ${bestAds && bestAds.length > 0 ? `
+                <div class="mt-8">
+                    <h2 class="text-xl font-semibold mb-4 text-gray-800">Anúncios em Destaque</h2>
+                    <div class="space-y-4">
+                        ${topAds.map(ad => `
+                            <div class="flex items-center bg-white rounded-lg shadow-sm p-4">
+                                <img src="${ad.creative.thumbnail_url}" alt="Thumbnail" class="w-20 h-20 object-cover rounded-md mr-4">
+                                <div class="flex-1">
+                                    <div class="text-sm text-gray-600">
+                                        Mensagens: <span class="font-medium text-gray-800">${ad.insights.conversations || 0}</span>
+                                    </div>
+                                    <div class="text-sm text-gray-600">
+                                        Custo por Msg: <span class="font-medium text-gray-800">R$ ${(ad.insights.costPerConversation || 0).toFixed(2).replace('.', ',')}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
             ` : ''}
         </div>
     `;
@@ -917,6 +895,7 @@ shareWhatsAppBtn.addEventListener('click', () => {
     const encodedText = encodeURIComponent(reportText);
     window.open(`https://api.whatsapp.com/send?text=${encodedText}`, '_blank');
 });
+
 
 // Navegação
 backToReportSelectionBtn.addEventListener('click', (e) => {

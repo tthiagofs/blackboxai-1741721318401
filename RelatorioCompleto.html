@@ -28,12 +28,12 @@
     <style>
         .filter-option {
         @apply p-3 my-2 bg-gray-50 rounded-md cursor-pointer transition-colors duration-200 hover:bg-gray-100;
-        position: relative; /* Garantir que o elemento esteja no fluxo de cliques */
-        pointer-events: auto; /* Garantir que cliques sejam capturados */
+        position: relative;
+        pointer-events: auto;
     }
 
     .filter-option * {
-        pointer-events: none; /* Impedir que elementos filhos capturem o clique */
+        pointer-events: none;
     }
 
     .filter-option.selected {

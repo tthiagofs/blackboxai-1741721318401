@@ -88,12 +88,12 @@ button:hover {
     border-radius: 5px;
     cursor: pointer;
     transition: background 0.3s;
-    position: relative; /* Garantir que o elemento esteja no fluxo de cliques */
-    pointer-events: auto; /* Garantir que cliques sejam capturados */
+    position: relative;
+    pointer-events: auto;
 }
 
 .filter-option * {
-    pointer-events: none; /* Impedir que elementos filhos (ex.: span) capturem o clique */
+    pointer-events: none;
 }
 
 .filter-option:hover {
@@ -104,6 +104,7 @@ button:hover {
     background: #1e3c72;
     color: #fff;
 }
+
 
 .search-bar {
     width: 100%;

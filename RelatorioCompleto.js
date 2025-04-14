@@ -64,36 +64,20 @@ sortedAccounts.forEach(account => {
 });
 
 // Funções de Modal
-function toggleModal(modal, show, isCampaign) {
-    modal.style.display = show ? 'flex' : 'none';
-    
+function toggleModal(modalId, show) {
+    const modal = document.getElementById(modalId);
     if (show) {
-        if (isCampaign) {
-            isCampaignFilterActive = true;
-            isAdSetFilterActive = false;
-            filterAdSetsBtn.disabled = isFilterActivated;
-        } else if (modal === comparisonModal) {
-            setupComparisonModal();
-        } else {
-            isAdSetFilterActive = true;
-            isCampaignFilterActive = false;
-            filterCampaignsBtn.disabled = isFilterActivated;
+        modal.classList.remove('hidden');
+        if (modalId === 'campaignsModal') {
+            renderCampaignOptions();
+        } else if (modalId === 'adSetsModal') {
+            renderAdSetOptions();
         }
     } else {
-        if (isCampaign) {
-            isCampaignFilterActive = false;
-            campaignSearchText = '';
-            document.getElementById('campaignSearch').value = '';
-        } else if (modal === comparisonModal) {
-            // Manter os dados de comparação
-        } else {
-            isAdSetFilterActive = false;
-            adSetSearchText = '';
-            document.getElementById('adSetSearch').value = '';
-        }
+        modal.classList.add('hidden');
     }
-    updateFilterButtons();
 }
+
 
 function setupComparisonModal() {
     if (comparisonData) {

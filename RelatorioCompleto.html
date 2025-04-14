@@ -53,33 +53,41 @@
 
     /* Estilo dos Itens */
     .filter-option {
-        @apply px-3 py-2 bg-white cursor-pointer transition-all duration-200 border-b border-gray-100;
+        padding: 0.5rem 0.75rem; /* Equivalente a px-3 py-2 */
+        background: #ffffff; /* Fundo branco direto, sem Tailwind */
+        cursor: pointer;
+        transition: all 0.2s ease;
+        border-bottom: 1px solid #f1f1f1;
     }
 
     .filter-option:last-child {
-        @apply border-b-0;
+        border-bottom: none;
     }
 
     .filter-option:hover {
-        @apply bg-gray-100;
+        background: #f1f5f9;
         transform: scale(1.01);
     }
 
-    .filter-option.selected {
-        @apply bg-blue-600 text-white !important;
+    /* Aumentar especificidade para evitar conflitos com Tailwind */
+    div.filter-option.selected {
+        background: #2563eb !important;
+        color: #ffffff !important;
     }
 
-    .filter-option.selected:hover {
-        @apply bg-blue-700 !important;
+    div.filter-option.selected:hover {
+        background: #1d4ed8 !important;
     }
 
     .filter-option .flex {
-        @apply flex justify-between items-center;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
     }
 
-    .filter-option.selected .text-green-600,
-    .filter-option.selected .text-gray-500 {
-        @apply text-white !important;
+    div.filter-option.selected .text-green-600,
+    div.filter-option.selected .text-gray-500 {
+        color: #ffffff !important;
     }
 
         .metric-card {

@@ -265,27 +265,27 @@ button:hover {
 }
 
 .filter-option:hover {
-    background: #f1f5f9; /* Fundo cinza claro no hover */
+    background: #f1f5f9;
     transform: scale(1.01);
 }
 
-.filter-option.selected {
-    background: #2563eb !important; /* Azul escuro similar ao dropdown de contas */
+/* Aumentar especificidade para garantir que o estilo seja aplicado */
+div.filter-option.selected {
+    background: #2563eb !important;
     color: #ffffff !important;
 }
 
-.filter-option.selected:hover {
-    background: #1d4ed8 !important; /* Azul um pouco mais escuro no hover */
+div.filter-option.selected:hover {
+    background: #1d4ed8 !important;
 }
 
-/* Garantir que os spans internos mudem de cor */
 .filter-option .flex {
     display: flex;
     justify-content: space-between;
     align-items: center;
 }
 
-.filter-option.selected .text-green-600,
-.filter-option.selected .text-gray-500 {
+div.filter-option.selected .text-green-600,
+div.filter-option.selected .text-gray-500 {
     color: #ffffff !important;
 }

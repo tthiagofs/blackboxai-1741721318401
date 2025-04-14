@@ -780,12 +780,20 @@ async function calculateMetrics(unitId, startDate, endDate) {
     };
 }
 
-function calculateVariation(current, previous) {
-    if (!previous || previous === 0) return { percentage: 0, icon: '', direction: '' };
+function calculateVariation(current, previous, metric) {
+    if (!previous || previous === 0) return { percentage: 0, direction: 'neutral' };
     const percentage = ((current - previous) / previous) * 100;
-    const icon = percentage >= 0 ? '⬆️' : '⬇️';
-    const direction = percentage >= 0 ? 'increase' : 'decrease';
-    return { percentage: Math.abs(percentage).toFixed(2), icon, direction };
+    
+    let direction;
+    if (metric === 'costPerConversation') {
+        // Para custo por mensagem, uma diminuição é uma melhora (verde), e um aumento é uma piora (vermelho)
+        direction = percentage < 0 ? 'positive' : 'negative';
+    } else {
+        // Para alcance e mensagens, um aumento é uma melhora (verde), e uma diminuição é uma piora (vermelho)
+        direction = percentage >= 0 ? 'positive' : 'negative';
+    }
+    
+    return { percentage: Math.abs(percentage).toFixed(2), direction };
 }
 
 function renderReport(unitName, startDate, endDate, metrics, comparisonMetrics, bestAds) {
@@ -803,11 +811,11 @@ function renderReport(unitName, startDate, endDate, metrics, comparisonMetrics, 
         `;
     }
 
-    const variations = {
-        reach: calculateVariation(metrics.reach, comparisonMetrics?.reach),
-        conversations: calculateVariation(metrics.conversations, comparisonMetrics?.conversations),
-        costPerConversation: calculateVariation(metrics.costPerConversation, comparisonMetrics?.costPerConversation)
-    };
+const variations = {
+    reach: calculateVariation(metrics.reach, comparisonMetrics?.reach, 'reach'),
+    conversations: calculateVariation(metrics.conversations, comparisonMetrics?.conversations, 'conversations'),
+    costPerConversation: calculateVariation(metrics.costPerConversation, comparisonMetrics?.costPerConversation, 'costPerConversation')
+};
 
     reportContainer.innerHTML = `
         <div class="bg-gradient-to-br from-primary to-secondary text-white rounded-xl p-6 shadow-lg">
@@ -821,58 +829,61 @@ function renderReport(unitName, startDate, endDate, metrics, comparisonMetrics, 
                 ${comparisonPeriod}
             </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <div class="metric-card bg-white/10 backdrop-blur">
-                    <div class="text-lg font-semibold mb-2">
-                        <i class="fas fa-bullhorn mr-2"></i>Alcance Total
-                    </div>
-                    <div class="text-2xl font-bold">
-                        ${metrics.reach.toLocaleString('pt-BR')}
-                    </div>
-                    ${comparisonMetrics ? `
-                        <div class="metric-comparison ${variations.reach.direction} mt-2">
-                            ${variations.reach.icon} ${variations.reach.percentage}%
-                        </div>
-                    ` : ''}
-                </div>
-
-                <div class="metric-card bg-white/10 backdrop-blur">
-                    <div class="text-lg font-semibold mb-2">
-                        <i class="fas fa-comments mr-2"></i>Mensagens
-                    </div>
-                    <div class="text-2xl font-bold">
-                        ${metrics.conversations.toLocaleString('pt-BR')}
-                    </div>
-                    ${comparisonMetrics ? `
-                        <div class="metric-comparison ${variations.conversations.direction} mt-2">
-                            ${variations.conversations.icon} ${variations.conversations.percentage}%
-                        </div>
-                    ` : ''}
-                </div>
-
-                <div class="metric-card bg-white/10 backdrop-blur">
-                    <div class="text-lg font-semibold mb-2">
-                        <i class="fas fa-dollar-sign mr-2"></i>Custo por Mensagem
-                    </div>
-                    <div class="text-2xl font-bold">
-                        R$ ${metrics.costPerConversation.toFixed(2).replace('.', ',')}
-                    </div>
-                    ${comparisonMetrics ? `
-                        <div class="metric-comparison ${variations.costPerConversation.direction} mt-2">
-                            ${variations.costPerConversation.icon} ${variations.costPerConversation.percentage}%
-                        </div>
-                    ` : ''}
-                </div>
-
-                <div class="metric-card bg-white/10 backdrop-blur">
-                    <div class="text-lg font-semibold mb-2">
-                        <i class="fas fa-coins mr-2"></i>Investimento Total
-                    </div>
-                    <div class="text-2xl font-bold">
-                        R$ ${metrics.spend.toFixed(2).replace('.', ',')}
-                    </div>
-                </div>
+         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+    <div class="metric-card bg-white/10 backdrop-blur">
+        <div class="text-lg font-semibold mb-2">
+            <i class="fas fa-bullhorn mr-2"></i>Alcance Total
+        </div>
+        <div class="text-2xl font-bold">
+            ${metrics.reach.toLocaleString('pt-BR')}
+        </div>
+        ${comparisonMetrics ? `
+            <div class="mt-2 text-sm font-medium ${variations.reach.direction === 'positive' ? 'text-green-400' : variations.reach.direction === 'negative' ? 'text-red-400' : 'text-gray-400'}">
+                <i class="fas ${variations.reach.direction === 'positive' ? 'fa-arrow-up' : variations.reach.direction === 'negative' ? 'fa-arrow-down' : 'fa-minus'} mr-1"></i>
+                ${variations.reach.percentage}%
             </div>
+        ` : ''}
+    </div>
+
+    <div class="metric-card bg-white/10 backdrop-blur">
+        <div class="text-lg font-semibold mb-2">
+            <i class="fas fa-comments mr-2"></i>Mensagens
+        </div>
+        <div class="text-2xl font-bold">
+            ${metrics.conversations.toLocaleString('pt-BR')}
+        </div>
+        ${comparisonMetrics ? `
+            <div class="mt-2 text-sm font-medium ${variations.conversations.direction === 'positive' ? 'text-green-400' : variations.conversations.direction === 'negative' ? 'text-red-400' : 'text-gray-400'}">
+                <i class="fas ${variations.conversations.direction === 'positive' ? 'fa-arrow-up' : variations.conversations.direction === 'negative' ? 'fa-arrow-down' : 'fa-minus'} mr-1"></i>
+                ${variations.conversations.percentage}%
+            </div>
+        ` : ''}
+    </div>
+
+    <div class="metric-card bg-white/10 backdrop-blur">
+        <div class="text-lg font-semibold mb-2">
+            <i class="fas fa-dollar-sign mr-2"></i>Custo por Mensagem
+        </div>
+        <div class="text-2xl font-bold">
+            R$ ${metrics.costPerConversation.toFixed(2).replace('.', ',')}
+        </div>
+        ${comparisonMetrics ? `
+            <div class="mt-2 text-sm font-medium ${variations.costPerConversation.direction === 'positive' ? 'text-green-400' : variations.costPerConversation.direction === 'negative' ? 'text-red-400' : 'text-gray-400'}">
+                <i class="fas ${variations.costPerConversation.direction === 'positive' ? 'fa-arrow-up' : variations.costPerConversation.direction === 'negative' ? 'fa-arrow-down' : 'fa-minus'} mr-1"></i>
+                ${variations.costPerConversation.percentage}%
+            </div>
+        ` : ''}
+    </div>
+
+    <div class="metric-card bg-white/10 backdrop-blur">
+        <div class="text-lg font-semibold mb-2">
+            <i class="fas fa-coins mr-2"></i>Investimento Total
+        </div>
+        <div class="text-2xl font-bold">
+            R$ ${metrics.spend.toFixed(2).replace('.', ',')}
+        </div>
+    </div>
+</div>
 
             ${bestAds && bestAds.length > 0 ? `
                 <div class="mt-8">

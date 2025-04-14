@@ -1204,16 +1204,20 @@ function renderReport(unitName, startDate, endDate, metrics, comparisonMetrics, 
     }
 
     let variations = {
+        reach: calculateVariation(metrics.reach, comparisonMetrics?.reach, 'reach'),
         conversations: calculateVariation(metrics.conversations, comparisonMetrics?.conversations, 'conversations'),
         costPerConversation: calculateVariation(metrics.costPerConversation, comparisonMetrics?.costPerConversation, 'costPerConversation')
     };
 
     let blackVariations = {};
+    let totalLeads = 0;
     if (blackMetrics && blackComparisonMetrics) {
         blackVariations = {
+            reach: calculateVariation(blackMetrics.reach, blackComparisonMetrics?.reach, 'reach'),
             conversations: calculateVariation(blackMetrics.conversations, blackComparisonMetrics?.conversations, 'conversations'),
             costPerConversation: calculateVariation(blackMetrics.costPerConversation, blackComparisonMetrics?.costPerConversation, 'costPerConversation')
         };
+        totalLeads = metrics.conversations + blackMetrics.conversations;
     }
 
     const reportHTML = `
@@ -1226,143 +1230,207 @@ function renderReport(unitName, startDate, endDate, metrics, comparisonMetrics, 
             ${
                 hasBlack
                     ? `
-                        <h3 class="text-lg font-semibold text-primary mb-2">Métricas White</h3>
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-                            <div class="metric-card">
-                                <h4 class="text-lg font-medium text-gray-700 mb-2">Investimento</h4>
-                                <p class="text-2xl font-semibold text-primary">R$ ${metrics.spend.toFixed(2).replace('.', ',')}</p>
-                            </div>
-                            <div class="metric-card">
-                                <h4 class="text-lg font-medium text-gray-700 mb-2">Conversas Iniciadas</h4>
-                                <p class="text-2xl font-semibold text-primary">${metrics.conversations}</p>
-                                ${
-                                    comparisonMetrics
-                                        ? `
-                                            <p class="metric-comparison ${
-                                                variations.conversations.direction === 'positive' ? 'increase' : 'decrease'
-                                            }">
-                                                <i class="fas fa-arrow-${
-                                                    variations.conversations.direction === 'positive' ? 'up' : 'down'
-                                                } mr-1"></i>
-                                                ${variations.conversations.percentage}% em relação ao período anterior
-                                            </p>`
-                                        : ''
-                                }
-                            </div>
-                            <div class="metric-card">
-                                <h4 class="text-lg font-medium text-gray-700 mb-2">Custo por Conversa</h4>
-                                <p class="text-2xl font-semibold text-primary">R$ ${metrics.costPerConversation.toFixed(2).replace('.', ',')}</p>
-                                ${
-                                    comparisonMetrics
-                                        ? `
-                                            <p class="metric-comparison ${
-                                                variations.costPerConversation.direction === 'positive' ? 'increase' : 'decrease'
-                                            }">
-                                                <i class="fas fa-arrow-${
-                                                    variations.costPerConversation.direction === 'positive' ? 'down' : 'up'
-                                                } mr-1"></i>
-                                                ${variations.costPerConversation.percentage}% em relação ao período anterior
-                                            </p>`
-                                        : ''
-                                }
+                        <div class="bg-blue-900 text-white rounded-lg p-4 mb-4">
+                            <h3 class="text-lg font-semibold uppercase mb-2">Campanhas White</h3>
+                            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                                <div class="metric-card">
+                                    <h4 class="text-sm font-medium text-gray-200">Investimento</h4>
+                                    <p class="text-lg font-semibold">R$ ${metrics.spend.toFixed(2).replace('.', ',')}</p>
+                                </div>
+                                <div class="metric-card">
+                                    <h4 class="text-sm font-medium text-gray-200">Alcance</h4>
+                                    <p class="text-lg font-semibold">${metrics.reach}</p>
+                                    ${
+                                        comparisonMetrics
+                                            ? `
+                                                <p class="metric-comparison ${
+                                                    variations.reach.direction === 'positive' ? 'increase' : 'decrease'
+                                                }">
+                                                    <i class="fas fa-arrow-${
+                                                        variations.reach.direction === 'positive' ? 'up' : 'down'
+                                                    } mr-1"></i>
+                                                    ${variations.reach.percentage}% em relação ao período anterior
+                                                </p>`
+                                            : ''
+                                    }
+                                </div>
+                                <div class="metric-card">
+                                    <h4 class="text-sm font-medium text-gray-200">Conversas Iniciadas</h4>
+                                    <p class="text-lg font-semibold">${metrics.conversations}</p>
+                                    ${
+                                        comparisonMetrics
+                                            ? `
+                                                <p class="metric-comparison ${
+                                                    variations.conversations.direction === 'positive' ? 'increase' : 'decrease'
+                                                }">
+                                                    <i class="fas fa-arrow-${
+                                                        variations.conversations.direction === 'positive' ? 'up' : 'down'
+                                                    } mr-1"></i>
+                                                    ${variations.conversations.percentage}% em relação ao período anterior
+                                                </p>`
+                                            : ''
+                                    }
+                                </div>
+                                <div class="metric-card">
+                                    <h4 class="text-sm font-medium text-gray-200">Custo por Conversa</h4>
+                                    <p class="text-lg font-semibold">R$ ${metrics.costPerConversation.toFixed(2).replace('.', ',')}</p>
+                                    ${
+                                        comparisonMetrics
+                                            ? `
+                                                <p class="metric-comparison ${
+                                                    variations.costPerConversation.direction === 'positive' ? 'increase' : 'decrease'
+                                                }">
+                                                    <i class="fas fa-arrow-${
+                                                        variations.costPerConversation.direction === 'positive' ? 'down' : 'up'
+                                                    } mr-1"></i>
+                                                    ${variations.costPerConversation.percentage}% em relação ao período anterior
+                                                </p>`
+                                            : ''
+                                    }
+                                </div>
                             </div>
                         </div>
-                        <h3 class="text-lg font-semibold text-primary mb-2">Métricas Black</h3>
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-                            <div class="metric-card">
-                                <h4 class="text-lg font-medium text-gray-700 mb-2">Investimento</h4>
-                                <p class="text-2xl font-semibold text-primary">R$ ${blackMetrics.spend.toFixed(2).replace('.', ',')}</p>
+                        <div class="bg-blue-900 text-white rounded-lg p-4 mb-4">
+                            <h3 class="text-lg font-semibold uppercase mb-2">Campanhas Black</h3>
+                            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                                <div class="metric-card">
+                                    <h4 class="text-sm font-medium text-gray-200">Investimento</h4>
+                                    <p class="text-lg font-semibold">R$ ${blackMetrics.spend.toFixed(2).replace('.', ',')}</p>
+                                </div>
+                                <div class="metric-card">
+                                    <h4 class="text-sm font-medium text-gray-200">Alcance</h4>
+                                    <p class="text-lg font-semibold">${blackMetrics.reach}</p>
+                                    ${
+                                        blackComparisonMetrics
+                                            ? `
+                                                <p class="metric-comparison ${
+                                                    blackVariations.reach.direction === 'positive' ? 'increase' : 'decrease'
+                                                }">
+                                                    <i class="fas fa-arrow-${
+                                                        blackVariations.reach.direction === 'positive' ? 'up' : 'down'
+                                                    } mr-1"></i>
+                                                    ${blackVariations.reach.percentage}% em relação ao período anterior
+                                                </p>`
+                                            : ''
+                                    }
+                                </div>
+                                <div class="metric-card">
+                                    <h4 class="text-sm font-medium text-gray-700 mb-2">Conversas Iniciadas</h4>
+                                    <p class="text-lg font-semibold">${blackMetrics.conversations}</p>
+                                    ${
+                                        blackComparisonMetrics
+                                            ? `
+                                                <p class="metric-comparison ${
+                                                    blackVariations.conversations.direction === 'positive' ? 'increase' : 'decrease'
+                                                }">
+                                                    <i class="fas fa-arrow-${
+                                                        blackVariations.conversations.direction === 'positive' ? 'up' : 'down'
+                                                    } mr-1"></i>
+                                                    ${blackVariations.conversations.percentage}% em relação ao período anterior
+                                                </p>`
+                                            : ''
+                                    }
+                                </div>
+                                <div class="metric-card">
+                                    <h4 class="text-sm font-medium text-gray-200">Custo por Conversa</h4>
+                                    <p class="text-lg font-semibold">R$ ${blackMetrics.costPerConversation.toFixed(2).replace('.', ',')}</p>
+                                    ${
+                                        blackComparisonMetrics
+                                            ? `
+                                                <p class="metric-comparison ${
+                                                    blackVariations.costPerConversation.direction === 'positive' ? 'increase' : 'decrease'
+                                                }">
+                                                    <i class="fas fa-arrow-${
+                                                        blackVariations.costPerConversation.direction === 'positive' ? 'down' : 'up'
+                                                    } mr-1"></i>
+                                                    ${blackVariations.costPerConversation.percentage}% em relação ao período anterior
+                                                </p>`
+                                            : ''
+                                    }
+                                </div>
                             </div>
-                            <div class="metric-card">
-                                <h4 class="text-lg font-medium text-gray-700 mb-2">Conversas Iniciadas</h4>
-                                <p class="text-2xl font-semibold text-primary">${blackMetrics.conversations}</p>
-                                ${
-                                    blackComparisonMetrics
-                                        ? `
-                                            <p class="metric-comparison ${
-                                                blackVariations.conversations.direction === 'positive' ? 'increase' : 'decrease'
-                                            }">
-                                                <i class="fas fa-arrow-${
-                                                    blackVariations.conversations.direction === 'positive' ? 'up' : 'down'
-                                                } mr-1"></i>
-                                                ${blackVariations.conversations.percentage}% em relação ao período anterior
-                                            </p>`
-                                        : ''
-                                }
-                            </div>
-                            <div class="metric-card">
-                                <h4 class="text-lg font-medium text-gray-700 mb-2">Custo por Conversa</h4>
-                                <p class="text-2xl font-semibold text-primary">R$ ${blackMetrics.costPerConversation.toFixed(2).replace('.', ',')}</p>
-                                ${
-                                    blackComparisonMetrics
-                                        ? `
-                                            <p class="metric-comparison ${
-                                                blackVariations.costPerConversation.direction === 'positive' ? 'increase' : 'decrease'
-                                            }">
-                                                <i class="fas fa-arrow-${
-                                                    blackVariations.costPerConversation.direction === 'positive' ? 'down' : 'up'
-                                                } mr-1"></i>
-                                                ${blackVariations.costPerConversation.percentage}% em relação ao período anterior
-                                            </p>`
-                                        : ''
-                                }
-                            </div>
+                        </div>
+                        <div class="mb-6">
+                            <p class="text-gray-600 text-lg font-semibold">
+                                Número total de leads: <span class="text-primary">${totalLeads}</span>
+                            </p>
                         </div>`
                     : `
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-                            <div class="metric-card">
-                                <h4 class="text-lg font-medium text-gray-700 mb-2">Investimento</h4>
-                                <p class="text-2xl font-semibold text-primary">R$ ${metrics.spend.toFixed(2).replace('.', ',')}</p>
-                            </div>
-                            <div class="metric-card">
-                                <h4 class="text-lg font-medium text-gray-700 mb-2">Conversas Iniciadas</h4>
-                                <p class="text-2xl font-semibold text-primary">${metrics.conversations}</p>
-                                ${
-                                    comparisonMetrics
-                                        ? `
-                                            <p class="metric-comparison ${
-                                                variations.conversations.direction === 'positive' ? 'increase' : 'decrease'
-                                            }">
-                                                <i class="fas fa-arrow-${
-                                                    variations.conversations.direction === 'positive' ? 'up' : 'down'
-                                                } mr-1"></i>
-                                                ${variations.conversations.percentage}% em relação ao período anterior
-                                            </p>`
-                                        : ''
-                                }
-                            </div>
-                            <div class="metric-card">
-                                <h4 class="text-lg font-medium text-gray-700 mb-2">Custo por Conversa</h4>
-                                <p class="text-2xl font-semibold text-primary">R$ ${metrics.costPerConversation.toFixed(2).replace('.', ',')}</p>
-                                ${
-                                    comparisonMetrics
-                                        ? `
-                                            <p class="metric-comparison ${
-                                                variations.costPerConversation.direction === 'positive' ? 'increase' : 'decrease'
-                                            }">
-                                                <i class="fas fa-arrow-${
-                                                    variations.costPerConversation.direction === 'positive' ? 'down' : 'up'
-                                                } mr-1"></i>
-                                                ${variations.costPerConversation.percentage}% em relação ao período anterior
-                                            </p>`
-                                        : ''
-                                }
+                        <div class="bg-blue-900 text-white rounded-lg p-4 mb-4">
+                            <h3 class="text-lg font-semibold uppercase mb-2">Campanhas</h3>
+                            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                                <div class="metric-card">
+                                    <h4 class="text-sm font-medium text-gray-200">Investimento</h4>
+                                    <p class="text-lg font-semibold">R$ ${metrics.spend.toFixed(2).replace('.', ',')}</p>
+                                </div>
+                                <div class="metric-card">
+                                    <h4 class="text-sm font-medium text-gray-200">Alcance</h4>
+                                    <p class="text-lg font-semibold">${metrics.reach}</p>
+                                    ${
+                                        comparisonMetrics
+                                            ? `
+                                                <p class="metric-comparison ${
+                                                    variations.reach.direction === 'positive' ? 'increase' : 'decrease'
+                                                }">
+                                                    <i class="fas fa-arrow-${
+                                                        variations.reach.direction === 'positive' ? 'up' : 'down'
+                                                    } mr-1"></i>
+                                                    ${variations.reach.percentage}% em relação ao período anterior
+                                                </p>`
+                                            : ''
+                                    }
+                                </div>
+                                <div class="metric-card">
+                                    <h4 class="text-sm font-medium text-gray-200">Conversas Iniciadas</h4>
+                                    <p class="text-lg font-semibold">${metrics.conversations}</p>
+                                    ${
+                                        comparisonMetrics
+                                            ? `
+                                                <p class="metric-comparison ${
+                                                    variations.conversations.direction === 'positive' ? 'increase' : 'decrease'
+                                                }">
+                                                    <i class="fas fa-arrow-${
+                                                        variations.conversations.direction === 'positive' ? 'up' : 'down'
+                                                    } mr-1"></i>
+                                                    ${variations.conversations.percentage}% em relação ao período anterior
+                                                </p>`
+                                            : ''
+                                    }
+                                </div>
+                                <div class="metric-card">
+                                    <h4 class="text-sm font-medium text-gray-200">Custo por Conversa</h4>
+                                    <p class="text-lg font-semibold">R$ ${metrics.costPerConversation.toFixed(2).replace('.', ',')}</p>
+                                    ${
+                                        comparisonMetrics
+                                            ? `
+                                                <p class="metric-comparison ${
+                                                    variations.costPerConversation.direction === 'positive' ? 'increase' : 'decrease'
+                                                }">
+                                                    <i class="fas fa-arrow-${
+                                                        variations.costPerConversation.direction === 'positive' ? 'down' : 'up'
+                                                    } mr-1"></i>
+                                                    ${variations.costPerConversation.percentage}% em relação ao período anterior
+                                                </p>`
+                                            : ''
+                                    }
+                                </div>
                             </div>
                         </div>`
             }
             ${
                 bestAds.length > 0
                     ? `
-                        <h3 class="text-xl font-semibold text-primary mb-4">Melhores Anúncios</h3>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <h3 class="text-xl font-semibold text-primary mb-4">Anúncios em Destaque</h3>
+                        <div class="space-y-4">
                             ${bestAds
                                 .map(
                                     ad => `
-                                        <div class="top-ad-card">
-                                            <img src="${ad.imageUrl}" alt="Anúncio" class="w-full h-48 object-cover rounded-md mb-4">
-                                            <p class="text-gray-700"><strong>Conversas:</strong> ${ad.messages}</p>
-                                            <p class="text-gray-700"><strong>Investimento:</strong> R$ ${ad.spend.toFixed(2).replace('.', ',')}</p>
-                                            <p class="text-gray-700"><strong>Custo por Conversa:</strong> R$ ${ad.costPerMessage.replace('.', ',')}</p>
+                                        <div class="flex items-center bg-white border border-gray-200 rounded-lg p-3">
+                                            <img src="${ad.imageUrl}" alt="Anúncio" class="w-24 h-24 object-cover rounded-md mr-4">
+                                            <div>
+                                                <p class="text-gray-700"><strong>Mensagens:</strong> ${ad.messages}</p>
+                                                <p class="text-gray-700"><strong>Custo por Msg:</strong> R$ ${ad.costPerMessage.replace('.', ',')}</p>
+                                            </div>
                                         </div>
                                     `
                                 )
@@ -1388,38 +1456,41 @@ shareWhatsAppBtn.addEventListener('click', () => {
 
     const report = reportContainer.querySelector('.bg-white');
     if (hasBlack) {
-        message += `Métricas White:\n`;
+        message += `Campanhas White:\n`;
         const whiteMetrics = report.querySelectorAll('.metric-card')[0].parentElement.querySelectorAll('.metric-card');
         whiteMetrics.forEach(metric => {
             const label = metric.querySelector('h4').textContent;
-            const value = metric.querySelector('p.text-2xl').textContent;
+            const value = metric.querySelector('p.text-lg').textContent;
             message += `${label}: ${value}\n`;
         });
 
-        message += `\nMétricas Black:\n`;
-        const blackMetrics = report.querySelectorAll('.metric-card')[3].parentElement.querySelectorAll('.metric-card');
+        message += `\nCampanhas Black:\n`;
+        const blackMetrics = report.querySelectorAll('.metric-card')[4].parentElement.querySelectorAll('.metric-card');
         blackMetrics.forEach(metric => {
             const label = metric.querySelector('h4').textContent;
-            const value = metric.querySelector('p.text-2xl').textContent;
+            const value = metric.querySelector('p.text-lg').textContent;
             message += `${label}: ${value}\n`;
         });
+
+        const totalLeads = report.querySelector('p.text-lg.font-semibold span').textContent;
+        message += `\nNúmero total de leads: ${totalLeads}\n`;
     } else {
+        message += `Campanhas:\n`;
         const metrics = report.querySelectorAll('.metric-card');
         metrics.forEach(metric => {
             const label = metric.querySelector('h4').textContent;
-            const value = metric.querySelector('p.text-2xl').textContent;
+            const value = metric.querySelector('p.text-lg').textContent;
             message += `${label}: ${value}\n`;
         });
     }
 
-    const bestAds = report.querySelectorAll('.top-ad-card');
+    const bestAds = report.querySelectorAll('.flex.items-center');
     if (bestAds.length > 0) {
-        message += `\nMelhores Anúncios:\n`;
+        message += `\nAnúncios em Destaque:\n`;
         bestAds.forEach((ad, adIndex) => {
-            const conversations = ad.querySelector('p:nth-child(2)').textContent;
-            const spend = ad.querySelector('p:nth-child(3)').textContent;
-            const costPerMessage = ad.querySelector('p:nth-child(4)').textContent;
-            message += `Anúncio ${adIndex + 1}:\n${conversations}\n${spend}\n${costPerMessage}\n`;
+            const messages = ad.querySelector('p:nth-child(1)').textContent;
+            const costPerMessage = ad.querySelector('p:nth-child(2)').textContent;
+            message += `Anúncio ${adIndex + 1}:\n${messages}\n${costPerMessage}\n`;
         });
     }
 

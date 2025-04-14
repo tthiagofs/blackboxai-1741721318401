@@ -86,23 +86,33 @@ button:hover {
     margin: 5px 0;
     background: #f5f5f5;
     border-radius: 5px;
-    cursor: pointer;
-    transition: background 0.3s;
+    cursor: pointer; /* Cursor de mãozinha para indicar que é clicável */
+    transition: background 0.3s, color 0.3s; /* Suavizar transição */
     position: relative;
     pointer-events: auto;
+}
+
+.filter-option:hover {
+    background: #e5e5e5; /* Hover mais visível */
+    transform: scale(1.01); /* Pequeno zoom para feedback */
+    transition: transform 0.1s ease-in-out;
 }
 
 .filter-option * {
     pointer-events: none;
 }
 
-.filter-option:hover {
-    background: #e0e0e0;
+/* Aumentar especificidade para garantir que o estilo seja aplicado */
+.filter-option.selected,
+.filter-option.selected:hover {
+    background: #1e3c72 !important; /* Cor primária */
+    color: #ffffff !important; /* Texto branco */
 }
 
-.filter-option.selected {
-    background: #1e3c72;
-    color: #fff;
+/* Garantir que os spans internos também mudem de cor */
+.filter-option.selected .text-green-600,
+.filter-option.selected .text-gray-500 {
+    color: #ffffff !important; /* Sobrescrever cores dos spans */
 }
 
 

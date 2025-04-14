@@ -26,19 +26,34 @@
         }
     </script>
     <style>
-        .filter-option {
-        @apply p-3 my-2 bg-gray-50 rounded-md cursor-pointer transition-colors duration-200 hover:bg-gray-100;
+      .filter-option {
+        @apply p-3 my-2 bg-gray-50 rounded-md cursor-pointer transition-colors duration-200;
         position: relative;
         pointer-events: auto;
+    }
+
+    .filter-option:hover {
+        @apply bg-gray-200; /* Hover mais visível */
+        transform: scale(1.01); /* Pequeno zoom para feedback */
+        transition: transform 0.1s ease-in-out;
     }
 
     .filter-option * {
         pointer-events: none;
     }
 
-    .filter-option.selected {
-        @apply bg-primary text-white hover:bg-secondary;
+    /* Aumentar especificidade para garantir que o estilo seja aplicado */
+    .filter-option.selected,
+    .filter-option.selected:hover {
+        @apply bg-primary text-white !important; /* Cor primária e texto branco */
     }
+
+    /* Garantir que os spans internos também mudem de cor */
+    .filter-option.selected .text-green-600,
+    .filter-option.selected .text-gray-500 {
+        @apply text-white !important; /* Sobrescrever cores dos spans */
+    }
+
         .metric-card {
             @apply bg-white p-6 rounded-lg shadow-lg transition-transform duration-300 hover:transform hover:-translate-y-1;
         }

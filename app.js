@@ -366,10 +366,8 @@ function renderCampaignOptions() {
         })
         .sort((a, b) => b.spend - a.spend);
 
-    // Limpar o container
     container.innerHTML = '';
 
-    // Renderizar cada campanha
     campaigns.forEach(campaign => {
         const option = document.createElement('div');
         option.className = `filter-option ${selectedCampaigns.has(campaign.id) ? 'selected' : ''}`;
@@ -383,17 +381,18 @@ function renderCampaignOptions() {
             </div>
         `;
 
-        // Adicionar listener de clique diretamente no elemento
         option.addEventListener('click', () => {
-            console.log(`Clicou na campanha ${campaign.id}`); // Log de depuração
+            console.log(`Clicou na campanha ${campaign.id}`);
             if (selectedCampaigns.has(campaign.id)) {
                 selectedCampaigns.delete(campaign.id);
                 option.classList.remove('selected');
                 console.log(`Campanha ${campaign.id} removida de selectedCampaigns`);
+                console.log(`Classe 'selected' removida. Classes atuais: ${option.className}`);
             } else {
                 selectedCampaigns.add(campaign.id);
                 option.classList.add('selected');
                 console.log(`Campanha ${campaign.id} adicionada a selectedCampaigns`);
+                console.log(`Classe 'selected' adicionada. Classes atuais: ${option.className}`);
             }
             updateFilterButtons();
         });
@@ -417,10 +416,8 @@ function renderAdSetOptions() {
         })
         .sort((a, b) => b.spend - a.spend);
 
-    // Limpar o container
     container.innerHTML = '';
 
-    // Renderizar cada conjunto de anúncios
     adSets.forEach(adSet => {
         const option = document.createElement('div');
         option.className = `filter-option ${selectedAdSets.has(adSet.id) ? 'selected' : ''}`;
@@ -434,17 +431,18 @@ function renderAdSetOptions() {
             </div>
         `;
 
-        // Adicionar listener de clique diretamente no elemento
         option.addEventListener('click', () => {
-            console.log(`Clicou no conjunto ${adSet.id}`); // Log de depuração
+            console.log(`Clicou no conjunto ${adSet.id}`);
             if (selectedAdSets.has(adSet.id)) {
                 selectedAdSets.delete(adSet.id);
                 option.classList.remove('selected');
                 console.log(`Conjunto ${adSet.id} removido de selectedAdSets`);
+                console.log(`Classe 'selected' removida. Classes atuais: ${option.className}`);
             } else {
                 selectedAdSets.add(adSet.id);
                 option.classList.add('selected');
                 console.log(`Conjunto ${adSet.id} adicionado a selectedAdSets`);
+                console.log(`Classe 'selected' adicionada. Classes atuais: ${option.className}`);
             }
             updateFilterButtons();
         });
@@ -452,7 +450,6 @@ function renderAdSetOptions() {
         container.appendChild(option);
     });
 }
-
 
 // Função para atualizar botões de filtro
 function updateFilterButtons() {

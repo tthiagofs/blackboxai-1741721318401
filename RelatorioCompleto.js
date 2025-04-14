@@ -150,29 +150,8 @@ async function loadAds(unitId, startDate, endDate, filteredCampaigns = null, fil
         // Caso 2: Filtrado por campanhas (filteredCampaigns)
         else if (filteredCampaigns && filteredCampaigns.size > 0) {
             const campaignIds = Array.from(filteredCampaigns);
-            let allAdSetIds = new Set();
-
-            // Buscar os ad sets associados às campanhas selecionadas
             for (const campaignId of campaignIds) {
-                let url = `/${campaignId}/adsets?fields=id&access_token=${currentAccessToken}&limit=50`;
-                while (url) {
-                    const adSetResponse = await new Promise((resolve) => {
-                        FB.api(url, resolve);
-                    });
-                    if (adSetResponse && !adSetResponse.error) {
-                        adSetResponse.data.forEach(adSet => allAdSetIds.add(adSet.id));
-                        url = adSetResponse.paging && adSetResponse.paging.next ? adSetResponse.paging.next : null;
-                    } else {
-                        console.error(`Erro ao carregar ad sets da campanha ${campaignId}:`, adSetResponse?.error);
-                        url = null;
-                    }
-                    await delay(500); // Pausa para evitar limite de requisições
-                }
-            }
-
-            // Buscar os anúncios para cada ad set encontrado
-            for (const adSetId of allAdSetIds) {
-                let url = `/${adSetId}/ads?fields=id,creative&access_token=${currentAccessToken}&limit=50`;
+                let url = `/${campaignId}/ads?fields=id,creative&access_token=${currentAccessToken}&limit=50`;
                 while (url) {
                     const adResponse = await new Promise((resolve) => {
                         FB.api(url, resolve);
@@ -193,7 +172,7 @@ async function loadAds(unitId, startDate, endDate, filteredCampaigns = null, fil
                         });
                         url = adResponse.paging && adResponse.paging.next ? adResponse.paging.next : null;
                     } else {
-                        console.error(`Erro ao carregar anúncios do ad set ${adSetId}:`, adResponse?.error);
+                        console.error(`Erro ao carregar anúncios da campanha ${campaignId}:`, adResponse?.error);
                         url = null;
                     }
                     await delay(500); // Pausa para evitar limite de requisições
@@ -300,7 +279,7 @@ async function getCreativeData(creativeId) {
     });
 }
 
-async function loadCampaigns(unitId, coinDate, endDate) {
+async function loadCampaigns(unitId, startDate, endDate) {
     try {
         campaignsMap[unitId] = {};
         let allCampaigns = [];
@@ -340,12 +319,14 @@ async function loadCampaigns(unitId, coinDate, endDate) {
             };
         });
 
+        // Log para depuração
+        console.log('Campanhas carregadas:', campaignsMap[unitId]);
+
         renderCampaignOptions();
     } catch (error) {
         console.error('Erro ao carregar campanhas:', error);
     }
 }
-
 
 async function loadAdSets(unitId, startDate, endDate) {
     try {
@@ -408,15 +389,16 @@ async function getCampaignInsights(campaignId, startDate, endDate) {
             },
             (response) => {
                 if (response && !response.error && response.data && response.data.length > 0) {
+                    console.log(`Insights para campanha ${campaignId}:`, response.data[0]); // Log para depuração
                     resolve(response.data[0]);
                 } else {
-                    resolve({});
+                    console.error(`Erro ao buscar insights para campanha ${campaignId}:`, response?.error);
+                    resolve({ spend: '0', actions: [], reach: '0' });
                 }
             }
         );
     });
 }
-
 
 async function getAdSetInsights(adSetId, startDate, endDate) {
     await delay(200); // Pausa para evitar limite de requisições

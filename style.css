@@ -81,41 +81,6 @@ button:hover {
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
 }
 
-.filter-option {
-    padding: 10px;
-    margin: 5px 0;
-    background: #f5f5f5;
-    border-radius: 5px;
-    cursor: pointer; /* Cursor de mãozinha para indicar que é clicável */
-    transition: background 0.3s, color 0.3s; /* Suavizar transição */
-    position: relative;
-    pointer-events: auto;
-}
-
-.filter-option:hover {
-    background: #e5e5e5; /* Hover mais visível */
-    transform: scale(1.01); /* Pequeno zoom para feedback */
-    transition: transform 0.1s ease-in-out;
-}
-
-.filter-option * {
-    pointer-events: none;
-}
-
-/* Aumentar especificidade para garantir que o estilo seja aplicado */
-.filter-option.selected,
-.filter-option.selected:hover {
-    background: #1e3c72 !important; /* Cor primária */
-    color: #ffffff !important; /* Texto branco */
-}
-
-/* Garantir que os spans internos também mudem de cor */
-.filter-option.selected .text-green-600,
-.filter-option.selected .text-gray-500 {
-    color: #ffffff !important; /* Sobrescrever cores dos spans */
-}
-
-
 .search-bar {
     width: 100%;
     padding: 10px;
@@ -258,4 +223,69 @@ button:hover {
     .form-group {
         margin-bottom: 15px; /* Ajustar o espaçamento entre grupos de formulário */
     }
+}
+
+
+/* Estilo do Modal */
+#campaignsModal .max-h-64,
+#adSetsModal .max-h-64 {
+    max-height: 16rem;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: #d1d5db #f3f4f6;
+}
+
+#campaignsModal .max-h-64::-webkit-scrollbar,
+#adSetsModal .max-h-64::-webkit-scrollbar {
+    width: 6px;
+}
+
+#campaignsModal .max-h-64::-webkit-scrollbar-thumb,
+#adSetsModal .max-h-64::-webkit-scrollbar-thumb {
+    background-color: #d1d5db;
+    border-radius: 3px;
+}
+
+#campaignsModal .max-h-64::-webkit-scrollbar-track,
+#adSetsModal .max-h-64::-webkit-scrollbar-track {
+    background-color: #f3f4f6;
+}
+
+/* Estilo dos Itens */
+.filter-option {
+    padding: 8px 12px;
+    background: #ffffff;
+    cursor: pointer;
+    transition: background 0.2s ease, transform 0.1s ease;
+    border-bottom: 1px solid #f1f1f1;
+}
+
+.filter-option:last-child {
+    border-bottom: none;
+}
+
+.filter-option:hover {
+    background: #f1f5f9; /* Fundo cinza claro no hover */
+    transform: scale(1.01);
+}
+
+.filter-option.selected {
+    background: #2563eb !important; /* Azul escuro similar ao dropdown de contas */
+    color: #ffffff !important;
+}
+
+.filter-option.selected:hover {
+    background: #1d4ed8 !important; /* Azul um pouco mais escuro no hover */
+}
+
+/* Garantir que os spans internos mudem de cor */
+.filter-option .flex {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.filter-option.selected .text-green-600,
+.filter-option.selected .text-gray-500 {
+    color: #ffffff !important;
 }

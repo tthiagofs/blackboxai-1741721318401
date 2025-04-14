@@ -31,8 +31,6 @@ let selectedAdSets = new Set();
 let isCampaignFilterActive = false;
 let isAdSetFilterActive = false;
 let isFilterActivated = false;
-let campaignSearchText = '';
-let adSetSearchText = '';
 let currentAccessToken = localStorage.getItem('fbAccessToken') || null;
 
 // Função para alternar telas
@@ -360,10 +358,6 @@ function renderCampaignOptions() {
             name: data.name,
             spend: data.insights.spend
         }))
-        .filter(campaign => {
-            if (!campaignSearchText) return true;
-            return campaign.name.toLowerCase().includes(campaignSearchText.toLowerCase());
-        })
         .sort((a, b) => b.spend - a.spend);
 
     container.innerHTML = '';
@@ -382,17 +376,12 @@ function renderCampaignOptions() {
         `;
 
         option.addEventListener('click', () => {
-            console.log(`Clicou na campanha ${campaign.id}`);
             if (selectedCampaigns.has(campaign.id)) {
                 selectedCampaigns.delete(campaign.id);
                 option.classList.remove('selected');
-                console.log(`Campanha ${campaign.id} removida de selectedCampaigns`);
-                console.log(`Classe 'selected' removida. Classes atuais: ${option.className}`);
             } else {
                 selectedCampaigns.add(campaign.id);
                 option.classList.add('selected');
-                console.log(`Campanha ${campaign.id} adicionada a selectedCampaigns`);
-                console.log(`Classe 'selected' adicionada. Classes atuais: ${option.className}`);
             }
             updateFilterButtons();
         });
@@ -410,10 +399,6 @@ function renderAdSetOptions() {
             name: data.name,
             spend: data.insights.spend
         }))
-        .filter(adSet => {
-            if (!adSetSearchText) return true;
-            return adSet.name.toLowerCase().includes(adSetSearchText.toLowerCase());
-        })
         .sort((a, b) => b.spend - a.spend);
 
     container.innerHTML = '';
@@ -432,17 +417,12 @@ function renderAdSetOptions() {
         `;
 
         option.addEventListener('click', () => {
-            console.log(`Clicou no conjunto ${adSet.id}`);
             if (selectedAdSets.has(adSet.id)) {
                 selectedAdSets.delete(adSet.id);
                 option.classList.remove('selected');
-                console.log(`Conjunto ${adSet.id} removido de selectedAdSets`);
-                console.log(`Classe 'selected' removida. Classes atuais: ${option.className}`);
             } else {
                 selectedAdSets.add(adSet.id);
                 option.classList.add('selected');
-                console.log(`Conjunto ${adSet.id} adicionado a selectedAdSets`);
-                console.log(`Classe 'selected' adicionada. Classes atuais: ${option.className}`);
             }
             updateFilterButtons();
         });
@@ -450,6 +430,7 @@ function renderAdSetOptions() {
         container.appendChild(option);
     });
 }
+
 
 // Função para atualizar botões de filtro
 function updateFilterButtons() {
@@ -624,15 +605,6 @@ closeAdSetsModalBtn.addEventListener('click', () => toggleModal(adSetsModal, fal
 applyCampaignsBtn.addEventListener('click', () => toggleModal(campaignsModal, false, true));
 applyAdSetsBtn.addEventListener('click', () => toggleModal(adSetsModal, false, false));
 
-document.getElementById('campaignSearch').addEventListener('input', (e) => {
-    campaignSearchText = e.target.value;
-    renderCampaignOptions();
-});
-
-document.getElementById('adSetSearch').addEventListener('input', (e) => {
-    adSetSearchText = e.target.value;
-    renderAdSetOptions();
-});
 
 // Compartilhar no WhatsApp
 shareWhatsAppBtn.addEventListener('click', () => {

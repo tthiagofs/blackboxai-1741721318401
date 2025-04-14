@@ -143,38 +143,42 @@
         </div>
     </div>
 
-    <!-- Modais -->
-  <div id="campaignsModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-    <div class="bg-white rounded-lg shadow-xl p-6 max-w-lg w-full relative z-60">
-        <h2 class="text-xl font-semibold text-primary mb-4">
-            <i class="fas fa-filter mr-2"></i>Selecione as Campanhas
+ <!-- Modal de Campanhas -->
+<div id="campaignsModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+    <div class="bg-white rounded-lg shadow-lg p-4 max-w-md w-full relative z-60">
+        <h2 class="text-lg font-semibold text-gray-800 mb-3">
+            <i class="fas fa-filter mr-2 text-blue-600"></i>Selecione as Campanhas
         </h2>
-        <input type="text" id="campaignSearch"
-            class="w-full px-4 py-2 border border-gray-300 rounded-md mb-4 focus:ring-2 focus:ring-primary focus:border-transparent"
-            placeholder="Pesquisar campanhas...">
-        <div id="campaignsList" class="max-h-96 overflow-y-auto relative z-70"></div>
-        <button type="button" id="closeCampaignsModal"
-            class="w-full mt-4 bg-primary hover:bg-secondary text-white font-medium py-2 px-4 rounded-md transition duration-300">
-            <i class="fas fa-times mr-2"></i>Fechar
-        </button>
+        <div id="campaignsList" class="max-h-64 overflow-y-auto border border-gray-200 rounded-md bg-white"></div>
+        <div class="flex space-x-3 mt-4">
+            <button type="button" id="applyCampaigns" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition duration-300">
+                <i class="fas fa-check mr-2"></i>Aplicar
+            </button>
+            <button type="button" id="closeCampaignsModal" class="flex-1 bg-gray-500 hover:bg-gray-600 text-white font-medium py-2 px-4 rounded-md transition duration-300">
+                <i class="fas fa-times mr-2"></i>Fechar
+            </button>
+        </div>
     </div>
 </div>
 
+<!-- Modal de Conjuntos de Anúncios -->
 <div id="adSetsModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-    <div class="bg-white rounded-lg shadow-xl p-6 max-w-lg w-full relative z-60">
-        <h2 class="text-xl font-semibold text-primary mb-4">
-            <i class="fas fa-layer-group mr-2"></i>Selecione os Conjuntos de Anúncios
+    <div class="bg-white rounded-lg shadow-lg p-4 max-w-md w-full relative z-60">
+        <h2 class="text-lg font-semibold text-gray-800 mb-3">
+            <i class="fas fa-layer-group mr-2 text-blue-600"></i>Selecione os Conjuntos de Anúncios
         </h2>
-        <input type="text" id="adSetSearch"
-            class="w-full px-4 py-2 border border-gray-300 rounded-md mb-4 focus:ring-2 focus:ring-primary focus:border-transparent"
-            placeholder="Pesquisar conjuntos...">
-        <div id="adSetsList" class="max-h-96 overflow-y-auto relative z-70"></div>
-        <button type="button" id="closeAdSetsModal"
-            class="w-full mt-4 bg-primary hover:bg-secondary text-white font-medium py-2 px-4 rounded-md transition duration-300">
-            <i class="fas fa-times mr-2"></i>Fechar
-        </button>
+        <div id="adSetsList" class="max-h-64 overflow-y-auto border border-gray-200 rounded-md bg-white"></div>
+        <div class="flex space-x-3 mt-4">
+            <button type="button" id="applyAdSets" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition duration-300">
+                <i class="fas fa-check mr-2"></i>Aplicar
+            </button>
+            <button type="button" id="closeAdSetsModal" class="flex-1 bg-gray-500 hover:bg-gray-600 text-white font-medium py-2 px-4 rounded-md transition duration-300">
+                <i class="fas fa-times mr-2"></i>Fechar
+            </button>
+        </div>
     </div>
 </div>
+
 
     <!-- Scripts -->
     <script type="module" src="app.js"></script>

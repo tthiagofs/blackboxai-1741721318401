@@ -215,7 +215,6 @@ async function loadAds(unitId, startDate, endDate, filteredCampaigns = null, fil
     }
 }
 
-
 async function getCreativeData(creativeId) {
     return new Promise((resolve) => {
         FB.api(
@@ -374,7 +373,6 @@ async function loadAdSets(unitId, startDate, endDate) {
     }
 }
 
-
 // Funções para obter insights
 async function getCampaignInsights(campaignId, startDate, endDate) {
     await delay(200); // Pausa para evitar limite de requisições
@@ -421,7 +419,6 @@ async function getAdSetInsights(adSetId, startDate, endDate) {
     });
 }
 
-
 async function getAdInsights(adId, startDate, endDate) {
     await delay(200); // Pausa para evitar limite de requisições
     return new Promise((resolve) => {
@@ -442,7 +439,6 @@ async function getAdInsights(adId, startDate, endDate) {
         );
     });
 }
-
 
 // Funções de renderização
 function renderCampaignOptions() {
@@ -639,7 +635,7 @@ form.addEventListener('submit', async (e) => {
         submitButton.disabled = true;
         submitButton.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Gerando...';
 
-        await generateReport();
+        await generateReport(e); // Passar o evento e
 
         // Reabilitar o botão após a geração
         submitButton.disabled = false;
@@ -738,7 +734,6 @@ async function generateReport(event) {
         reportContainer.innerHTML = '<p class="text-red-500">Ocorreu um erro ao gerar o relatório. Por favor, tente novamente.</p>';
     }
 }
-
 
 async function calculateMetrics(unitId, startDate, endDate) {
     let totalSpend = 0;
@@ -917,14 +912,12 @@ function renderReport(metrics, comparisonMetrics, bestAds) {
     shareWhatsAppBtn.style.display = 'block';
 }
 
-
 // Compartilhar no WhatsApp
 shareWhatsAppBtn.addEventListener('click', () => {
     const reportText = reportContainer.innerText;
     const encodedText = encodeURIComponent(reportText);
     window.open(`https://api.whatsapp.com/send?text=${encodedText}`, '_blank');
 });
-
 
 // Navegação
 backToReportSelectionBtn.addEventListener('click', (e) => {

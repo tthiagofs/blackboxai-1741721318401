@@ -28,7 +28,11 @@
     <style>
      /* Estilo do Modal */
     #campaignsModal .max-h-64,
-    #adSetsModal .max-h-64 {
+    #adSetsModal .max-h-64,
+    #whiteCampaignsModal .max-h-64,
+    #whiteAdSetsModal .max-h-64,
+    #blackCampaignsModal .max-h-64,
+    #blackAdSetsModal .max-h-64 {
         max-height: 16rem;
         overflow-y: auto;
         scrollbar-width: thin;
@@ -36,18 +40,30 @@
     }
 
     #campaignsModal .max-h-64::-webkit-scrollbar,
-    #adSetsModal .max-h-64::-webkit-scrollbar {
+    #adSetsModal .max-h-64::-webkit-scrollbar,
+    #whiteCampaignsModal .max-h-64::-webkit-scrollbar,
+    #whiteAdSetsModal .max-h-64::-webkit-scrollbar,
+    #blackCampaignsModal .max-h-64::-webkit-scrollbar,
+    #blackAdSetsModal .max-h-64::-webkit-scrollbar {
         width: 6px;
     }
 
     #campaignsModal .max-h-64::-webkit-scrollbar-thumb,
-    #adSetsModal .max-h-64::-webkit-scrollbar-thumb {
+    #adSetsModal .max-h-64::-webkit-scrollbar-thumb,
+    #whiteCampaignsModal .max-h-64::-webkit-scrollbar-thumb,
+    #whiteAdSetsModal .max-h-64::-webkit-scrollbar-thumb,
+    #blackCampaignsModal .max-h-64::-webkit-scrollbar-thumb,
+    #blackAdSetsModal .max-h-64::-webkit-scrollbar-thumb {
         background-color: #d1d5db;
         border-radius: 3px;
     }
 
     #campaignsModal .max-h-64::-webkit-scrollbar-track,
-    #adSetsModal .max-h-64::-webkit-scrollbar-track {
+    #adSetsModal .max-h-64::-webkit-scrollbar-track,
+    #whiteCampaignsModal .max-h-64::-webkit-scrollbar-track,
+    #whiteAdSetsModal .max-h-64::-webkit-scrollbar-track,
+    #blackCampaignsModal .max-h-64::-webkit-scrollbar-track,
+    #blackAdSetsModal .max-h-64::-webkit-scrollbar-track {
         background-color: #f3f4f6;
     }
 
@@ -135,7 +151,41 @@
                         class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent">
                 </div>
             </div>
-            <div class="flex flex-wrap gap-4">
+            <!-- Nova Pergunta: A unidade possui Black? -->
+            <div id="blackQuestion" class="text-center">
+                <p class="text-sm font-medium text-gray-700 mb-2">A unidade possui Black?</p>
+                <div class="flex justify-center space-x-4">
+                    <button type="button" id="hasBlackYesBtn"
+                        class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition duration-300">
+                        Sim
+                    </button>
+                    <button type="button" id="hasBlackNoBtn"
+                        class="bg-gray-500 hover:bg-gray-600 text-white font-medium py-2 px-4 rounded-md transition duration-300">
+                        Não
+                    </button>
+                </div>
+            </div>
+            <div id="whiteFilters" class="hidden flex flex-wrap gap-4">
+                <button type="button" id="filterWhiteCampaigns"
+                    class="flex-1 bg-primary hover:bg-secondary text-white font-medium py-2 px-4 rounded-md transition duration-300">
+                    <i class="fas fa-filter mr-2"></i>Campanhas White
+                </button>
+                <button type="button" id="filterWhiteAdSets"
+                    class="flex-1 bg-primary hover:bg-secondary text-white font-medium py-2 px-4 rounded-md transition duration-300">
+                    <i class="fas fa-layer-group mr-2"></i>Conjuntos White
+                </button>
+            </div>
+            <div id="blackFilters" class="hidden flex flex-wrap gap-4">
+                <button type="button" id="filterBlackCampaigns"
+                    class="flex-1 bg-primary hover:bg-secondary text-white font-medium py-2 px-4 rounded-md transition duration-300">
+                    <i class="fas fa-filter mr-2"></i>Campanhas Black
+                </button>
+                <button type="button" id="filterBlackAdSets"
+                    class="flex-1 bg-primary hover:bg-secondary text-white font-medium py-2 px-4 rounded-md transition duration-300">
+                    <i class="fas fa-layer-group mr-2"></i>Conjuntos Black
+                </button>
+            </div>
+            <div id="defaultFilters" class="flex flex-wrap gap-4">
                 <button type="button" id="filterCampaigns"
                     class="flex-1 bg-primary hover:bg-secondary text-white font-medium py-2 px-4 rounded-md transition duration-300">
                     <i class="fas fa-filter mr-2"></i>Campanhas
@@ -169,41 +219,113 @@
         </div>
     </div>
 
- <!-- Modal de Campanhas -->
-<div id="campaignsModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-    <div class="bg-white rounded-lg shadow-lg p-4 max-w-md w-full relative z-60">
-        <h2 class="text-lg font-semibold text-gray-800 mb-3">
-            <i class="fas fa-filter mr-2 text-blue-600"></i>Selecione as Campanhas
-        </h2>
-        <div id="campaignsList" class="max-h-64 overflow-y-auto border border-gray-200 rounded-md bg-white"></div>
-        <div class="flex space-x-3 mt-4">
-            <button type="button" id="applyCampaigns" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition duration-300">
-                <i class="fas fa-check mr-2"></i>Aplicar
-            </button>
-            <button type="button" id="closeCampaignsModal" class="flex-1 bg-gray-500 hover:bg-gray-600 text-white font-medium py-2 px-4 rounded-md transition duration-300">
-                <i class="fas fa-times mr-2"></i>Fechar
-            </button>
+    <!-- Modal de Campanhas (Default) -->
+    <div id="campaignsModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-lg shadow-lg p-4 max-w-md w-full relative z-60">
+            <h2 class="text-lg font-semibold text-gray-800 mb-3">
+                <i class="fas fa-filter mr-2 text-blue-600"></i>Selecione as Campanhas
+            </h2>
+            <div id="campaignsList" class="max-h-64 overflow-y-auto border border-gray-200 rounded-md bg-white"></div>
+            <div class="flex space-x-3 mt-4">
+                <button type="button" id="applyCampaigns" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition duration-300">
+                    <i class="fas fa-check mr-2"></i>Aplicar
+                </button>
+                <button type="button" id="closeCampaignsModal" class="flex-1 bg-gray-500 hover:bg-gray-600 text-white font-medium py-2 px-4 rounded-md transition duration-300">
+                    <i class="fas fa-times mr-2"></i>Fechar
+                </button>
+            </div>
         </div>
     </div>
-</div>
 
-<!-- Modal de Conjuntos de Anúncios -->
-<div id="adSetsModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-    <div class="bg-white rounded-lg shadow-lg p-4 max-w-md w-full relative z-60">
-        <h2 class="text-lg font-semibold text-gray-800 mb-3">
-            <i class="fas fa-layer-group mr-2 text-blue-600"></i>Selecione os Conjuntos de Anúncios
-        </h2>
-        <div id="adSetsList" class="max-h-64 overflow-y-auto border border-gray-200 rounded-md bg-white"></div>
-        <div class="flex space-x-3 mt-4">
-            <button type="button" id="applyAdSets" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition duration-300">
-                <i class="fas fa-check mr-2"></i>Aplicar
-            </button>
-            <button type="button" id="closeAdSetsModal" class="flex-1 bg-gray-500 hover:bg-gray-600 text-white font-medium py-2 px-4 rounded-md transition duration-300">
-                <i class="fas fa-times mr-2"></i>Fechar
-            </button>
+    <!-- Modal de Conjuntos de Anúncios (Default) -->
+    <div id="adSetsModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-lg shadow-lg p-4 max-w-md w-full relative z-60">
+            <h2 class="text-lg font-semibold text-gray-800 mb-3">
+                <i class="fas fa-layer-group mr-2 text-blue-600"></i>Selecione os Conjuntos de Anúncios
+            </h2>
+            <div id="adSetsList" class="max-h-64 overflow-y-auto border border-gray-200 rounded-md bg-white"></div>
+            <div class="flex space-x-3 mt-4">
+                <button type="button" id="applyAdSets" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition duration-300">
+                    <i class="fas fa-check mr-2"></i>Aplicar
+                </button>
+                <button type="button" id="closeAdSetsModal" class="flex-1 bg-gray-500 hover:bg-gray-600 text-white font-medium py-2 px-4 rounded-md transition duration-300">
+                    <i class="fas fa-times mr-2"></i>Fechar
+                </button>
+            </div>
         </div>
     </div>
-</div>
+
+    <!-- Modal de Campanhas White -->
+    <div id="whiteCampaignsModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-lg shadow-lg p-4 max-w-md w-full relative z-60">
+            <h2 class="text-lg font-semibold text-gray-800 mb-3">
+                <i class="fas fa-filter mr-2 text-blue-600"></i>Selecione as Campanhas White
+            </h2>
+            <div id="whiteCampaignsList" class="max-h-64 overflow-y-auto border border-gray-200 rounded-md bg-white"></div>
+            <div class="flex space-x-3 mt-4">
+                <button type="button" id="applyWhiteCampaigns" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition duration-300">
+                    <i class="fas fa-check mr-2"></i>Aplicar
+                </button>
+                <button type="button" id="closeWhiteCampaignsModal" class="flex-1 bg-gray-500 hover:bg-gray-600 text-white font-medium py-2 px-4 rounded-md transition duration-300">
+                    <i class="fas fa-times mr-2"></i>Fechar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Conjuntos de Anúncios White -->
+    <div id="whiteAdSetsModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-lg shadow-lg p-4 max-w-md w-full relative z-60">
+            <h2 class="text-lg font-semibold text-gray-800 mb-3">
+                <i class="fas fa-layer-group mr-2 text-blue-600"></i>Selecione os Conjuntos de Anúncios White
+            </h2>
+            <div id="whiteAdSetsList" class="max-h-64 overflow-y-auto border border-gray-200 rounded-md bg-white"></div>
+            <div class="flex space-x-3 mt-4">
+                <button type="button" id="applyWhiteAdSets" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition duration-300">
+                    <i class="fas fa-check mr-2"></i>Aplicar
+                </button>
+                <button type="button" id="closeWhiteAdSetsModal" class="flex-1 bg-gray-500 hover:bg-gray-600 text-white font-medium py-2 px-4 rounded-md transition duration-300">
+                    <i class="fas fa-times mr-2"></i>Fechar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Campanhas Black -->
+    <div id="blackCampaignsModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-lg shadow-lg p-4 max-w-md w-full relative z-60">
+            <h2 class="text-lg font-semibold text-gray-800 mb-3">
+                <i class="fas fa-filter mr-2 text-blue-600"></i>Selecione as Campanhas Black
+            </h2>
+            <div id="blackCampaignsList" class="max-h-64 overflow-y-auto border border-gray-200 rounded-md bg-white"></div>
+            <div class="flex space-x-3 mt-4">
+                <button type="button" id="applyBlackCampaigns" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition duration-300">
+                    <i class="fas fa-check mr-2"></i>Aplicar
+                </button>
+                <button type="button" id="closeBlackCampaignsModal" class="flex-1 bg-gray-500 hover:bg-gray-600 text-white font-medium py-2 px-4 rounded-md transition duration-300">
+                    <i class="fas fa-times mr-2"></i>Fechar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Conjuntos de Anúncios Black -->
+    <div id="blackAdSetsModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-lg shadow-lg p-4 max-w-md w-full relative z-60">
+            <h2 class="text-lg font-semibold text-gray-800 mb-3">
+                <i class="fas fa-layer-group mr-2 text-blue-600"></i>Selecione os Conjuntos de Anúncios Black
+            </h2>
+            <div id="blackAdSetsList" class="max-h-64 overflow-y-auto border border-gray-200 rounded-md bg-white"></div>
+            <div class="flex space-x-3 mt-4">
+                <button type="button" id="applyBlackAdSets" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition duration-300">
+                    <i class="fas fa-check mr-2"></i>Aplicar
+                </button>
+                <button type="button" id="closeBlackAdSetsModal" class="flex-1 bg-gray-500 hover:bg-gray-600 text-white font-medium py-2 px-4 rounded-md transition duration-300">
+                    <i class="fas fa-times mr-2"></i>Fechar
+                </button>
+            </div>
+        </div>
+    </div>
 
     <div id="comparisonModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
         <div class="bg-white rounded-lg shadow-xl p-6 max-w-lg w-full">
@@ -255,5 +377,5 @@
     <!-- Scripts -->
     <script async defer crossorigin="anonymous" src="https://connect.facebook.net/en_US/sdk.js"></script>
     <script type="module" src="RelatorioCompleto.js"></script>
-<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'92055cfa79c7e0eb',t:'MTc0MTk3MjAwMy4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</body>
 </html>

@@ -18,6 +18,15 @@ const filterCampaignsBtn = document.getElementById('filterCampaigns');
 const filterAdSetsBtn = document.getElementById('filterAdSets');
 const comparePeriodsBtn = document.getElementById('comparePeriods');
 const backToReportSelectionBtn = document.getElementById('backToReportSelectionBtn');
+const hasBlackYesBtn = document.getElementById('hasBlackYesBtn');
+const hasBlackNoBtn = document.getElementById('hasBlackNoBtn');
+const filterWhiteCampaignsBtn = document.getElementById('filterWhiteCampaigns');
+const filterWhiteAdSetsBtn = document.getElementById('filterWhiteAdSets');
+const filterBlackCampaignsBtn = document.getElementById('filterBlackCampaigns');
+const filterBlackAdSetsBtn = document.getElementById('filterBlackAdSets');
+const whiteFilters = document.getElementById('whiteFilters');
+const blackFilters = document.getElementById('blackFilters');
+const defaultFilters = document.getElementById('defaultFilters');
 
 // Modais
 const closeCampaignsModalBtn = document.getElementById('closeCampaignsModal');
@@ -26,14 +35,27 @@ const applyCampaignsBtn = document.getElementById('applyCampaigns');
 const applyAdSetsBtn = document.getElementById('applyAdSets');
 const confirmComparisonBtn = document.getElementById('confirmComparison');
 const cancelComparisonBtn = document.getElementById('cancelComparison');
+const closeWhiteCampaignsModalBtn = document.getElementById('closeWhiteCampaignsModal');
+const closeWhiteAdSetsModalBtn = document.getElementById('closeWhiteAdSetsModal');
+const applyWhiteCampaignsBtn = document.getElementById('applyWhiteCampaigns');
+const applyWhiteAdSetsBtn = document.getElementById('applyWhiteAdSets');
+const closeBlackCampaignsModalBtn = document.getElementById('closeBlackCampaignsModal');
+const closeBlackAdSetsModalBtn = document.getElementById('closeBlackAdSetsModal');
+const applyBlackCampaignsBtn = document.getElementById('applyBlackCampaigns');
+const applyBlackAdSetsBtn = document.getElementById('applyBlackAdSets');
 
 // Estado
 let selectedCampaigns = new Set();
 let selectedAdSets = new Set();
+let selectedWhiteCampaigns = new Set();
+let selectedWhiteAdSets = new Set();
+let selectedBlackCampaigns = new Set();
+let selectedBlackAdSets = new Set();
 let isCampaignFilterActive = false;
 let isAdSetFilterActive = false;
 let isFilterActivated = false;
 let comparisonData = null;
+let hasBlack = null; // null (não respondido), true (Sim), false (Não)
 
 // Mapas
 const adAccountsMap = fbAuth.getAdAccounts();
@@ -54,6 +76,61 @@ sortedAccounts.forEach(account => {
     unitSelect.appendChild(option);
 });
 
+// Desabilitar botões até que a pergunta "A unidade possui Black?" seja respondida
+function disableButtons() {
+    filterCampaignsBtn.disabled = true;
+    filterAdSetsBtn.disabled = true;
+    comparePeriodsBtn.disabled = true;
+    form.querySelector('button[type="submit"]').disabled = true;
+
+    filterWhiteCampaignsBtn.disabled = true;
+    filterWhiteAdSetsBtn.disabled = true;
+    filterBlackCampaignsBtn.disabled = true;
+    filterBlackAdSetsBtn.disabled = true;
+
+    filterCampaignsBtn.classList.add('opacity-50');
+    filterAdSetsBtn.classList.add('opacity-50');
+    comparePeriodsBtn.classList.add('opacity-50');
+    form.querySelector('button[type="submit"]').classList.add('opacity-50');
+
+    filterWhiteCampaignsBtn.classList.add('opacity-50');
+    filterWhiteAdSetsBtn.classList.add('opacity-50');
+    filterBlackCampaignsBtn.classList.add('opacity-50');
+    filterBlackAdSetsBtn.classList.add('opacity-50');
+}
+
+// Habilitar botões após a resposta
+function enableButtons() {
+    if (hasBlack) {
+        filterWhiteCampaignsBtn.disabled = false;
+        filterWhiteAdSetsBtn.disabled = false;
+        filterBlackCampaignsBtn.disabled = false;
+        filterBlackAdSetsBtn.disabled = false;
+        comparePeriodsBtn.disabled = false;
+        form.querySelector('button[type="submit"]').disabled = false;
+
+        filterWhiteCampaignsBtn.classList.remove('opacity-50');
+        filterWhiteAdSetsBtn.classList.remove('opacity-50');
+        filterBlackCampaignsBtn.classList.remove('opacity-50');
+        filterBlackAdSetsBtn.classList.remove('opacity-50');
+        comparePeriodsBtn.classList.remove('opacity-50');
+        form.querySelector('button[type="submit"]').classList.remove('opacity-50');
+    } else {
+        filterCampaignsBtn.disabled = false;
+        filterAdSetsBtn.disabled = false;
+        comparePeriodsBtn.disabled = false;
+        form.querySelector('button[type="submit"]').disabled = false;
+
+        filterCampaignsBtn.classList.remove('opacity-50');
+        filterAdSetsBtn.classList.remove('opacity-50');
+        comparePeriodsBtn.classList.remove('opacity-50');
+        form.querySelector('button[type="submit"]').classList.remove('opacity-50');
+    }
+}
+
+// Inicialmente desabilitar os botões
+disableButtons();
+
 // Funções de Modal
 function toggleModal(modalId, show) {
     const modal = document.getElementById(modalId);
@@ -67,6 +144,14 @@ function toggleModal(modalId, show) {
             renderCampaignOptions();
         } else if (modalId === 'adSetsModal') {
             renderAdSetOptions();
+        } else if (modalId === 'whiteCampaignsModal') {
+            renderWhiteCampaignOptions();
+        } else if (modalId === 'whiteAdSetsModal') {
+            renderWhiteAdSetOptions();
+        } else if (modalId === 'blackCampaignsModal') {
+            renderBlackCampaignOptions();
+        } else if (modalId === 'blackAdSetsModal') {
+            renderBlackAdSetOptions();
         }
     } else {
         modal.classList.add('hidden');
@@ -89,12 +174,41 @@ function setupComparisonModal() {
 
 // Atualizar estado dos botões
 function updateFilterButtons() {
-    filterCampaignsBtn.disabled = isFilterActivated && selectedAdSets.size > 0;
-    filterAdSetsBtn.disabled = isFilterActivated && selectedCampaigns.size > 0;
+    if (hasBlack) {
+        filterWhiteCampaignsBtn.disabled = isFilterActivated && selectedWhiteAdSets.size > 0;
+        filterWhiteAdSetsBtn.disabled = isFilterActivated && selectedWhiteCampaigns.size > 0;
+        filterBlackCampaignsBtn.disabled = isFilterActivated && selectedBlackAdSets.size > 0;
+        filterBlackAdSetsBtn.disabled = isFilterActivated && selectedBlackCampaigns.size > 0;
 
-    filterCampaignsBtn.classList.toggle('opacity-50', filterCampaignsBtn.disabled);
-    filterAdSetsBtn.classList.toggle('opacity-50', filterAdSetsBtn.disabled);
+        filterWhiteCampaignsBtn.classList.toggle('opacity-50', filterWhiteCampaignsBtn.disabled);
+        filterWhiteAdSetsBtn.classList.toggle('opacity-50', filterWhiteAdSetsBtn.disabled);
+        filterBlackCampaignsBtn.classList.toggle('opacity-50', filterBlackCampaignsBtn.disabled);
+        filterBlackAdSetsBtn.classList.toggle('opacity-50', filterBlackAdSetsBtn.disabled);
+    } else {
+        filterCampaignsBtn.disabled = isFilterActivated && selectedAdSets.size > 0;
+        filterAdSetsBtn.disabled = isFilterActivated && selectedCampaigns.size > 0;
+
+        filterCampaignsBtn.classList.toggle('opacity-50', filterCampaignsBtn.disabled);
+        filterAdSetsBtn.classList.toggle('opacity-50', filterAdSetsBtn.disabled);
+    }
 }
+
+// Event Listeners para os botões "Sim" e "Não"
+hasBlackYesBtn.addEventListener('click', () => {
+    hasBlack = true;
+    whiteFilters.classList.remove('hidden');
+    blackFilters.classList.remove('hidden');
+    defaultFilters.classList.add('hidden');
+    enableButtons();
+});
+
+hasBlackNoBtn.addEventListener('click', () => {
+    hasBlack = false;
+    whiteFilters.classList.add('hidden');
+    blackFilters.classList.add('hidden');
+    defaultFilters.classList.remove('hidden');
+    enableButtons();
+});
 
 // Carregar dados quando o formulário é preenchido
 form.addEventListener('input', async function(e) {
@@ -115,7 +229,6 @@ async function loadAds(unitId, startDate, endDate, filteredCampaigns = null, fil
     try {
         let adsMap = {};
 
-        // Caso 1: Filtrado por conjuntos de anúncios (filteredAdSets)
         if (filteredAdSets && filteredAdSets.size > 0) {
             const adSetIds = Array.from(filteredAdSets);
             for (const adSetId of adSetIds) {
@@ -143,12 +256,10 @@ async function loadAds(unitId, startDate, endDate, filteredCampaigns = null, fil
                         console.error(`Erro ao carregar anúncios do ad set ${adSetId}:`, adResponse?.error);
                         url = null;
                     }
-                    await delay(500); // Pausa para evitar limite de requisições
+                    await delay(500);
                 }
             }
-        } 
-        // Caso 2: Filtrado por campanhas (filteredCampaigns)
-        else if (filteredCampaigns && filteredCampaigns.size > 0) {
+        } else if (filteredCampaigns && filteredCampaigns.size > 0) {
             const campaignIds = Array.from(filteredCampaigns);
             for (const campaignId of campaignIds) {
                 let url = `/${campaignId}/ads?fields=id,creative&access_token=${currentAccessToken}&limit=50`;
@@ -175,12 +286,10 @@ async function loadAds(unitId, startDate, endDate, filteredCampaigns = null, fil
                         console.error(`Erro ao carregar anúncios da campanha ${campaignId}:`, adResponse?.error);
                         url = null;
                     }
-                    await delay(500); // Pausa para evitar limite de requisições
+                    await delay(500);
                 }
             }
-        } 
-        // Caso 3: Sem filtros, carrega todos os anúncios da conta
-        else {
+        } else {
             let url = `/${unitId}/ads?fields=id,creative&access_token=${currentAccessToken}&limit=50`;
             while (url) {
                 const adResponse = await new Promise(resolve => {
@@ -205,7 +314,7 @@ async function loadAds(unitId, startDate, endDate, filteredCampaigns = null, fil
                     console.error(`Erro ao carregar anúncios da conta ${unitId}:`, adResponse?.error);
                     url = null;
                 }
-                await delay(500); // Pausa para evitar limite de requisições
+                await delay(500);
             }
         }
         return adsMap;
@@ -284,7 +393,6 @@ async function loadCampaigns(unitId, startDate, endDate) {
         let allCampaigns = [];
         let url = `/${unitId}/campaigns?fields=id,name&access_token=${currentAccessToken}&limit=50`;
 
-        // Paginação para buscar todas as campanhas
         while (url) {
             const response = await new Promise((resolve) => {
                 FB.api(url, resolve);
@@ -297,7 +405,7 @@ async function loadCampaigns(unitId, startDate, endDate) {
                 console.error(`Erro ao carregar campanhas para a unidade ${unitId}:`, response?.error);
                 url = null;
             }
-            await delay(500); // Pausa para evitar limite de requisições
+            await delay(500);
         }
 
         const campaignIds = allCampaigns.map(camp => camp.id);
@@ -318,10 +426,14 @@ async function loadCampaigns(unitId, startDate, endDate) {
             };
         });
 
-        // Log para depuração
         console.log('Campanhas carregadas:', campaignsMap[unitId]);
 
-        renderCampaignOptions();
+        if (hasBlack) {
+            renderWhiteCampaignOptions();
+            renderBlackCampaignOptions();
+        } else {
+            renderCampaignOptions();
+        }
     } catch (error) {
         console.error('Erro ao carregar campanhas:', error);
     }
@@ -333,7 +445,6 @@ async function loadAdSets(unitId, startDate, endDate) {
         let allAdSets = [];
         let url = `/${unitId}/adsets?fields=id,name&access_token=${currentAccessToken}&limit=50`;
 
-        // Paginação para buscar todos os ad sets
         while (url) {
             const response = await new Promise((resolve) => {
                 FB.api(url, resolve);
@@ -346,7 +457,7 @@ async function loadAdSets(unitId, startDate, endDate) {
                 console.error(`Erro ao carregar ad sets para a unidade ${unitId}:`, response?.error);
                 url = null;
             }
-            await delay(500); // Pausa para evitar limite de requisições
+            await delay(500);
         }
 
         const adSetIds = allAdSets.map(set => set.id);
@@ -367,7 +478,12 @@ async function loadAdSets(unitId, startDate, endDate) {
             };
         });
 
-        renderAdSetOptions();
+        if (hasBlack) {
+            renderWhiteAdSetOptions();
+            renderBlackAdSetOptions();
+        } else {
+            renderAdSetOptions();
+        }
     } catch (error) {
         console.error('Erro ao carregar conjuntos:', error);
     }
@@ -375,7 +491,7 @@ async function loadAdSets(unitId, startDate, endDate) {
 
 // Funções para obter insights
 async function getCampaignInsights(campaignId, startDate, endDate) {
-    await delay(200); // Pausa para evitar limite de requisições
+    await delay(200);
     return new Promise((resolve) => {
         FB.api(
             `/${campaignId}/insights`,
@@ -387,7 +503,7 @@ async function getCampaignInsights(campaignId, startDate, endDate) {
             },
             (response) => {
                 if (response && !response.error && response.data && response.data.length > 0) {
-                    console.log(`Insights para campanha ${campaignId}:`, response.data[0]); // Log para depuração
+                    console.log(`Insights para campanha ${campaignId}:`, response.data[0]);
                     resolve(response.data[0]);
                 } else {
                     console.error(`Erro ao buscar insights para campanha ${campaignId}:`, response?.error);
@@ -399,7 +515,7 @@ async function getCampaignInsights(campaignId, startDate, endDate) {
 }
 
 async function getAdSetInsights(adSetId, startDate, endDate) {
-    await delay(200); // Pausa para evitar limite de requisições
+    await delay(200);
     return new Promise((resolve) => {
         FB.api(
             `/${adSetId}/insights`,
@@ -420,7 +536,7 @@ async function getAdSetInsights(adSetId, startDate, endDate) {
 }
 
 async function getAdInsights(adId, startDate, endDate) {
-    await delay(200); // Pausa para evitar limite de requisições
+    await delay(200);
     return new Promise((resolve) => {
         FB.api(
             `/${adId}/insights`,
@@ -467,7 +583,6 @@ function renderCampaignOptions() {
             </div>
         `;
 
-        // Aplicar estilo inicial diretamente
         if (selectedCampaigns.has(campaign.id)) {
             option.style.background = '#2563eb';
             option.style.color = '#ffffff';
@@ -521,7 +636,6 @@ function renderAdSetOptions() {
             </div>
         `;
 
-        // Aplicar estilo inicial diretamente
         if (selectedAdSets.has(adSet.id)) {
             option.style.background = '#2563eb';
             option.style.color = '#ffffff';
@@ -549,12 +663,236 @@ function renderAdSetOptions() {
     });
 }
 
+function renderWhiteCampaignOptions() {
+    const unitId = document.getElementById('unitId').value;
+    const container = document.getElementById('whiteCampaignsList');
+    const campaigns = Object.entries(campaignsMap[unitId] || {})
+        .map(([id, data]) => ({
+            id,
+            name: data.name,
+            spend: data.insights.spend
+        }))
+        .sort((a, b) => b.spend - a.spend);
+
+    container.innerHTML = '';
+
+    campaigns.forEach(campaign => {
+        const option = document.createElement('div');
+        option.className = `filter-option ${selectedWhiteCampaigns.has(campaign.id) ? 'selected' : ''}`;
+        option.dataset.id = campaign.id;
+        option.innerHTML = `
+            <div class="flex justify-between items-center">
+                <span>${campaign.name}</span>
+                <span class="text-sm ${campaign.spend > 0 ? 'text-green-600' : 'text-gray-500'}">
+                    R$ ${campaign.spend.toFixed(2).replace('.', ',')}
+                </span>
+            </div>
+        `;
+
+        if (selectedWhiteCampaigns.has(campaign.id)) {
+            option.style.background = '#2563eb';
+            option.style.color = '#ffffff';
+        } else {
+            option.style.background = '#ffffff';
+            option.style.color = '';
+        }
+
+        option.addEventListener('click', () => {
+            if (selectedWhiteCampaigns.has(campaign.id)) {
+                selectedWhiteCampaigns.delete(campaign.id);
+                option.classList.remove('selected');
+                option.style.background = '#ffffff';
+                option.style.color = '';
+            } else {
+                selectedWhiteCampaigns.add(campaign.id);
+                option.classList.add('selected');
+                option.style.background = '#2563eb';
+                option.style.color = '#ffffff';
+            }
+            updateFilterButtons();
+        });
+
+        container.appendChild(option);
+    });
+}
+
+function renderWhiteAdSetOptions() {
+    const unitId = document.getElementById('unitId').value;
+    const container = document.getElementById('whiteAdSetsList');
+    const adSets = Object.entries(adSetsMap[unitId] || {})
+        .map(([id, data]) => ({
+            id,
+            name: data.name,
+            spend: data.insights.spend
+        }))
+        .sort((a, b) => b.spend - a.spend);
+
+    container.innerHTML = '';
+
+    adSets.forEach(adSet => {
+        const option = document.createElement('div');
+        option.className = `filter-option ${selectedWhiteAdSets.has(adSet.id) ? 'selected' : ''}`;
+        option.dataset.id = adSet.id;
+        option.innerHTML = `
+            <div class="flex justify-between items-center">
+                <span>${adSet.name}</span>
+                <span class="text-sm ${adSet.spend > 0 ? 'text-green-600' : 'text-gray-500'}">
+                    R$ ${adSet.spend.toFixed(2).replace('.', ',')}
+                </span>
+            </div>
+        `;
+
+        if (selectedWhiteAdSets.has(adSet.id)) {
+            option.style.background = '#2563eb';
+            option.style.color = '#ffffff';
+        } else {
+            option.style.background = '#ffffff';
+            option.style.color = '';
+        }
+
+        option.addEventListener('click', () => {
+            if (selectedWhiteAdSets.has(adSet.id)) {
+                selectedWhiteAdSets.delete(adSet.id);
+                option.classList.remove('selected');
+                option.style.background = '#ffffff';
+                option.style.color = '';
+            } else {
+                selectedWhiteAdSets.add(adSet.id);
+                option.classList.add('selected');
+                option.style.background = '#2563eb';
+                option.style.color = '#ffffff';
+            }
+            updateFilterButtons();
+        });
+
+        container.appendChild(option);
+    });
+}
+
+function renderBlackCampaignOptions() {
+    const unitId = document.getElementById('unitId').value;
+    const container = document.getElementById('blackCampaignsList');
+    const campaigns = Object.entries(campaignsMap[unitId] || {})
+        .map(([id, data]) => ({
+            id,
+            name: data.name,
+            spend: data.insights.spend
+        }))
+        .sort((a, b) => b.spend - a.spend);
+
+    container.innerHTML = '';
+
+    campaigns.forEach(campaign => {
+        const option = document.createElement('div');
+        option.className = `filter-option ${selectedBlackCampaigns.has(campaign.id) ? 'selected' : ''}`;
+        option.dataset.id = campaign.id;
+        option.innerHTML = `
+            <div class="flex justify-between items-center">
+                <span>${campaign.name}</span>
+                <span class="text-sm ${campaign.spend > 0 ? 'text-green-600' : 'text-gray-500'}">
+                    R$ ${campaign.spend.toFixed(2).replace('.', ',')}
+                </span>
+            </div>
+        `;
+
+        if (selectedBlackCampaigns.has(campaign.id)) {
+            option.style.background = '#2563eb';
+            option.style.color = '#ffffff';
+        } else {
+            option.style.background = '#ffffff';
+            option.style.color = '';
+        }
+
+        option.addEventListener('click', () => {
+            if (selectedBlackCampaigns.has(campaign.id)) {
+                selectedBlackCampaigns.delete(campaign.id);
+                option.classList.remove('selected');
+                option.style.background = '#ffffff';
+                option.style.color = '';
+            } else {
+                selectedBlackCampaigns.add(campaign.id);
+                option.classList.add('selected');
+                option.style.background = '#2563eb';
+                option.style.color = '#ffffff';
+            }
+            updateFilterButtons();
+        });
+
+        container.appendChild(option);
+    });
+}
+
+function renderBlackAdSetOptions() {
+    const unitId = document.getElementById('unitId').value;
+    const container = document.getElementById('blackAdSetsList');
+    const adSets = Object.entries(adSetsMap[unitId] || {})
+        .map(([id, data]) => ({
+            id,
+            name: data.name,
+            spend: data.insights.spend
+        }))
+        .sort((a, b) => b.spend - a.spend);
+
+    container.innerHTML = '';
+
+    adSets.forEach(adSet => {
+        const option = document.createElement('div');
+        option.className = `filter-option ${selectedBlackAdSets.has(adSet.id) ? 'selected' : ''}`;
+        option.dataset.id = adSet.id;
+        option.innerHTML = `
+            <div class="flex justify-between items-center">
+                <span>${adSet.name}</span>
+                <span class="text-sm ${adSet.spend > 0 ? 'text-green-600' : 'text-gray-500'}">
+                    R$ ${adSet.spend.toFixed(2).replace('.', ',')}
+                </span>
+            </div>
+        `;
+
+        if (selectedBlackAdSets.has(adSet.id)) {
+            option.style.background = '#2563eb';
+            option.style.color = '#ffffff';
+        } else {
+            option.style.background = '#ffffff';
+            option.style.color = '';
+        }
+
+        option.addEventListener('click', () => {
+            if (selectedBlackAdSets.has(adSet.id)) {
+                selectedBlackAdSets.delete(adSet.id);
+                option.classList.remove('selected');
+                option.style.background = '#ffffff';
+                option.style.color = '';
+            } else {
+                selectedBlackAdSets.add(adSet.id);
+                option.classList.add('selected');
+                option.style.background = '#2563eb';
+                option.style.color = '#ffffff';
+            }
+            updateFilterButtons();
+        });
+
+        container.appendChild(option);
+    });
+}
+
 // Event Listeners
 if (filterCampaignsBtn) {
     filterCampaignsBtn.addEventListener('click', () => toggleModal('campaignsModal', true));
 }
 if (filterAdSetsBtn) {
     filterAdSetsBtn.addEventListener('click', () => toggleModal('adSetsModal', true));
+}
+if (filterWhiteCampaignsBtn) {
+    filterWhiteCampaignsBtn.addEventListener('click', () => toggleModal('whiteCampaignsModal', true));
+}
+if (filterWhiteAdSetsBtn) {
+    filterWhiteAdSetsBtn.addEventListener('click', () => toggleModal('whiteAdSetsModal', true));
+}
+if (filterBlackCampaignsBtn) {
+    filterBlackCampaignsBtn.addEventListener('click', () => toggleModal('blackCampaignsModal', true));
+}
+if (filterBlackAdSetsBtn) {
+    filterBlackAdSetsBtn.addEventListener('click', () => toggleModal('blackAdSetsModal', true));
 }
 if (comparePeriodsBtn) {
     comparePeriodsBtn.addEventListener('click', () => toggleModal('comparisonModal', true));
@@ -570,6 +908,30 @@ if (applyCampaignsBtn) {
 }
 if (applyAdSetsBtn) {
     applyAdSetsBtn.addEventListener('click', () => toggleModal('adSetsModal', false));
+}
+if (closeWhiteCampaignsModalBtn) {
+    closeWhiteCampaignsModalBtn.addEventListener('click', () => toggleModal('whiteCampaignsModal', false));
+}
+if (closeWhiteAdSetsModalBtn) {
+    closeWhiteAdSetsModalBtn.addEventListener('click', () => toggleModal('whiteAdSetsModal', false));
+}
+if (applyWhiteCampaignsBtn) {
+    applyWhiteCampaignsBtn.addEventListener('click', () => toggleModal('whiteCampaignsModal', false));
+}
+if (applyWhiteAdSetsBtn) {
+    applyWhiteAdSetsBtn.addEventListener('click', () => toggleModal('whiteAdSetsModal', false));
+}
+if (closeBlackCampaignsModalBtn) {
+    closeBlackCampaignsModalBtn.addEventListener('click', () => toggleModal('blackCampaignsModal', false));
+}
+if (closeBlackAdSetsModalBtn) {
+    closeBlackAdSetsModalBtn.addEventListener('click', () => toggleModal('blackAdSetsModal', false));
+}
+if (applyBlackCampaignsBtn) {
+    applyBlackCampaignsBtn.addEventListener('click', () => toggleModal('blackCampaignsModal', false));
+}
+if (applyBlackAdSetsBtn) {
+    applyBlackAdSetsBtn.addEventListener('click', () => toggleModal('blackAdSetsModal', false));
 }
 if (cancelComparisonBtn) {
     cancelComparisonBtn.addEventListener('click', () => toggleModal('comparisonModal', false));
@@ -629,7 +991,11 @@ form.addEventListener('submit', async (e) => {
             return;
         }
 
-        // Desabilitar o botão de submit durante a geração
+        if (hasBlack === null) {
+            alert('Por favor, responda se a unidade possui Black antes de gerar o relatório.');
+            return;
+        }
+
         const submitButton = form.querySelector('button[type="submit"]');
         const originalText = submitButton.innerHTML;
         submitButton.disabled = true;
@@ -637,7 +1003,6 @@ form.addEventListener('submit', async (e) => {
 
         await generateReport();
 
-        // Reabilitar o botão após a geração
         submitButton.disabled = false;
         submitButton.innerHTML = originalText;
     } catch (error) {
@@ -652,69 +1017,172 @@ async function generateReport() {
     const startDate = document.getElementById('startDate').value;
     const endDate = document.getElementById('endDate').value;
 
-    if (!unitId || !startDate || !endDate) {
-        alert('Preencha todos os campos obrigatórios');
-        return;
-    }
+    // Limpar o container de relatórios antes de gerar novos
+    reportContainer.innerHTML = '';
 
-    // Load ads data first
-    const adsData = await loadAds(unitId, startDate, endDate, 
-        selectedCampaigns.size > 0 ? selectedCampaigns : null, 
-        selectedAdSets.size > 0 ? selectedAdSets : null
-    );
-
-    // Process ads to find top performers
-    const topAds = [];
-    Object.entries(adsData).forEach(([adId, ad]) => {
-        let messages = 0;
-        let spend = parseFloat(ad.insights.spend) || 0;
-
-        if (ad.insights && ad.insights.actions) {
-            ad.insights.actions.forEach(action => {
-                if (action.action_type === 'onsite_conversion.messaging_conversation_started_7d') {
-                    messages += parseInt(action.value) || 0;
-                }
-            });
-        }
-
-        if (messages > 0) {
-            topAds.push({
-                id: adId,
-                imageUrl: ad.creative.imageUrl,
-                messages: messages,
-                spend: spend,
-                costPerMessage: messages > 0 ? (spend / messages).toFixed(2) : '0'
-            });
-        }
-    });
-
-    // Sort and get top 2 ads
-    topAds.sort((a, b) => b.messages - a.messages);
-    const bestAds = topAds.slice(0, 2).filter(ad => {
-        return ad.imageUrl && !ad.imageUrl.includes('dummyimage');
-    });
-
-    let currentMetrics = await calculateMetrics(unitId, startDate, endDate);
-    let comparisonMetrics = null;
-
-    if (comparisonData) {
-        comparisonMetrics = await calculateMetrics(
-            unitId,
-            comparisonData.startDate,
-            comparisonData.endDate
+    if (hasBlack) {
+        // Gerar relatório White
+        const whiteAdsData = await loadAds(unitId, startDate, endDate, 
+            selectedWhiteCampaigns.size > 0 ? selectedWhiteCampaigns : null, 
+            selectedWhiteAdSets.size > 0 ? selectedWhiteAdSets : null
         );
+
+        const whiteTopAds = [];
+        Object.entries(whiteAdsData).forEach(([adId, ad]) => {
+            let messages = 0;
+            let spend = parseFloat(ad.insights.spend) || 0;
+
+            if (ad.insights && ad.insights.actions) {
+                ad.insights.actions.forEach(action => {
+                    if (action.action_type === 'onsite_conversion.messaging_conversation_started_7d') {
+                        messages += parseInt(action.value) || 0;
+                    }
+                });
+            }
+
+            if (messages > 0) {
+                whiteTopAds.push({
+                    id: adId,
+                    imageUrl: ad.creative.imageUrl,
+                    messages: messages,
+                    spend: spend,
+                    costPerMessage: messages > 0 ? (spend / messages).toFixed(2) : '0'
+                });
+            }
+        });
+
+        whiteTopAds.sort((a, b) => b.messages - a.messages);
+        const whiteBestAds = whiteTopAds.slice(0, 2).filter(ad => {
+            return ad.imageUrl && !ad.imageUrl.includes('dummyimage');
+        });
+
+        let whiteMetrics = await calculateMetrics(unitId, startDate, endDate, selectedWhiteCampaigns, selectedWhiteAdSets);
+        let whiteComparisonMetrics = null;
+
+        if (comparisonData) {
+            whiteComparisonMetrics = await calculateMetrics(
+                unitId,
+                comparisonData.startDate,
+                comparisonData.endDate,
+                selectedWhiteCampaigns,
+                selectedWhiteAdSets
+            );
+        }
+
+        // Gerar relatório Black
+        const blackAdsData = await loadAds(unitId, startDate, endDate, 
+            selectedBlackCampaigns.size > 0 ? selectedBlackCampaigns : null, 
+            selectedBlackAdSets.size > 0 ? selectedBlackAdSets : null
+        );
+
+        const blackTopAds = [];
+        Object.entries(blackAdsData).forEach(([adId, ad]) => {
+            let messages = 0;
+            let spend = parseFloat(ad.insights.spend) || 0;
+
+            if (ad.insights && ad.insights.actions) {
+                ad.insights.actions.forEach(action => {
+                    if (action.action_type === 'onsite_conversion.messaging_conversation_started_7d') {
+                        messages += parseInt(action.value) || 0;
+                    }
+                });
+            }
+
+            if (messages > 0) {
+                blackTopAds.push({
+                    id: adId,
+                    imageUrl: ad.creative.imageUrl,
+                    messages: messages,
+                    spend: spend,
+                    costPerMessage: messages > 0 ? (spend / messages).toFixed(2) : '0'
+                });
+            }
+        });
+
+        blackTopAds.sort((a, b) => b.messages - a.messages);
+        const blackBestAds = blackTopAds.slice(0, 2).filter(ad => {
+            return ad.imageUrl && !ad.imageUrl.includes('dummyimage');
+        });
+
+        let blackMetrics = await calculateMetrics(unitId, startDate, endDate, selectedBlackCampaigns, selectedBlackAdSets);
+        let blackComparisonMetrics = null;
+
+        if (comparisonData) {
+            blackComparisonMetrics = await calculateMetrics(
+                unitId,
+                comparisonData.startDate,
+                comparisonData.endDate,
+                selectedBlackCampaigns,
+                selectedBlackAdSets
+            );
+        }
+
+        // Renderizar ambos os relatórios
+        renderReport(unitName, startDate, endDate, whiteMetrics, whiteComparisonMetrics, whiteBestAds, 'White');
+        renderReport(unitName, startDate, endDate, blackMetrics, blackComparisonMetrics, blackBestAds, 'Black');
+    } else {
+        // Comportamento padrão (sem Black)
+        const adsData = await loadAds(unitId, startDate, endDate, 
+            selectedCampaigns.size > 0 ? selectedCampaigns : null, 
+            selectedAdSets.size > 0 ? selectedAdSets : null
+        );
+
+        const topAds = [];
+        Object.entries(adsData).forEach(([adId, ad]) => {
+            let messages = 0;
+            let spend = parseFloat(ad.insights.spend) || 0;
+
+            if (ad.insights && ad.insights.actions) {
+                ad.insights.actions.forEach(action => {
+                    if (action.action_type === 'onsite_conversion.messaging_conversation_started_7d') {
+                        messages += parseInt(action.value) || 0;
+                    }
+                });
+            }
+
+            if (messages > 0) {
+                topAds.push({
+                    id: adId,
+                    imageUrl: ad.creative.imageUrl,
+                    messages: messages,
+                    spend: spend,
+                    costPerMessage: messages > 0 ? (spend / messages).toFixed(2) : '0'
+                });
+            }
+        });
+
+        topAds.sort((a, b) => b.messages - a.messages);
+        const bestAds = topAds.slice(0, 2).filter(ad => {
+            return ad.imageUrl && !ad.imageUrl.includes('dummyimage');
+        });
+
+        let currentMetrics = await calculateMetrics(unitId, startDate, endDate, selectedCampaigns, selectedAdSets);
+        let comparisonMetrics = null;
+
+        if (comparisonData) {
+            comparisonMetrics = await calculateMetrics(
+                unitId,
+                comparisonData.startDate,
+                comparisonData.endDate,
+                selectedCampaigns,
+                selectedAdSets
+            );
+        }
+
+        renderReport(unitName, startDate, endDate, currentMetrics, comparisonMetrics, bestAds);
     }
 
-    renderReport(unitName, startDate, endDate, currentMetrics, comparisonMetrics, bestAds);
+    // Exibir o botão de compartilhar no WhatsApp
+    shareWhatsAppBtn.classList.remove('hidden');
 }
 
-async function calculateMetrics(unitId, startDate, endDate) {
+async function calculateMetrics(unitId, startDate, endDate, campaigns = null, adSets = null) {
     let totalSpend = 0;
     let totalConversations = 0;
     let totalReach = 0;
 
-    if (selectedCampaigns.size > 0) {
-        for (const campaignId of selectedCampaigns) {
+    if (campaigns && campaigns.size > 0) {
+        for (const campaignId of campaigns) {
             const insights = await getCampaignInsights(campaignId, startDate, endDate);
             if (insights.spend) totalSpend += parseFloat(insights.spend);
             if (insights.reach) totalReach += parseInt(insights.reach);
@@ -726,8 +1194,8 @@ async function calculateMetrics(unitId, startDate, endDate) {
                 });
             }
         }
-    } else if (selectedAdSets.size > 0) {
-        for (const adSetId of selectedAdSets) {
+    } else if (adSets && adSets.size > 0) {
+        for (const adSetId of adSets) {
             const insights = await getAdSetInsights(adSetId, startDate, endDate);
             if (insights.spend) totalSpend += parseFloat(insights.spend);
             if (insights.reach) totalReach += parseInt(insights.reach);
@@ -782,17 +1250,15 @@ function calculateVariation(current, previous, metric) {
 
     let direction;
     if (metric === 'costPerConversation') {
-        // Para custo por mensagem, uma diminuição é uma melhora (verde), e um aumento é uma piora (vermelho)
         direction = percentage < 0 ? 'positive' : 'negative';
     } else {
-        // Para alcance e mensagens, um aumento é uma melhora (verde), e uma diminuição é uma piora (vermelho)
         direction = percentage >= 0 ? 'positive' : 'negative';
     }
 
     return { percentage: Math.abs(percentage).toFixed(2), direction };
 }
 
-function renderReport(unitName, startDate, endDate, metrics, comparisonMetrics, bestAds) {
+function renderReport(unitName, startDate, endDate, metrics, comparisonMetrics, bestAds, type = null) {
     const formattedStartDate = startDate.split('-').reverse().join('/');
     const formattedEndDate = endDate.split('-').reverse().join('/');
 
@@ -813,114 +1279,120 @@ function renderReport(unitName, startDate, endDate, metrics, comparisonMetrics, 
         costPerConversation: calculateVariation(metrics.costPerConversation, comparisonMetrics?.costPerConversation, 'costPerConversation')
     };
 
-    reportContainer.innerHTML = `
-        <div class="bg-gradient-to-br from-primary to-secondary text-white rounded-xl p-6 shadow-lg">
-            <div class="text-center mb-6">
-                <h2 class="text-2xl font-bold mb-2">
-                    <i class="fas fa-chart-pie mr-2"></i>Relatório Completo - ${unitName}
-                </h2>
-                <p class="text-gray-200">
-                    <i class="fas fa-calendar-alt mr-2"></i>${formattedStartDate} a ${formattedEndDate}
-                </p>
-                ${comparisonPeriod}
-            </div>
+    const reportTitle = type ? `Relatório ${type} - ${unitName}` : `Relatório Completo - ${unitName}`;
 
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <div class="metric-card bg-white/10 backdrop-blur">
-                    <div class="text-lg font-semibold mb-2">
-                        <i class="fas fa-bullhorn mr-2"></i>Alcance Total
-                    </div>
-                    <div class="text-2xl font-bold">
-                        ${metrics.reach.toLocaleString('pt-BR')}
-                    </div>
-                    ${comparisonMetrics ? `
-                        <div class="mt-2 text-sm font-medium ${variations.reach.direction === 'positive' ? 'text-green-400' : variations.reach.direction === 'negative' ? 'text-red-400' : 'text-gray-400'}">
-                            <i class="fas ${variations.reach.direction === 'positive' ? 'fa-arrow-up' : variations.reach.direction === 'negative' ? 'fa-arrow-down' : 'fa-minus'} mr-1"></i>
-                            ${variations.reach.percentage}%
-                        </div>
-                    ` : ''}
+    const reportHTML = `
+        <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
+            <h2 class="text-2xl font-semibold text-primary mb-4">${reportTitle}</h2>
+            <p class="text-gray-600 mb-4">
+                <i class="fas fa-calendar-alt mr-2"></i>Período: ${formattedStartDate} a ${formattedEndDate}
+            </p>
+            ${comparisonPeriod}
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                <div class="metric-card">
+                    <h3 class="text-lg font-medium text-gray-700 mb-2">Investimento</h3>
+                    <p class="text-2xl font-semibold text-primary">R$ ${metrics.spend.toFixed(2).replace('.', ',')}</p>
                 </div>
-
-                <div class="metric-card bg-white/10 backdrop-blur">
-                    <div class="text-lg font-semibold mb-2">
-                        <i class="fas fa-comments mr-2"></i>Mensagens
-                    </div>
-                    <div class="text-2xl font-bold">
-                        ${metrics.conversations.toLocaleString('pt-BR')}
-                    </div>
-                    ${comparisonMetrics ? `
-                        <div class="mt-2 text-sm font-medium ${variations.conversations.direction === 'positive' ? 'text-green-400' : variations.conversations.direction === 'negative' ? 'text-red-400' : 'text-gray-400'}">
-                            <i class="fas ${variations.conversations.direction === 'positive' ? 'fa-arrow-up' : variations.conversations.direction === 'negative' ? 'fa-arrow-down' : 'fa-minus'} mr-1"></i>
-                            ${variations.conversations.percentage}%
-                        </div>
-                    ` : ''}
+                <div class="metric-card">
+                    <h3 class="text-lg font-medium text-gray-700 mb-2">Conversas Iniciadas</h3>
+                    <p class="text-2xl font-semibold text-primary">${metrics.conversations}</p>
+                    ${
+                        comparisonMetrics
+                            ? `
+                                <p class="metric-comparison ${
+                                    variations.conversations.direction === 'positive' ? 'increase' : 'decrease'
+                                }">
+                                    <i class="fas fa-arrow-${
+                                        variations.conversations.direction === 'positive' ? 'up' : 'down'
+                                    } mr-1"></i>
+                                    ${variations.conversations.percentage}% em relação ao período anterior
+                                </p>`
+                            : ''
+                    }
                 </div>
-
-                <div class="metric-card bg-white/10 backdrop-blur">
-                    <div class="text-lg font-semibold mb-2">
-                        <i class="fas fa-dollar-sign mr-2"></i>Custo por Mensagem
-                    </div>
-                    <div class="text-2xl font-bold">
-                        R$ ${metrics.costPerConversation.toFixed(2).replace('.', ',')}
-                    </div>
-                    ${comparisonMetrics ? `
-                        <div class="mt-2 text-sm font-medium ${variations.costPerConversation.direction === 'positive' ? 'text-green-400' : variations.costPerConversation.direction === 'negative' ? 'text-red-400' : 'text-gray-400'}">
-                            <i class="fas ${variations.costPerConversation.direction === 'positive' ? 'fa-arrow-up' : variations.costPerConversation.direction === 'negative' ? 'fa-arrow-down' : 'fa-minus'} mr-1"></i>
-                            ${variations.costPerConversation.percentage}%
-                        </div>
-                    ` : ''}
-                </div>
-
-                <div class="metric-card bg-white/10 backdrop-blur">
-                    <div class="text-lg font-semibold mb-2">
-                        <i class="fas fa-coins mr-2"></i>Investimento Total
-                    </div>
-                    <div class="text-2xl font-bold">
-                        R$ ${metrics.spend.toFixed(2).replace('.', ',')}
-                    </div>
+                <div class="metric-card">
+                    <h3 class="text-lg font-medium text-gray-700 mb-2">Custo por Conversa</h3>
+                    <p class="text-2xl font-semibold text-primary">R$ ${metrics.costPerConversation.toFixed(2).replace('.', ',')}</p>
+                    ${
+                        comparisonMetrics
+                            ? `
+                                <p class="metric-comparison ${
+                                    variations.costPerConversation.direction === 'positive' ? 'increase' : 'decrease'
+                                }">
+                                    <i class="fas fa-arrow-${
+                                        variations.costPerConversation.direction === 'positive' ? 'down' : 'up'
+                                    } mr-1"></i>
+                                    ${variations.costPerConversation.percentage}% em relação ao período anterior
+                                </p>`
+                            : ''
+                    }
                 </div>
             </div>
-
-            ${bestAds && bestAds.length > 0 ? `
-                <div class="mt-8">
-                    <h3 class="text-xl font-bold text-white mb-4">
-                        <i class="fas fa-star mr-2"></i>Anúncios em Destaque
-                    </h3>
-                    <div class="space-y-4">
-                        ${bestAds.map(ad => `
-                            <div class="flex items-center bg-white rounded-lg shadow-sm p-4">
-                                <img src="${ad.imageUrl}" alt="Thumbnail" class="w-20 h-20 object-cover rounded-md mr-4">
-                                <div class="flex-1">
-                                    <div class="text-sm text-gray-600">
-                                        Mensagens: <span class="font-medium text-gray-800">${ad.messages}</span>
-                                    </div>
-                                    <div class="text-sm text-gray-600">
-                                        Custo por Msg: <span class="font-medium text-gray-800">R$ ${ad.costPerMessage.replace('.', ',')}</span>
-                                    </div>
-                                </div>
-                            </div>
-                        `).join('')}
-                    </div>
-                </div>
-            ` : ''}
+            ${
+                bestAds.length > 0
+                    ? `
+                        <h3 class="text-xl font-semibold text-primary mb-4">Melhores Anúncios</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            ${bestAds
+                                .map(
+                                    ad => `
+                                        <div class="top-ad-card">
+                                            <img src="${ad.imageUrl}" alt="Anúncio" class="w-full h-48 object-cover rounded-md mb-4">
+                                            <p class="text-gray-700"><strong>Conversas:</strong> ${ad.messages}</p>
+                                            <p class="text-gray-700"><strong>Investimento:</strong> R$ ${ad.spend.toFixed(2).replace('.', ',')}</p>
+                                            <p class="text-gray-700"><strong>Custo por Conversa:</strong> R$ ${ad.costPerMessage.replace('.', ',')}</p>
+                                        </div>
+                                    `
+                                )
+                                .join('')}
+                        </div>`
+                    : '<p class="text-gray-600">Nenhum anúncio com conversas iniciadas encontrado para este período.</p>'
+            }
         </div>
     `;
 
-    shareWhatsAppBtn.style.display = 'block';
+    reportContainer.insertAdjacentHTML('beforeend', reportHTML);
 }
 
 // Compartilhar no WhatsApp
 shareWhatsAppBtn.addEventListener('click', () => {
-    const reportText = reportContainer.innerText;
-    const encodedText = encodeURIComponent(reportText);
-    window.open(`https://api.whatsapp.com/send?text=${encodedText}`, '_blank');
+    const unitId = document.getElementById('unitId').value;
+    const unitName = adAccountsMap[unitId] || 'Unidade Desconhecida';
+    const startDate = document.getElementById('startDate').value.split('-').reverse().join('/');
+    const endDate = document.getElementById('endDate').value.split('-').reverse().join('/');
+
+    let message = `Relatório Completo - ${unitName}\n`;
+    message += `Período: ${startDate} a ${endDate}\n\n`;
+
+    const reports = reportContainer.querySelectorAll('.bg-white');
+    reports.forEach((report, index) => {
+        const title = report.querySelector('h2').textContent;
+        const metrics = report.querySelectorAll('.metric-card');
+        message += `${title}\n`;
+        metrics.forEach(metric => {
+            const label = metric.querySelector('h3').textContent;
+            const value = metric.querySelector('p.text-2xl').textContent;
+            message += `${label}: ${value}\n`;
+        });
+        const bestAds = report.querySelectorAll('.top-ad-card');
+        if (bestAds.length > 0) {
+            message += `\nMelhores Anúncios:\n`;
+            bestAds.forEach((ad, adIndex) => {
+                const conversations = ad.querySelector('p:nth-child(2)').textContent;
+                const spend = ad.querySelector('p:nth-child(3)').textContent;
+                const costPerMessage = ad.querySelector('p:nth-child(4)').textContent;
+                message += `Anúncio ${adIndex + 1}:\n${conversations}\n${spend}\n${costPerMessage}\n`;
+            });
+        }
+        message += '\n';
+    });
+
+    const encodedMessage = encodeURIComponent(message);
+    const whatsappUrl = `https://api.whatsapp.com/send?text=${encodedMessage}`;
+    window.open(whatsappUrl, '_blank');
 });
 
-// Navegação
-backToReportSelectionBtn.addEventListener('click', (e) => {
-    e.preventDefault();
-    console.log('Botão Voltar clicado - Redirecionando para seleção de relatório');
-    console.log('Antes de voltar - appLoggedIn:', localStorage.getItem('appLoggedIn'));
-    console.log('Antes de voltar - fbAccessToken:', localStorage.getItem('fbAccessToken') ? 'Sim' : 'Não');
-    window.location.href = 'index.html?screen=reportSelection&appLoggedIn=true';
+// Voltar para a seleção de relatórios
+backToReportSelectionBtn.addEventListener('click', () => {
+    window.location.href = 'index.html?appLoggedIn=true';
 });

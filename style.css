@@ -88,6 +88,12 @@ button:hover {
     border-radius: 5px;
     cursor: pointer;
     transition: background 0.3s;
+    position: relative; /* Garantir que o elemento esteja no fluxo de cliques */
+    pointer-events: auto; /* Garantir que cliques sejam capturados */
+}
+
+.filter-option * {
+    pointer-events: none; /* Impedir que elementos filhos (ex.: span) capturem o clique */
 }
 
 .filter-option:hover {

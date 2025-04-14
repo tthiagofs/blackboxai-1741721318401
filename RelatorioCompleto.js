@@ -650,67 +650,95 @@ form.addEventListener('submit', async (e) => {
     }
 });
 
-async function generateReport() {
-    const unitId = document.getElementById('unitId').value;
-    const unitName = adAccountsMap[unitId] || 'Unidade Desconhecida';
-    const startDate = document.getElementById('startDate').value;
-    const endDate = document.getElementById('endDate').value;
+async function generateReport(event) {
+    event.preventDefault();
+    reportContainer.innerHTML = '<p class="text-gray-500">Carregando relatório...</p>';
+    shareWhatsAppBtn.style.display = 'none';
 
-    if (!unitId || !startDate || !endDate) {
-        alert('Preencha todos os campos obrigatórios');
-        return;
-    }
+    try {
+        const formData = new FormData(event.target);
+        const unitId = formData.get('unitId');
+        const startDate = formData.get('startDate');
+        const endDate = formData.get('endDate');
+        const comparisonStartDate = formData.get('comparisonStartDate');
+        const comparisonEndDate = formData.get('comparisonEndDate');
+        const selectedCampaigns = new Set(formData.getAll('campaigns'));
+        const selectedAdSets = new Set(formData.getAll('adSets'));
 
-    // Load ads data first
-    const adsData = await loadAds(unitId, startDate, endDate, 
-        selectedCampaigns.size > 0 ? selectedCampaigns : null, 
-        selectedAdSets.size > 0 ? selectedAdSets : null
-    );
+        await loadCampaigns(unitId, startDate, endDate);
+        await loadAdSets(unitId, startDate, endDate);
+        const adsMap = await loadAds(unitId, startDate, endDate, selectedCampaigns.size > 0 ? selectedCampaigns : null, selectedAdSets.size > 0 ? selectedAdSets : null);
 
-    // Process ads to find top performers
-    const topAds = [];
-    Object.entries(adsData).forEach(([adId, ad]) => {
-        let messages = 0;
-        let spend = parseFloat(ad.insights.spend) || 0;
-        
-        if (ad.insights && ad.insights.actions) {
-            ad.insights.actions.forEach(action => {
-                if (action.action_type === 'onsite_conversion.messaging_conversation_started_7d') {
-                    messages += parseInt(action.value) || 0;
+        // Log para depurar o retorno de loadAds
+        console.log('adsMap retornado por loadAds:', adsMap);
+
+        let metrics = {
+            reach: 0,
+            conversations: 0,
+            spend: 0,
+            costPerConversation: 0
+        };
+
+        for (const adId in adsMap) {
+            const ad = adsMap[adId];
+            metrics.reach += parseInt(ad.insights.reach || 0);
+            metrics.conversations += parseInt(ad.insights.conversations || 0);
+            metrics.spend += parseFloat(ad.insights.spend || 0);
+        }
+
+        metrics.costPerConversation = metrics.conversations > 0 ? metrics.spend / metrics.conversations : 0;
+
+        // Log para depurar o estado de metrics
+        console.log('metrics após agregação:', metrics);
+
+        let comparisonMetrics = null;
+        if (comparisonStartDate && comparisonEndDate) {
+            await loadCampaigns(unitId, comparisonStartDate, comparisonEndDate);
+            await loadAdSets(unitId, comparisonStartDate, comparisonEndDate);
+            const comparisonAdsMap = await loadAds(unitId, comparisonStartDate, comparisonEndDate, selectedCampaigns.size > 0 ? selectedCampaigns : null, selectedAdSets.size > 0 ? selectedAdSets : null);
+
+            // Log para depurar o retorno de loadAds para o período de comparação
+            console.log('comparisonAdsMap retornado por loadAds:', comparisonAdsMap);
+
+            comparisonMetrics = {
+                reach: 0,
+                conversations: 0,
+                spend: 0,
+                costPerConversation: 0
+            };
+
+            for (const adId in comparisonAdsMap) {
+                const ad = comparisonAdsMap[adId];
+                comparisonMetrics.reach += parseInt(ad.insights.reach || 0);
+                comparisonMetrics.conversations += parseInt(ad.insights.conversations || 0);
+                comparisonMetrics.spend += parseFloat(ad.insights.spend || 0);
+            }
+
+            comparisonMetrics.costPerConversation = comparisonMetrics.conversations > 0 ? comparisonMetrics.spend / comparisonMetrics.conversations : 0;
+
+            // Log para depurar o estado de comparisonMetrics
+            console.log('comparisonMetrics após agregação:', comparisonMetrics);
+        }
+
+        const bestAds = Object.entries(adsMap)
+            .map(([id, ad]) => ({
+                id,
+                ...ad,
+                insights: {
+                    ...ad.insights,
+                    costPerConversation: ad.insights.conversations > 0 ? (ad.insights.spend || 0) / ad.insights.conversations : 0
                 }
-            });
-        }
+            }))
+            .sort((a, b) => (b.insights.conversations || 0) - (a.insights.conversations || 0))
+            .slice(0, 5);
 
-        if (messages > 0) {
-            topAds.push({
-                id: adId,
-                imageUrl: ad.creative.imageUrl,
-                messages: messages,
-                spend: spend,
-                costPerMessage: messages > 0 ? (spend / messages).toFixed(2) : '0'
-            });
-        }
-    });
-
-    // Sort and get top 2 ads
-    topAds.sort((a, b) => b.messages - a.messages);
-    const bestAds = topAds.slice(0, 2).filter(ad => {
-        return ad.imageUrl && !ad.imageUrl.includes('dummyimage');
-    });
-
-    let currentMetrics = await calculateMetrics(unitId, startDate, endDate);
-    let comparisonMetrics = null;
-
-    if (comparisonData) {
-        comparisonMetrics = await calculateMetrics(
-            unitId,
-            comparisonData.startDate,
-            comparisonData.endDate
-        );
+        renderReport(metrics, comparisonMetrics, bestAds);
+    } catch (error) {
+        console.error('Erro ao gerar relatório:', error);
+        reportContainer.innerHTML = '<p class="text-red-500">Ocorreu um erro ao gerar o relatório. Por favor, tente novamente.</p>';
     }
-
-    renderReport(unitName, startDate, endDate, currentMetrics, comparisonMetrics, bestAds);
 }
+
 
 async function calculateMetrics(unitId, startDate, endDate) {
     let totalSpend = 0;
@@ -799,9 +827,9 @@ function calculateVariation(current, previous, metric) {
 function renderReport(metrics, comparisonMetrics, bestAds) {
     const topAds = bestAds || [];
     const variations = comparisonMetrics ? {
-        reach: calculateVariation(metrics.reach, comparisonMetrics?.reach, 'reach'),
-        conversations: calculateVariation(metrics.conversations, comparisonMetrics?.conversations, 'conversations'),
-        costPerConversation: calculateVariation(metrics.costPerConversation, comparisonMetrics?.costPerConversation, 'costPerConversation')
+        reach: calculateVariation(metrics?.reach || 0, comparisonMetrics?.reach || 0, 'reach'),
+        conversations: calculateVariation(metrics?.conversations || 0, comparisonMetrics?.conversations || 0, 'conversations'),
+        costPerConversation: calculateVariation(metrics?.costPerConversation || 0, comparisonMetrics?.costPerConversation || 0, 'costPerConversation')
     } : null;
 
     reportContainer.innerHTML = `
@@ -813,7 +841,7 @@ function renderReport(metrics, comparisonMetrics, bestAds) {
                         <i class="fas fa-bullhorn mr-2"></i>Alcance Total
                     </div>
                     <div class="text-2xl font-bold">
-                        ${metrics.reach.toLocaleString('pt-BR')}
+                        ${(metrics?.reach || 0).toLocaleString('pt-BR')}
                     </div>
                     ${comparisonMetrics ? `
                         <div class="mt-2 text-sm font-medium ${variations.reach.direction === 'positive' ? 'text-green-400' : variations.reach.direction === 'negative' ? 'text-red-400' : 'text-gray-400'}">
@@ -828,7 +856,7 @@ function renderReport(metrics, comparisonMetrics, bestAds) {
                         <i class="fas fa-comments mr-2"></i>Mensagens
                     </div>
                     <div class="text-2xl font-bold">
-                        ${metrics.conversations.toLocaleString('pt-BR')}
+                        ${(metrics?.conversations || 0).toLocaleString('pt-BR')}
                     </div>
                     ${comparisonMetrics ? `
                         <div class="mt-2 text-sm font-medium ${variations.conversations.direction === 'positive' ? 'text-green-400' : variations.conversations.direction === 'negative' ? 'text-red-400' : 'text-gray-400'}">
@@ -843,7 +871,7 @@ function renderReport(metrics, comparisonMetrics, bestAds) {
                         <i class="fas fa-dollar-sign mr-2"></i>Custo por Mensagem
                     </div>
                     <div class="text-2xl font-bold">
-                        R$ ${metrics.costPerConversation.toFixed(2).replace('.', ',')}
+                        R$ ${(metrics?.costPerConversation || 0).toFixed(2).replace('.', ',')}
                     </div>
                     ${comparisonMetrics ? `
                         <div class="mt-2 text-sm font-medium ${variations.costPerConversation.direction === 'positive' ? 'text-green-400' : variations.costPerConversation.direction === 'negative' ? 'text-red-400' : 'text-gray-400'}">
@@ -858,7 +886,7 @@ function renderReport(metrics, comparisonMetrics, bestAds) {
                         <i class="fas fa-coins mr-2"></i>Investimento Total
                     </div>
                     <div class="text-2xl font-bold">
-                        R$ ${metrics.spend.toFixed(2).replace('.', ',')}
+                        R$ ${(metrics?.spend || 0).toFixed(2).replace('.', ',')}
                     </div>
                 </div>
             </div>
@@ -888,6 +916,7 @@ function renderReport(metrics, comparisonMetrics, bestAds) {
 
     shareWhatsAppBtn.style.display = 'block';
 }
+
 
 // Compartilhar no WhatsApp
 shareWhatsAppBtn.addEventListener('click', () => {

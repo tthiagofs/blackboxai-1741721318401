@@ -1073,12 +1073,8 @@ async function generateReport(unitId, unitName, startDate, endDate) {
 
 async function calculateMetrics(unitId, startDate, endDate, campaignsSet, adSetsSet) {
     let totalSpend = 0;
-    let totalConversations = 0; // Agora inclui mensagens + todas as conversões personalizadas
+    let totalConversations = 0;
     let totalReach = 0;
-
-    console.log(`Chamando API para unitId: ${unitId}, período: ${startDate} a ${endDate}`);
-    console.log(`Campanhas selecionadas: ${Array.from(campaignsSet)}`);
-    console.log(`Conjuntos selecionados: ${Array.from(adSetsSet)}`);
 
     const response = await new Promise((resolve) => {
         FB.api(
@@ -1096,15 +1092,11 @@ async function calculateMetrics(unitId, startDate, endDate, campaignsSet, adSets
         );
     });
 
-    console.log('Resposta da API:', response);
-
     if (response && !response.error && response.data && response.data.length > 0) {
         response.data.forEach(data => {
-            console.log('Dados da campanha/conjunto:', data);
             totalSpend += parseFloat(data.spend) || 0;
             totalReach += parseInt(data.reach) || 0;
             if (data.actions && Array.isArray(data.actions)) {
-                // Contar mensagens
                 const conversationAction = data.actions.find(
                     action => action.action_type === 'onsite_conversion.messaging_conversation_started_7d'
                 );
@@ -1112,7 +1104,6 @@ async function calculateMetrics(unitId, startDate, endDate, campaignsSet, adSets
                     totalConversations += parseInt(conversationAction.value) || 0;
                 }
 
-                // Contar todas as conversões personalizadas (ações que começam com 'offsite_conversion.')
                 const customConversions = data.actions.filter(
                     action => action.action_type.startsWith('offsite_conversion.')
                 );
@@ -1123,21 +1114,15 @@ async function calculateMetrics(unitId, startDate, endDate, campaignsSet, adSets
                 });
             }
         });
-    } else {
-        console.log('Nenhum dado retornado ou erro na API:', response?.error || 'Sem dados');
     }
 
     const costPerConversation = totalConversations > 0 ? totalSpend / totalConversations : 0;
-
-    console.log(`Métricas calculadas - Investimento: ${totalSpend}, Alcance: ${totalReach}, Conversas (mensagens + conversões personalizadas): ${totalConversations}`);
     return { spend: totalSpend, conversations: totalConversations, reach: totalReach, costPerConversation };
 }
 
 
 async function calculateTotalLeadsForAccount(unitId, startDate, endDate) {
     let totalConversations = 0;
-
-    console.log(`Calculando total de leads para a conta ${unitId}, período: ${startDate} a ${endDate}`);
 
     const response = await new Promise((resolve) => {
         FB.api(
@@ -1152,12 +1137,9 @@ async function calculateTotalLeadsForAccount(unitId, startDate, endDate) {
         );
     });
 
-    console.log('Resposta da API (total de leads):', response);
-
     if (response && !response.error && response.data && response.data.length > 0) {
         response.data.forEach(data => {
             if (data.actions && Array.isArray(data.actions)) {
-                // Contar mensagens
                 const conversationAction = data.actions.find(
                     action => action.action_type === 'onsite_conversion.messaging_conversation_started_7d'
                 );
@@ -1165,7 +1147,6 @@ async function calculateTotalLeadsForAccount(unitId, startDate, endDate) {
                     totalConversations += parseInt(conversationAction.value) || 0;
                 }
 
-                // Contar todas as conversões personalizadas (ações que começam com 'offsite_conversion.')
                 const customConversions = data.actions.filter(
                     action => action.action_type.startsWith('offsite_conversion.')
                 );
@@ -1176,21 +1157,19 @@ async function calculateTotalLeadsForAccount(unitId, startDate, endDate) {
                 });
             }
         });
-    } else {
-        console.log('Nenhum dado retornado ou erro na API (total de leads):', response?.error || 'Sem dados');
     }
 
-    console.log(`Total de leads da conta no período de comparação: ${totalConversations}`);
     return totalConversations;
 }
+
 
 
 async function getBestAds(unitId, startDate, endDate) {
     const adsWithActions = []; // Anúncios com mensagens/conversões
     const adsWithoutActions = []; // Anúncios sem mensagens/conversões, mas com gasto
-    let url = `/${unitId}/ads?fields=id,name,creative&access_token=${currentAccessToken}&limit=50`;
+    let url = `/${unitId}/ads?fields=id,name,creative,insights{actions,spend,reach}&time_range[since]=${startDate}&time_range[until]=${endDate}&access_token=${currentAccessToken}&limit=50`;
 
-    // Buscar todos os anúncios da conta
+    // Buscar todos os anúncios da conta com insights incluídos
     const adsList = [];
     while (url) {
         const adResponse = await new Promise((resolve) => {
@@ -1203,31 +1182,19 @@ async function getBestAds(unitId, startDate, endDate) {
             console.error(`Erro ao carregar anúncios da conta ${unitId}:`, adResponse?.error);
             url = null;
         }
-        await delay(500); // Evitar sobrecarga na API
+        // Removido o delay para melhorar a performance
     }
 
-    // Processar os anúncios para calcular métricas e buscar imagens
+    // Processar os anúncios
     for (const ad of adsList) {
         let totalActions = 0;
         let costPerAction = 0;
         let spend = 0;
         let imageUrl = 'https://dummyimage.com/150x150/ccc/fff';
 
-        // Buscar insights do anúncio para o período selecionado
-        const insightsResponse = await new Promise((resolve) => {
-            FB.api(
-                `/${ad.id}/insights`,
-                {
-                    fields: ['actions', 'spend', 'reach'],
-                    time_range: { since: startDate, until: endDate },
-                    access_token: currentAccessToken,
-                },
-                resolve
-            );
-        });
-
-        if (insightsResponse && !insightsResponse.error && insightsResponse.data && insightsResponse.data.length > 0) {
-            const insights = insightsResponse.data[0];
+        // Extrair métricas dos insights já retornados
+        if (ad.insights && ad.insights.data && ad.insights.data.length > 0) {
+            const insights = ad.insights.data[0];
             if (insights.actions) {
                 // Contar mensagens
                 const conversationAction = insights.actions.find(
@@ -1237,7 +1204,7 @@ async function getBestAds(unitId, startDate, endDate) {
                     totalActions += parseInt(conversationAction.value) || 0;
                 }
 
-                // Contar todas as conversões personalizadas (ações que começam com 'offsite_conversion.')
+                // Contar todas as conversões personalizadas
                 const customConversions = insights.actions.filter(
                     action => action.action_type.startsWith('offsite_conversion.')
                 );
@@ -1251,14 +1218,9 @@ async function getBestAds(unitId, startDate, endDate) {
             costPerAction = totalActions > 0 ? (spend / totalActions).toFixed(2) : '0.00';
         }
 
-        // Buscar a imagem do criativo
-        if (ad.creative && ad.creative.id) {
-            const creativeData = await getCreativeData(ad.creative.id);
-            imageUrl = creativeData.imageUrl;
-        }
-
         // Adicionar o anúncio à lista apropriada
         const adData = {
+            creativeId: ad.creative?.id, // Guardar o ID do criativo para buscar a imagem depois
             imageUrl: imageUrl,
             messages: totalActions,
             spend: spend,
@@ -1292,10 +1254,23 @@ async function getBestAds(unitId, startDate, endDate) {
 
     // Se só houver 1 anúncio com dados (ações ou gasto), retornar apenas ele
     if (adsWithActions.length === 0 && adsWithoutActions.length === 1) {
-        return adsWithoutActions;
+        bestAds.length = 0; // Limpar a lista e adicionar apenas o único anúncio
+        bestAds.push(...adsWithoutActions);
     } else if (adsWithActions.length === 1 && adsWithoutActions.length === 0) {
-        return adsWithActions;
+        bestAds.length = 0;
+        bestAds.push(...adsWithActions);
     }
+
+    // Buscar as imagens dos criativos em paralelo
+    const imagePromises = bestAds.map(async (ad) => {
+        if (ad.creativeId) {
+            const creativeData = await getCreativeData(ad.creativeId);
+            ad.imageUrl = creativeData.imageUrl;
+        }
+        return ad;
+    });
+
+    await Promise.all(imagePromises);
 
     return bestAds;
 }

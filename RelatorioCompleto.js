@@ -1187,70 +1187,90 @@ async function calculateTotalLeadsForAccount(unitId, startDate, endDate) {
 
 async function getBestAds(unitId, startDate, endDate) {
     const bestAds = [];
-    const response = await new Promise((resolve) => {
-        FB.api(
-            `/${unitId}/ads`,
-            {
-                fields: ['id', 'name', 'insights{actions,spend,reach},creative'],
-                time_range: { since: startDate, until: endDate },
-                access_token: currentAccessToken,
-            },
-            resolve
-        );
-    });
+    let url = `/${unitId}/ads?fields=id,name,creative&access_token=${currentAccessToken}&limit=50`;
 
-    if (response && !response.error && response.data) {
-        for (const ad of response.data) {
-            let totalActions = 0; // Agora inclui mensagens + todas as conversões personalizadas
-            let costPerAction = 0;
-            let spend = 0;
-            let imageUrl = 'https://dummyimage.com/150x150/ccc/fff';
-
-            if (ad.insights && ad.insights.data && ad.insights.data.length > 0) {
-                const insights = ad.insights.data[0];
-                if (insights.actions) {
-                    // Contar mensagens
-                    const conversationAction = insights.actions.find(
-                        action => action.action_type === 'onsite_conversion.messaging_conversation_started_7d'
-                    );
-                    if (conversationAction && conversationAction.value) {
-                        totalActions += parseInt(conversationAction.value) || 0;
-                    }
-
-                    // Contar todas as conversões personalizadas (ações que começam com 'offsite_conversion.')
-                    const customConversions = insights.actions.filter(
-                        action => action.action_type.startsWith('offsite_conversion.')
-                    );
-                    customConversions.forEach(action => {
-                        if (action.value) {
-                            totalActions += parseInt(action.value) || 0;
-                        }
-                    });
-                }
-                spend = insights.spend ? parseFloat(insights.spend) : 0;
-                costPerAction = totalActions > 0 ? (spend / totalActions).toFixed(2) : '0.00';
-            }
-
-            if (totalActions > 0 && ad.creative && ad.creative.id) {
-                const creativeData = await getCreativeData(ad.creative.id);
-                imageUrl = creativeData.imageUrl;
-            }
-
-            if (totalActions > 0) {
-                bestAds.push({
-                    imageUrl: imageUrl,
-                    messages: totalActions, // Agora inclui mensagens + conversões personalizadas
-                    costPerMessage: costPerAction // Agora é custo por ação (mensagem ou conversão)
-                });
-            }
+    // Buscar todos os anúncios da conta
+    const adsList = [];
+    while (url) {
+        const adResponse = await new Promise((resolve) => {
+            FB.api(url, resolve);
+        });
+        if (adResponse && !adResponse.error) {
+            adsList.push(...adResponse.data);
+            url = adResponse.paging && adResponse.paging.next ? adResponse.paging.next : null;
+        } else {
+            console.error(`Erro ao carregar anúncios da conta ${unitId}:`, adResponse?.error);
+            url = null;
         }
-
-        bestAds.sort((a, b) => b.messages - a.messages);
-        return bestAds.slice(0, 3);
+        await delay(500); // Evitar sobrecarga na API
     }
 
-    return bestAds;
+    // Processar os anúncios para calcular métricas e buscar imagens
+    for (const ad of adsList) {
+        let totalActions = 0;
+        let costPerAction = 0;
+        let spend = 0;
+        let imageUrl = 'https://dummyimage.com/150x150/ccc/fff';
+
+        // Buscar insights do anúncio para o período selecionado
+        const insightsResponse = await new Promise((resolve) => {
+            FB.api(
+                `/${ad.id}/insights`,
+                {
+                    fields: ['actions', 'spend', 'reach'],
+                    time_range: { since: startDate, until: endDate },
+                    access_token: currentAccessToken,
+                },
+                resolve
+            );
+        });
+
+        if (insightsResponse && !insightsResponse.error && insightsResponse.data && insightsResponse.data.length > 0) {
+            const insights = insightsResponse.data[0];
+            if (insights.actions) {
+                // Contar mensagens
+                const conversationAction = insights.actions.find(
+                    action => action.action_type === 'onsite_conversion.messaging_conversation_started_7d'
+                );
+                if (conversationAction && conversationAction.value) {
+                    totalActions += parseInt(conversationAction.value) || 0;
+                }
+
+                // Contar todas as conversões personalizadas (ações que começam com 'offsite_conversion.')
+                const customConversions = insights.actions.filter(
+                    action => action.action_type.startsWith('offsite_conversion.')
+                );
+                customConversions.forEach(action => {
+                    if (action.value) {
+                        totalActions += parseInt(action.value) || 0;
+                    }
+                });
+            }
+            spend = insights.spend ? parseFloat(insights.spend) : 0;
+            costPerAction = totalActions > 0 ? (spend / totalActions).toFixed(2) : '0.00';
+        }
+
+        // Buscar a imagem do criativo
+        if (totalActions > 0 && ad.creative && ad.creative.id) {
+            const creativeData = await getCreativeData(ad.creative.id);
+            imageUrl = creativeData.imageUrl;
+        }
+
+        // Só adicionar o anúncio à lista se ele teve ações no período
+        if (totalActions > 0) {
+            bestAds.push({
+                imageUrl: imageUrl,
+                messages: totalActions,
+                costPerMessage: costPerAction
+            });
+        }
+    }
+
+    // Ordenar por número de ações (decrescente) e limitar a 3 anúncios
+    bestAds.sort((a, b) => b.messages - a.messages);
+    return bestAds.slice(0, 3);
 }
+
 
 
 function calculateVariation(current, previous, metric) {
@@ -1302,7 +1322,6 @@ function renderReport(unitName, startDate, endDate, metrics, comparisonMetrics, 
         totalLeads = (parseInt(metrics.conversations) || 0) + (parseInt(blackMetrics.conversations) || 0);
         console.log(`Total de leads calculado: ${totalLeads}`);
 
-        // Calcular variação do total de leads, se disponível
         if (comparisonTotalLeads !== null) {
             totalLeadsVariation = calculateVariation(totalLeads, comparisonTotalLeads, 'conversations');
         }
@@ -1451,21 +1470,22 @@ function renderReport(unitName, startDate, endDate, metrics, comparisonMetrics, 
                                         <div class="flex items-center bg-white border border-gray-200 rounded-lg p-3">
                                             <img src="${ad.imageUrl}" alt="Anúncio" class="w-24 h-24 object-cover rounded-md mr-4">
                                             <div>
-                                                <p class="text-gray-700 text-base"><strong>Mensagens:</strong> ${ad.messages}</p>
-                                                <p class="text-gray-700 text-base"><strong>Custo por Msg:</strong> R$ ${ad.costPerMessage.replace('.', ',')}</p>
+                                                <p class="text-gray-700 text-base"><strong>Leads:</strong> ${ad.messages}</p>
+                                                <p class="text-gray-700 text-base"><strong>Custo por Lead:</strong> R$ ${ad.costPerMessage.replace('.', ',')}</p>
                                             </div>
                                         </div>
                                     `
                                 )
                                 .join('')}
                         </div>`
-                    : '<p class="text-gray-600 text-base">Nenhum anúncio com conversas iniciadas encontrado para este período.</p>'
+                    : '<p class="text-gray-600 text-base">Nenhum anúncio com leads encontrado para este período.</p>'
             }
         </div>
     `;
 
     reportContainer.insertAdjacentHTML('beforeend', reportHTML);
 }
+
 
 // Compartilhar no WhatsApp
 shareWhatsAppBtn.addEventListener('click', () => {

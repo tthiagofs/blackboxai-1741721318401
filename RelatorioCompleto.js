@@ -1626,24 +1626,34 @@ function renderReport(unitName, startDate, endDate, metrics, comparisonMetrics, 
                         </div>`
             }
             ${
-                bestAds.length > 0
-                    ? `
-                        <h3 class="text-xl font-semibold text-primary mb-3">Anúncios em Destaque</h3>
-                        <div class="space-y-4">
-                        bestAds
-    .map(
-        ad => `
-            <div class="flex items-center bg-white border border-gray-200 rounded-lg p-3">
-                <img src="${ad.imageUrl}" alt="Anúncio" class="w-24 h-24 object-cover rounded-md mr-4">
-                <div>
-                    ${hasBlack && ad.type ? `<p class="text-gray-500 text-sm"><strong>Tipo:</strong> ${ad.type}</p>` : ''}
-                    <p class="text-gray-700 text-base"><strong>Mensagens:</strong> ${ad.messages}</p>
-                    <p class="text-gray-700 text-base"><strong>Custo por Msg:</strong> R$ ${ad.costPerMessage.replace('.', ',')}</p>
-                </div>
-            </div>
-        `
-    )
-    .join('')
+    bestAds.length > 0
+        ? `
+            <h3 class="text-xl font-semibold text-primary mb-3">Anúncios em Destaque</h3>
+            <div class="space-y-4">
+                ${bestAds
+                    .map(
+                        ad => `
+                            <div class="flex items-center bg-white border border-gray-200 rounded-lg p-3">
+                                <img src="${ad.imageUrl}" alt="Anúncio" class="w-24 h-24 object-cover rounded-md mr-4" />
+                                <div>
+                                    ${
+                                        hasBlack && ad.type
+                                            ? `<p class="text-gray-500 text-sm"><strong>Tipo:</strong> ${ad.type}</p>`
+                                            : ''
+                                    }
+                                    <p class="text-gray-700 text-base"><strong>Mensagens:</strong> ${ad.messages}</p>
+                                    <p class="text-gray-700 text-base"><strong>Custo por Msg:</strong> R$ ${ad.costPerMessage.replace(
+                                        '.',
+                                        ','
+                                    )}</p>
+                                </div>
+                            </div>
+                        `
+                    )
+                    .join('')}
+            </div>`
+        : '<p class="text-gray-600 text-base">Nenhum anúncio com conversas iniciadas encontrado para este período.</p>'
+}
                         </div>`
                     : '<p class="text-gray-600 text-base">Nenhum anúncio com conversas iniciadas encontrado para este período.</p>'
             }

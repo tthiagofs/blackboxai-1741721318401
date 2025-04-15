@@ -1019,13 +1019,18 @@ form.addEventListener('submit', async (e) => {
     }
 });
 
+
 async function generateReport(unitId, unitName, startDate, endDate) {
     try {
         console.log(`Gerando relatório para unitId: ${unitId}, unitName: ${unitName}, startDate: ${startDate}, endDate: ${endDate}`);
 
-        // Validação adicional para startDate e endDate
         if (!startDate || !endDate) {
             throw new Error('Datas de início ou fim não fornecidas.');
+        }
+
+        const today = new Date().toISOString().split('T')[0];
+        if (startDate > today || endDate > today) {
+            throw new Error('As datas selecionadas não podem ser futuras. Por favor, escolha um período passado ou até a data atual.');
         }
 
         reportContainer.innerHTML = '<p class="text-center text-gray-600">Gerando relatório, por favor aguarde...</p>';
@@ -1033,7 +1038,6 @@ async function generateReport(unitId, unitName, startDate, endDate) {
 
         let metrics, comparisonMetrics, blackMetrics, blackComparisonMetrics, comparisonTotalLeads;
 
-        // Calcular métricas principais
         if (hasBlack) {
             metrics = await calculateMetrics(unitId, startDate, endDate, selectedWhiteCampaigns, selectedWhiteAdSets);
             blackMetrics = await calculateMetrics(unitId, startDate, endDate, selectedBlackCampaigns, selectedBlackAdSets);
@@ -1042,16 +1046,13 @@ async function generateReport(unitId, unitName, startDate, endDate) {
             blackMetrics = null;
         }
 
-        // Calcular métricas de comparação, se aplicável
         if (comparisonData && comparisonData.option !== 'none') {
             const { startDate: compareStartDate, endDate: compareEndDate } = comparisonData;
             if (hasBlack) {
-                // Quando hasBlack é true, calcular apenas o total de leads de toda a conta (ignorando seleções)
                 comparisonTotalLeads = await calculateTotalLeadsForAccount(unitId, compareStartDate, compareEndDate);
-                comparisonMetrics = null; // Não calculamos métricas detalhadas para White
-                blackComparisonMetrics = null; // Não calculamos métricas detalhadas para Black
+                comparisonMetrics = null;
+                blackComparisonMetrics = null;
             } else {
-                // Quando hasBlack é false, manter o comportamento atual
                 comparisonMetrics = await calculateMetrics(unitId, compareStartDate, compareEndDate, selectedCampaigns, selectedAdSets);
                 blackComparisonMetrics = null;
             }
@@ -1067,9 +1068,10 @@ async function generateReport(unitId, unitName, startDate, endDate) {
         shareWhatsAppBtn.classList.remove('hidden');
     } catch (error) {
         console.error('Erro ao gerar relatório:', error);
-        reportContainer.innerHTML = '<p class="text-center text-red-600">Erro ao gerar o relatório. Por favor, tente novamente.</p>';
+        reportContainer.innerHTML = `<p class="text-center text-red-600">${error.message || 'Erro ao gerar o relatório. Por favor, tente novamente.'}</p>`;
     }
 }
+
 
 async function calculateMetrics(unitId, startDate, endDate, campaignsSet, adSetsSet) {
     let totalSpend = 0;
@@ -1162,63 +1164,149 @@ async function calculateTotalLeadsForAccount(unitId, startDate, endDate) {
 }
 
 async function getBestAds(unitId, startDate, endDate) {
-    const bestAds = [];
-    const response = await new Promise((resolve) => {
-        FB.api(
-            `/${unitId}/ads`,
-            {
-                fields: ['id', 'name', 'insights{actions,spend,reach},creative'], // Adicionamos o campo 'creative'
-                time_range: { since: startDate, until: endDate },
-                access_token: currentAccessToken,
-            },
-            resolve
-        );
-    });
+    const adsWithActions = []; // Anúncios com mensagens/conversões
+    const adsWithoutActions = []; // Anúncios sem mensagens/conversões, mas com gasto
+    let url = `/${unitId}/ads`;
 
-    if (response && !response.error && response.data) {
-        // Para cada anúncio, buscar os insights e a imagem do criativo
-        for (const ad of response.data) {
-            let messages = 0;
-            let costPerMessage = 0;
-            let spend = 0;
-            let imageUrl = 'https://dummyimage.com/150x150/ccc/fff'; // Fallback confiável
+    console.log(`Iniciando busca de anúncios para unitId: ${unitId}, período: ${startDate} a ${endDate}`);
+    console.log(`Token de acesso: ${currentAccessToken}`);
 
-            // Obter os insights do anúncio
-            if (ad.insights && ad.insights.data && ad.insights.data.length > 0) {
-                const insights = ad.insights.data[0];
-                if (insights.actions) {
-                    const conversationAction = insights.actions.find(
-                        action => action.action_type === 'onsite_conversion.messaging_conversation_started_7d'
-                    );
-                    messages = conversationAction ? parseInt(conversationAction.value) || 0 : 0;
+    const adsList = [];
+    while (url) {
+        const adResponse = await new Promise((resolve) => {
+            FB.api(
+                url,
+                {
+                    fields: 'id,name,creative',
+                    access_token: currentAccessToken,
+                    limit: 50
+                },
+                resolve
+            );
+        });
+
+        if (adResponse && !adResponse.error) {
+            console.log(`Página de anúncios carregada com sucesso. Total nesta página: ${adResponse.data.length}`);
+            adsList.push(...adResponse.data);
+            url = adResponse.paging && adResponse.paging.next ? adResponse.paging.next : null;
+        } else {
+            console.error(`Erro ao carregar anúncios da conta ${unitId}:`, adResponse?.error || adResponse);
+            url = null;
+            break;
+        }
+    }
+
+    console.log(`Total de anúncios encontrados: ${adsList.length}`);
+    if (adsList.length === 0) {
+        console.log('Nenhum anúncio encontrado. Verifique permissões ou se a conta possui anúncios.');
+    }
+
+    for (const ad of adsList) {
+        let totalActions = 0;
+        let costPerAction = 0;
+        let spend = 0;
+        let imageUrl = 'https://dummyimage.com/150x150/ccc/fff';
+
+        const insightsResponse = await new Promise((resolve) => {
+            FB.api(
+                `/${ad.id}/insights`,
+                {
+                    fields: 'actions,spend,reach',
+                    time_range: { since: startDate, until: endDate },
+                    access_token: currentAccessToken
+                },
+                resolve
+            );
+        });
+
+        if (insightsResponse && !insightsResponse.error && insightsResponse.data && insightsResponse.data.length > 0) {
+            const insights = insightsResponse.data[0];
+            console.log(`Anúncio ${ad.id} - Período retornado: ${insights.date_start} a ${insights.date_stop}, Solicitado: ${startDate} a ${endDate}`);
+            console.log(`Insights do anúncio ${ad.id}:`, insights);
+
+            if (insights.actions) {
+                const conversationAction = insights.actions.find(
+                    action => action.action_type === 'onsite_conversion.messaging_conversation_started_7d'
+                );
+                if (conversationAction && conversationAction.value) {
+                    totalActions += parseInt(conversationAction.value) || 0;
                 }
-                spend = insights.spend ? parseFloat(insights.spend) : 0;
-                costPerMessage = messages > 0 ? (spend / messages).toFixed(2) : '0.00';
-            }
 
-            // Obter a imagem do criativo, se o anúncio tiver conversas
-            if (messages > 0 && ad.creative && ad.creative.id) {
-                const creativeData = await getCreativeData(ad.creative.id);
-                imageUrl = creativeData.imageUrl; // Atualiza a URL da imagem com a imagem real
-            }
-
-            // Adicionar o anúncio à lista se tiver mensagens
-            if (messages > 0) {
-                bestAds.push({
-                    imageUrl: imageUrl, // Agora usa a imagem real ou o fallback
-                    messages: messages,
-                    costPerMessage: costPerMessage
+                const customConversions = insights.actions.filter(
+                    action => action.action_type.startsWith('offsite_conversion.')
+                );
+                customConversions.forEach(action => {
+                    if (action.value) {
+                        totalActions += parseInt(action.value) || 0;
+                    }
                 });
+            }
+            spend = insights.spend ? parseFloat(insights.spend) : 0;
+            costPerAction = totalActions > 0 ? (spend / totalActions).toFixed(2) : '0.00';
+        } else {
+            console.log(`Anúncio ${ad.id} - Nenhum insight retornado para o período ${startDate} a ${endDate}`);
+            if (insightsResponse?.error) {
+                console.error(`Erro ao carregar insights do anúncio ${ad.id}:`, insightsResponse.error);
             }
         }
 
-        // Ordenar por número de mensagens (decrescente) e limitar a 3 anúncios
-        bestAds.sort((a, b) => b.messages - a.messages);
-        return bestAds.slice(0, 3);
+        console.log(`Anúncio ${ad.id} - Total de ações: ${totalActions}, Gasto: ${spend}`);
+
+        const adData = {
+            creativeId: ad.creative?.id,
+            imageUrl: imageUrl,
+            messages: totalActions,
+            costPerMessage: costPerAction
+        };
+
+        if (totalActions > 0) {
+            adsWithActions.push(adData);
+        } else if (spend > 0) {
+            adsWithoutActions.push(adData);
+        }
+
+        if (adsWithActions.length >= 3 || (adsWithActions.length === 0 && adsWithoutActions.length >= 3)) {
+            console.log('Encontrados 3 anúncios relevantes, interrompendo busca de insights.');
+            break;
+        }
     }
+
+    adsWithActions.sort((a, b) => b.messages - a.messages);
+    adsWithoutActions.sort((a, b) => b.spend - a.spend);
+
+    const bestAds = [];
+    bestAds.push(...adsWithActions.slice(0, 3));
+
+    if (bestAds.length < 3 && adsWithoutActions.length > 0) {
+        const remainingSlots = 3 - bestAds.length;
+        bestAds.push(...adsWithoutActions.slice(0, remainingSlots));
+    }
+
+    if (adsWithActions.length === 0 && adsWithoutActions.length === 1) {
+        bestAds.length = 0;
+        bestAds.push(...adsWithoutActions);
+    } else if (adsWithActions.length === 1 && adsWithoutActions.length === 0) {
+        bestAds.length = 0;
+        bestAds.push(...adsWithActions);
+    }
+
+    console.log('Anúncios com ações:', adsWithActions);
+    console.log('Anúncios sem ações (com gasto):', adsWithoutActions);
+    console.log('Anúncios finais:', bestAds);
+
+    const imagePromises = bestAds.map(async (ad) => {
+        if (ad.creativeId) {
+            const creativeData = await getCreativeData(ad.creativeId);
+            ad.imageUrl = creativeData.imageUrl;
+        }
+        return ad;
+    });
+
+    await Promise.all(imagePromises);
 
     return bestAds;
 }
+
 
 
 function calculateVariation(current, previous, metric) {

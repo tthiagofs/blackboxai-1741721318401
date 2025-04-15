@@ -1218,7 +1218,7 @@ function renderReport(unitName, startDate, endDate, metrics, comparisonMetrics, 
 
     let blackVariations = {};
     let totalLeads = 0;
-    if (hasBlack && blackMetrics && blackComparisonMetrics) {
+    if (hasBlack && blackMetrics) { // Ajustado para não depender de blackComparisonMetrics
         blackVariations = {
             reach: calculateVariation(blackMetrics.reach, blackComparisonMetrics?.reach, 'reach'),
             conversations: calculateVariation(blackMetrics.conversations, blackComparisonMetrics?.conversations, 'conversations'),
@@ -1453,7 +1453,6 @@ function renderReport(unitName, startDate, endDate, metrics, comparisonMetrics, 
 
     reportContainer.insertAdjacentHTML('beforeend', reportHTML);
 }
-
 
 
 // Compartilhar no WhatsApp

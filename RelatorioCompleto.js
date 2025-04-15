@@ -1058,15 +1058,23 @@ async function generateReport(unitId, unitName, startDate, endDate) {
     let blackCampaigns = [];
     let allCampaigns = Object.entries(campaignsMap[unitId] || {});
     
+    // Garantir que allCampaigns inclua todas as campanhas disponíveis se não houver filtros
     if (hasBlack) {
         whiteCampaigns = selectedWhiteCampaigns.size > 0 
             ? allCampaigns.filter(([id]) => selectedWhiteCampaigns.has(id))
-            : allCampaigns;
+            : allCampaigns; // Se não houver filtro White, usa todas as campanhas
         blackCampaigns = selectedBlackCampaigns.size > 0 
             ? allCampaigns.filter(([id]) => selectedBlackCampaigns.has(id))
-            : allCampaigns;
-    } else if (selectedCampaigns.size > 0) {
-        allCampaigns = allCampaigns.filter(([id]) => selectedCampaigns.has(id));
+            : allCampaigns; // Se não houver filtro Black, usa todas as campanhas
+    } else {
+        // Se não houver filtros de campanhas ou conjuntos, usa todas as campanhas disponíveis
+        if (selectedCampaigns.size > 0) {
+            allCampaigns = allCampaigns.filter(([id]) => selectedCampaigns.has(id));
+        } else if (selectedAdSets.size > 0) {
+            // Se houver filtro de ad sets, buscar campanhas relacionadas (opcional, depende da lógica desejada)
+            allCampaigns = allCampaigns; // Pode ser ajustado se precisar filtrar por ad sets
+        }
+        // Caso contrário, allCampaigns já contém todas as campanhas disponíveis
     }
 
     // Calcular métricas para campanhas White e Black (ou todas as campanhas se hasBlack for false)
@@ -1077,7 +1085,7 @@ async function generateReport(unitId, unitName, startDate, endDate) {
     const campaignsToUse = hasBlack ? whiteCampaigns : allCampaigns;
     const campaignsData = await Promise.all(
         campaignsToUse.map(async ([id, campaign]) => {
-            const insights = await getCampaignInsights(id, startDate, endDate);
+            const insights = campaign.insights || (await getCampaignInsights(id, startDate, endDate));
             return { id, name: campaign.name, insights };
         })
     );
@@ -1109,7 +1117,7 @@ async function generateReport(unitId, unitName, startDate, endDate) {
     if (hasBlack) {
         const blackCampaignsData = await Promise.all(
             blackCampaigns.map(async ([id, campaign]) => {
-                const insights = await getCampaignInsights(id, startDate, endDate);
+                const insights = campaign.insights || (await getCampaignInsights(id, startDate, endDate));
                 return { id, name: campaign.name, insights };
             })
         );
@@ -1170,7 +1178,7 @@ async function generateReport(unitId, unitName, startDate, endDate) {
         const compareCampaignsToUse = hasBlack ? compareWhiteCampaigns : compareAllCampaigns;
         const compareCampaignsData = await Promise.all(
             compareCampaignsToUse.map(async ([id, campaign]) => {
-                const insights = await getCampaignInsights(id, compareStartDate, compareEndDate);
+                const insights = campaign.insights || (await getCampaignInsights(id, compareStartDate, compareEndDate));
                 return { id, name: campaign.name, insights };
             })
         );
@@ -1203,7 +1211,7 @@ async function generateReport(unitId, unitName, startDate, endDate) {
         if (hasBlack) {
             const compareBlackCampaignsData = await Promise.all(
                 compareBlackCampaigns.map(async ([id, campaign]) => {
-                    const insights = await getCampaignInsights(id, compareStartDate, compareEndDate);
+                    const insights = campaign.insights || (await getCampaignInsights(id, compareStartDate, compareEndDate));
                     return { id, name: campaign.name, insights };
                 })
             );
@@ -1244,11 +1252,11 @@ async function generateReport(unitId, unitName, startDate, endDate) {
     reportContainer.innerHTML = '';
     renderReport(unitName, startDate, endDate, metrics, comparisonMetrics, blackMetrics, blackComparisonMetrics, bestAds, comparisonTotalLeads);
 
-    // Adicionar seção de Resultados 
+    // Adicionar seção de Resultados de Negócios
     const reportDiv = reportContainer.querySelector('.bg-white');
     const businessResultsHTML = `
         <div class="mt-8">
-            <h3 class="text-xl font-semibold text-primary mb-4">Resultados</h3>
+            <h3 class="text-xl font-semibold text-primary mb-4">Resultados de Negócios</h3>
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div class="metric-card">
                     <h4 class="text-sm font-medium text-gray-600 mb-1">Orçamentos Realizados</h4>

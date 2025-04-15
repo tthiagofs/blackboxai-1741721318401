@@ -1177,59 +1177,34 @@ async function getBestAds(unitId, startDate, endDate) {
     const adsWithActions = []; // Anúncios com mensagens/conversões
     const adsWithoutActions = []; // Anúncios sem mensagens/conversões, mas com gasto
 
-    // Determinar o endpoint com base nos filtros
-    let url;
-    if (selectedAdSets.size > 0) {
-        // Se há ad sets selecionados, buscar anúncios desses ad sets
-        const adSetIds = Array.from(selectedAdSets);
-        url = `/${adSetIds[0]}/ads`; // Iniciar com o primeiro ad set (iremos iterar sobre os outros depois)
-    } else if (selectedCampaigns.size > 0) {
-        // Se há campanhas selecionadas, buscar anúncios dessas campanhas
-        const campaignIds = Array.from(selectedCampaigns);
-        url = `/${campaignIds[0]}/ads`; // Iniciar com a primeira campanha
-    } else if (hasBlack && (selectedWhiteAdSets.size > 0 || selectedBlackAdSets.size > 0)) {
-        // Se tem Black e há ad sets White ou Black selecionados
-        const adSetIds = [
-            ...Array.from(selectedWhiteAdSets),
-            ...Array.from(selectedBlackAdSets)
-        ];
-        url = adSetIds.length > 0 ? `/${adSetIds[0]}/ads` : `/${unitId}/ads`;
-    } else if (hasBlack && (selectedWhiteCampaigns.size > 0 || selectedBlackCampaigns.size > 0)) {
-        // Se tem Black e há campanhas White ou Black selecionadas
-        const campaignIds = [
-            ...Array.from(selectedWhiteCampaigns),
-            ...Array.from(selectedBlackCampaigns)
-        ];
-        url = campaignIds.length > 0 ? `/${campaignIds[0]}/ads` : `/${unitId}/ads`;
-    } else {
-        // Se não há filtros, buscar todos os anúncios da conta
-        url = `/${unitId}/ads`;
-    }
-
-    console.log(`Buscando anúncios com URL base: ${url}`);
-
-    // Listas para armazenar todos os anúncios
-    const adsList = [];
+    // Determinar as entidades (campanhas, ad sets ou conta) para buscar os anúncios
     const entitiesToFetch = [];
-
-    // Se estamos buscando por ad sets ou campanhas, precisamos iterar sobre todas
-    if (selectedAdSets.size > 0) {
-        entitiesToFetch.push(...Array.from(selectedAdSets).map(id => ({ type: 'adset', id })));
-    } else if (selectedCampaigns.size > 0) {
-        entitiesToFetch.push(...Array.from(selectedCampaigns).map(id => ({ type: 'campaign', id })));
-    } else if (hasBlack && (selectedWhiteAdSets.size > 0 || selectedBlackAdSets.size > 0)) {
+    if (hasBlack && (selectedWhiteAdSets.size > 0 || selectedBlackAdSets.size > 0)) {
+        // Se tem Black e há ad sets White ou Black selecionados
         const adSetIds = [...Array.from(selectedWhiteAdSets), ...Array.from(selectedBlackAdSets)];
         entitiesToFetch.push(...adSetIds.map(id => ({ type: 'adset', id })));
     } else if (hasBlack && (selectedWhiteCampaigns.size > 0 || selectedBlackCampaigns.size > 0)) {
+        // Se tem Black e há campanhas White ou Black selecionadas
         const campaignIds = [...Array.from(selectedWhiteCampaigns), ...Array.from(selectedBlackCampaigns)];
         entitiesToFetch.push(...campaignIds.map(id => ({ type: 'campaign', id })));
+    } else if (selectedAdSets.size > 0) {
+        // Se há ad sets selecionados
+        entitiesToFetch.push(...Array.from(selectedAdSets).map(id => ({ type: 'adset', id })));
+    } else if (selectedCampaigns.size > 0) {
+        // Se há campanhas selecionadas
+        entitiesToFetch.push(...Array.from(selectedCampaigns).map(id => ({ type: 'campaign', id })));
     } else {
+        // Se não há filtros, buscar todos os anúncios da conta
         entitiesToFetch.push({ type: 'account', id: unitId });
     }
 
-    // Buscar anúncios para cada entidade
+    console.log(`Entidades para buscar anúncios:`, entitiesToFetch);
+
+    // Buscar todos os anúncios das entidades
+    const adsList = [];
     for (const entity of entitiesToFetch) {
         let entityUrl = entity.type === 'account' ? `/${entity.id}/ads` : `/${entity.id}/ads`;
+        console.log(`Buscando anúncios com URL: ${entityUrl}`);
         while (entityUrl) {
             const adResponse = await new Promise((resolve) => {
                 FB.api(
@@ -1256,12 +1231,15 @@ async function getBestAds(unitId, startDate, endDate) {
     }
 
     console.log(`Total de anúncios encontrados: ${adsList.length}`);
+    if (adsList.length === 0) {
+        console.log('Nenhum anúncio encontrado para o período ou filtros selecionados.');
+    }
 
     // Processar os anúncios
     for (const ad of adsList) {
         let totalActions = 0;
-        let costPerAction = 0;
         let spend = 0;
+        let costPerAction = 0;
         let imageUrl = 'https://dummyimage.com/150x150/ccc/fff';
 
         // Buscar insights do anúncio
@@ -1279,6 +1257,9 @@ async function getBestAds(unitId, startDate, endDate) {
 
         if (insightsResponse && !insightsResponse.error && insightsResponse.data && insightsResponse.data.length > 0) {
             const insights = insightsResponse.data[0];
+            console.log(`Insights para o anúncio ${ad.id}:`, insights);
+
+            // Calcular leads (conversas)
             if (insights.actions) {
                 const conversationAction = insights.actions.find(
                     action => action.action_type === 'onsite_conversion.messaging_conversation_started_7d'
@@ -1296,10 +1277,22 @@ async function getBestAds(unitId, startDate, endDate) {
                     }
                 });
             }
+
+            // Calcular investimento
             spend = insights.spend ? parseFloat(insights.spend) : 0;
+
+            // Calcular custo por lead
             costPerAction = totalActions > 0 ? (spend / totalActions).toFixed(2) : '0.00';
+        } else {
+            console.log(`Nenhum insight encontrado para o anúncio ${ad.id}`);
+            if (insightsResponse?.error) {
+                console.error(`Erro ao buscar insights do anúncio ${ad.id}:`, insightsResponse.error);
+            }
         }
 
+        console.log(`Anúncio ${ad.id} - Leads: ${totalActions}, Investimento: ${spend}, Custo por Lead: ${costPerAction}`);
+
+        // Adicionar o anúncio à lista apropriada
         const adData = {
             creativeId: ad.creative?.id,
             imageUrl: imageUrl,
@@ -1312,10 +1305,6 @@ async function getBestAds(unitId, startDate, endDate) {
             adsWithActions.push(adData);
         } else if (spend > 0) {
             adsWithoutActions.push(adData);
-        }
-
-        if (adsWithActions.length >= 2 || (adsWithActions.length === 0 && adsWithoutActions.length >= 2)) {
-            break;
         }
     }
 
@@ -1337,6 +1326,8 @@ async function getBestAds(unitId, startDate, endDate) {
         bestAds.length = 0;
         bestAds.push(...adsWithActions);
     }
+
+    console.log(`Melhores anúncios selecionados:`, bestAds);
 
     // Buscar imagens dos criativos
     const imagePromises = bestAds.map(async (ad) => {

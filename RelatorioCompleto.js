@@ -65,18 +65,27 @@ import { fbAuth } from './auth.js';
  const campaignsMap = {};
  
  // Preencher select de unidades
- const unitSelect = document.getElementById('unitId');
- const sortedAccounts = Object.entries(adAccountsMap)
-     .map(([id, name]) => ({ id, name }))
-     .sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
- 
- unitSelect.innerHTML = '<option value="">Escolha a unidade</option>';
- sortedAccounts.forEach(account => {
-     const option = document.createElement('option');
-     option.value = account.id;
-     option.textContent = account.name;
-     unitSelect.appendChild(option);
- });
+const unitSelect = document.getElementById('unitId');
+const adAccountsMap = fbAuth.getAdAccounts();
+console.log('Contas de anúncio carregadas:', adAccountsMap); // Log para depuração
+
+if (!adAccountsMap || Object.keys(adAccountsMap).length === 0) {
+    console.error('Nenhuma conta de anúncio encontrada. Verifique a autenticação com o Facebook.');
+    unitSelect.innerHTML = '<option value="">Nenhuma unidade disponível</option>';
+} else {
+    const sortedAccounts = Object.entries(adAccountsMap)
+        .map(([id, name]) => ({ id, name }))
+        .sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
+
+    unitSelect.innerHTML = '<option value="">Escolha a unidade</option>';
+    sortedAccounts.forEach(account => {
+        const option = document.createElement('option');
+        option.value = account.id;
+        option.textContent = account.name;
+        unitSelect.appendChild(option);
+    });
+    console.log('Select de unidades preenchido com:', sortedAccounts); // Log para confirmar preenchimento
+}
  
  // Desabilitar botões até que a pergunta "A unidade possui Black?" seja respondida
  function disableButtons() {
@@ -1182,7 +1191,7 @@ import { fbAuth } from './auth.js';
  
  
  
- async function getBestAds(unitId, startDate, endDate) {
+async function getBestAds(unitId, startDate, endDate) {
     const adsWithActions = []; // Anúncios com mensagens/conversões
     const adsWithoutActions = []; // Anúncios sem mensagens/conversões, mas com gasto
     let url = `/${unitId}/ads`;
@@ -1342,7 +1351,6 @@ import { fbAuth } from './auth.js';
 
     return bestAds;
 }
-
 
  
  
@@ -1622,31 +1630,34 @@ import { fbAuth } from './auth.js';
      window.location.href = 'index.html?appLoggedIn=true';
  });
  
- // Limpar seleções e recarregar a página
- refreshBtn.addEventListener('click', () => {
-     // Limpar todas as seleções
-     selectedCampaigns.clear();
-     selectedAdSets.clear();
-     selectedWhiteCampaigns.clear();
-     selectedWhiteAdSets.clear();
-     selectedBlackCampaigns.clear();
-     selectedBlackAdSets.clear();
-     comparisonData = null;
-     hasBlack = null;
- 
-     // Limpar o formulário
-     form.reset();
-     reportContainer.innerHTML = '';
-     shareWhatsAppBtn.classList.add('hidden');
- 
-     // Limpar os filtros visuais
-     whiteFilters.classList.add('hidden');
-     blackFilters.classList.add('hidden');
-     defaultFilters.classList.remove('hidden');
-     comparisonFilter.classList.remove('hidden');
- 
-     // Desabilitar botões novamente até que "A unidade possui Black?" seja respondido
-     disableButtons();
- 
-     // Recarregar a página
-     window.location.reload();
+// Limpar seleções e recarregar a página
+refreshBtn.addEventListener('click', () => {
+    // Limpar todas as seleções
+    selectedCampaigns.clear();
+    selectedAdSets.clear();
+    selectedWhiteCampaigns.clear();
+    selectedWhiteAdSets.clear();
+    selectedBlackCampaigns.clear();
+    selectedBlackAdSets.clear();
+    comparisonData = null;
+    hasBlack = null;
+
+    // Limpar o formulário
+    form.reset();
+    reportContainer.innerHTML = '';
+    shareWhatsAppBtn.classList.add('hidden');
+
+    // Limpar os filtros visuais
+    whiteFilters.classList.add('hidden');
+    blackFilters.classList.add('hidden');
+    defaultFilters.classList.remove('hidden');
+    comparisonFilter.classList.remove('hidden');
+
+    // Desabilitar botões novamente até que "A unidade possui Black?" seja respondido
+    disableButtons();
+
+    // Recarregar a página
+    window.location.reload();
+}); // Certifique-se de que o addEventListener está fechado corretamente
+
+// Fim do arquivo RelatorioCompleto.js

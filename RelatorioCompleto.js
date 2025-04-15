@@ -1114,27 +1114,29 @@ async function calculateMetrics(unitId, startDate, endDate, campaigns = null, ad
     if (campaigns && campaigns.size > 0) {
         for (const campaignId of campaigns) {
             const insights = await getCampaignInsights(campaignId, startDate, endDate);
-            if (insights.spend) totalSpend += parseFloat(insights.spend);
-            if (insights.reach) totalReach += parseInt(insights.reach);
-            if (insights.actions) {
-                insights.actions.forEach(action => {
-                    if (action.action_type === 'onsite_conversion.messaging_conversation_started_7d') {
-                        totalConversations += parseInt(action.value) || 0;
-                    }
-                });
+            if (insights.spend) totalSpend += parseFloat(insights.spend) || 0;
+            if (insights.reach) totalReach += parseInt(insights.reach) || 0;
+            if (insights.actions && Array.isArray(insights.actions)) {
+                const conversationAction = insights.actions.find(
+                    action => action.action_type === 'onsite_conversion.messaging_conversation_started_7d'
+                );
+                if (conversationAction && conversationAction.value) {
+                    totalConversations += parseInt(conversationAction.value) || 0;
+                }
             }
         }
     } else if (adSets && adSets.size > 0) {
         for (const adSetId of adSets) {
             const insights = await getAdSetInsights(adSetId, startDate, endDate);
-            if (insights.spend) totalSpend += parseFloat(insights.spend);
-            if (insights.reach) totalReach += parseInt(insights.reach);
-            if (insights.actions) {
-                insights.actions.forEach(action => {
-                    if (action.action_type === 'onsite_conversion.messaging_conversation_started_7d') {
-                        totalConversations += parseInt(action.value) || 0;
-                    }
-                });
+            if (insights.spend) totalSpend += parseFloat(insights.spend) || 0;
+            if (insights.reach) totalReach += parseInt(insights.reach) || 0;
+            if (insights.actions && Array.isArray(insights.actions)) {
+                const conversationAction = insights.actions.find(
+                    action => action.action_type === 'onsite_conversion.messaging_conversation_started_7d'
+                );
+                if (conversationAction && conversationAction.value) {
+                    totalConversations += parseInt(conversationAction.value) || 0;
+                }
             }
         }
     } else {
@@ -1151,16 +1153,17 @@ async function calculateMetrics(unitId, startDate, endDate, campaigns = null, ad
             );
         });
 
-        if (response && !response.error && response.data.length > 0) {
+        if (response && !response.error && response.data && response.data.length > 0) {
             response.data.forEach(data => {
-                if (data.spend) totalSpend += parseFloat(data.spend);
-                if (data.reach) totalReach += parseInt(data.reach);
-                if (data.actions) {
-                    data.actions.forEach(action => {
-                        if (action.action_type === 'onsite_conversion.messaging_conversation_started_7d') {
-                            totalConversations += parseInt(action.value) || 0;
-                        }
-                    });
+                if (data.spend) totalSpend += parseFloat(data.spend) || 0;
+                if (data.reach) totalReach += parseInt(data.reach) || 0;
+                if (data.actions && Array.isArray(data.actions)) {
+                    const conversationAction = data.actions.find(
+                        action => action.action_type === 'onsite_conversion.messaging_conversation_started_7d'
+                    );
+                    if (conversationAction && conversationAction.value) {
+                        totalConversations += parseInt(conversationAction.value) || 0;
+                    }
                 }
             });
         }
@@ -1176,6 +1179,7 @@ async function calculateMetrics(unitId, startDate, endDate, campaigns = null, ad
         costPerConversation: totalConversations > 0 ? totalSpend / totalConversations : 0
     };
 }
+
 
 function calculateVariation(current, previous, metric) {
     if (!previous || previous === 0) return { percentage: 0, direction: 'neutral' };

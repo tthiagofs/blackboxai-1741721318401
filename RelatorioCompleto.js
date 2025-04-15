@@ -1218,7 +1218,7 @@ function renderReport(unitName, startDate, endDate, metrics, comparisonMetrics, 
 
     let blackVariations = {};
     let totalLeads = 0;
-    if (blackMetrics && blackComparisonMetrics) {
+    if (hasBlack && blackMetrics && blackComparisonMetrics) {
         blackVariations = {
             reach: calculateVariation(blackMetrics.reach, blackComparisonMetrics?.reach, 'reach'),
             conversations: calculateVariation(blackMetrics.conversations, blackComparisonMetrics?.conversations, 'conversations'),
@@ -1226,7 +1226,7 @@ function renderReport(unitName, startDate, endDate, metrics, comparisonMetrics, 
         };
         // Log para depuração
         console.log(`Conversas White: ${metrics.conversations}, Conversas Black: ${blackMetrics.conversations}`);
-        totalLeads = (metrics.conversations || 0) + (blackMetrics.conversations || 0);
+        totalLeads = (parseInt(metrics.conversations) || 0) + (parseInt(blackMetrics.conversations) || 0);
         console.log(`Total de leads calculado: ${totalLeads}`);
     }
 
@@ -1453,6 +1453,8 @@ function renderReport(unitName, startDate, endDate, metrics, comparisonMetrics, 
 
     reportContainer.insertAdjacentHTML('beforeend', reportHTML);
 }
+
+
 
 // Compartilhar no WhatsApp
 shareWhatsAppBtn.addEventListener('click', () => {

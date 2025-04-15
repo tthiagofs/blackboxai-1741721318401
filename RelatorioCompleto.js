@@ -1031,6 +1031,8 @@ form.addEventListener('submit', async (e) => {
     }
 });
 
+
+
 async function generateReport(unitId, unitName, startDate, endDate) {
     // Capturar os novos campos
     const budgetsCompleted = parseInt(document.getElementById('budgetsCompleted').value) || 0;
@@ -1172,7 +1174,11 @@ async function generateReport(unitId, unitName, startDate, endDate) {
             <div class="mt-8">
                 <h3 class="text-xl font-semibold text-primary mb-4">Análise de Desempenho e Pontos de Melhoria</h3>
                 <ul class="list-disc list-inside space-y-2 text-gray-700">
-                    ${paragraphs.map(paragraph => `<li>${paragraph.trim()}</li>`).join('')}
+                    ${paragraphs.map(paragraph => {
+                        // Substituir quebras de linha dentro do parágrafo por <br>
+                        const formattedParagraph = paragraph.replace(/\n/g, '<br>');
+                        return `<li>${formattedParagraph}</li>`;
+                    }).join('')}
                 </ul>
             </div>
         `;
@@ -1182,7 +1188,6 @@ async function generateReport(unitId, unitName, startDate, endDate) {
     // Exibir o botão de compartilhamento
     shareWhatsAppBtn.classList.remove('hidden');
 }
-
 
 
 async function calculateMetrics(unitId, startDate, endDate, campaignsSet, adSetsSet) {

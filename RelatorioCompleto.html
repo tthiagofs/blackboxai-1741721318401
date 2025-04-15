@@ -118,6 +118,19 @@
         .top-ad-card {
             @apply bg-white p-4 rounded-lg shadow-md transition-all duration-300 hover:shadow-lg;
         }
+
+/* Estilo para os itens da lista de análise */
+ul.list-disc li {
+    margin-bottom: 0.5rem; /* Espaçamento entre os itens da lista */
+    line-height: 1.5; /* Altura da linha para melhor legibilidade */
+}
+
+/* Garantir que o texto dentro de cada <li> respeite o formato */
+ul.list-disc li br {
+    display: block; /* Forçar a quebra de linha */
+    content: ''; /* Garantir compatibilidade */
+}
+
     </style>
 </head>
 <body class="bg-gradient-to-br from-primary to-secondary min-h-screen p-4 font-sans">

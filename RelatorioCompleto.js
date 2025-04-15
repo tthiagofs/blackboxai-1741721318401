@@ -1254,7 +1254,7 @@ async function getBestAds(unitId, startDate, endDate) {
                             adsList.push(...adResponse.data.map(ad => ({ ...ad, type })));
                             adSetUrl = adResponse.paging?.next || null;
                         } else {
-                            console.error(`Erro ao carregar anúncios do conjunto ${type} ${adSetId}:`, adResponse?.error);
+                            console.error(`Erro ao carregar anúncios do conjunto ${type} ${adSetId}:`, adResponse?.error || adResponse);
                             adSetUrl = null;
                         }
                         await delay(500);
@@ -1272,7 +1272,7 @@ async function getBestAds(unitId, startDate, endDate) {
                             adsList.push(...adResponse.data.map(ad => ({ ...ad, type })));
                             campaignUrl = adResponse.paging?.next || null;
                         } else {
-                            console.error(`Erro ao carregar anúncios da campanha ${type} ${campaignId}:`, adResponse?.error);
+                            console.error(`Erro ao carregar anúncios da campanha ${type} ${campaignId}:`, adResponse?.error || adResponse);
                             campaignUrl = null;
                         }
                         await delay(500);
@@ -1287,35 +1287,49 @@ async function getBestAds(unitId, startDate, endDate) {
         const blackAds = await fetchAds(blackCampaignIds, blackAdSetIds, 'Black');
 
         // Combinar os anúncios
-        const allAds = [...whiteAds, ...blackAds];
+        let allAds = [...whiteAds, ...blackAds];
         console.log(`Total de anúncios encontrados (White + Black): ${allAds.length}`);
 
         // Se não houver seleções, buscar todos os anúncios da conta
         if (whiteCampaignIds.length === 0 && whiteAdSetIds.length === 0 && blackCampaignIds.length === 0 && blackAdSetIds.length === 0) {
-            url = `/${unitId}/ads?fields=id,creative&access_token=${currentAccessToken}&limit=50`;
+            console.log('Nenhuma campanha ou conjunto selecionado. Buscando todos os anúncios da conta...');
+            allAds = []; // Resetar a lista
+            url = `/${unitId}/ads?fields=id,creative,effective_status&access_token=${currentAccessToken}&limit=50`;
+            let pageCount = 0;
             while (url) {
+                pageCount++;
+                console.log(`Buscando página ${pageCount} de anúncios da conta...`);
                 const adResponse = await new Promise((resolve) => {
                     FB.api(url, resolve);
                 });
                 if (adResponse && !adResponse.error) {
-                    console.log(`Anúncios carregados da conta (geral): ${adResponse.data.length}`);
-                    allAds.push(...adResponse.data.map(ad => ({ ...ad, type: 'Geral' })));
+                    const ads = adResponse.data || [];
+                    console.log(`Anúncios carregados na página ${pageCount}: ${ads.length}`);
+                    allAds.push(...ads.map(ad => ({ ...ad, type: 'Geral' })));
                     url = adResponse.paging?.next || null;
                 } else {
-                    console.error(`Erro ao carregar anúncios da conta ${unitId}:`, adResponse?.error);
+                    console.error(`Erro ao carregar anúncios da conta ${unitId} (página ${pageCount}):`, adResponse?.error || adResponse);
                     url = null;
                 }
                 await delay(500);
             }
             console.log(`Total de anúncios encontrados (geral): ${allAds.length}`);
+            if (allAds.length === 0) {
+                console.log('Nenhum anúncio encontrado para a conta. Verifique permissões ou se há anúncios disponíveis.');
+            }
         }
 
         // Processar os anúncios
+        console.log('Processando anúncios...');
         for (const ad of allAds) {
             let messages = 0;
             let costPerMessage = 0;
             let spend = 0;
             let imageUrl = 'https://dummyimage.com/150x150/ccc/fff';
+
+            // Verificar o status do anúncio
+            const status = ad.effective_status || 'UNKNOWN';
+            console.log(`Anúncio ${ad.id} (${ad.type}) - Status: ${status}`);
 
             const insightsResponse = await new Promise((resolve) => {
                 FB.api(
@@ -1377,7 +1391,7 @@ async function getBestAds(unitId, startDate, endDate) {
         const adsList = [];
         if (adSetIds.length > 0) {
             for (const adSetId of adSetIds) {
-                url = `/${adSetId}/ads?fields=id,creative&access_token=${currentAccessToken}&limit=50`;
+                url = `/${adSetId}/ads?fields=id,creative,effective_status&access_token=${currentAccessToken}&limit=50`;
                 while (url) {
                     const adResponse = await new Promise((resolve) => {
                         FB.api(url, resolve);
@@ -1387,7 +1401,7 @@ async function getBestAds(unitId, startDate, endDate) {
                         adsList.push(...adResponse.data);
                         url = adResponse.paging?.next || null;
                     } else {
-                        console.error(`Erro ao carregar anúncios do conjunto ${adSetId}:`, adResponse?.error);
+                        console.error(`Erro ao carregar anúncios do conjunto ${adSetId}:`, adResponse?.error || adResponse);
                         url = null;
                     }
                     await delay(500);
@@ -1395,7 +1409,7 @@ async function getBestAds(unitId, startDate, endDate) {
             }
         } else if (campaignIds.length > 0) {
             for (const campaignId of campaignIds) {
-                url = `/${campaignId}/ads?fields=id,creative&access_token=${currentAccessToken}&limit=50`;
+                url = `/${campaignId}/ads?fields=id,creative,effective_status&access_token=${currentAccessToken}&limit=50`;
                 while (url) {
                     const adResponse = await new Promise((resolve) => {
                         FB.api(url, resolve);
@@ -1405,7 +1419,7 @@ async function getBestAds(unitId, startDate, endDate) {
                         adsList.push(...adResponse.data);
                         url = adResponse.paging?.next || null;
                     } else {
-                        console.error(`Erro ao carregar anúncios da campanha ${campaignId}:`, adResponse?.error);
+                        console.error(`Erro ao carregar anúncios da campanha ${campaignId}:`, adResponse?.error || adResponse);
                         url = null;
                     }
                     await delay(500);
@@ -1413,30 +1427,42 @@ async function getBestAds(unitId, startDate, endDate) {
             }
         } else {
             // Se nada for selecionado, buscar todos os anúncios da conta
-            url = `/${unitId}/ads?fields=id,creative&access_token=${currentAccessToken}&limit=50`;
+            console.log('Nenhuma campanha ou conjunto selecionado. Buscando todos os anúncios da conta...');
+            url = `/${unitId}/ads?fields=id,creative,effective_status&access_token=${currentAccessToken}&limit=50`;
+            let pageCount = 0;
             while (url) {
+                pageCount++;
+                console.log(`Buscando página ${pageCount} de anúncios da conta...`);
                 const adResponse = await new Promise((resolve) => {
                     FB.api(url, resolve);
                 });
                 if (adResponse && !adResponse.error) {
-                    console.log(`Anúncios carregados da conta (geral): ${adResponse.data.length}`);
-                    adsList.push(...adResponse.data);
+                    const ads = adResponse.data || [];
+                    console.log(`Anúncios carregados na página ${pageCount}: ${ads.length}`);
+                    adsList.push(...ads);
                     url = adResponse.paging?.next || null;
                 } else {
-                    console.error(`Erro ao carregar anúncios da conta ${unitId}:`, adResponse?.error);
+                    console.error(`Erro ao carregar anúncios da conta ${unitId} (página ${pageCount}):`, adResponse?.error || adResponse);
                     url = null;
                 }
                 await delay(500);
             }
+            console.log(`Total de anúncios encontrados (geral): ${adsList.length}`);
+            if (adsList.length === 0) {
+                console.log('Nenhum anúncio encontrado para a conta. Verifique permissões ou se há anúncios disponíveis.');
+            }
         }
 
-        console.log(`Total de anúncios encontrados: ${adsList.length}`);
-
+        console.log('Processando anúncios...');
         for (const ad of adsList) {
             let messages = 0;
             let costPerMessage = 0;
             let spend = 0;
             let imageUrl = 'https://dummyimage.com/150x150/ccc/fff';
+
+            // Verificar o status do anúncio
+            const status = ad.effective_status || 'UNKNOWN';
+            console.log(`Anúncio ${ad.id} - Status: ${status}`);
 
             const insightsResponse = await new Promise((resolve) => {
                 FB.api(

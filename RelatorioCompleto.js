@@ -1164,149 +1164,278 @@ async function calculateTotalLeadsForAccount(unitId, startDate, endDate) {
 }
 
 async function getBestAds(unitId, startDate, endDate) {
-    const adsWithActions = []; // Anúncios com mensagens/conversões
-    const adsWithoutActions = []; // Anúncios sem mensagens/conversões, mas com gasto
-    let url = `/${unitId}/ads`;
+    const bestAds = [];
+    let url = '';
 
-    console.log(`Iniciando busca de anúncios para unitId: ${unitId}, período: ${startDate} a ${endDate}`);
-    console.log(`Token de acesso: ${currentAccessToken}`);
+    console.log(`Iniciando busca de melhores anúncios para unitId: ${unitId}, período: ${startDate} a ${endDate}`);
 
-    const adsList = [];
-    while (url) {
-        const adResponse = await new Promise((resolve) => {
-            FB.api(
-                url,
-                {
-                    fields: 'id,name,creative',
-                    access_token: currentAccessToken,
-                    limit: 50
-                },
-                resolve
-            );
-        });
+    // Determinar quais campanhas/conjuntos buscar com base nas seleções
+    if (hasBlack) {
+        // Se hasBlack é true, buscar anúncios de campanhas/conjuntos White e Black selecionados
+        const whiteCampaignIds = Array.from(selectedWhiteCampaigns);
+        const whiteAdSetIds = Array.from(selectedWhiteAdSets);
+        const blackCampaignIds = Array.from(selectedBlackCampaigns);
+        const blackAdSetIds = Array.from(selectedBlackAdSets);
 
-        if (adResponse && !adResponse.error) {
-            console.log(`Página de anúncios carregada com sucesso. Total nesta página: ${adResponse.data.length}`);
-            adsList.push(...adResponse.data);
-            url = adResponse.paging && adResponse.paging.next ? adResponse.paging.next : null;
-        } else {
-            console.error(`Erro ao carregar anúncios da conta ${unitId}:`, adResponse?.error || adResponse);
-            url = null;
-            break;
-        }
-    }
+        console.log(`Campanhas White selecionadas: ${whiteCampaignIds}`);
+        console.log(`Conjuntos White selecionados: ${whiteAdSetIds}`);
+        console.log(`Campanhas Black selecionadas: ${blackCampaignIds}`);
+        console.log(`Conjuntos Black selecionados: ${blackAdSetIds}`);
 
-    console.log(`Total de anúncios encontrados: ${adsList.length}`);
-    if (adsList.length === 0) {
-        console.log('Nenhum anúncio encontrado. Verifique permissões ou se a conta possui anúncios.');
-    }
-
-    for (const ad of adsList) {
-        let totalActions = 0;
-        let costPerAction = 0;
-        let spend = 0;
-        let imageUrl = 'https://dummyimage.com/150x150/ccc/fff';
-
-        const insightsResponse = await new Promise((resolve) => {
-            FB.api(
-                `/${ad.id}/insights`,
-                {
-                    fields: 'actions,spend,reach',
-                    time_range: { since: startDate, until: endDate },
-                    access_token: currentAccessToken
-                },
-                resolve
-            );
-        });
-
-        if (insightsResponse && !insightsResponse.error && insightsResponse.data && insightsResponse.data.length > 0) {
-            const insights = insightsResponse.data[0];
-            console.log(`Anúncio ${ad.id} - Período retornado: ${insights.date_start} a ${insights.date_stop}, Solicitado: ${startDate} a ${endDate}`);
-            console.log(`Insights do anúncio ${ad.id}:`, insights);
-
-            if (insights.actions) {
-                const conversationAction = insights.actions.find(
-                    action => action.action_type === 'onsite_conversion.messaging_conversation_started_7d'
-                );
-                if (conversationAction && conversationAction.value) {
-                    totalActions += parseInt(conversationAction.value) || 0;
-                }
-
-                const customConversions = insights.actions.filter(
-                    action => action.action_type.startsWith('offsite_conversion.')
-                );
-                customConversions.forEach(action => {
-                    if (action.value) {
-                        totalActions += parseInt(action.value) || 0;
+        // Função auxiliar para buscar anúncios de uma lista de campanhas ou conjuntos
+        const fetchAds = async (campaignIds, adSetIds, type) => {
+            const adsList = [];
+            if (adSetIds.length > 0) {
+                for (const adSetId of adSetIds) {
+                    let adSetUrl = `/${adSetId}/ads?fields=id,creative&access_token=${currentAccessToken}&limit=50`;
+                    while (adSetUrl) {
+                        const adResponse = await new Promise((resolve) => {
+                            FB.api(adSetUrl, resolve);
+                        });
+                        if (adResponse && !adResponse.error) {
+                            console.log(`Anúncios carregados do conjunto ${type} ${adSetId}: ${adResponse.data.length}`);
+                            adsList.push(...adResponse.data.map(ad => ({ ...ad, type })));
+                            adSetUrl = adResponse.paging?.next || null;
+                        } else {
+                            console.error(`Erro ao carregar anúncios do conjunto ${type} ${adSetId}:`, adResponse?.error);
+                            adSetUrl = null;
+                        }
+                        await delay(500);
                     }
-                });
+                }
+            } else if (campaignIds.length > 0) {
+                for (const campaignId of campaignIds) {
+                    let campaignUrl = `/${campaignId}/ads?fields=id,creative&access_token=${currentAccessToken}&limit=50`;
+                    while (campaignUrl) {
+                        const adResponse = await new Promise((resolve) => {
+                            FB.api(campaignUrl, resolve);
+                        });
+                        if (adResponse && !adResponse.error) {
+                            console.log(`Anúncios carregados da campanha ${type} ${campaignId}: ${adResponse.data.length}`);
+                            adsList.push(...adResponse.data.map(ad => ({ ...ad, type })));
+                            campaignUrl = adResponse.paging?.next || null;
+                        } else {
+                            console.error(`Erro ao carregar anúncios da campanha ${type} ${campaignId}:`, adResponse?.error);
+                            campaignUrl = null;
+                        }
+                        await delay(500);
+                    }
+                }
             }
-            spend = insights.spend ? parseFloat(insights.spend) : 0;
-            costPerAction = totalActions > 0 ? (spend / totalActions).toFixed(2) : '0.00';
-        } else {
-            console.log(`Anúncio ${ad.id} - Nenhum insight retornado para o período ${startDate} a ${endDate}`);
-            if (insightsResponse?.error) {
-                console.error(`Erro ao carregar insights do anúncio ${ad.id}:`, insightsResponse.error);
-            }
-        }
-
-        console.log(`Anúncio ${ad.id} - Total de ações: ${totalActions}, Gasto: ${spend}`);
-
-        const adData = {
-            creativeId: ad.creative?.id,
-            imageUrl: imageUrl,
-            messages: totalActions,
-            costPerMessage: costPerAction
+            return adsList;
         };
 
-        if (totalActions > 0) {
-            adsWithActions.push(adData);
-        } else if (spend > 0) {
-            adsWithoutActions.push(adData);
+        // Buscar anúncios White e Black
+        const whiteAds = await fetchAds(whiteCampaignIds, whiteAdSetIds, 'White');
+        const blackAds = await fetchAds(blackCampaignIds, blackAdSetIds, 'Black');
+
+        // Combinar os anúncios
+        const allAds = [...whiteAds, ...blackAds];
+        console.log(`Total de anúncios encontrados (White + Black): ${allAds.length}`);
+
+        // Se não houver seleções, buscar todos os anúncios da conta
+        if (whiteCampaignIds.length === 0 && whiteAdSetIds.length === 0 && blackCampaignIds.length === 0 && blackAdSetIds.length === 0) {
+            url = `/${unitId}/ads?fields=id,creative&access_token=${currentAccessToken}&limit=50`;
+            while (url) {
+                const adResponse = await new Promise((resolve) => {
+                    FB.api(url, resolve);
+                });
+                if (adResponse && !adResponse.error) {
+                    console.log(`Anúncios carregados da conta (geral): ${adResponse.data.length}`);
+                    allAds.push(...adResponse.data.map(ad => ({ ...ad, type: 'Geral' })));
+                    url = adResponse.paging?.next || null;
+                } else {
+                    console.error(`Erro ao carregar anúncios da conta ${unitId}:`, adResponse?.error);
+                    url = null;
+                }
+                await delay(500);
+            }
+            console.log(`Total de anúncios encontrados (geral): ${allAds.length}`);
         }
 
-        if (adsWithActions.length >= 3 || (adsWithActions.length === 0 && adsWithoutActions.length >= 3)) {
-            console.log('Encontrados 3 anúncios relevantes, interrompendo busca de insights.');
-            break;
+        // Processar os anúncios
+        for (const ad of allAds) {
+            let messages = 0;
+            let costPerMessage = 0;
+            let spend = 0;
+            let imageUrl = 'https://dummyimage.com/150x150/ccc/fff';
+
+            const insightsResponse = await new Promise((resolve) => {
+                FB.api(
+                    `/${ad.id}/insights`,
+                    {
+                        fields: 'actions,spend,reach',
+                        time_range: { since: startDate, until: endDate },
+                        access_token: currentAccessToken
+                    },
+                    resolve
+                );
+            });
+
+            if (insightsResponse && !insightsResponse.error && insightsResponse.data && insightsResponse.data.length > 0) {
+                const insights = insightsResponse.data[0];
+                console.log(`Anúncio ${ad.id} (${ad.type}) - Período retornado: ${insights.date_start} a ${insights.date_stop}, Solicitado: ${startDate} a ${endDate}`);
+                if (insights.actions) {
+                    const conversationAction = insights.actions.find(
+                        action => action.action_type === 'onsite_conversion.messaging_conversation_started_7d'
+                    );
+                    messages = conversationAction ? parseInt(conversationAction.value) || 0 : 0;
+                }
+                spend = insights.spend ? parseFloat(insights.spend) : 0;
+                costPerMessage = messages > 0 ? (spend / messages).toFixed(2) : '0.00';
+            } else {
+                console.log(`Anúncio ${ad.id} (${ad.type}) - Nenhum insight retornado para o período`);
+                if (insightsResponse?.error) {
+                    console.error(`Erro ao carregar insights do anúncio ${ad.id}:`, insightsResponse.error);
+                }
+            }
+
+            if (messages > 0 && ad.creative && ad.creative.id) {
+                const creativeData = await getCreativeData(ad.creative.id);
+                imageUrl = creativeData.imageUrl;
+            }
+
+            if (messages > 0) {
+                bestAds.push({
+                    imageUrl: imageUrl,
+                    messages: messages,
+                    costPerMessage: costPerMessage,
+                    type: ad.type
+                });
+            }
+
+            if (bestAds.length >= 3) {
+                console.log('Encontrados 3 anúncios com mensagens, interrompendo busca.');
+                break;
+            }
+        }
+    } else {
+        // Se hasBlack é false, buscar anúncios das campanhas/conjuntos gerais selecionados
+        const campaignIds = Array.from(selectedCampaigns);
+        const adSetIds = Array.from(selectedAdSets);
+
+        console.log(`Campanhas selecionadas: ${campaignIds}`);
+        console.log(`Conjuntos selecionados: ${adSetIds}`);
+
+        const adsList = [];
+        if (adSetIds.length > 0) {
+            for (const adSetId of adSetIds) {
+                url = `/${adSetId}/ads?fields=id,creative&access_token=${currentAccessToken}&limit=50`;
+                while (url) {
+                    const adResponse = await new Promise((resolve) => {
+                        FB.api(url, resolve);
+                    });
+                    if (adResponse && !adResponse.error) {
+                        console.log(`Anúncios carregados do conjunto ${adSetId}: ${adResponse.data.length}`);
+                        adsList.push(...adResponse.data);
+                        url = adResponse.paging?.next || null;
+                    } else {
+                        console.error(`Erro ao carregar anúncios do conjunto ${adSetId}:`, adResponse?.error);
+                        url = null;
+                    }
+                    await delay(500);
+                }
+            }
+        } else if (campaignIds.length > 0) {
+            for (const campaignId of campaignIds) {
+                url = `/${campaignId}/ads?fields=id,creative&access_token=${currentAccessToken}&limit=50`;
+                while (url) {
+                    const adResponse = await new Promise((resolve) => {
+                        FB.api(url, resolve);
+                    });
+                    if (adResponse && !adResponse.error) {
+                        console.log(`Anúncios carregados da campanha ${campaignId}: ${adResponse.data.length}`);
+                        adsList.push(...adResponse.data);
+                        url = adResponse.paging?.next || null;
+                    } else {
+                        console.error(`Erro ao carregar anúncios da campanha ${campaignId}:`, adResponse?.error);
+                        url = null;
+                    }
+                    await delay(500);
+                }
+            }
+        } else {
+            // Se nada for selecionado, buscar todos os anúncios da conta
+            url = `/${unitId}/ads?fields=id,creative&access_token=${currentAccessToken}&limit=50`;
+            while (url) {
+                const adResponse = await new Promise((resolve) => {
+                    FB.api(url, resolve);
+                });
+                if (adResponse && !adResponse.error) {
+                    console.log(`Anúncios carregados da conta (geral): ${adResponse.data.length}`);
+                    adsList.push(...adResponse.data);
+                    url = adResponse.paging?.next || null;
+                } else {
+                    console.error(`Erro ao carregar anúncios da conta ${unitId}:`, adResponse?.error);
+                    url = null;
+                }
+                await delay(500);
+            }
+        }
+
+        console.log(`Total de anúncios encontrados: ${adsList.length}`);
+
+        for (const ad of adsList) {
+            let messages = 0;
+            let costPerMessage = 0;
+            let spend = 0;
+            let imageUrl = 'https://dummyimage.com/150x150/ccc/fff';
+
+            const insightsResponse = await new Promise((resolve) => {
+                FB.api(
+                    `/${ad.id}/insights`,
+                    {
+                        fields: 'actions,spend,reach',
+                        time_range: { since: startDate, until: endDate },
+                        access_token: currentAccessToken
+                    },
+                    resolve
+                );
+            });
+
+            if (insightsResponse && !insightsResponse.error && insightsResponse.data && insightsResponse.data.length > 0) {
+                const insights = insightsResponse.data[0];
+                console.log(`Anúncio ${ad.id} - Período retornado: ${insights.date_start} a ${insights.date_stop}, Solicitado: ${startDate} a ${endDate}`);
+                if (insights.actions) {
+                    const conversationAction = insights.actions.find(
+                        action => action.action_type === 'onsite_conversion.messaging_conversation_started_7d'
+                    );
+                    messages = conversationAction ? parseInt(conversationAction.value) || 0 : 0;
+                }
+                spend = insights.spend ? parseFloat(insights.spend) : 0;
+                costPerMessage = messages > 0 ? (spend / messages).toFixed(2) : '0.00';
+            } else {
+                console.log(`Anúncio ${ad.id} - Nenhum insight retornado para o período`);
+                if (insightsResponse?.error) {
+                    console.error(`Erro ao carregar insights do anúncio ${ad.id}:`, insightsResponse.error);
+                }
+            }
+
+            if (messages > 0 && ad.creative && ad.creative.id) {
+                const creativeData = await getCreativeData(ad.creative.id);
+                imageUrl = creativeData.imageUrl;
+            }
+
+            if (messages > 0) {
+                bestAds.push({
+                    imageUrl: imageUrl,
+                    messages: messages,
+                    costPerMessage: costPerMessage
+                });
+            }
+
+            if (bestAds.length >= 3) {
+                console.log('Encontrados 3 anúncios com mensagens, interrompendo busca.');
+                break;
+            }
         }
     }
 
-    adsWithActions.sort((a, b) => b.messages - a.messages);
-    adsWithoutActions.sort((a, b) => b.spend - a.spend);
-
-    const bestAds = [];
-    bestAds.push(...adsWithActions.slice(0, 3));
-
-    if (bestAds.length < 3 && adsWithoutActions.length > 0) {
-        const remainingSlots = 3 - bestAds.length;
-        bestAds.push(...adsWithoutActions.slice(0, remainingSlots));
-    }
-
-    if (adsWithActions.length === 0 && adsWithoutActions.length === 1) {
-        bestAds.length = 0;
-        bestAds.push(...adsWithoutActions);
-    } else if (adsWithActions.length === 1 && adsWithoutActions.length === 0) {
-        bestAds.length = 0;
-        bestAds.push(...adsWithActions);
-    }
-
-    console.log('Anúncios com ações:', adsWithActions);
-    console.log('Anúncios sem ações (com gasto):', adsWithoutActions);
-    console.log('Anúncios finais:', bestAds);
-
-    const imagePromises = bestAds.map(async (ad) => {
-        if (ad.creativeId) {
-            const creativeData = await getCreativeData(ad.creativeId);
-            ad.imageUrl = creativeData.imageUrl;
-        }
-        return ad;
-    });
-
-    await Promise.all(imagePromises);
-
-    return bestAds;
+    // Ordenar por número de mensagens (decrescente) e limitar a 3 anúncios
+    bestAds.sort((a, b) => b.messages - a.messages);
+    console.log('Melhores anúncios selecionados:', bestAds);
+    return bestAds.slice(0, 3);
 }
-
 
 
 function calculateVariation(current, previous, metric) {
@@ -1501,19 +1630,20 @@ function renderReport(unitName, startDate, endDate, metrics, comparisonMetrics, 
                     ? `
                         <h3 class="text-xl font-semibold text-primary mb-3">Anúncios em Destaque</h3>
                         <div class="space-y-4">
-                            ${bestAds
-                                .map(
-                                    ad => `
-                                        <div class="flex items-center bg-white border border-gray-200 rounded-lg p-3">
-                                            <img src="${ad.imageUrl}" alt="Anúncio" class="w-24 h-24 object-cover rounded-md mr-4">
-                                            <div>
-                                                <p class="text-gray-700 text-base"><strong>Mensagens:</strong> ${ad.messages}</p>
-                                                <p class="text-gray-700 text-base"><strong>Custo por Msg:</strong> R$ ${ad.costPerMessage.replace('.', ',')}</p>
-                                            </div>
-                                        </div>
-                                    `
-                                )
-                                .join('')}
+                        bestAds
+    .map(
+        ad => `
+            <div class="flex items-center bg-white border border-gray-200 rounded-lg p-3">
+                <img src="${ad.imageUrl}" alt="Anúncio" class="w-24 h-24 object-cover rounded-md mr-4">
+                <div>
+                    ${hasBlack && ad.type ? `<p class="text-gray-500 text-sm"><strong>Tipo:</strong> ${ad.type}</p>` : ''}
+                    <p class="text-gray-700 text-base"><strong>Mensagens:</strong> ${ad.messages}</p>
+                    <p class="text-gray-700 text-base"><strong>Custo por Msg:</strong> R$ ${ad.costPerMessage.replace('.', ',')}</p>
+                </div>
+            </div>
+        `
+    )
+    .join('')
                         </div>`
                     : '<p class="text-gray-600 text-base">Nenhum anúncio com conversas iniciadas encontrado para este período.</p>'
             }

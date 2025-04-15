@@ -1076,6 +1076,10 @@ import { fbAuth } from './auth.js';
      let totalConversations = 0;
      let totalReach = 0;
  
+     console.log(`Chamando API para unitId: ${unitId}, período: ${startDate} a ${endDate}`);
+     console.log(`Campanhas selecionadas: ${Array.from(campaignsSet)}`);
+     console.log(`Conjuntos selecionados: ${Array.from(adSetsSet)}`);
+ 
      const response = await new Promise((resolve) => {
          FB.api(
              `/${unitId}/insights`,
@@ -1092,8 +1096,11 @@ import { fbAuth } from './auth.js';
          );
      });
  
+     console.log('Resposta da API:', response);
+ 
      if (response && !response.error && response.data && response.data.length > 0) {
          response.data.forEach(data => {
+             console.log('Dados da campanha/conjunto:', data);
              totalSpend += parseFloat(data.spend) || 0;
              totalReach += parseInt(data.reach) || 0;
              if (data.actions && Array.isArray(data.actions)) {
@@ -1114,15 +1121,21 @@ import { fbAuth } from './auth.js';
                  });
              }
          });
+     } else {
+         console.log('Nenhum dado retornado ou erro na API:', response?.error || 'Sem dados');
      }
  
      const costPerConversation = totalConversations > 0 ? totalSpend / totalConversations : 0;
+ 
+     console.log(`Métricas calculadas - Investimento: ${totalSpend}, Alcance: ${totalReach}, Conversas: ${totalConversations}`);
      return { spend: totalSpend, conversations: totalConversations, reach: totalReach, costPerConversation };
  }
  
  
  async function calculateTotalLeadsForAccount(unitId, startDate, endDate) {
      let totalConversations = 0;
+ 
+     console.log(`Calculando total de leads para a conta ${unitId}, período: ${startDate} a ${endDate}`);
  
      const response = await new Promise((resolve) => {
          FB.api(
@@ -1136,6 +1149,8 @@ import { fbAuth } from './auth.js';
              resolve
          );
      });
+ 
+     console.log('Resposta da API (total de leads):', response);
  
      if (response && !response.error && response.data && response.data.length > 0) {
          response.data.forEach(data => {
@@ -1157,8 +1172,11 @@ import { fbAuth } from './auth.js';
                  });
              }
          });
+     } else {
+         console.log('Nenhum dado retornado ou erro na API (total de leads):', response?.error || 'Sem dados');
      }
  
+     console.log(`Total de leads da conta no período de comparação: ${totalConversations}`);
      return totalConversations;
  }
  
@@ -1180,8 +1198,6 @@ import { fbAuth } from './auth.js';
                  url,
                  {
                      fields: 'id,name,creative',
-                     time_range: { since: startDate, until: endDate },
-                     effective_status: ['ACTIVE', 'PAUSED', 'COMPLETED'], // Filtrar anúncios relevantes
                      // Removido time_range para evitar erro na listagem de anúncios
                      // effective_status: ['ACTIVE', 'PAUSED', 'COMPLETED'], // Removido temporariamente para depuração
                      access_token: currentAccessToken,
@@ -1196,7 +1212,6 @@ import { fbAuth } from './auth.js';
              adsList.push(...adResponse.data);
              url = adResponse.paging && adResponse.paging.next ? adResponse.paging.next : null;
          } else {
-             console.error(`Erro ao carregar anúncios da conta ${unitId}:`, adResponse?.error);
              console.error(`Erro ao carregar anúncios da conta ${unitId}:`, adResponse?.error || adResponse);
              url = null;
              break;
@@ -1232,6 +1247,18 @@ import { fbAuth } from './auth.js';
              const insights = insightsResponse.data[0];
              console.log(`Anúncio ${ad.id} - Período retornado: ${insights.date_start} a ${insights.date_stop}, Solicitado: ${startDate} a ${endDate}`);
              console.log(`Insights do anúncio ${ad.id}:`, insights);
+     const bestAds = [];
+     const response = await new Promise((resolve) => {
+         FB.api(
+             `/${unitId}/ads`,
+             {
+                 fields: ['id', 'name', 'insights{actions,spend,reach},creative'], // Adicionamos o campo 'creative'
+                 time_range: { since: startDate, until: endDate },
+                 access_token: currentAccessToken,
+             },
+             resolve
+         );
+     });
  
              if (insights.actions) {
                  // Contar mensagens
@@ -1240,6 +1267,22 @@ import { fbAuth } from './auth.js';
                  );
                  if (conversationAction && conversationAction.value) {
                      totalActions += parseInt(conversationAction.value) || 0;
+     if (response && !response.error && response.data) {
+         // Para cada anúncio, buscar os insights e a imagem do criativo
+         for (const ad of response.data) {
+             let messages = 0;
+             let costPerMessage = 0;
+             let spend = 0;
+             let imageUrl = 'https://dummyimage.com/150x150/ccc/fff'; // Fallback confiável
+ 
+             // Obter os insights do anúncio
+             if (ad.insights && ad.insights.data && ad.insights.data.length > 0) {
+                 const insights = ad.insights.data[0];
+                 if (insights.actions) {
+                     const conversationAction = insights.actions.find(
+                         action => action.action_type === 'onsite_conversion.messaging_conversation_started_7d'
+                     );
+                     messages = conversationAction ? parseInt(conversationAction.value) || 0 : 0;
                  }
  
                  // Contar todas as conversões personalizadas
@@ -1251,6 +1294,8 @@ import { fbAuth } from './auth.js';
                          totalActions += parseInt(action.value) || 0;
                      }
                  });
+                 spend = insights.spend ? parseFloat(insights.spend) : 0;
+                 costPerMessage = messages > 0 ? (spend / messages).toFixed(2) : '0.00';
              }
              spend = insights.spend ? parseFloat(insights.spend) : 0;
              costPerAction = totalActions > 0 ? (spend / totalActions).toFixed(2) : '0.00';
@@ -1277,11 +1322,24 @@ import { fbAuth } from './auth.js';
          } else if (spend > 0) {
              adsWithoutActions.push(adData);
          }
+             // Obter a imagem do criativo, se o anúncio tiver conversas
+             if (messages > 0 && ad.creative && ad.creative.id) {
+                 const creativeData = await getCreativeData(ad.creative.id);
+                 imageUrl = creativeData.imageUrl; // Atualiza a URL da imagem com a imagem real
+             }
  
          // Otimização: Parar se já tivermos 2 anúncios com ações ou 2 com gasto
          if (adsWithActions.length >= 2 || (adsWithActions.length === 0 && adsWithoutActions.length >= 2)) {
              console.log('Encontrados 2 anúncios relevantes, interrompendo busca de insights.');
              break;
+             // Adicionar o anúncio à lista se tiver mensagens
+             if (messages > 0) {
+                 bestAds.push({
+                     imageUrl: imageUrl, // Agora usa a imagem real ou o fallback
+                     messages: messages,
+                     costPerMessage: costPerMessage
+                 });
+             }
          }
      }
  
@@ -1301,6 +1359,9 @@ import { fbAuth } from './auth.js';
      if (bestAds.length < 2 && adsWithoutActions.length > 0) {
          const remainingSlots = 2 - bestAds.length;
          bestAds.push(...adsWithoutActions.slice(0, remainingSlots));
+         // Ordenar por número de mensagens (decrescente) e limitar a 3 anúncios
+         bestAds.sort((a, b) => b.messages - a.messages);
+         return bestAds.slice(0, 3);
      }
  
      // Se só houver 1 anúncio com dados (ações ou gasto), retornar apenas ele
@@ -1380,6 +1441,7 @@ import { fbAuth } from './auth.js';
          totalLeads = (parseInt(metrics.conversations) || 0) + (parseInt(blackMetrics.conversations) || 0);
          console.log(`Total de leads calculado: ${totalLeads}`);
  
+         // Calcular variação do total de leads, se disponível
          if (comparisonTotalLeads !== null) {
              totalLeadsVariation = calculateVariation(totalLeads, comparisonTotalLeads, 'conversations');
          }
@@ -1531,6 +1593,8 @@ import { fbAuth } from './auth.js';
                                                  <p class="text-gray-700 text-base"><strong>Leads:</strong> ${ad.messages}</p>
                                                  <p class="text-gray-700 text-base"><strong>Investimento:</strong> R$ ${ad.spend.toFixed(2).replace('.', ',')}</p>
                                                  <p class="text-gray-700 text-base"><strong>Custo por Lead:</strong> R$ ${ad.costPerMessage.replace('.', ',')}</p>
+                                                 <p class="text-gray-700 text-base"><strong>Mensagens:</strong> ${ad.messages}</p>
+                                                 <p class="text-gray-700 text-base"><strong>Custo por Msg:</strong> R$ ${ad.costPerMessage.replace('.', ',')}</p>
                                              </div>
                                          </div>
                                      `
@@ -1538,6 +1602,7 @@ import { fbAuth } from './auth.js';
                                  .join('')}
                          </div>`
                      : '<p class="text-gray-600 text-base">Nenhum anúncio com dados (leads ou investimento) encontrado para este período.</p>'
+                     : '<p class="text-gray-600 text-base">Nenhum anúncio com conversas iniciadas encontrado para este período.</p>'
              }
          </div>
      `;

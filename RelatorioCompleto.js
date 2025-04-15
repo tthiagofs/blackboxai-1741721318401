@@ -1169,6 +1169,9 @@ async function getBestAds(unitId, startDate, endDate) {
     const adsWithoutActions = []; // Anúncios sem mensagens/conversões, mas com gasto
     let url = `/${unitId}/ads`;
 
+    console.log(`Iniciando busca de anúncios para unitId: ${unitId}, período: ${startDate} a ${endDate}`);
+    console.log(`Token de acesso: ${currentAccessToken}`);
+
     // Buscar todos os anúncios da conta
     const adsList = [];
     while (url) {
@@ -1177,24 +1180,30 @@ async function getBestAds(unitId, startDate, endDate) {
                 url,
                 {
                     fields: 'id,name,creative',
-                    time_range: { since: startDate, until: endDate },
-                    effective_status: ['ACTIVE', 'PAUSED', 'COMPLETED'], // Filtrar anúncios relevantes
+                    // Removido time_range para evitar erro na listagem de anúncios
+                    // effective_status: ['ACTIVE', 'PAUSED', 'COMPLETED'], // Removido temporariamente para depuração
                     access_token: currentAccessToken,
                     limit: 50
                 },
                 resolve
             );
         });
+
         if (adResponse && !adResponse.error) {
+            console.log(`Página de anúncios carregada com sucesso. Total nesta página: ${adResponse.data.length}`);
             adsList.push(...adResponse.data);
             url = adResponse.paging && adResponse.paging.next ? adResponse.paging.next : null;
         } else {
-            console.error(`Erro ao carregar anúncios da conta ${unitId}:`, adResponse?.error);
+            console.error(`Erro ao carregar anúncios da conta ${unitId}:`, adResponse?.error || adResponse);
             url = null;
+            break;
         }
     }
 
     console.log(`Total de anúncios encontrados: ${adsList.length}`);
+    if (adsList.length === 0) {
+        console.log('Nenhum anúncio encontrado. Verifique permissões ou se a conta possui anúncios.');
+    }
 
     // Processar os anúncios
     for (const ad of adsList) {
@@ -1244,6 +1253,9 @@ async function getBestAds(unitId, startDate, endDate) {
             costPerAction = totalActions > 0 ? (spend / totalActions).toFixed(2) : '0.00';
         } else {
             console.log(`Anúncio ${ad.id} - Nenhum insight retornado para o período ${startDate} a ${endDate}`);
+            if (insightsResponse?.error) {
+                console.error(`Erro ao carregar insights do anúncio ${ad.id}:`, insightsResponse.error);
+            }
         }
 
         console.log(`Anúncio ${ad.id} - Total de ações: ${totalActions}, Gasto: ${spend}`);

@@ -1048,126 +1048,227 @@ async function generateReport(unitId, unitName, startDate, endDate) {
         return;
     }
 
-    const formattedStartDate = new Date(startDate).toLocaleDateString('pt-BR');
-    const formattedEndDate = new Date(endDate).toLocaleDateString('pt-BR');
-
     // Garantir que as campanhas foram carregadas
     if (!campaignsMap[unitId]) {
         await loadCampaigns(unitId, startDate, endDate);
     }
 
-    // Filtrar campanhas com base nos filtros selecionados
-    let campaigns = Object.entries(campaignsMap[unitId] || {});
+    // Determinar quais campanhas usar com base nos filtros
+    let whiteCampaigns = [];
+    let blackCampaigns = [];
+    let allCampaigns = Object.entries(campaignsMap[unitId] || {});
+    
     if (hasBlack) {
-        if (selectedWhiteCampaigns.size > 0) {
-            campaigns = campaigns.filter(([id]) => selectedWhiteCampaigns.has(id));
-        } else if (selectedBlackCampaigns.size > 0) {
-            campaigns = campaigns.filter(([id]) => selectedBlackCampaigns.has(id));
-        }
+        whiteCampaigns = selectedWhiteCampaigns.size > 0 
+            ? allCampaigns.filter(([id]) => selectedWhiteCampaigns.has(id))
+            : allCampaigns;
+        blackCampaigns = selectedBlackCampaigns.size > 0 
+            ? allCampaigns.filter(([id]) => selectedBlackCampaigns.has(id))
+            : allCampaigns;
     } else if (selectedCampaigns.size > 0) {
-        campaigns = campaigns.filter(([id]) => selectedCampaigns.has(id));
+        allCampaigns = allCampaigns.filter(([id]) => selectedCampaigns.has(id));
     }
 
-    // Mapear as campanhas para o formato esperado
+    // Calcular métricas para campanhas White e Black (ou todas as campanhas se hasBlack for false)
+    let metrics = { spend: 0, reach: 0, conversations: 0, costPerConversation: 0 };
+    let blackMetrics = null;
+
+    // Métricas para campanhas White (ou todas as campanhas se não tiver Black)
+    const campaignsToUse = hasBlack ? whiteCampaigns : allCampaigns;
     const campaignsData = await Promise.all(
-        campaigns.map(async ([id, campaign]) => {
+        campaignsToUse.map(async ([id, campaign]) => {
             const insights = await getCampaignInsights(id, startDate, endDate);
             return { id, name: campaign.name, insights };
         })
     );
 
-    // Calcular métricas totais
-    const totalSpend = campaignsData.reduce((sum, campaign) => sum + (parseFloat(campaign.insights.spend) || 0), 0);
-    const totalReach = campaignsData.reduce((sum, campaign) => sum + (parseInt(campaign.insights.reach) || 0), 0);
-    let totalConversations = 0;
+    metrics.spend = campaignsData.reduce((sum, campaign) => sum + (parseFloat(campaign.insights.spend) || 0), 0);
+    metrics.reach = campaignsData.reduce((sum, campaign) => sum + (parseInt(campaign.insights.reach) || 0), 0);
+    metrics.conversations = 0;
     campaignsData.forEach(campaign => {
         if (campaign.insights.actions) {
             const conversationAction = campaign.insights.actions.find(
                 action => action.action_type === 'onsite_conversion.messaging_conversation_started_7d'
             );
             if (conversationAction && conversationAction.value) {
-                totalConversations += parseInt(conversationAction.value) || 0;
+                metrics.conversations += parseInt(conversationAction.value) || 0;
             }
             const customConversions = campaign.insights.actions.filter(
                 action => action.action_type.startsWith('offsite_conversion.')
             );
             customConversions.forEach(action => {
                 if (action.value) {
-                    totalConversations += parseInt(action.value) || 0;
+                    metrics.conversations += parseInt(action.value) || 0;
                 }
             });
         }
     });
+    metrics.costPerConversation = metrics.conversations > 0 ? (metrics.spend / metrics.conversations) : 0;
 
-    const costPerConversation = totalConversations > 0 ? (totalSpend / totalConversations).toFixed(2) : '0.00';
+    // Métricas para campanhas Black (se hasBlack for true)
+    if (hasBlack) {
+        const blackCampaignsData = await Promise.all(
+            blackCampaigns.map(async ([id, campaign]) => {
+                const insights = await getCampaignInsights(id, startDate, endDate);
+                return { id, name: campaign.name, insights };
+            })
+        );
 
-    // Renderizar o relatório
-    reportContainer.innerHTML = `
-        <div class="report-container">
-            <h2 class="text-2xl font-bold text-white mb-4">Relatório Completo - ${unitName}</h2>
-            <p class="text-gray-300 mb-6">${formattedStartDate} a ${formattedEndDate}</p>
-            <h3 class="text-xl font-semibold text-white mb-4">Campanhas</h3>
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+        blackMetrics = { spend: 0, reach: 0, conversations: 0, costPerConversation: 0 };
+        blackMetrics.spend = blackCampaignsData.reduce((sum, campaign) => sum + (parseFloat(campaign.insights.spend) || 0), 0);
+        blackMetrics.reach = blackCampaignsData.reduce((sum, campaign) => sum + (parseInt(campaign.insights.reach) || 0), 0);
+        blackMetrics.conversations = 0;
+        blackCampaignsData.forEach(campaign => {
+            if (campaign.insights.actions) {
+                const conversationAction = campaign.insights.actions.find(
+                    action => action.action_type === 'onsite_conversion.messaging_conversation_started_7d'
+                );
+                if (conversationAction && conversationAction.value) {
+                    blackMetrics.conversations += parseInt(conversationAction.value) || 0;
+                }
+                const customConversions = campaign.insights.actions.filter(
+                    action => action.action_type.startsWith('offsite_conversion.')
+                );
+                customConversions.forEach(action => {
+                    if (action.value) {
+                        blackMetrics.conversations += parseInt(action.value) || 0;
+                    }
+                });
+            }
+        });
+        blackMetrics.costPerConversation = blackMetrics.conversations > 0 ? (blackMetrics.spend / blackMetrics.conversations) : 0;
+    }
+
+    // Calcular métricas de comparação (se houver comparisonData)
+    let comparisonMetrics = null;
+    let blackComparisonMetrics = null;
+    let comparisonTotalLeads = null;
+
+    if (comparisonData) {
+        const compareStartDate = comparisonData.startDate;
+        const compareEndDate = comparisonData.endDate;
+
+        // Recarregar campanhas para o período de comparação
+        await loadCampaigns(unitId, compareStartDate, compareEndDate);
+
+        let compareWhiteCampaigns = [];
+        let compareBlackCampaigns = [];
+        let compareAllCampaigns = Object.entries(campaignsMap[unitId] || {});
+        
+        if (hasBlack) {
+            compareWhiteCampaigns = selectedWhiteCampaigns.size > 0 
+                ? compareAllCampaigns.filter(([id]) => selectedWhiteCampaigns.has(id))
+                : compareAllCampaigns;
+            compareBlackCampaigns = selectedBlackCampaigns.size > 0 
+                ? compareAllCampaigns.filter(([id]) => selectedBlackCampaigns.has(id))
+                : compareAllCampaigns;
+        } else if (selectedCampaigns.size > 0) {
+            compareAllCampaigns = compareAllCampaigns.filter(([id]) => selectedCampaigns.has(id));
+        }
+
+        // Métricas de comparação para White (ou todas as campanhas se não tiver Black)
+        const compareCampaignsToUse = hasBlack ? compareWhiteCampaigns : compareAllCampaigns;
+        const compareCampaignsData = await Promise.all(
+            compareCampaignsToUse.map(async ([id, campaign]) => {
+                const insights = await getCampaignInsights(id, compareStartDate, compareEndDate);
+                return { id, name: campaign.name, insights };
+            })
+        );
+
+        comparisonMetrics = { spend: 0, reach: 0, conversations: 0, costPerConversation: 0 };
+        comparisonMetrics.spend = compareCampaignsData.reduce((sum, campaign) => sum + (parseFloat(campaign.insights.spend) || 0), 0);
+        comparisonMetrics.reach = compareCampaignsData.reduce((sum, campaign) => sum + (parseInt(campaign.insights.reach) || 0), 0);
+        comparisonMetrics.conversations = 0;
+        compareCampaignsData.forEach(campaign => {
+            if (campaign.insights.actions) {
+                const conversationAction = campaign.insights.actions.find(
+                    action => action.action_type === 'onsite_conversion.messaging_conversation_started_7d'
+                );
+                if (conversationAction && conversationAction.value) {
+                    comparisonMetrics.conversations += parseInt(conversationAction.value) || 0;
+                }
+                const customConversions = campaign.insights.actions.filter(
+                    action => action.action_type.startsWith('offsite_conversion.')
+                );
+                customConversions.forEach(action => {
+                    if (action.value) {
+                        comparisonMetrics.conversations += parseInt(action.value) || 0;
+                    }
+                });
+            }
+        });
+        comparisonMetrics.costPerConversation = comparisonMetrics.conversations > 0 ? (comparisonMetrics.spend / comparisonMetrics.conversations) : 0;
+
+        // Métricas de comparação para Black (se hasBlack for true)
+        if (hasBlack) {
+            const compareBlackCampaignsData = await Promise.all(
+                compareBlackCampaigns.map(async ([id, campaign]) => {
+                    const insights = await getCampaignInsights(id, compareStartDate, compareEndDate);
+                    return { id, name: campaign.name, insights };
+                })
+            );
+
+            blackComparisonMetrics = { spend: 0, reach: 0, conversations: 0, costPerConversation: 0 };
+            blackComparisonMetrics.spend = compareBlackCampaignsData.reduce((sum, campaign) => sum + (parseFloat(campaign.insights.spend) || 0), 0);
+            blackComparisonMetrics.reach = compareBlackCampaignsData.reduce((sum, campaign) => sum + (parseInt(campaign.insights.reach) || 0), 0);
+            blackComparisonMetrics.conversations = 0;
+            compareBlackCampaignsData.forEach(campaign => {
+                if (campaign.insights.actions) {
+                    const conversationAction = campaign.insights.actions.find(
+                        action => action.action_type === 'onsite_conversion.messaging_conversation_started_7d'
+                    );
+                    if (conversationAction && conversationAction.value) {
+                        blackComparisonMetrics.conversations += parseInt(conversationAction.value) || 0;
+                    }
+                    const customConversions = campaign.insights.actions.filter(
+                        action => action.action_type.startsWith('offsite_conversion.')
+                    );
+                    customConversions.forEach(action => {
+                        if (action.value) {
+                            blackComparisonMetrics.conversations += parseInt(action.value) || 0;
+                        }
+                    });
+                }
+            });
+            blackComparisonMetrics.costPerConversation = blackComparisonMetrics.conversations > 0 ? (blackComparisonMetrics.spend / blackComparisonMetrics.conversations) : 0;
+
+            // Calcular total de leads para o período de comparação
+            comparisonTotalLeads = await calculateTotalLeadsForAccount(unitId, compareStartDate, compareEndDate);
+        }
+    }
+
+    // Obter melhores anúncios
+    const bestAds = await getBestAds(unitId, startDate, endDate);
+
+    // Renderizar o relatório usando a função renderReport
+    reportContainer.innerHTML = '';
+    renderReport(unitName, startDate, endDate, metrics, comparisonMetrics, blackMetrics, blackComparisonMetrics, bestAds, comparisonTotalLeads);
+
+    // Adicionar seção de Resultados de Negócios
+    const reportDiv = reportContainer.querySelector('.bg-white');
+    const businessResultsHTML = `
+        <div class="mt-8">
+            <h3 class="text-xl font-semibold text-primary mb-4">Resultados de Negócios</h3>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div class="metric-card">
-                    <div class="metric-label"><i class="fas fa-money-bill-wave mr-2"></i>Investimento</div>
-                    <div class="metric-value">R$ ${totalSpend.toFixed(2).replace('.', ',')}</div>
+                    <h4 class="text-sm font-medium text-gray-600 mb-1">Orçamentos Realizados</h4>
+                    <p class="text-lg font-semibold text-gray-800">${budgetsCompleted.toLocaleString('pt-BR')}</p>
                 </div>
                 <div class="metric-card">
-                    <div class="metric-label"><i class="fas fa-users mr-2"></i>Alcance</div>
-                    <div class="metric-value">${totalReach.toLocaleString('pt-BR')}</div>
+                    <h4 class="text-sm font-medium text-gray-600 mb-1">Número de Vendas</h4>
+                    <p class="text-lg font-semibold text-gray-800">${salesCount.toLocaleString('pt-BR')}</p>
                 </div>
                 <div class="metric-card">
-                    <div class="metric-label"><i class="fas fa-comments mr-2"></i>Conversas Iniciadas</div>
-                    <div class="metric-value">${totalConversations.toLocaleString('pt-BR')}</div>
-                </div>
-                <div class="metric-card">
-                    <div class="metric-label"><i class="fas fa-dollar-sign mr-2"></i>Custo por Conversa</div>
-                    <div class="metric-value">R$ ${costPerConversation.replace('.', ',')}</div>
-                </div>
-            </div>
-            <h3 class="text-xl font-semibold text-white mb-4">Melhores Anúncios</h3>
-            <!-- Seção de melhores anúncios aqui -->
-            <div class="mt-8">
-                <h3 class="text-xl font-semibold text-white mb-4">Resultados de Negócios</h3>
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div class="metric-card">
-                        <div class="metric-label"><i class="fas fa-clipboard-check mr-2"></i>Orçamentos Realizados</div>
-                        <div class="metric-value">${budgetsCompleted.toLocaleString('pt-BR')}</div>
-                    </div>
-                    <div class="metric-card">
-                        <div class="metric-label"><i class="fas fa-shopping-cart mr-2"></i>Número de Vendas</div>
-                        <div class="metric-value">${salesCount.toLocaleString('pt-BR')}</div>
-                    </div>
-                    <div class="metric-card">
-                        <div class="metric-label"><i class="fas fa-money-bill-wave mr-2"></i>Faturamento</div>
-                        <div class="metric-value">R$ ${revenue.toFixed(2).replace('.', ',')}</div>
-                    </div>
+                    <h4 class="text-sm font-medium text-gray-600 mb-1">Faturamento</h4>
+                    <p class="text-lg font-semibold text-gray-800">R$ ${revenue.toFixed(2).replace('.', ',')}</p>
                 </div>
             </div>
         </div>
     `;
+    reportDiv.insertAdjacentHTML('beforeend', businessResultsHTML);
 
-    // Configurar o botão de compartilhamento no WhatsApp
+    // Exibir o botão de compartilhamento
     shareWhatsAppBtn.classList.remove('hidden');
-    shareWhatsAppBtn.addEventListener('click', () => {
-        const reportText = `
-Relatório Completo - ${unitName}
-${formattedStartDate} a ${formattedEndDate}
-
-Campanhas
-Investimento: R$ ${totalSpend.toFixed(2).replace('.', ',')}
-Alcance: ${totalReach.toLocaleString('pt-BR')}
-Conversas Iniciadas: ${totalConversations.toLocaleString('pt-BR')}
-Custo por Conversa: R$ ${costPerConversation.replace('.', ',')}
-
-Resultados de Negócios
-Orçamentos Realizados: ${budgetsCompleted.toLocaleString('pt-BR')}
-Número de Vendas: ${salesCount.toLocaleString('pt-BR')}
-Faturamento: R$ ${revenue.toFixed(2).replace('.', ',')}
-        `.trim();
-        const encodedText = encodeURIComponent(reportText);
-        window.open(`https://api.whatsapp.com/send?text=${encodedText}`, '_blank');
-    });
 }
 
 

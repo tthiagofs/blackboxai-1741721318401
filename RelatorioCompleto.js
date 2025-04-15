@@ -1064,83 +1064,63 @@ async function generateReport(unitId, unitName, startDate, endDate) {
 }
 
 
-async function calculateMetrics(unitId, startDate, endDate, campaigns = null, adSets = null) {
+async function calculateMetrics(unitId, startDate, endDate, campaignsSet, adSetsSet) {
     let totalSpend = 0;
     let totalConversations = 0;
     let totalReach = 0;
 
-    if (campaigns && campaigns.size > 0) {
-        for (const campaignId of campaigns) {
-            const insights = await getCampaignInsights(campaignId, startDate, endDate);
-            if (insights.spend) totalSpend += parseFloat(insights.spend) || 0;
-            if (insights.reach) totalReach += parseInt(insights.reach) || 0;
-            if (insights.actions && Array.isArray(insights.actions)) {
-                const conversationAction = insights.actions.find(
-                    action => action.action_type === 'onsite_conversion.messaging_conversation_started_7d'
-                );
-                if (conversationAction && conversationAction.value) {
-                    totalConversations += parseInt(conversationAction.value) || 0;
-                }
-            }
-        }
-    } else if (adSets && adSets.size > 0) {
-        for (const adSetId of adSets) {
-            const insights = await getAdSetInsights(adSetId, startDate, endDate);
-            if (insights.spend) totalSpend += parseFloat(insights.spend) || 0;
-            if (insights.reach) totalReach += parseInt(insights.reach) || 0;
-            if (insights.actions && Array.isArray(insights.actions)) {
-                const conversationAction = insights.actions.find(
-                    action => action.action_type === 'onsite_conversion.messaging_conversation_started_7d'
-                );
-                if (conversationAction && conversationAction.value) {
-                    totalConversations += parseInt(conversationAction.value) || 0;
-                }
-            }
-        }
-    } else {
-        const response = await new Promise((resolve) => {
-            FB.api(
-                `/${unitId}/insights`,
-                {
-                    fields: ['spend', 'actions', 'reach'],
-                    time_range: { since: startDate, until: endDate },
-                    level: 'account',
-                    access_token: currentAccessToken
-                },
-                resolve
-            );
-        });
+    console.log(`Chamando API para unitId: ${unitId}, período: ${startDate} a ${endDate}`);
+    console.log(`Campanhas selecionadas: ${Array.from(campaignsSet)}`);
+    console.log(`Conjuntos selecionados: ${Array.from(adSetsSet)}`);
 
-        if (response && !response.error && response.data && response.data.length > 0) {
-            response.data.forEach(data => {
-                if (data.spend) totalSpend += parseFloat(data.spend) || 0;
-                if (data.reach) totalReach += parseInt(data.reach) || 0;
-                if (data.actions && Array.isArray(data.actions)) {
-                    const conversationAction = data.actions.find(
-                        action => action.action_type === 'onsite_conversion.messaging_conversation_started_7d'
-                    );
-                    if (conversationAction && conversationAction.value) {
-                        totalConversations += parseInt(conversationAction.value) || 0;
-                    }
+    const response = await new Promise((resolve) => {
+        FB.api(
+            `/${unitId}/insights`,
+            {
+                fields: ['spend', 'reach', 'actions'],
+                time_range: { since: startDate, until: endDate },
+                filtering: [
+                    campaignsSet.size > 0 ? { field: 'campaign.id', operator: 'IN', value: Array.from(campaignsSet) } : {},
+                    adSetsSet.size > 0 ? { field: 'adset.id', operator: 'IN', value: Array.from(adSetsSet) } : {}
+                ].filter(filter => Object.keys(filter).length > 0),
+                access_token: currentAccessToken
+            },
+            resolve
+        );
+    });
+
+    console.log('Resposta da API:', response);
+
+    if (response && !response.error && response.data && response.data.length > 0) {
+        response.data.forEach(data => {
+            console.log('Dados da campanha/conjunto:', data);
+            totalSpend += parseFloat(data.spend) || 0;
+            totalReach += parseInt(data.reach) || 0;
+            if (data.actions && Array.isArray(data.actions)) {
+                const conversationAction = data.actions.find(
+                    action => action.action_type === 'onsite_conversion.messaging_conversation_started_7d'
+                );
+                if (conversationAction && conversationAction.value) {
+                    totalConversations += parseInt(conversationAction.value) || 0;
                 }
-            });
-        }
+            }
+        });
+    } else {
+        console.log('Nenhum dado retornado ou erro na API:', response?.error || 'Sem dados');
     }
 
-    // Log para depuração
-    console.log(`Métricas calculadas - Investimento: ${totalSpend}, Alcance: ${totalReach}, Conversas: ${totalConversations}`);
+    const costPerConversation = totalConversations > 0 ? totalSpend / totalConversations : 0;
 
-    return {
-        spend: totalSpend,
-        conversations: totalConversations || 0,
-        reach: totalReach || 0,
-        costPerConversation: totalConversations > 0 ? totalSpend / totalConversations : 0
-    };
+    console.log(`Métricas calculadas - Investimento: ${totalSpend}, Alcance: ${totalReach}, Conversas: ${totalConversations}`);
+    return { spend: totalSpend, conversations: totalConversations, reach: totalReach, costPerConversation };
 }
+
 
 
 async function calculateTotalLeadsForAccount(unitId, startDate, endDate) {
     let totalConversations = 0;
+
+    console.log(`Calculando total de leads para a conta ${unitId}, período: ${startDate} a ${endDate}`);
 
     const response = await new Promise((resolve) => {
         FB.api(
@@ -1155,6 +1135,8 @@ async function calculateTotalLeadsForAccount(unitId, startDate, endDate) {
         );
     });
 
+    console.log('Resposta da API (total de leads):', response);
+
     if (response && !response.error && response.data && response.data.length > 0) {
         response.data.forEach(data => {
             if (data.actions && Array.isArray(data.actions)) {
@@ -1166,10 +1148,63 @@ async function calculateTotalLeadsForAccount(unitId, startDate, endDate) {
                 }
             }
         });
+    } else {
+        console.log('Nenhum dado retornado ou erro na API (total de leads):', response?.error || 'Sem dados');
     }
 
     console.log(`Total de leads da conta no período de comparação: ${totalConversations}`);
     return totalConversations;
+}
+
+
+
+async function getBestAds(unitId, startDate, endDate) {
+    const bestAds = [];
+    const response = await new Promise((resolve) => {
+        FB.api(
+            `/${unitId}/ads`,
+            {
+                fields: ['id', 'name', 'insights{actions,spend,reach}'],
+                time_range: { since: startDate, until: endDate },
+                access_token: currentAccessToken,
+            },
+            resolve
+        );
+    });
+
+    if (response && !response.error && response.data) {
+        response.data.forEach(ad => {
+            let messages = 0;
+            let costPerMessage = 0;
+            let spend = 0;
+
+            if (ad.insights && ad.insights.data && ad.insights.data.length > 0) {
+                const insights = ad.insights.data[0];
+                if (insights.actions) {
+                    const conversationAction = insights.actions.find(
+                        action => action.action_type === 'onsite_conversion.messaging_conversation_started_7d'
+                    );
+                    messages = conversationAction ? parseInt(conversationAction.value) || 0 : 0;
+                }
+                spend = insights.spend ? parseFloat(insights.spend) : 0;
+                costPerMessage = messages > 0 ? (spend / messages).toFixed(2) : '0.00';
+            }
+
+            if (messages > 0) {
+                bestAds.push({
+                    imageUrl: 'https://via.placeholder.com/150', // Placeholder para imagem do anúncio
+                    messages: messages,
+                    costPerMessage: costPerMessage
+                });
+            }
+        });
+
+        // Ordenar por número de mensagens (decrescente) e limitar a 3 anúncios
+        bestAds.sort((a, b) => b.messages - a.messages);
+        return bestAds.slice(0, 3);
+    }
+
+    return bestAds;
 }
 
 

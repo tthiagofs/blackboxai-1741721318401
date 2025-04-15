@@ -1167,7 +1167,7 @@ async function getBestAds(unitId, startDate, endDate) {
         FB.api(
             `/${unitId}/ads`,
             {
-                fields: ['id', 'name', 'insights{actions,spend,reach}'],
+                fields: ['id', 'name', 'insights{actions,spend,reach},creative'], // Adicionamos o campo 'creative'
                 time_range: { since: startDate, until: endDate },
                 access_token: currentAccessToken,
             },
@@ -1176,11 +1176,14 @@ async function getBestAds(unitId, startDate, endDate) {
     });
 
     if (response && !response.error && response.data) {
-        response.data.forEach(ad => {
+        // Para cada anúncio, buscar os insights e a imagem do criativo
+        for (const ad of response.data) {
             let messages = 0;
             let costPerMessage = 0;
             let spend = 0;
+            let imageUrl = 'https://dummyimage.com/150x150/ccc/fff'; // Fallback confiável
 
+            // Obter os insights do anúncio
             if (ad.insights && ad.insights.data && ad.insights.data.length > 0) {
                 const insights = ad.insights.data[0];
                 if (insights.actions) {
@@ -1193,14 +1196,21 @@ async function getBestAds(unitId, startDate, endDate) {
                 costPerMessage = messages > 0 ? (spend / messages).toFixed(2) : '0.00';
             }
 
+            // Obter a imagem do criativo, se o anúncio tiver conversas
+            if (messages > 0 && ad.creative && ad.creative.id) {
+                const creativeData = await getCreativeData(ad.creative.id);
+                imageUrl = creativeData.imageUrl; // Atualiza a URL da imagem com a imagem real
+            }
+
+            // Adicionar o anúncio à lista se tiver mensagens
             if (messages > 0) {
                 bestAds.push({
-                    imageUrl: 'https://via.placeholder.com/150', // Placeholder para imagem do anúncio
+                    imageUrl: imageUrl, // Agora usa a imagem real ou o fallback
                     messages: messages,
                     costPerMessage: costPerMessage
                 });
             }
-        });
+        }
 
         // Ordenar por número de mensagens (decrescente) e limitar a 3 anúncios
         bestAds.sort((a, b) => b.messages - a.messages);
@@ -1209,6 +1219,7 @@ async function getBestAds(unitId, startDate, endDate) {
 
     return bestAds;
 }
+
 
 function calculateVariation(current, previous, metric) {
     if (!previous || previous === 0) return { percentage: 0, direction: 'neutral' };

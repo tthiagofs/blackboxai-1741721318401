@@ -1200,38 +1200,37 @@ async function getBestAds(unitId, startDate, endDate) {
         let spend = 0;
         let imageUrl = 'https://dummyimage.com/150x150/ccc/fff';
 
-        // Extrair métricas dos insights, garantindo que sejam do período
+        // Extrair métricas dos insights
         if (ad.insights && ad.insights.data && ad.insights.data.length > 0) {
             const insights = ad.insights.data[0];
-            // Verificar se o período dos insights corresponde ao solicitado
-            if (insights.date_start === startDate && insights.date_stop === endDate) {
-                if (insights.actions) {
-                    // Contar mensagens
-                    const conversationAction = insights.actions.find(
-                        action => action.action_type === 'onsite_conversion.messaging_conversation_started_7d'
-                    );
-                    if (conversationAction && conversationAction.value) {
-                        totalActions += parseInt(conversationAction.value) || 0;
-                    }
+            // Log para depuração
+            console.log(`Anúncio ${ad.id} - Período retornado: ${insights.date_start} a ${insights.date_stop}, Solicitado: ${startDate} a ${endDate}`);
+            console.log(`Insights do anúncio ${ad.id}:`, insights);
 
-                    // Contar todas as conversões personalizadas
-                    const customConversions = insights.actions.filter(
-                        action => action.action_type.startsWith('offsite_conversion.')
-                    );
-                    customConversions.forEach(action => {
-                        if (action.value) {
-                            totalActions += parseInt(action.value) || 0;
-                        }
-                    });
+            if (insights.actions) {
+                // Contar mensagens
+                const conversationAction = insights.actions.find(
+                    action => action.action_type === 'onsite_conversion.messaging_conversation_started_7d'
+                );
+                if (conversationAction && conversationAction.value) {
+                    totalActions += parseInt(conversationAction.value) || 0;
                 }
-                spend = insights.spend ? parseFloat(insights.spend) : 0;
-                costPerAction = totalActions > 0 ? (spend / totalActions).toFixed(2) : '0.00';
-            } else {
-                // Se os insights não correspondem ao período, descartar as métricas
-                totalActions = 0;
-                spend = 0;
-                costPerAction = '0.00';
+
+                // Contar todas as conversões personalizadas
+                const customConversions = insights.actions.filter(
+                    action => action.action_type.startsWith('offsite_conversion.')
+                );
+                customConversions.forEach(action => {
+                    if (action.value) {
+                        totalActions += parseInt(action.value) || 0;
+                    }
+                });
             }
+            spend = insights.spend ? parseFloat(insights.spend) : 0;
+            costPerAction = totalActions > 0 ? (spend / totalActions).toFixed(2) : '0.00';
+        } else {
+            // Log para depuração
+            console.log(`Anúncio ${ad.id} - Nenhum insight retornado para o período ${startDate} a ${endDate}`);
         }
 
         // Adicionar o anúncio à lista apropriada
@@ -1242,6 +1241,8 @@ async function getBestAds(unitId, startDate, endDate) {
             spend: spend,
             costPerMessage: costPerAction
         };
+
+        console.log(`Anúncio ${ad.id} - Total de ações: ${totalActions}, Gasto: ${spend}`);
 
         if (totalActions > 0) {
             adsWithActions.push(adData);
@@ -1277,6 +1278,10 @@ async function getBestAds(unitId, startDate, endDate) {
         bestAds.push(...adsWithActions);
     }
 
+    console.log('Anúncios com ações:', adsWithActions);
+    console.log('Anúncios sem ações (com gasto):', adsWithoutActions);
+    console.log('Anúncios finais:', bestAds);
+
     // Buscar as imagens dos criativos em paralelo
     const imagePromises = bestAds.map(async (ad) => {
         if (ad.creativeId) {
@@ -1290,7 +1295,6 @@ async function getBestAds(unitId, startDate, endDate) {
 
     return bestAds;
 }
-
 
 
 function calculateVariation(current, previous, metric) {

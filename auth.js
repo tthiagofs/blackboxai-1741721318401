@@ -23,10 +23,10 @@ class FacebookAuth {
             try {
                 const initFB = () => {
                     FB.init({
-                        appId: '618519427538646',
+                        appId: '1595817924411708', // Novo App ID
                         cookie: true,
                         xfbml: true,
-                        version: 'v20.0'
+                        version: 'v22.0' // Nova versão da API
                     });
                     
                     // Check login status first
@@ -103,7 +103,7 @@ class FacebookAuth {
                             reject(new Error('Login do Facebook não autorizado'));
                         }
                     }, {
-                        scope: 'ads_read,ads_management,business_management',
+                        scope: 'public_profile,ads_read', // Ajustado para incluir apenas permissões necessárias
                         return_scopes: true,
                         auth_type: 'rerequest'  // Force re-authentication
                     });

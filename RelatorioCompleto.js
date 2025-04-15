@@ -27,6 +27,7 @@ const filterBlackAdSetsBtn = document.getElementById('filterBlackAdSets');
 const whiteFilters = document.getElementById('whiteFilters');
 const blackFilters = document.getElementById('blackFilters');
 const defaultFilters = document.getElementById('defaultFilters');
+const comparisonFilter = document.getElementById('comparisonFilter');
 
 // Modais
 const closeCampaignsModalBtn = document.getElementById('closeCampaignsModal');
@@ -194,12 +195,15 @@ function updateFilterButtons() {
     }
 }
 
+
+
 // Event Listeners para os botões "Sim" e "Não"
 hasBlackYesBtn.addEventListener('click', () => {
     hasBlack = true;
     whiteFilters.classList.remove('hidden');
     blackFilters.classList.remove('hidden');
     defaultFilters.classList.add('hidden');
+    comparisonFilter.classList.remove('hidden');
     enableButtons();
 });
 
@@ -208,8 +212,10 @@ hasBlackNoBtn.addEventListener('click', () => {
     whiteFilters.classList.add('hidden');
     blackFilters.classList.add('hidden');
     defaultFilters.classList.remove('hidden');
+    comparisonFilter.classList.remove('hidden');
     enableButtons();
 });
+
 
 // Carregar dados quando o formulário é preenchido
 form.addEventListener('input', async function(e) {
@@ -1012,100 +1018,51 @@ form.addEventListener('submit', async (e) => {
     }
 });
 
-async function generateReport() {
-    const unitId = document.getElementById('unitId').value;
-    const unitName = adAccountsMap[unitId] || 'Unidade Desconhecida';
-    const startDate = document.getElementById('startDate').value;
-    const endDate = document.getElementById('endDate').value;
+async function generateReport(unitId, unitName, startDate, endDate) {
+    try {
+        reportContainer.innerHTML = '<p class="text-center text-gray-600">Gerando relatório, por favor aguarde...</p>';
+        shareWhatsAppBtn.classList.add('hidden');
 
-    // Limpar o container de relatórios antes de gerar novos
-    reportContainer.innerHTML = '';
+        let metrics, comparisonMetrics, blackMetrics, blackComparisonMetrics, comparisonTotalLeads;
 
-    // Carregar todos os anúncios do período (sem filtros White ou Black) para os melhores anúncios
-    const allAdsData = await loadAds(unitId, startDate, endDate);
-
-    const topAds = [];
-    Object.entries(allAdsData).forEach(([adId, ad]) => {
-        let messages = 0;
-        let spend = parseFloat(ad.insights.spend) || 0;
-
-        if (ad.insights && ad.insights.actions) {
-            ad.insights.actions.forEach(action => {
-                if (action.action_type === 'onsite_conversion.messaging_conversation_started_7d') {
-                    messages += parseInt(action.value) || 0;
-                }
-            });
+        // Calcular métricas principais
+        if (hasBlack) {
+            metrics = await calculateMetrics(unitId, startDate, endDate, selectedWhiteCampaigns, selectedWhiteAdSets);
+            blackMetrics = await calculateMetrics(unitId, startDate, endDate, selectedBlackCampaigns, selectedBlackAdSets);
+        } else {
+            metrics = await calculateMetrics(unitId, startDate, endDate, selectedCampaigns, selectedAdSets);
+            blackMetrics = null;
         }
 
-        if (messages > 0) {
-            topAds.push({
-                id: adId,
-                imageUrl: ad.creative.imageUrl,
-                messages: messages,
-                spend: spend,
-                costPerMessage: messages > 0 ? (spend / messages).toFixed(2) : '0'
-            });
-        }
-    });
-
-    topAds.sort((a, b) => b.messages - a.messages);
-    const bestAds = topAds.slice(0, 2).filter(ad => {
-        return ad.imageUrl && !ad.imageUrl.includes('dummyimage');
-    });
-
-    if (hasBlack) {
-        // Calcular métricas White
-        let whiteMetrics = await calculateMetrics(unitId, startDate, endDate, selectedWhiteCampaigns, selectedWhiteAdSets);
-        let whiteComparisonMetrics = null;
-
-        if (comparisonData) {
-            whiteComparisonMetrics = await calculateMetrics(
-                unitId,
-                comparisonData.startDate,
-                comparisonData.endDate,
-                selectedWhiteCampaigns,
-                selectedWhiteAdSets
-            );
+        // Calcular métricas de comparação, se aplicável
+        if (comparisonData && comparisonData.option !== 'none') {
+            const { startDate: compareStartDate, endDate: compareEndDate } = comparisonData;
+            if (hasBlack) {
+                // Quando hasBlack é true, calcular apenas o total de leads de toda a conta (ignorando seleções)
+                comparisonTotalLeads = await calculateTotalLeadsForAccount(unitId, compareStartDate, compareEndDate);
+                comparisonMetrics = null; // Não calculamos métricas detalhadas para White
+                blackComparisonMetrics = null; // Não calculamos métricas detalhadas para Black
+            } else {
+                // Quando hasBlack é false, manter o comportamento atual
+                comparisonMetrics = await calculateMetrics(unitId, compareStartDate, compareEndDate, selectedCampaigns, selectedAdSets);
+                blackComparisonMetrics = null;
+            }
+        } else {
+            comparisonMetrics = null;
+            blackComparisonMetrics = null;
+            comparisonTotalLeads = null;
         }
 
-        // Calcular métricas Black
-        let blackMetrics = await calculateMetrics(unitId, startDate, endDate, selectedBlackCampaigns, selectedBlackAdSets);
-        let blackComparisonMetrics = null;
+        const bestAds = await getBestAds(unitId, startDate, endDate);
+        renderReport(unitName, startDate, endDate, metrics, comparisonMetrics, blackMetrics, blackComparisonMetrics, bestAds, comparisonTotalLeads);
 
-        if (comparisonData) {
-            blackComparisonMetrics = await calculateMetrics(
-                unitId,
-                comparisonData.startDate,
-                comparisonData.endDate,
-                selectedBlackCampaigns,
-                selectedBlackAdSets
-            );
-        }
-
-        // Renderizar o relatório com métricas White, Black e os melhores anúncios gerais
-        renderReport(unitName, startDate, endDate, whiteMetrics, whiteComparisonMetrics, blackMetrics, blackComparisonMetrics, bestAds);
-    } else {
-        // Comportamento padrão (sem Black)
-        let currentMetrics = await calculateMetrics(unitId, startDate, endDate, selectedCampaigns, selectedAdSets);
-        let comparisonMetrics = null;
-
-        if (comparisonData) {
-            comparisonMetrics = await calculateMetrics(
-                unitId,
-                comparisonData.startDate,
-                comparisonData.endDate,
-                selectedCampaigns,
-                selectedAdSets
-            );
-        }
-
-        // Renderizar o relatório com métricas padrão e os melhores anúncios gerais
-        renderReport(unitName, startDate, endDate, currentMetrics, comparisonMetrics, null, null, bestAds);
+        shareWhatsAppBtn.classList.remove('hidden');
+    } catch (error) {
+        console.error('Erro ao gerar relatório:', error);
+        reportContainer.innerHTML = '<p class="text-center text-red-600">Erro ao gerar o relatório. Por favor, tente novamente.</p>';
     }
-
-    // Exibir o botão de compartilhar no WhatsApp
-    shareWhatsAppBtn.classList.remove('hidden');
 }
+
 
 async function calculateMetrics(unitId, startDate, endDate, campaigns = null, adSets = null) {
     let totalSpend = 0;
@@ -1182,6 +1139,41 @@ async function calculateMetrics(unitId, startDate, endDate, campaigns = null, ad
 }
 
 
+async function calculateTotalLeadsForAccount(unitId, startDate, endDate) {
+    let totalConversations = 0;
+
+    const response = await new Promise((resolve) => {
+        FB.api(
+            `/${unitId}/insights`,
+            {
+                fields: ['actions'],
+                time_range: { since: startDate, until: endDate },
+                level: 'account',
+                access_token: currentAccessToken
+            },
+            resolve
+        );
+    });
+
+    if (response && !response.error && response.data && response.data.length > 0) {
+        response.data.forEach(data => {
+            if (data.actions && Array.isArray(data.actions)) {
+                const conversationAction = data.actions.find(
+                    action => action.action_type === 'onsite_conversion.messaging_conversation_started_7d'
+                );
+                if (conversationAction && conversationAction.value) {
+                    totalConversations += parseInt(conversationAction.value) || 0;
+                }
+            }
+        });
+    }
+
+    console.log(`Total de leads da conta no período de comparação: ${totalConversations}`);
+    return totalConversations;
+}
+
+
+
 function calculateVariation(current, previous, metric) {
     if (!previous || previous === 0) return { percentage: 0, direction: 'neutral' };
     const percentage = ((current - previous) / previous) * 100;
@@ -1196,12 +1188,12 @@ function calculateVariation(current, previous, metric) {
     return { percentage: Math.abs(percentage).toFixed(2), direction };
 }
 
-function renderReport(unitName, startDate, endDate, metrics, comparisonMetrics, blackMetrics, blackComparisonMetrics, bestAds) {
+function renderReport(unitName, startDate, endDate, metrics, comparisonMetrics, blackMetrics, blackComparisonMetrics, bestAds, comparisonTotalLeads) {
     const formattedStartDate = startDate.split('-').reverse().join('/');
     const formattedEndDate = endDate.split('-').reverse().join('/');
 
     let comparisonPeriod = '';
-    if (comparisonMetrics && comparisonData) {
+    if (comparisonMetrics || comparisonTotalLeads !== null) {
         comparisonPeriod = `
             <p class="text-gray-600 text-base mb-2">
                 <i class="fas fa-calendar-alt mr-2"></i>Comparação: 
@@ -1219,16 +1211,21 @@ function renderReport(unitName, startDate, endDate, metrics, comparisonMetrics, 
 
     let blackVariations = {};
     let totalLeads = 0;
-    if (hasBlack && blackMetrics) { // Ajustado para não depender de blackComparisonMetrics
+    let totalLeadsVariation = null;
+    if (hasBlack && blackMetrics) {
         blackVariations = {
             reach: calculateVariation(blackMetrics.reach, blackComparisonMetrics?.reach, 'reach'),
             conversations: calculateVariation(blackMetrics.conversations, blackComparisonMetrics?.conversations, 'conversations'),
             costPerConversation: calculateVariation(blackMetrics.costPerConversation, blackComparisonMetrics?.costPerConversation, 'costPerConversation')
         };
-        // Log para depuração
         console.log(`Conversas White: ${metrics.conversations}, Conversas Black: ${blackMetrics.conversations}`);
         totalLeads = (parseInt(metrics.conversations) || 0) + (parseInt(blackMetrics.conversations) || 0);
         console.log(`Total de leads calculado: ${totalLeads}`);
+
+        // Calcular variação do total de leads, se disponível
+        if (comparisonTotalLeads !== null) {
+            totalLeadsVariation = calculateVariation(totalLeads, comparisonTotalLeads, 'conversations');
+        }
     }
 
     const reportHTML = `
@@ -1251,53 +1248,14 @@ function renderReport(unitName, startDate, endDate, metrics, comparisonMetrics, 
                                 <div class="metric-card">
                                     <h4 class="text-sm font-medium text-gray-200 mb-1">Alcance</h4>
                                     <p class="text-lg font-semibold text-white">${metrics.reach}</p>
-                                    ${
-                                        comparisonMetrics
-                                            ? `
-                                                <p class="metric-comparison ${
-                                                    variations.reach.direction === 'positive' ? 'increase' : 'decrease'
-                                                } text-sm mt-1">
-                                                    <i class="fas fa-arrow-${
-                                                        variations.reach.direction === 'positive' ? 'up' : 'down'
-                                                    } mr-1"></i>
-                                                    ${variations.reach.percentage}% em relação ao período anterior
-                                                </p>`
-                                            : ''
-                                    }
                                 </div>
                                 <div class="metric-card">
                                     <h4 class="text-sm font-medium text-gray-200 mb-1">Conversas Iniciadas</h4>
                                     <p class="text-lg font-semibold text-white">${metrics.conversations}</p>
-                                    ${
-                                        comparisonMetrics
-                                            ? `
-                                                <p class="metric-comparison ${
-                                                    variations.conversations.direction === 'positive' ? 'increase' : 'decrease'
-                                                } text-sm mt-1">
-                                                    <i class="fas fa-arrow-${
-                                                        variations.conversations.direction === 'positive' ? 'up' : 'down'
-                                                    } mr-1"></i>
-                                                    ${variations.conversations.percentage}% em relação ao período anterior
-                                                </p>`
-                                            : ''
-                                    }
                                 </div>
                                 <div class="metric-card">
                                     <h4 class="text-sm font-medium text-gray-200 mb-1">Custo por Conversa</h4>
                                     <p class="text-lg font-semibold text-white">R$ ${metrics.costPerConversation.toFixed(2).replace('.', ',')}</p>
-                                    ${
-                                        comparisonMetrics
-                                            ? `
-                                                <p class="metric-comparison ${
-                                                    variations.costPerConversation.direction === 'positive' ? 'increase' : 'decrease'
-                                                } text-sm mt-1">
-                                                    <i class="fas fa-arrow-${
-                                                        variations.costPerConversation.direction === 'positive' ? 'down' : 'up'
-                                                    } mr-1"></i>
-                                                    ${variations.costPerConversation.percentage}% em relação ao período anterior
-                                                </p>`
-                                            : ''
-                                    }
                                 </div>
                             </div>
                         </div>
@@ -1311,59 +1269,33 @@ function renderReport(unitName, startDate, endDate, metrics, comparisonMetrics, 
                                 <div class="metric-card">
                                     <h4 class="text-sm font-medium text-gray-200 mb-1">Alcance</h4>
                                     <p class="text-lg font-semibold text-white">${blackMetrics.reach}</p>
-                                    ${
-                                        blackComparisonMetrics
-                                            ? `
-                                                <p class="metric-comparison ${
-                                                    blackVariations.reach.direction === 'positive' ? 'increase' : 'decrease'
-                                                } text-sm mt-1">
-                                                    <i class="fas fa-arrow-${
-                                                        blackVariations.reach.direction === 'positive' ? 'up' : 'down'
-                                                    } mr-1"></i>
-                                                    ${blackVariations.reach.percentage}% em relação ao período anterior
-                                                </p>`
-                                            : ''
-                                    }
                                 </div>
                                 <div class="metric-card">
                                     <h4 class="text-sm font-medium text-gray-200 mb-1">Conversas Iniciadas</h4>
                                     <p class="text-lg font-semibold text-white">${blackMetrics.conversations}</p>
-                                    ${
-                                        blackComparisonMetrics
-                                            ? `
-                                                <p class="metric-comparison ${
-                                                    blackVariations.conversations.direction === 'positive' ? 'increase' : 'decrease'
-                                                } text-sm mt-1">
-                                                    <i class="fas fa-arrow-${
-                                                        blackVariations.conversations.direction === 'positive' ? 'up' : 'down'
-                                                    } mr-1"></i>
-                                                    ${blackVariations.conversations.percentage}% em relação ao período anterior
-                                                </p>`
-                                            : ''
-                                    }
                                 </div>
                                 <div class="metric-card">
                                     <h4 class="text-sm font-medium text-gray-200 mb-1">Custo por Conversa</h4>
                                     <p class="text-lg font-semibold text-white">R$ ${blackMetrics.costPerConversation.toFixed(2).replace('.', ',')}</p>
-                                    ${
-                                        blackComparisonMetrics
-                                            ? `
-                                                <p class="metric-comparison ${
-                                                    blackVariations.costPerConversation.direction === 'positive' ? 'increase' : 'decrease'
-                                                } text-sm mt-1">
-                                                    <i class="fas fa-arrow-${
-                                                        blackVariations.costPerConversation.direction === 'positive' ? 'down' : 'up'
-                                                    } mr-1"></i>
-                                                    ${blackVariations.costPerConversation.percentage}% em relação ao período anterior
-                                                </p>`
-                                            : ''
-                                    }
                                 </div>
                             </div>
                         </div>
                         <div class="text-center bg-gray-100 rounded-lg p-4 mb-6">
                             <p class="text-lg font-semibold text-gray-700">
                                 Número total de leads: <span class="text-2xl font-bold text-primary">${totalLeads}</span>
+                                ${
+                                    totalLeadsVariation
+                                        ? `
+                                            <p class="metric-comparison ${
+                                                totalLeadsVariation.direction === 'positive' ? 'increase' : 'decrease'
+                                            } text-sm mt-1">
+                                                <i class="fas fa-arrow-${
+                                                    totalLeadsVariation.direction === 'positive' ? 'up' : 'down'
+                                                } mr-1"></i>
+                                                ${totalLeadsVariation.percentage}% em relação ao período anterior
+                                            </p>`
+                                        : ''
+                                }
                             </p>
                         </div>`
                     : `
@@ -1456,6 +1388,7 @@ function renderReport(unitName, startDate, endDate, metrics, comparisonMetrics, 
 }
 
 
+
 // Compartilhar no WhatsApp
 shareWhatsAppBtn.addEventListener('click', () => {
     const unitId = document.getElementById('unitId').value;
@@ -1516,7 +1449,6 @@ backToReportSelectionBtn.addEventListener('click', () => {
     window.location.href = 'index.html?appLoggedIn=true';
 });
 
-
 // Limpar seleções e recarregar a página
 refreshBtn.addEventListener('click', () => {
     // Limpar todas as seleções
@@ -1538,6 +1470,7 @@ refreshBtn.addEventListener('click', () => {
     whiteFilters.classList.add('hidden');
     blackFilters.classList.add('hidden');
     defaultFilters.classList.remove('hidden');
+    comparisonFilter.classList.remove('hidden');
 
     // Desabilitar botões novamente até que "A unidade possui Black?" seja respondido
     disableButtons();

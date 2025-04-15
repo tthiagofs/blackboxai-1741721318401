@@ -1073,7 +1073,7 @@ async function generateReport(unitId, unitName, startDate, endDate) {
 
 async function calculateMetrics(unitId, startDate, endDate, campaignsSet, adSetsSet) {
     let totalSpend = 0;
-    let totalConversations = 0;
+    let totalConversations = 0; // Agora inclui mensagens + todas as conversões personalizadas
     let totalReach = 0;
 
     console.log(`Chamando API para unitId: ${unitId}, período: ${startDate} a ${endDate}`);
@@ -1104,12 +1104,23 @@ async function calculateMetrics(unitId, startDate, endDate, campaignsSet, adSets
             totalSpend += parseFloat(data.spend) || 0;
             totalReach += parseInt(data.reach) || 0;
             if (data.actions && Array.isArray(data.actions)) {
+                // Contar mensagens
                 const conversationAction = data.actions.find(
                     action => action.action_type === 'onsite_conversion.messaging_conversation_started_7d'
                 );
                 if (conversationAction && conversationAction.value) {
                     totalConversations += parseInt(conversationAction.value) || 0;
                 }
+
+                // Contar todas as conversões personalizadas (ações que começam com 'offsite_conversion.')
+                const customConversions = data.actions.filter(
+                    action => action.action_type.startsWith('offsite_conversion.')
+                );
+                customConversions.forEach(action => {
+                    if (action.value) {
+                        totalConversations += parseInt(action.value) || 0;
+                    }
+                });
             }
         });
     } else {
@@ -1118,9 +1129,10 @@ async function calculateMetrics(unitId, startDate, endDate, campaignsSet, adSets
 
     const costPerConversation = totalConversations > 0 ? totalSpend / totalConversations : 0;
 
-    console.log(`Métricas calculadas - Investimento: ${totalSpend}, Alcance: ${totalReach}, Conversas: ${totalConversations}`);
+    console.log(`Métricas calculadas - Investimento: ${totalSpend}, Alcance: ${totalReach}, Conversas (mensagens + conversões personalizadas): ${totalConversations}`);
     return { spend: totalSpend, conversations: totalConversations, reach: totalReach, costPerConversation };
 }
+
 
 async function calculateTotalLeadsForAccount(unitId, startDate, endDate) {
     let totalConversations = 0;
@@ -1145,12 +1157,23 @@ async function calculateTotalLeadsForAccount(unitId, startDate, endDate) {
     if (response && !response.error && response.data && response.data.length > 0) {
         response.data.forEach(data => {
             if (data.actions && Array.isArray(data.actions)) {
+                // Contar mensagens
                 const conversationAction = data.actions.find(
                     action => action.action_type === 'onsite_conversion.messaging_conversation_started_7d'
                 );
                 if (conversationAction && conversationAction.value) {
                     totalConversations += parseInt(conversationAction.value) || 0;
                 }
+
+                // Contar todas as conversões personalizadas (ações que começam com 'offsite_conversion.')
+                const customConversions = data.actions.filter(
+                    action => action.action_type.startsWith('offsite_conversion.')
+                );
+                customConversions.forEach(action => {
+                    if (action.value) {
+                        totalConversations += parseInt(action.value) || 0;
+                    }
+                });
             }
         });
     } else {
@@ -1161,13 +1184,14 @@ async function calculateTotalLeadsForAccount(unitId, startDate, endDate) {
     return totalConversations;
 }
 
+
 async function getBestAds(unitId, startDate, endDate) {
     const bestAds = [];
     const response = await new Promise((resolve) => {
         FB.api(
             `/${unitId}/ads`,
             {
-                fields: ['id', 'name', 'insights{actions,spend,reach},creative'], // Adicionamos o campo 'creative'
+                fields: ['id', 'name', 'insights{actions,spend,reach},creative'],
                 time_range: { since: startDate, until: endDate },
                 access_token: currentAccessToken,
             },
@@ -1176,43 +1200,51 @@ async function getBestAds(unitId, startDate, endDate) {
     });
 
     if (response && !response.error && response.data) {
-        // Para cada anúncio, buscar os insights e a imagem do criativo
         for (const ad of response.data) {
-            let messages = 0;
-            let costPerMessage = 0;
+            let totalActions = 0; // Agora inclui mensagens + todas as conversões personalizadas
+            let costPerAction = 0;
             let spend = 0;
-            let imageUrl = 'https://dummyimage.com/150x150/ccc/fff'; // Fallback confiável
+            let imageUrl = 'https://dummyimage.com/150x150/ccc/fff';
 
-            // Obter os insights do anúncio
             if (ad.insights && ad.insights.data && ad.insights.data.length > 0) {
                 const insights = ad.insights.data[0];
                 if (insights.actions) {
+                    // Contar mensagens
                     const conversationAction = insights.actions.find(
                         action => action.action_type === 'onsite_conversion.messaging_conversation_started_7d'
                     );
-                    messages = conversationAction ? parseInt(conversationAction.value) || 0 : 0;
+                    if (conversationAction && conversationAction.value) {
+                        totalActions += parseInt(conversationAction.value) || 0;
+                    }
+
+                    // Contar todas as conversões personalizadas (ações que começam com 'offsite_conversion.')
+                    const customConversions = insights.actions.filter(
+                        action => action.action_type.startsWith('offsite_conversion.')
+                    );
+                    customConversions.forEach(action => {
+                        if (action.value) {
+                            totalActions += parseInt(action.value) || 0;
+                        }
+                    });
                 }
                 spend = insights.spend ? parseFloat(insights.spend) : 0;
-                costPerMessage = messages > 0 ? (spend / messages).toFixed(2) : '0.00';
+                costPerAction = totalActions > 0 ? (spend / totalActions).toFixed(2) : '0.00';
             }
 
-            // Obter a imagem do criativo, se o anúncio tiver conversas
-            if (messages > 0 && ad.creative && ad.creative.id) {
+            if (totalActions > 0 && ad.creative && ad.creative.id) {
                 const creativeData = await getCreativeData(ad.creative.id);
-                imageUrl = creativeData.imageUrl; // Atualiza a URL da imagem com a imagem real
+                imageUrl = creativeData.imageUrl;
             }
 
-            // Adicionar o anúncio à lista se tiver mensagens
-            if (messages > 0) {
+            if (totalActions > 0) {
                 bestAds.push({
-                    imageUrl: imageUrl, // Agora usa a imagem real ou o fallback
-                    messages: messages,
-                    costPerMessage: costPerMessage
+                    imageUrl: imageUrl,
+                    messages: totalActions, // Agora inclui mensagens + conversões personalizadas
+                    costPerMessage: costPerAction // Agora é custo por ação (mensagem ou conversão)
                 });
             }
         }
 
-        // Ordenar por número de mensagens (decrescente) e limitar a 3 anúncios
         bestAds.sort((a, b) => b.messages - a.messages);
         return bestAds.slice(0, 3);
     }

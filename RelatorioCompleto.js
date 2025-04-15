@@ -1036,6 +1036,7 @@ async function generateReport(unitId, unitName, startDate, endDate) {
     const budgetsCompleted = parseInt(document.getElementById('budgetsCompleted').value) || 0;
     const salesCount = parseInt(document.getElementById('salesCount').value) || 0;
     const revenue = parseFloat(document.getElementById('revenue').value) || 0;
+    const performanceAnalysis = document.getElementById('performanceAnalysis')?.value || ''; // Capturar a análise
 
     if (!unitId || !startDate || !endDate) {
         alert('Preencha todos os campos obrigatórios');
@@ -1163,9 +1164,26 @@ async function generateReport(unitId, unitName, startDate, endDate) {
     `;
     reportDiv.insertAdjacentHTML('beforeend', businessResultsHTML);
 
+    // Adicionar seção de Análise de Desempenho e Pontos de Melhoria (se houver texto)
+    if (performanceAnalysis.trim()) {
+        // Dividir os parágrafos com base em linhas em branco
+        const paragraphs = performanceAnalysis.split(/\n\s*\n/).filter(p => p.trim());
+        const analysisHTML = `
+            <div class="mt-8">
+                <h3 class="text-xl font-semibold text-primary mb-4">Análise de Desempenho e Pontos de Melhoria</h3>
+                <ul class="list-disc list-inside space-y-2 text-gray-700">
+                    ${paragraphs.map(paragraph => `<li>${paragraph.trim()}</li>`).join('')}
+                </ul>
+            </div>
+        `;
+        reportDiv.insertAdjacentHTML('beforeend', analysisHTML);
+    }
+
     // Exibir o botão de compartilhamento
     shareWhatsAppBtn.classList.remove('hidden');
 }
+
+
 
 async function calculateMetrics(unitId, startDate, endDate, campaignsSet, adSetsSet) {
     let totalSpend = 0;

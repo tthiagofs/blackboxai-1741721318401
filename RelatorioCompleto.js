@@ -1169,15 +1169,16 @@ async function getBestAds(unitId, startDate, endDate) {
     const adsWithoutActions = []; // Anúncios sem mensagens/conversões, mas com gasto
     let url = `/${unitId}/ads`;
 
-    // Buscar todos os anúncios da conta com insights incluídos
+    // Buscar todos os anúncios da conta
     const adsList = [];
     while (url) {
         const adResponse = await new Promise((resolve) => {
             FB.api(
                 url,
                 {
-                    fields: 'id,name,creative,insights{actions,spend,reach}',
+                    fields: 'id,name,creative',
                     time_range: { since: startDate, until: endDate },
+                    effective_status: ['ACTIVE', 'PAUSED', 'COMPLETED'], // Filtrar anúncios relevantes
                     access_token: currentAccessToken,
                     limit: 50
                 },
@@ -1193,6 +1194,8 @@ async function getBestAds(unitId, startDate, endDate) {
         }
     }
 
+    console.log(`Total de anúncios encontrados: ${adsList.length}`);
+
     // Processar os anúncios
     for (const ad of adsList) {
         let totalActions = 0;
@@ -1200,10 +1203,21 @@ async function getBestAds(unitId, startDate, endDate) {
         let spend = 0;
         let imageUrl = 'https://dummyimage.com/150x150/ccc/fff';
 
-        // Extrair métricas dos insights
-        if (ad.insights && ad.insights.data && ad.insights.data.length > 0) {
-            const insights = ad.insights.data[0];
-            // Log para depuração
+        // Buscar insights do anúncio para o período selecionado
+        const insightsResponse = await new Promise((resolve) => {
+            FB.api(
+                `/${ad.id}/insights`,
+                {
+                    fields: 'actions,spend,reach',
+                    time_range: { since: startDate, until: endDate },
+                    access_token: currentAccessToken
+                },
+                resolve
+            );
+        });
+
+        if (insightsResponse && !insightsResponse.error && insightsResponse.data && insightsResponse.data.length > 0) {
+            const insights = insightsResponse.data[0];
             console.log(`Anúncio ${ad.id} - Período retornado: ${insights.date_start} a ${insights.date_stop}, Solicitado: ${startDate} a ${endDate}`);
             console.log(`Insights do anúncio ${ad.id}:`, insights);
 
@@ -1229,25 +1243,30 @@ async function getBestAds(unitId, startDate, endDate) {
             spend = insights.spend ? parseFloat(insights.spend) : 0;
             costPerAction = totalActions > 0 ? (spend / totalActions).toFixed(2) : '0.00';
         } else {
-            // Log para depuração
             console.log(`Anúncio ${ad.id} - Nenhum insight retornado para o período ${startDate} a ${endDate}`);
         }
 
+        console.log(`Anúncio ${ad.id} - Total de ações: ${totalActions}, Gasto: ${spend}`);
+
         // Adicionar o anúncio à lista apropriada
         const adData = {
-            creativeId: ad.creative?.id, // Guardar o ID do criativo para buscar a imagem depois
+            creativeId: ad.creative?.id,
             imageUrl: imageUrl,
             messages: totalActions,
             spend: spend,
             costPerMessage: costPerAction
         };
 
-        console.log(`Anúncio ${ad.id} - Total de ações: ${totalActions}, Gasto: ${spend}`);
-
         if (totalActions > 0) {
             adsWithActions.push(adData);
         } else if (spend > 0) {
             adsWithoutActions.push(adData);
+        }
+
+        // Otimização: Parar se já tivermos 2 anúncios com ações ou 2 com gasto
+        if (adsWithActions.length >= 2 || (adsWithActions.length === 0 && adsWithoutActions.length >= 2)) {
+            console.log('Encontrados 2 anúncios relevantes, interrompendo busca de insights.');
+            break;
         }
     }
 
@@ -1271,7 +1290,7 @@ async function getBestAds(unitId, startDate, endDate) {
 
     // Se só houver 1 anúncio com dados (ações ou gasto), retornar apenas ele
     if (adsWithActions.length === 0 && adsWithoutActions.length === 1) {
-        bestAds.length = 0; // Limpar a lista e adicionar apenas o único anúncio
+        bestAds.length = 0;
         bestAds.push(...adsWithoutActions);
     } else if (adsWithActions.length === 1 && adsWithoutActions.length === 0) {
         bestAds.length = 0;

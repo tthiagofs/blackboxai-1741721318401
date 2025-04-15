@@ -166,67 +166,65 @@
                 </div>
             </div>
             <div id="whiteFilters" class="hidden flex flex-wrap gap-4">
-    <button type="button" id="filterWhiteCampaigns"
-        class="flex-1 bg-primary hover:bg-secondary text-white font-medium py-2 px-4 rounded-md transition duration-300">
-        <i class="fas fa-filter mr-2"></i>Campanhas White
-    </button>
-    <button type="button" id="filterWhiteAdSets"
-        class="flex-1 bg-primary hover:bg-secondary text-white font-medium py-2 px-4 rounded-md transition duration-300">
-        <i class="fas fa-layer-group mr-2"></i>Conjuntos White
-    </button>
-</div>
-<div id="blackFilters" class="hidden flex flex-wrap gap-4">
-    <button type="button" id="filterBlackCampaigns"
-        class="flex-1 bg-primary hover:bg-secondary text-white font-medium py-2 px-4 rounded-md transition duration-300">
-        <i class="fas fa-filter mr-2"></i>Campanhas Black
-    </button>
-    <button type="button" id="filterBlackAdSets"
-        class="flex-1 bg-primary hover:bg-secondary text-white font-medium py-2 px-4 rounded-md transition duration-300">
-        <i class="fas fa-layer-group mr-2"></i>Conjuntos Black
-    </button>
-</div>
-<div id="defaultFilters" class="flex flex-wrap gap-4">
-    <button type="button" id="filterCampaigns"
-        class="flex-1 bg-primary hover:bg-secondary text-white font-medium py-2 px-4 rounded-md transition duration-300">
-        <i class="fas fa-filter mr-2"></i>Campanhas
-    </button>
-    <button type="button" id="filterAdSets"
-        class="flex-1 bg-primary hover:bg-secondary text-white font-medium py-2 px-4 rounded-md transition duration-300">
-        <i class="fas fa-layer-group mr-2"></i>Conjuntos
-    </button>
-</div>
-<div id="comparisonFilter" class="flex flex-wrap gap-4 mt-4">
-    <button type="button" id="comparePeriods"
-        class="flex-1 bg-primary hover:bg-secondary text-white font-medium py-2 px-4 rounded-md transition duration-300">
-        <i class="fas fa-calendar-week mr-2"></i>Período de Comparação
-    </button>
-</div>
-
-
-<div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
-    <div>
-        <label for="budgetsCompleted" class="block text-sm font-medium text-gray-700 mb-1">
-            <i class="fas fa-clipboard-check mr-2"></i>Orçamentos Realizados
-        </label>
-        <input type="number" id="budgetsCompleted" min="0" step="1" placeholder="Digite o número de orçamentos"
-            class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent">
-    </div>
-    <div>
-        <label for="salesCount" class="block text-sm font-medium text-gray-700 mb-1">
-            <i class="fas fa-shopping-cart mr-2"></i>Número de Vendas
-        </label>
-        <input type="number" id="salesCount" min="0" step="1" placeholder="Digite o número de vendas"
-            class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent">
-    </div>
-    <div>
-        <label for="revenue" class="block text-sm font-medium text-gray-700 mb-1">
-            <i class="fas fa-money-bill-wave mr-2"></i>Faturamento (R$)
-        </label>
-        <input type="number" id="revenue" min="0" step="0.01" placeholder="Digite o faturamento"
-            class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent">
-    </div>
-</div>
-
+                <button type="button" id="filterWhiteCampaigns"
+                    class="flex-1 bg-primary hover:bg-secondary text-white font-medium py-2 px-4 rounded-md transition duration-300">
+                    <i class="fas fa-filter mr-2"></i>Campanhas White
+                </button>
+                <button type="button" id="filterWhiteAdSets"
+                    class="flex-1 bg-primary hover:bg-secondary text-white font-medium py-2 px-4 rounded-md transition duration-300">
+                    <i class="fas fa-layer-group mr-2"></i>Conjuntos White
+                </button>
+            </div>
+            <div id="blackFilters" class="hidden flex flex-wrap gap-4">
+                <button type="button" id="filterBlackCampaigns"
+                    class="flex-1 bg-primary hover:bg-secondary text-white font-medium py-2 px-4 rounded-md transition duration-300">
+                    <i class="fas fa-filter mr-2"></i>Campanhas Black
+                </button>
+                <button type="button" id="filterBlackAdSets"
+                    class="flex-1 bg-primary hover:bg-secondary text-white font-medium py-2 px-4 rounded-md transition duration-300">
+                    <i class="fas fa-layer-group mr-2"></i>Conjuntos Black
+                </button>
+            </div>
+            <div id="defaultFilters" class="flex flex-wrap gap-4">
+                <button type="button" id="filterCampaigns"
+                    class="flex-1 bg-primary hover:bg-secondary text-white font-medium py-2 px-4 rounded-md transition duration-300">
+                    <i class="fas fa-filter mr-2"></i>Campanhas
+                </button>
+                <button type="button" id="filterAdSets"
+                    class="flex-1 bg-primary hover:bg-secondary text-white font-medium py-2 px-4 rounded-md transition duration-300">
+                    <i class="fas fa-layer-group mr-2"></i>Conjuntos
+                </button>
+            </div>
+            <div id="comparisonFilter" class="flex flex-wrap gap-4 mt-4">
+                <button type="button" id="comparePeriods"
+                    class="flex-1 bg-primary hover:bg-secondary text-white font-medium py-2 px-4 rounded-md transition duration-300">
+                    <i class="fas fa-calendar-week mr-2"></i>Período de Comparação
+                </button>
+            </div>
+            <!-- Novos campos adicionados aqui -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+                <div>
+                    <label for="budgetsCompleted" class="block text-sm font-medium text-gray-700 mb-1">
+                        <i class="fas fa-clipboard-check mr-2"></i>Orçamentos Realizados
+                    </label>
+                    <input type="number" id="budgetsCompleted" min="0" step="1" placeholder="Digite o número de orçamentos"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent">
+                </div>
+                <div>
+                    <label for="salesCount" class="block text-sm font-medium text-gray-700 mb-1">
+                        <i class="fas fa-shopping-cart mr-2"></i>Número de Vendas
+                    </label>
+                    <input type="number" id="salesCount" min="0" step="1" placeholder="Digite o número de vendas"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent">
+                </div>
+                <div>
+                    <label for="revenue" class="block text-sm font-medium text-gray-700 mb-1">
+                        <i class="fas fa-money-bill-wave mr-2"></i>Faturamento (R$)
+                    </label>
+                    <input type="number" id="revenue" min="0" step="0.01" placeholder="Digite o faturamento"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent">
+                </div>
+            </div>
             <button type="submit"
                 class="w-full bg-green-600 hover:bg-green-700 text-white font-medium py-3 px-4 rounded-md transition duration-300">
                 <i class="fas fa-chart-bar mr-2"></i>Gerar Relatório
@@ -409,5 +407,5 @@
     <!-- Scripts -->
     <script async defer crossorigin="anonymous" src="https://connect.facebook.net/en_US/sdk.js"></script>
     <script type="module" src="RelatorioCompleto.js"></script>
-<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'93075eeb8ba96b9d',t:'MTc0NDY3NzQwOC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'93075eeb8ba96b9d',t:'MTc0NDY3NzQwOC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script><script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'930c0ec9980abce6',t:'MTc0NDcyNjU1NS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>

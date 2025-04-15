@@ -1176,43 +1176,86 @@ async function calculateTotalLeadsForAccount(unitId, startDate, endDate) {
 async function getBestAds(unitId, startDate, endDate) {
     const adsWithActions = []; // Anúncios com mensagens/conversões
     const adsWithoutActions = []; // Anúncios sem mensagens/conversões, mas com gasto
-    let url = `/${unitId}/ads`;
 
-    console.log(`Iniciando busca de anúncios para unitId: ${unitId}, período: ${startDate} a ${endDate}`);
-    console.log(`Token de acesso: ${currentAccessToken}`);
+    // Determinar o endpoint com base nos filtros
+    let url;
+    if (selectedAdSets.size > 0) {
+        // Se há ad sets selecionados, buscar anúncios desses ad sets
+        const adSetIds = Array.from(selectedAdSets);
+        url = `/${adSetIds[0]}/ads`; // Iniciar com o primeiro ad set (iremos iterar sobre os outros depois)
+    } else if (selectedCampaigns.size > 0) {
+        // Se há campanhas selecionadas, buscar anúncios dessas campanhas
+        const campaignIds = Array.from(selectedCampaigns);
+        url = `/${campaignIds[0]}/ads`; // Iniciar com a primeira campanha
+    } else if (hasBlack && (selectedWhiteAdSets.size > 0 || selectedBlackAdSets.size > 0)) {
+        // Se tem Black e há ad sets White ou Black selecionados
+        const adSetIds = [
+            ...Array.from(selectedWhiteAdSets),
+            ...Array.from(selectedBlackAdSets)
+        ];
+        url = adSetIds.length > 0 ? `/${adSetIds[0]}/ads` : `/${unitId}/ads`;
+    } else if (hasBlack && (selectedWhiteCampaigns.size > 0 || selectedBlackCampaigns.size > 0)) {
+        // Se tem Black e há campanhas White ou Black selecionadas
+        const campaignIds = [
+            ...Array.from(selectedWhiteCampaigns),
+            ...Array.from(selectedBlackCampaigns)
+        ];
+        url = campaignIds.length > 0 ? `/${campaignIds[0]}/ads` : `/${unitId}/ads`;
+    } else {
+        // Se não há filtros, buscar todos os anúncios da conta
+        url = `/${unitId}/ads`;
+    }
 
-    // Buscar todos os anúncios da conta
+    console.log(`Buscando anúncios com URL base: ${url}`);
+
+    // Listas para armazenar todos os anúncios
     const adsList = [];
-    while (url) {
-        const adResponse = await new Promise((resolve) => {
-            FB.api(
-                url,
-                {
-                    fields: 'id,name,creative',
-                    time_range: { since: startDate, until: endDate },
-                    effective_status: ['ACTIVE', 'PAUSED', 'COMPLETED'],
-                    access_token: currentAccessToken,
-                    limit: 50
-                },
-                resolve
-            );
-        });
+    const entitiesToFetch = [];
 
-        if (adResponse && !adResponse.error) {
-            console.log(`Página de anúncios carregada com sucesso. Total nesta página: ${adResponse.data.length}`);
-            adsList.push(...adResponse.data);
-            url = adResponse.paging && adResponse.paging.next ? adResponse.paging.next : null;
-        } else {
-            console.error(`Erro ao carregar anúncios da conta ${unitId}:`, adResponse?.error || adResponse);
-            url = null;
-            break;
+    // Se estamos buscando por ad sets ou campanhas, precisamos iterar sobre todas
+    if (selectedAdSets.size > 0) {
+        entitiesToFetch.push(...Array.from(selectedAdSets).map(id => ({ type: 'adset', id })));
+    } else if (selectedCampaigns.size > 0) {
+        entitiesToFetch.push(...Array.from(selectedCampaigns).map(id => ({ type: 'campaign', id })));
+    } else if (hasBlack && (selectedWhiteAdSets.size > 0 || selectedBlackAdSets.size > 0)) {
+        const adSetIds = [...Array.from(selectedWhiteAdSets), ...Array.from(selectedBlackAdSets)];
+        entitiesToFetch.push(...adSetIds.map(id => ({ type: 'adset', id })));
+    } else if (hasBlack && (selectedWhiteCampaigns.size > 0 || selectedBlackCampaigns.size > 0)) {
+        const campaignIds = [...Array.from(selectedWhiteCampaigns), ...Array.from(selectedBlackCampaigns)];
+        entitiesToFetch.push(...campaignIds.map(id => ({ type: 'campaign', id })));
+    } else {
+        entitiesToFetch.push({ type: 'account', id: unitId });
+    }
+
+    // Buscar anúncios para cada entidade
+    for (const entity of entitiesToFetch) {
+        let entityUrl = entity.type === 'account' ? `/${entity.id}/ads` : `/${entity.id}/ads`;
+        while (entityUrl) {
+            const adResponse = await new Promise((resolve) => {
+                FB.api(
+                    entityUrl,
+                    {
+                        fields: 'id,name,creative',
+                        time_range: { since: startDate, until: endDate },
+                        access_token: currentAccessToken,
+                        limit: 50
+                    },
+                    resolve
+                );
+            });
+
+            if (adResponse && !adResponse.error) {
+                adsList.push(...adResponse.data);
+                entityUrl = adResponse.paging && adResponse.paging.next ? adResponse.paging.next : null;
+            } else {
+                console.error(`Erro ao carregar anúncios para ${entity.type} ${entity.id}:`, adResponse?.error);
+                entityUrl = null;
+            }
+            await delay(500);
         }
     }
 
     console.log(`Total de anúncios encontrados: ${adsList.length}`);
-    if (adsList.length === 0) {
-        console.log('Nenhum anúncio encontrado. Verifique permissões ou se a conta possui anúncios.');
-    }
 
     // Processar os anúncios
     for (const ad of adsList) {
@@ -1221,7 +1264,7 @@ async function getBestAds(unitId, startDate, endDate) {
         let spend = 0;
         let imageUrl = 'https://dummyimage.com/150x150/ccc/fff';
 
-        // Buscar insights do anúncio para o período selecionado
+        // Buscar insights do anúncio
         const insightsResponse = await new Promise((resolve) => {
             FB.api(
                 `/${ad.id}/insights`,
@@ -1236,11 +1279,7 @@ async function getBestAds(unitId, startDate, endDate) {
 
         if (insightsResponse && !insightsResponse.error && insightsResponse.data && insightsResponse.data.length > 0) {
             const insights = insightsResponse.data[0];
-            console.log(`Anúncio ${ad.id} - Período retornado: ${insights.date_start} a ${insights.date_stop}, Solicitado: ${startDate} a ${endDate}`);
-            console.log(`Insights do anúncio ${ad.id}:`, insights);
-
             if (insights.actions) {
-                // Contar mensagens
                 const conversationAction = insights.actions.find(
                     action => action.action_type === 'onsite_conversion.messaging_conversation_started_7d'
                 );
@@ -1248,7 +1287,6 @@ async function getBestAds(unitId, startDate, endDate) {
                     totalActions += parseInt(conversationAction.value) || 0;
                 }
 
-                // Contar todas as conversões personalizadas
                 const customConversions = insights.actions.filter(
                     action => action.action_type.startsWith('offsite_conversion.')
                 );
@@ -1260,16 +1298,8 @@ async function getBestAds(unitId, startDate, endDate) {
             }
             spend = insights.spend ? parseFloat(insights.spend) : 0;
             costPerAction = totalActions > 0 ? (spend / totalActions).toFixed(2) : '0.00';
-        } else {
-            console.log(`Anúncio ${ad.id} - Nenhum insight retornado para o período ${startDate} a ${endDate}`);
-            if (insightsResponse?.error) {
-                console.error(`Erro ao carregar insights do anúncio ${ad.id}:`, insightsResponse.error);
-            }
         }
 
-        console.log(`Anúncio ${ad.id} - Total de ações: ${totalActions}, Gasto: ${spend}`);
-
-        // Adicionar o anúncio à lista apropriada
         const adData = {
             creativeId: ad.creative?.id,
             imageUrl: imageUrl,
@@ -1284,32 +1314,22 @@ async function getBestAds(unitId, startDate, endDate) {
             adsWithoutActions.push(adData);
         }
 
-        // Otimização: Parar se já tivermos 2 anúncios com ações ou 2 com gasto
         if (adsWithActions.length >= 2 || (adsWithActions.length === 0 && adsWithoutActions.length >= 2)) {
-            console.log('Encontrados 2 anúncios relevantes, interrompendo busca de insights.');
             break;
         }
     }
 
-    // Ordenar anúncios com ações por número de mensagens (decrescente)
+    // Ordenar e selecionar os melhores anúncios
     adsWithActions.sort((a, b) => b.messages - a.messages);
-
-    // Ordenar anúncios sem ações por gasto (decrescente)
     adsWithoutActions.sort((a, b) => b.spend - a.spend);
 
-    // Montar a lista final
     const bestAds = [];
-
-    // Adicionar até 2 anúncios com ações
     bestAds.push(...adsWithActions.slice(0, 2));
-
-    // Se menos de 2 anúncios tiverem ações, completar com os de maior gasto
     if (bestAds.length < 2 && adsWithoutActions.length > 0) {
         const remainingSlots = 2 - bestAds.length;
         bestAds.push(...adsWithoutActions.slice(0, remainingSlots));
     }
 
-    // Se só houver 1 anúncio com dados (ações ou gasto), retornar apenas ele
     if (adsWithActions.length === 0 && adsWithoutActions.length === 1) {
         bestAds.length = 0;
         bestAds.push(...adsWithoutActions);
@@ -1318,11 +1338,7 @@ async function getBestAds(unitId, startDate, endDate) {
         bestAds.push(...adsWithActions);
     }
 
-    console.log('Anúncios com ações:', adsWithActions);
-    console.log('Anúncios sem ações (com gasto):', adsWithoutActions);
-    console.log('Anúncios finais:', bestAds);
-
-    // Buscar as imagens dos criativos em paralelo
+    // Buscar imagens dos criativos
     const imagePromises = bestAds.map(async (ad) => {
         if (ad.creativeId) {
             const creativeData = await getCreativeData(ad.creativeId);
@@ -1335,6 +1351,7 @@ async function getBestAds(unitId, startDate, endDate) {
 
     return bestAds;
 }
+
 
 function calculateVariation(current, previous, metric) {
     if (!previous || previous === 0) return { percentage: 0, direction: 'neutral' };

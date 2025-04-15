@@ -1186,7 +1186,8 @@ async function calculateTotalLeadsForAccount(unitId, startDate, endDate) {
 
 
 async function getBestAds(unitId, startDate, endDate) {
-    const bestAds = [];
+    const adsWithActions = []; // Anúncios com mensagens/conversões
+    const adsWithoutActions = []; // Anúncios sem mensagens/conversões, mas com gasto
     let url = `/${unitId}/ads?fields=id,name,creative&access_token=${currentAccessToken}&limit=50`;
 
     // Buscar todos os anúncios da conta
@@ -1251,24 +1252,52 @@ async function getBestAds(unitId, startDate, endDate) {
         }
 
         // Buscar a imagem do criativo
-        if (totalActions > 0 && ad.creative && ad.creative.id) {
+        if (ad.creative && ad.creative.id) {
             const creativeData = await getCreativeData(ad.creative.id);
             imageUrl = creativeData.imageUrl;
         }
 
-        // Só adicionar o anúncio à lista se ele teve ações no período
+        // Adicionar o anúncio à lista apropriada
+        const adData = {
+            imageUrl: imageUrl,
+            messages: totalActions,
+            spend: spend,
+            costPerMessage: costPerAction
+        };
+
         if (totalActions > 0) {
-            bestAds.push({
-                imageUrl: imageUrl,
-                messages: totalActions,
-                costPerMessage: costPerAction
-            });
+            adsWithActions.push(adData);
+        } else if (spend > 0) {
+            adsWithoutActions.push(adData);
         }
     }
 
-    // Ordenar por número de ações (decrescente) e limitar a 3 anúncios
-    bestAds.sort((a, b) => b.messages - a.messages);
-    return bestAds.slice(0, 3);
+    // Ordenar anúncios com ações por número de mensagens (decrescente)
+    adsWithActions.sort((a, b) => b.messages - a.messages);
+
+    // Ordenar anúncios sem ações por gasto (decrescente)
+    adsWithoutActions.sort((a, b) => b.spend - a.spend);
+
+    // Montar a lista final
+    const bestAds = [];
+
+    // Adicionar até 2 anúncios com ações
+    bestAds.push(...adsWithActions.slice(0, 2));
+
+    // Se menos de 2 anúncios tiverem ações, completar com os de maior gasto
+    if (bestAds.length < 2 && adsWithoutActions.length > 0) {
+        const remainingSlots = 2 - bestAds.length;
+        bestAds.push(...adsWithoutActions.slice(0, remainingSlots));
+    }
+
+    // Se só houver 1 anúncio com dados (ações ou gasto), retornar apenas ele
+    if (adsWithActions.length === 0 && adsWithoutActions.length === 1) {
+        return adsWithoutActions;
+    } else if (adsWithActions.length === 1 && adsWithoutActions.length === 0) {
+        return adsWithActions;
+    }
+
+    return bestAds;
 }
 
 
@@ -1471,6 +1500,7 @@ function renderReport(unitName, startDate, endDate, metrics, comparisonMetrics, 
                                             <img src="${ad.imageUrl}" alt="Anúncio" class="w-24 h-24 object-cover rounded-md mr-4">
                                             <div>
                                                 <p class="text-gray-700 text-base"><strong>Leads:</strong> ${ad.messages}</p>
+                                                <p class="text-gray-700 text-base"><strong>Investimento:</strong> R$ ${ad.spend.toFixed(2).replace('.', ',')}</p>
                                                 <p class="text-gray-700 text-base"><strong>Custo por Lead:</strong> R$ ${ad.costPerMessage.replace('.', ',')}</p>
                                             </div>
                                         </div>
@@ -1478,13 +1508,14 @@ function renderReport(unitName, startDate, endDate, metrics, comparisonMetrics, 
                                 )
                                 .join('')}
                         </div>`
-                    : '<p class="text-gray-600 text-base">Nenhum anúncio com leads encontrado para este período.</p>'
+                    : '<p class="text-gray-600 text-base">Nenhum anúncio com dados (leads ou investimento) encontrado para este período.</p>'
             }
         </div>
     `;
 
     reportContainer.insertAdjacentHTML('beforeend', reportHTML);
 }
+
 
 
 // Compartilhar no WhatsApp

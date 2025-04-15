@@ -1058,7 +1058,6 @@ async function generateReport(unitId, unitName, startDate, endDate) {
     let blackCampaigns = [];
     let allCampaigns = Object.entries(campaignsMap[unitId] || {});
     
-    // Garantir que allCampaigns inclua todas as campanhas disponíveis se não houver filtros
     if (hasBlack) {
         whiteCampaigns = selectedWhiteCampaigns.size > 0 
             ? allCampaigns.filter(([id]) => selectedWhiteCampaigns.has(id))
@@ -1067,84 +1066,30 @@ async function generateReport(unitId, unitName, startDate, endDate) {
             ? allCampaigns.filter(([id]) => selectedBlackCampaigns.has(id))
             : allCampaigns; // Se não houver filtro Black, usa todas as campanhas
     } else {
-        // Se não houver filtros de campanhas ou conjuntos, usa todas as campanhas disponíveis
         if (selectedCampaigns.size > 0) {
             allCampaigns = allCampaigns.filter(([id]) => selectedCampaigns.has(id));
         } else if (selectedAdSets.size > 0) {
-            // Se houver filtro de ad sets, buscar campanhas relacionadas (opcional, depende da lógica desejada)
             allCampaigns = allCampaigns; // Pode ser ajustado se precisar filtrar por ad sets
         }
-        // Caso contrário, allCampaigns já contém todas as campanhas disponíveis
     }
 
     // Calcular métricas para campanhas White e Black (ou todas as campanhas se hasBlack for false)
     let metrics = { spend: 0, reach: 0, conversations: 0, costPerConversation: 0 };
     let blackMetrics = null;
 
-    // Métricas para campanhas White (ou todas as campanhas se não tiver Black)
-    const campaignsToUse = hasBlack ? whiteCampaigns : allCampaigns;
-    const campaignsData = await Promise.all(
-        campaignsToUse.map(async ([id, campaign]) => {
-            const insights = campaign.insights || (await getCampaignInsights(id, startDate, endDate));
-            return { id, name: campaign.name, insights };
-        })
-    );
-
-    metrics.spend = campaignsData.reduce((sum, campaign) => sum + (parseFloat(campaign.insights.spend) || 0), 0);
-    metrics.reach = campaignsData.reduce((sum, campaign) => sum + (parseInt(campaign.insights.reach) || 0), 0);
-    metrics.conversations = 0;
-    campaignsData.forEach(campaign => {
-        if (campaign.insights.actions) {
-            const conversationAction = campaign.insights.actions.find(
-                action => action.action_type === 'onsite_conversion.messaging_conversation_started_7d'
-            );
-            if (conversationAction && conversationAction.value) {
-                metrics.conversations += parseInt(conversationAction.value) || 0;
-            }
-            const customConversions = campaign.insights.actions.filter(
-                action => action.action_type.startsWith('offsite_conversion.')
-            );
-            customConversions.forEach(action => {
-                if (action.value) {
-                    metrics.conversations += parseInt(action.value) || 0;
-                }
-            });
-        }
-    });
-    metrics.costPerConversation = metrics.conversations > 0 ? (metrics.spend / metrics.conversations) : 0;
-
-    // Métricas para campanhas Black (se hasBlack for true)
+    // Usar calculateMetrics para obter as métricas diretamente da API, considerando os filtros
     if (hasBlack) {
-        const blackCampaignsData = await Promise.all(
-            blackCampaigns.map(async ([id, campaign]) => {
-                const insights = campaign.insights || (await getCampaignInsights(id, startDate, endDate));
-                return { id, name: campaign.name, insights };
-            })
-        );
+        // Métricas para White
+        const whiteMetricsResult = await calculateMetrics(unitId, startDate, endDate, selectedWhiteCampaigns, selectedWhiteAdSets);
+        metrics = whiteMetricsResult;
 
-        blackMetrics = { spend: 0, reach: 0, conversations: 0, costPerConversation: 0 };
-        blackMetrics.spend = blackCampaignsData.reduce((sum, campaign) => sum + (parseFloat(campaign.insights.spend) || 0), 0);
-        blackMetrics.reach = blackCampaignsData.reduce((sum, campaign) => sum + (parseInt(campaign.insights.reach) || 0), 0);
-        blackMetrics.conversations = 0;
-        blackCampaignsData.forEach(campaign => {
-            if (campaign.insights.actions) {
-                const conversationAction = campaign.insights.actions.find(
-                    action => action.action_type === 'onsite_conversion.messaging_conversation_started_7d'
-                );
-                if (conversationAction && conversationAction.value) {
-                    blackMetrics.conversations += parseInt(conversationAction.value) || 0;
-                }
-                const customConversions = campaign.insights.actions.filter(
-                    action => action.action_type.startsWith('offsite_conversion.')
-                );
-                customConversions.forEach(action => {
-                    if (action.value) {
-                        blackMetrics.conversations += parseInt(action.value) || 0;
-                    }
-                });
-            }
-        });
-        blackMetrics.costPerConversation = blackMetrics.conversations > 0 ? (blackMetrics.spend / blackMetrics.conversations) : 0;
+        // Métricas para Black
+        const blackMetricsResult = await calculateMetrics(unitId, startDate, endDate, selectedBlackCampaigns, selectedBlackAdSets);
+        blackMetrics = blackMetricsResult;
+    } else {
+        // Métricas gerais (sem distinção de White/Black)
+        const generalMetrics = await calculateMetrics(unitId, startDate, endDate, selectedCampaigns, selectedAdSets);
+        metrics = generalMetrics;
     }
 
     // Calcular métricas de comparação (se houver comparisonData)
@@ -1170,78 +1115,21 @@ async function generateReport(unitId, unitName, startDate, endDate) {
             compareBlackCampaigns = selectedBlackCampaigns.size > 0 
                 ? compareAllCampaigns.filter(([id]) => selectedBlackCampaigns.has(id))
                 : compareAllCampaigns;
-        } else if (selectedCampaigns.size > 0) {
-            compareAllCampaigns = compareAllCampaigns.filter(([id]) => selectedCampaigns.has(id));
-        }
 
-        // Métricas de comparação para White (ou todas as campanhas se não tiver Black)
-        const compareCampaignsToUse = hasBlack ? compareWhiteCampaigns : compareAllCampaigns;
-        const compareCampaignsData = await Promise.all(
-            compareCampaignsToUse.map(async ([id, campaign]) => {
-                const insights = campaign.insights || (await getCampaignInsights(id, compareStartDate, compareEndDate));
-                return { id, name: campaign.name, insights };
-            })
-        );
+            // Métricas de comparação para White
+            comparisonMetrics = await calculateMetrics(unitId, compareStartDate, compareEndDate, selectedWhiteCampaigns, selectedWhiteAdSets);
 
-        comparisonMetrics = { spend: 0, reach: 0, conversations: 0, costPerConversation: 0 };
-        comparisonMetrics.spend = compareCampaignsData.reduce((sum, campaign) => sum + (parseFloat(campaign.insights.spend) || 0), 0);
-        comparisonMetrics.reach = compareCampaignsData.reduce((sum, campaign) => sum + (parseInt(campaign.insights.reach) || 0), 0);
-        comparisonMetrics.conversations = 0;
-        compareCampaignsData.forEach(campaign => {
-            if (campaign.insights.actions) {
-                const conversationAction = campaign.insights.actions.find(
-                    action => action.action_type === 'onsite_conversion.messaging_conversation_started_7d'
-                );
-                if (conversationAction && conversationAction.value) {
-                    comparisonMetrics.conversations += parseInt(conversationAction.value) || 0;
-                }
-                const customConversions = campaign.insights.actions.filter(
-                    action => action.action_type.startsWith('offsite_conversion.')
-                );
-                customConversions.forEach(action => {
-                    if (action.value) {
-                        comparisonMetrics.conversations += parseInt(action.value) || 0;
-                    }
-                });
-            }
-        });
-        comparisonMetrics.costPerConversation = comparisonMetrics.conversations > 0 ? (comparisonMetrics.spend / comparisonMetrics.conversations) : 0;
-
-        // Métricas de comparação para Black (se hasBlack for true)
-        if (hasBlack) {
-            const compareBlackCampaignsData = await Promise.all(
-                compareBlackCampaigns.map(async ([id, campaign]) => {
-                    const insights = campaign.insights || (await getCampaignInsights(id, compareStartDate, compareEndDate));
-                    return { id, name: campaign.name, insights };
-                })
-            );
-
-            blackComparisonMetrics = { spend: 0, reach: 0, conversations: 0, costPerConversation: 0 };
-            blackComparisonMetrics.spend = compareBlackCampaignsData.reduce((sum, campaign) => sum + (parseFloat(campaign.insights.spend) || 0), 0);
-            blackComparisonMetrics.reach = compareBlackCampaignsData.reduce((sum, campaign) => sum + (parseInt(campaign.insights.reach) || 0), 0);
-            blackComparisonMetrics.conversations = 0;
-            compareBlackCampaignsData.forEach(campaign => {
-                if (campaign.insights.actions) {
-                    const conversationAction = campaign.insights.actions.find(
-                        action => action.action_type === 'onsite_conversion.messaging_conversation_started_7d'
-                    );
-                    if (conversationAction && conversationAction.value) {
-                        blackComparisonMetrics.conversations += parseInt(conversationAction.value) || 0;
-                    }
-                    const customConversions = campaign.insights.actions.filter(
-                        action => action.action_type.startsWith('offsite_conversion.')
-                    );
-                    customConversions.forEach(action => {
-                        if (action.value) {
-                            blackComparisonMetrics.conversations += parseInt(action.value) || 0;
-                        }
-                    });
-                }
-            });
-            blackComparisonMetrics.costPerConversation = blackComparisonMetrics.conversations > 0 ? (blackComparisonMetrics.spend / blackComparisonMetrics.conversations) : 0;
+            // Métricas de comparação para Black
+            blackComparisonMetrics = await calculateMetrics(unitId, compareStartDate, compareEndDate, selectedBlackCampaigns, selectedBlackAdSets);
 
             // Calcular total de leads para o período de comparação
             comparisonTotalLeads = await calculateTotalLeadsForAccount(unitId, compareStartDate, compareEndDate);
+        } else {
+            if (selectedCampaigns.size > 0) {
+                compareAllCampaigns = compareAllCampaigns.filter(([id]) => selectedCampaigns.has(id));
+            }
+            // Métricas de comparação gerais
+            comparisonMetrics = await calculateMetrics(unitId, compareStartDate, compareEndDate, selectedCampaigns, selectedAdSets);
         }
     }
 
@@ -1278,7 +1166,6 @@ async function generateReport(unitId, unitName, startDate, endDate) {
     // Exibir o botão de compartilhamento
     shareWhatsAppBtn.classList.remove('hidden');
 }
-
 
 async function calculateMetrics(unitId, startDate, endDate, campaignsSet, adSetsSet) {
     let totalSpend = 0;

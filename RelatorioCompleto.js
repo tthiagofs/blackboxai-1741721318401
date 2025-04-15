@@ -1031,57 +1031,110 @@ form.addEventListener('submit', async (e) => {
     }
 });
 
-async function generateReport(unitId, unitName, startDate, endDate) {
-    try {
-        console.log(`Gerando relatório para unitId: ${unitId}, unitName: ${unitName}, startDate: ${startDate}, endDate: ${endDate}`);
+async function generateReport() {
+    const unitId = document.getElementById('unitId').value;
+    const unitName = fbAuth.getAdAccounts()[unitId] || 'Unidade Desconhecida';
+    const startDate = document.getElementById('startDate').value;
+    const endDate = document.getElementById('endDate').value;
+    // Capturar os novos campos
+    const budgetsCompleted = parseInt(document.getElementById('budgetsCompleted').value) || 0;
+    const salesCount = parseInt(document.getElementById('salesCount').value) || 0;
+    const revenue = parseFloat(document.getElementById('revenue').value) || 0;
 
-        // Validação adicional para startDate e endDate
-        if (!startDate || !endDate) {
-            throw new Error('Datas de início ou fim não fornecidas.');
-        }
-
-        reportContainer.innerHTML = '<p class="text-center text-gray-600">Gerando relatório, por favor aguarde...</p>';
-        shareWhatsAppBtn.classList.add('hidden');
-
-        let metrics, comparisonMetrics, blackMetrics, blackComparisonMetrics, comparisonTotalLeads;
-
-        // Calcular métricas principais
-        if (hasBlack) {
-            metrics = await calculateMetrics(unitId, startDate, endDate, selectedWhiteCampaigns, selectedWhiteAdSets);
-            blackMetrics = await calculateMetrics(unitId, startDate, endDate, selectedBlackCampaigns, selectedBlackAdSets);
-        } else {
-            metrics = await calculateMetrics(unitId, startDate, endDate, selectedCampaigns, selectedAdSets);
-            blackMetrics = null;
-        }
-
-        // Calcular métricas de comparação, se aplicável
-        if (comparisonData && comparisonData.option !== 'none') {
-            const { startDate: compareStartDate, endDate: compareEndDate } = comparisonData;
-            if (hasBlack) {
-                // Quando hasBlack é true, calcular apenas o total de leads de toda a conta (ignorando seleções)
-                comparisonTotalLeads = await calculateTotalLeadsForAccount(unitId, compareStartDate, compareEndDate);
-                comparisonMetrics = null; // Não calculamos métricas detalhadas para White
-                blackComparisonMetrics = null; // Não calculamos métricas detalhadas para Black
-            } else {
-                // Quando hasBlack é false, manter o comportamento atual
-                comparisonMetrics = await calculateMetrics(unitId, compareStartDate, compareEndDate, selectedCampaigns, selectedAdSets);
-                blackComparisonMetrics = null;
-            }
-        } else {
-            comparisonMetrics = null;
-            blackComparisonMetrics = null;
-            comparisonTotalLeads = null;
-        }
-
-        const bestAds = await getBestAds(unitId, startDate, endDate);
-        renderReport(unitName, startDate, endDate, metrics, comparisonMetrics, blackMetrics, blackComparisonMetrics, bestAds, comparisonTotalLeads);
-
-        shareWhatsAppBtn.classList.remove('hidden');
-    } catch (error) {
-        console.error('Erro ao gerar relatório:', error);
-        reportContainer.innerHTML = '<p class="text-center text-red-600">Erro ao gerar o relatório. Por favor, tente novamente.</p>';
+    if (!unitId || !startDate || !endDate) {
+        alert('Preencha todos os campos obrigatórios');
+        return;
     }
+
+    // Validação adicional para os novos campos
+    if (budgetsCompleted < 0 || salesCount < 0 || revenue < 0) {
+        alert('Os valores de orçamentos, vendas e faturamento não podem ser negativos.');
+        return;
+    }
+
+    const formattedStartDate = new Date(startDate).toLocaleDateString('pt-BR');
+    const formattedEndDate = new Date(endDate).toLocaleDateString('pt-BR');
+
+    const campaigns = await fbAuth.fetchCampaigns(unitId, startDate, endDate);
+    const campaignsData = await Promise.all(campaigns.map(async (campaign) => {
+        const insights = await fbAuth.fetchInsights(campaign.id, startDate, endDate);
+        return { ...campaign, insights };
+    }));
+
+    const totalSpend = campaignsData.reduce((sum, campaign) => sum + (campaign.insights?.spend || 0), 0);
+    const totalReach = campaignsData.reduce((sum, campaign) => sum + (campaign.insights?.reach || 0), 0);
+    const totalConversations = campaignsData.reduce((sum, campaign) => sum + (campaign.insights?.messaging_conversations || 0), 0);
+    const costPerConversation = totalConversations > 0 ? (totalSpend / totalConversations).toFixed(2) : '0.00';
+
+    const reportContainer = document.getElementById('reportContainer');
+    reportContainer.innerHTML = `
+        <div class="report-container">
+            <h2 class="text-2xl font-bold text-white mb-4">Relatório Completo - ${unitName}</h2>
+            <p class="text-gray-300 mb-6">${formattedStartDate} a ${formattedEndDate}</p>
+            <h3 class="text-xl font-semibold text-white mb-4">Campanhas</h3>
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+                <div class="metric-card">
+                    <div class="metric-label"><i class="fas fa-money-bill-wave mr-2"></i>Investimento</div>
+                    <div class="metric-value">R$ ${totalSpend.toFixed(2).replace('.', ',')}</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label"><i class="fas fa-users mr-2"></i>Alcance</div>
+                    <div class="metric-value">${totalReach.toLocaleString('pt-BR')}</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label"><i class="fas fa-comments mr-2"></i>Conversas Iniciadas</div>
+                    <div class="metric-value">${totalConversations.toLocaleString('pt-BR')}</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label"><i class="fas fa-dollar-sign mr-2"></i>Custo por Conversa</div>
+                    <div class="metric-value">R$ ${costPerConversation.replace('.', ',')}</div>
+                </div>
+            </div>
+            <h3 class="text-xl font-semibold text-white mb-4">Melhores Anúncios</h3>
+            <!-- Seção de melhores anúncios aqui -->
+            <div class="mt-8">
+                <h3 class="text-xl font-semibold text-white mb-4">Resultados de Negócios</h3>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="metric-card">
+                        <div class="metric-label"><i class="fas fa-clipboard-check mr-2"></i>Orçamentos Realizados</div>
+                        <div class="metric-value">${budgetsCompleted.toLocaleString('pt-BR')}</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label"><i class="fas fa-shopping-cart mr-2"></i>Número de Vendas</div>
+                        <div class="metric-value">${salesCount.toLocaleString('pt-BR')}</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label"><i class="fas fa-money-bill-wave mr-2"></i>Faturamento</div>
+                        <div class="metric-value">R$ ${revenue.toFixed(2).replace('.', ',')}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+
+    const shareWhatsAppBtn = document.getElementById('shareWhatsAppBtn');
+    shareWhatsAppBtn.classList.remove('hidden');
+    shareWhatsAppBtn.addEventListener('click', () => {
+        const reportText = `
+Relatório Completo - ${unitName}
+${formattedStartDate} a ${formattedEndDate}
+
+Campanhas
+Investimento: R$ ${totalSpend.toFixed(2).replace('.', ',')}
+Alcance: ${totalReach.toLocaleString('pt-BR')}
+Conversas Iniciadas: ${totalConversations.toLocaleString('pt-BR')}
+Custo por Conversa: R$ ${costPerConversation.replace('.', ',')}
+
+Resultados de Negócios
+Orçamentos Realizados: ${budgetsCompleted.toLocaleString('pt-BR')}
+Número de Vendas: ${salesCount.toLocaleString('pt-BR')}
+Faturamento: R$ ${revenue.toFixed(2).replace('.', ',')}
+        `.trim();
+        const encodedText = encodeURIComponent(reportText);
+        window.open(`https://api.whatsapp.com/send?text=${encodedText}`, '_blank');
+    });
 }
+
 
 async function calculateMetrics(unitId, startDate, endDate, campaignsSet, adSetsSet) {
     let totalSpend = 0;

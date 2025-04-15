@@ -1183,213 +1183,167 @@ import { fbAuth } from './auth.js';
  
  
  async function getBestAds(unitId, startDate, endDate) {
-     const adsWithActions = []; // Anúncios com mensagens/conversões
-     const adsWithoutActions = []; // Anúncios sem mensagens/conversões, mas com gasto
-     let url = `/${unitId}/ads`;
- 
-     console.log(`Iniciando busca de anúncios para unitId: ${unitId}, período: ${startDate} a ${endDate}`);
-     console.log(`Token de acesso: ${currentAccessToken}`);
- 
-     // Buscar todos os anúncios da conta
-     const adsList = [];
-     while (url) {
-         const adResponse = await new Promise((resolve) => {
-             FB.api(
-                 url,
-                 {
-                     fields: 'id,name,creative',
-                     // Removido time_range para evitar erro na listagem de anúncios
-                     // effective_status: ['ACTIVE', 'PAUSED', 'COMPLETED'], // Removido temporariamente para depuração
-                     access_token: currentAccessToken,
-                     limit: 50
-                 },
-                 resolve
-             );
-         });
- 
-         if (adResponse && !adResponse.error) {
-             console.log(`Página de anúncios carregada com sucesso. Total nesta página: ${adResponse.data.length}`);
-             adsList.push(...adResponse.data);
-             url = adResponse.paging && adResponse.paging.next ? adResponse.paging.next : null;
-         } else {
-             console.error(`Erro ao carregar anúncios da conta ${unitId}:`, adResponse?.error || adResponse);
-             url = null;
-             break;
-         }
-     }
- 
-     console.log(`Total de anúncios encontrados: ${adsList.length}`);
-     if (adsList.length === 0) {
-         console.log('Nenhum anúncio encontrado. Verifique permissões ou se a conta possui anúncios.');
-     }
- 
-     // Processar os anúncios
-     for (const ad of adsList) {
-         let totalActions = 0;
-         let costPerAction = 0;
-         let spend = 0;
-         let imageUrl = 'https://dummyimage.com/150x150/ccc/fff';
- 
-         // Buscar insights do anúncio para o período selecionado
-         const insightsResponse = await new Promise((resolve) => {
-             FB.api(
-                 `/${ad.id}/insights`,
-                 {
-                     fields: 'actions,spend,reach',
-                     time_range: { since: startDate, until: endDate },
-                     access_token: currentAccessToken
-                 },
-                 resolve
-             );
-         });
- 
-         if (insightsResponse && !insightsResponse.error && insightsResponse.data && insightsResponse.data.length > 0) {
-             const insights = insightsResponse.data[0];
-             console.log(`Anúncio ${ad.id} - Período retornado: ${insights.date_start} a ${insights.date_stop}, Solicitado: ${startDate} a ${endDate}`);
-             console.log(`Insights do anúncio ${ad.id}:`, insights);
-     const bestAds = [];
-     const response = await new Promise((resolve) => {
-         FB.api(
-             `/${unitId}/ads`,
-             {
-                 fields: ['id', 'name', 'insights{actions,spend,reach},creative'], // Adicionamos o campo 'creative'
-                 time_range: { since: startDate, until: endDate },
-                 access_token: currentAccessToken,
-             },
-             resolve
-         );
-     });
- 
-             if (insights.actions) {
-                 // Contar mensagens
-                 const conversationAction = insights.actions.find(
-                     action => action.action_type === 'onsite_conversion.messaging_conversation_started_7d'
-                 );
-                 if (conversationAction && conversationAction.value) {
-                     totalActions += parseInt(conversationAction.value) || 0;
-     if (response && !response.error && response.data) {
-         // Para cada anúncio, buscar os insights e a imagem do criativo
-         for (const ad of response.data) {
-             let messages = 0;
-             let costPerMessage = 0;
-             let spend = 0;
-             let imageUrl = 'https://dummyimage.com/150x150/ccc/fff'; // Fallback confiável
- 
-             // Obter os insights do anúncio
-             if (ad.insights && ad.insights.data && ad.insights.data.length > 0) {
-                 const insights = ad.insights.data[0];
-                 if (insights.actions) {
-                     const conversationAction = insights.actions.find(
-                         action => action.action_type === 'onsite_conversion.messaging_conversation_started_7d'
-                     );
-                     messages = conversationAction ? parseInt(conversationAction.value) || 0 : 0;
-                 }
- 
-                 // Contar todas as conversões personalizadas
-                 const customConversions = insights.actions.filter(
-                     action => action.action_type.startsWith('offsite_conversion.')
-                 );
-                 customConversions.forEach(action => {
-                     if (action.value) {
-                         totalActions += parseInt(action.value) || 0;
-                     }
-                 });
-                 spend = insights.spend ? parseFloat(insights.spend) : 0;
-                 costPerMessage = messages > 0 ? (spend / messages).toFixed(2) : '0.00';
-             }
-             spend = insights.spend ? parseFloat(insights.spend) : 0;
-             costPerAction = totalActions > 0 ? (spend / totalActions).toFixed(2) : '0.00';
-         } else {
-             console.log(`Anúncio ${ad.id} - Nenhum insight retornado para o período ${startDate} a ${endDate}`);
-             if (insightsResponse?.error) {
-                 console.error(`Erro ao carregar insights do anúncio ${ad.id}:`, insightsResponse.error);
-             }
-         }
- 
-         console.log(`Anúncio ${ad.id} - Total de ações: ${totalActions}, Gasto: ${spend}`);
- 
-         // Adicionar o anúncio à lista apropriada
-         const adData = {
-             creativeId: ad.creative?.id,
-             imageUrl: imageUrl,
-             messages: totalActions,
-             spend: spend,
-             costPerMessage: costPerAction
-         };
- 
-         if (totalActions > 0) {
-             adsWithActions.push(adData);
-         } else if (spend > 0) {
-             adsWithoutActions.push(adData);
-         }
-             // Obter a imagem do criativo, se o anúncio tiver conversas
-             if (messages > 0 && ad.creative && ad.creative.id) {
-                 const creativeData = await getCreativeData(ad.creative.id);
-                 imageUrl = creativeData.imageUrl; // Atualiza a URL da imagem com a imagem real
-             }
- 
-         // Otimização: Parar se já tivermos 2 anúncios com ações ou 2 com gasto
-         if (adsWithActions.length >= 2 || (adsWithActions.length === 0 && adsWithoutActions.length >= 2)) {
-             console.log('Encontrados 2 anúncios relevantes, interrompendo busca de insights.');
-             break;
-             // Adicionar o anúncio à lista se tiver mensagens
-             if (messages > 0) {
-                 bestAds.push({
-                     imageUrl: imageUrl, // Agora usa a imagem real ou o fallback
-                     messages: messages,
-                     costPerMessage: costPerMessage
-                 });
-             }
-         }
-     }
- 
-     // Ordenar anúncios com ações por número de mensagens (decrescente)
-     adsWithActions.sort((a, b) => b.messages - a.messages);
- 
-     // Ordenar anúncios sem ações por gasto (decrescente)
-     adsWithoutActions.sort((a, b) => b.spend - a.spend);
- 
-     // Montar a lista final
-     const bestAds = [];
- 
-     // Adicionar até 2 anúncios com ações
-     bestAds.push(...adsWithActions.slice(0, 2));
- 
-     // Se menos de 2 anúncios tiverem ações, completar com os de maior gasto
-     if (bestAds.length < 2 && adsWithoutActions.length > 0) {
-         const remainingSlots = 2 - bestAds.length;
-         bestAds.push(...adsWithoutActions.slice(0, remainingSlots));
-         // Ordenar por número de mensagens (decrescente) e limitar a 3 anúncios
-         bestAds.sort((a, b) => b.messages - a.messages);
-         return bestAds.slice(0, 3);
-     }
- 
-     // Se só houver 1 anúncio com dados (ações ou gasto), retornar apenas ele
-     if (adsWithActions.length === 0 && adsWithoutActions.length === 1) {
-         bestAds.length = 0;
-         bestAds.push(...adsWithoutActions);
-     } else if (adsWithActions.length === 1 && adsWithoutActions.length === 0) {
-         bestAds.length = 0;
-         bestAds.push(...adsWithActions);
-     }
- 
-     console.log('Anúncios com ações:', adsWithActions);
-     console.log('Anúncios sem ações (com gasto):', adsWithoutActions);
-     console.log('Anúncios finais:', bestAds);
- 
-     // Buscar as imagens dos criativos em paralelo
-     const imagePromises = bestAds.map(async (ad) => {
-         if (ad.creativeId) {
-             const creativeData = await getCreativeData(ad.creativeId);
-             ad.imageUrl = creativeData.imageUrl;
-         }
-         return ad;
-     });
- 
-     await Promise.all(imagePromises);
- 
-     return bestAds;
- }
+    const adsWithActions = []; // Anúncios com mensagens/conversões
+    const adsWithoutActions = []; // Anúncios sem mensagens/conversões, mas com gasto
+    let url = `/${unitId}/ads`;
+
+    console.log(`Iniciando busca de anúncios para unitId: ${unitId}, período: ${startDate} a ${endDate}`);
+    console.log(`Token de acesso: ${currentAccessToken}`);
+
+    // Buscar todos os anúncios da conta
+    const adsList = [];
+    while (url) {
+        const adResponse = await new Promise((resolve) => {
+            FB.api(
+                url,
+                {
+                    fields: 'id,name,creative',
+                    access_token: currentAccessToken,
+                    limit: 50
+                },
+                resolve
+            );
+        });
+
+        if (adResponse && !adResponse.error) {
+            console.log(`Página de anúncios carregada com sucesso. Total nesta página: ${adResponse.data.length}`);
+            adsList.push(...adResponse.data);
+            url = adResponse.paging && adResponse.paging.next ? adResponse.paging.next : null;
+        } else {
+            console.error(`Erro ao carregar anúncios da conta ${unitId}:`, adResponse?.error || adResponse);
+            url = null;
+            break;
+        }
+    }
+
+    console.log(`Total de anúncios encontrados: ${adsList.length}`);
+    if (adsList.length === 0) {
+        console.log('Nenhum anúncio encontrado. Verifique permissões ou se a conta possui anúncios.');
+    }
+
+    // Processar os anúncios
+    for (const ad of adsList) {
+        let totalActions = 0;
+        let costPerAction = 0;
+        let spend = 0;
+        let imageUrl = 'https://dummyimage.com/150x150/ccc/fff';
+
+        // Buscar insights do anúncio para o período selecionado
+        const insightsResponse = await new Promise((resolve) => {
+            FB.api(
+                `/${ad.id}/insights`,
+                {
+                    fields: 'actions,spend,reach',
+                    time_range: { since: startDate, until: endDate },
+                    access_token: currentAccessToken
+                },
+                resolve
+            );
+        });
+
+        if (insightsResponse && !insightsResponse.error && insightsResponse.data && insightsResponse.data.length > 0) {
+            const insights = insightsResponse.data[0];
+            console.log(`Anúncio ${ad.id} - Período retornado: ${insights.date_start} a ${insights.date_stop}, Solicitado: ${startDate} a ${endDate}`);
+            console.log(`Insights do anúncio ${ad.id}:`, insights);
+
+            // Contar mensagens e conversões
+            if (insights.actions) {
+                const conversationAction = insights.actions.find(
+                    action => action.action_type === 'onsite_conversion.messaging_conversation_started_7d'
+                );
+                if (conversationAction && conversationAction.value) {
+                    totalActions += parseInt(conversationAction.value) || 0;
+                }
+
+                const customConversions = insights.actions.filter(
+                    action => action.action_type.startsWith('offsite_conversion.')
+                );
+                customConversions.forEach(action => {
+                    if (action.value) {
+                        totalActions += parseInt(action.value) || 0;
+                    }
+                });
+            }
+
+            spend = insights.spend ? parseFloat(insights.spend) : 0;
+            costPerAction = totalActions > 0 ? (spend / totalActions).toFixed(2) : '0.00';
+        } else {
+            console.log(`Anúncio ${ad.id} - Nenhum insight retornado para o período ${startDate} a ${endDate}`);
+            if (insightsResponse?.error) {
+                console.error(`Erro ao carregar insights do anúncio ${ad.id}:`, insightsResponse.error);
+            }
+        }
+
+        console.log(`Anúncio ${ad.id} - Total de ações: ${totalActions}, Gasto: ${spend}`);
+
+        // Adicionar o anúncio à lista apropriada
+        const adData = {
+            creativeId: ad.creative?.id,
+            imageUrl: imageUrl,
+            messages: totalActions,
+            spend: spend,
+            costPerMessage: costPerAction
+        };
+
+        if (totalActions > 0) {
+            adsWithActions.push(adData);
+        } else if (spend > 0) {
+            adsWithoutActions.push(adData);
+        }
+
+        // Otimização: Parar se já tivermos 2 anúncios com ações ou 2 com gasto
+        if (adsWithActions.length >= 2 || (adsWithActions.length === 0 && adsWithoutActions.length >= 2)) {
+            console.log('Encontrados 2 anúncios relevantes, interrompendo busca de insights.');
+            break;
+        }
+    }
+
+    // Ordenar anúncios com ações por número de mensagens (decrescente)
+    adsWithActions.sort((a, b) => b.messages - a.messages);
+
+    // Ordenar anúncios sem ações por gasto (decrescente)
+    adsWithoutActions.sort((a, b) => b.spend - a.spend);
+
+    // Montar a lista final
+    const bestAds = [];
+
+    // Adicionar até 2 anúncios com ações
+    bestAds.push(...adsWithActions.slice(0, 2));
+
+    // Se menos de 2 anúncios tiverem ações, completar com os de maior gasto
+    if (bestAds.length < 2 && adsWithoutActions.length > 0) {
+        const remainingSlots = 2 - bestAds.length;
+        bestAds.push(...adsWithoutActions.slice(0, remainingSlots));
+    }
+
+    // Se só houver 1 anúncio com dados (ações ou gasto), retornar apenas ele
+    if (adsWithActions.length === 0 && adsWithoutActions.length === 1) {
+        bestAds.length = 0;
+        bestAds.push(...adsWithoutActions);
+    } else if (adsWithActions.length === 1 && adsWithoutActions.length === 0) {
+        bestAds.length = 0;
+        bestAds.push(...adsWithActions);
+    }
+
+    console.log('Anúncios com ações:', adsWithActions);
+    console.log('Anúncios sem ações (com gasto):', adsWithoutActions);
+    console.log('Anúncios finais:', bestAds);
+
+    // Buscar as imagens dos criativos em paralelo
+    const imagePromises = bestAds.map(async (ad) => {
+        if (ad.creativeId) {
+            const creativeData = await getCreativeData(ad.creativeId);
+            ad.imageUrl = creativeData.imageUrl;
+        }
+        return ad;
+    });
+
+    await Promise.all(imagePromises);
+
+    return bestAds;
+}
+
+
  
  
  function calculateVariation(current, previous, metric) {
@@ -1407,208 +1361,204 @@ import { fbAuth } from './auth.js';
  }
  
  function renderReport(unitName, startDate, endDate, metrics, comparisonMetrics, blackMetrics, blackComparisonMetrics, bestAds, comparisonTotalLeads) {
-     const formattedStartDate = startDate ? startDate.split('-').reverse().join('/') : 'N/A';
-     const formattedEndDate = endDate ? endDate.split('-').reverse().join('/') : 'N/A';
- 
-     let comparisonPeriod = '';
-     if (comparisonMetrics || comparisonTotalLeads !== null) {
-         const compareStart = comparisonData?.startDate ? comparisonData.startDate.split('-').reverse().join('/') : 'N/A';
-         const compareEnd = comparisonData?.endDate ? comparisonData.endDate.split('-').reverse().join('/') : 'N/A';
-         comparisonPeriod = `
-             <p class="text-gray-600 text-base mb-2">
-                 <i class="fas fa-calendar-alt mr-2"></i>Comparação: 
-                 ${compareStart} a ${compareEnd}
-             </p>
-         `;
-     }
- 
-     let variations = {
-         reach: calculateVariation(metrics.reach, comparisonMetrics?.reach, 'reach'),
-         conversations: calculateVariation(metrics.conversations, comparisonMetrics?.conversations, 'conversations'),
-         costPerConversation: calculateVariation(metrics.costPerConversation, comparisonMetrics?.costPerConversation, 'costPerConversation')
-     };
- 
-     let blackVariations = {};
-     let totalLeads = 0;
-     let totalLeadsVariation = null;
-     if (hasBlack && blackMetrics) {
-         blackVariations = {
-             reach: calculateVariation(blackMetrics.reach, blackComparisonMetrics?.reach, 'reach'),
-             conversations: calculateVariation(blackMetrics.conversations, blackComparisonMetrics?.conversations, 'conversations'),
-             costPerConversation: calculateVariation(blackMetrics.costPerConversation, blackComparisonMetrics?.costPerConversation, 'costPerConversation')
-         };
-         console.log(`Conversas White: ${metrics.conversations}, Conversas Black: ${blackMetrics.conversations}`);
-         totalLeads = (parseInt(metrics.conversations) || 0) + (parseInt(blackMetrics.conversations) || 0);
-         console.log(`Total de leads calculado: ${totalLeads}`);
- 
-         // Calcular variação do total de leads, se disponível
-         if (comparisonTotalLeads !== null) {
-             totalLeadsVariation = calculateVariation(totalLeads, comparisonTotalLeads, 'conversations');
-         }
-     }
- 
-     const reportHTML = `
-         <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
-             <h2 class="text-2xl font-semibold text-primary mb-4">Relatório Completo - ${unitName}</h2>
-             <p class="text-gray-600 text-base mb-4">
-                 <i class="fas fa-calendar-alt mr-2"></i>Período Analisado: ${formattedStartDate} a ${formattedEndDate}
-             </p>
-             ${comparisonPeriod}
-             ${
-                 hasBlack
-                     ? `
-                         <div class="bg-blue-900 text-white rounded-lg p-4 mb-6">
-                             <h3 class="text-xl font-semibold uppercase mb-3">Campanhas White</h3>
-                             <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                                 <div class="metric-card">
-                                     <h4 class="text-sm font-medium text-gray-200 mb-1">Investimento</h4>
-                                     <p class="text-lg font-semibold text-white">R$ ${metrics.spend.toFixed(2).replace('.', ',')}</p>
-                                 </div>
-                                 <div class="metric-card">
-                                     <h4 class="text-sm font-medium text-gray-200 mb-1">Alcance</h4>
-                                     <p class="text-lg font-semibold text-white">${metrics.reach}</p>
-                                 </div>
-                                 <div class="metric-card">
-                                     <h4 class="text-sm font-medium text-gray-200 mb-1">Conversas Iniciadas</h4>
-                                     <p class="text-lg font-semibold text-white">${metrics.conversations}</p>
-                                 </div>
-                                 <div class="metric-card">
-                                     <h4 class="text-sm font-medium text-gray-200 mb-1">Custo por Conversa</h4>
-                                     <p class="text-lg font-semibold text-white">R$ ${metrics.costPerConversation.toFixed(2).replace('.', ',')}</p>
-                                 </div>
-                             </div>
-                         </div>
-                         <div class="bg-blue-900 text-white rounded-lg p-4 mb-6">
-                             <h3 class="text-xl font-semibold uppercase mb-3">Campanhas Black</h3>
-                             <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                                 <div class="metric-card">
-                                     <h4 class="text-sm font-medium text-gray-200 mb-1">Investimento</h4>
-                                     <p class="text-lg font-semibold text-white">R$ ${blackMetrics.spend.toFixed(2).replace('.', ',')}</p>
-                                 </div>
-                                 <div class="metric-card">
-                                     <h4 class="text-sm font-medium text-gray-200 mb-1">Alcance</h4>
-                                     <p class="text-lg font-semibold text-white">${blackMetrics.reach}</p>
-                                 </div>
-                                 <div class="metric-card">
-                                     <h4 class="text-sm font-medium text-gray-200 mb-1">Conversas Iniciadas</h4>
-                                     <p class="text-lg font-semibold text-white">${blackMetrics.conversations}</p>
-                                 </div>
-                                 <div class="metric-card">
-                                     <h4 class="text-sm font-medium text-gray-200 mb-1">Custo por Conversa</h4>
-                                     <p class="text-lg font-semibold text-white">R$ ${blackMetrics.costPerConversation.toFixed(2).replace('.', ',')}</p>
-                                 </div>
-                             </div>
-                         </div>
-                         <div class="text-center bg-gray-100 rounded-lg p-4 mb-6">
-                             <p class="text-lg font-semibold text-gray-700">
-                                 Número total de leads: <span class="text-2xl font-bold text-primary">${totalLeads}</span>
-                                 ${
-                                     totalLeadsVariation
-                                         ? `
-                                             <p class="metric-comparison ${
-                                                 totalLeadsVariation.direction === 'positive' ? 'increase' : 'decrease'
-                                             } text-sm mt-1">
-                                                 <i class="fas fa-arrow-${
-                                                     totalLeadsVariation.direction === 'positive' ? 'up' : 'down'
-                                                 } mr-1"></i>
-                                                 ${totalLeadsVariation.percentage}% em relação ao período anterior
-                                             </p>`
-                                         : ''
-                                 }
-                             </p>
-                         </div>`
-                     : `
-                         <div class="bg-blue-900 text-white rounded-lg p-4 mb-6">
-                             <h3 class="text-xl font-semibold uppercase mb-3">Campanhas</h3>
-                             <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                                 <div class="metric-card">
-                                     <h4 class="text-sm font-medium text-gray-200 mb-1">Investimento</h4>
-                                     <p class="text-lg font-semibold text-white">R$ ${metrics.spend.toFixed(2).replace('.', ',')}</p>
-                                 </div>
-                                 <div class="metric-card">
-                                     <h4 class="text-sm font-medium text-gray-200 mb-1">Alcance</h4>
-                                     <p class="text-lg font-semibold text-white">${metrics.reach}</p>
-                                     ${
-                                         comparisonMetrics
-                                             ? `
-                                                 <p class="metric-comparison ${
-                                                     variations.reach.direction === 'positive' ? 'increase' : 'decrease'
-                                                 } text-sm mt-1">
-                                                     <i class="fas fa-arrow-${
-                                                         variations.reach.direction === 'positive' ? 'up' : 'down'
-                                                     } mr-1"></i>
-                                                     ${variations.reach.percentage}% em relação ao período anterior
-                                                 </p>`
-                                             : ''
-                                     }
-                                 </div>
-                                 <div class="metric-card">
-                                     <h4 class="text-sm font-medium text-gray-200 mb-1">Conversas Iniciadas</h4>
-                                     <p class="text-lg font-semibold text-white">${metrics.conversations}</p>
-                                     ${
-                                         comparisonMetrics
-                                             ? `
-                                                 <p class="metric-comparison ${
-                                                     variations.conversations.direction === 'positive' ? 'increase' : 'decrease'
-                                                 } text-sm mt-1">
-                                                     <i class="fas fa-arrow-${
-                                                         variations.conversations.direction === 'positive' ? 'up' : 'down'
-                                                     } mr-1"></i>
-                                                     ${variations.conversations.percentage}% em relação ao período anterior
-                                                 </p>`
-                                             : ''
-                                     }
-                                 </div>
-                                 <div class="metric-card">
-                                     <h4 class="text-sm font-medium text-gray-200 mb-1">Custo por Conversa</h4>
-                                     <p class="text-lg font-semibold text-white">R$ ${metrics.costPerConversation.toFixed(2).replace('.', ',')}</p>
-                                     ${
-                                         comparisonMetrics
-                                             ? `
-                                                 <p class="metric-comparison ${
-                                                     variations.costPerConversation.direction === 'positive' ? 'increase' : 'decrease'
-                                                 } text-sm mt-1">
-                                                     <i class="fas fa-arrow-${
-                                                         variations.costPerConversation.direction === 'positive' ? 'down' : 'up'
-                                                     } mr-1"></i>
-                                                     ${variations.costPerConversation.percentage}% em relação ao período anterior
-                                                 </p>`
-                                             : ''
-                                     }
-                                 </div>
-                             </div>
-                         </div>`
-             }
-             ${
-                 bestAds.length > 0
-                     ? `
-                         <h3 class="text-xl font-semibold text-primary mb-3">Anúncios em Destaque</h3>
-                         <div class="space-y-4">
-                             ${bestAds
-                                 .map(
-                                     ad => `
-                                         <div class="flex items-center bg-white border border-gray-200 rounded-lg p-3">
-                                             <img src="${ad.imageUrl}" alt="Anúncio" class="w-24 h-24 object-cover rounded-md mr-4">
-                                             <div>
-                                                 <p class="text-gray-700 text-base"><strong>Leads:</strong> ${ad.messages}</p>
-                                                 <p class="text-gray-700 text-base"><strong>Investimento:</strong> R$ ${ad.spend.toFixed(2).replace('.', ',')}</p>
-                                                 <p class="text-gray-700 text-base"><strong>Custo por Lead:</strong> R$ ${ad.costPerMessage.replace('.', ',')}</p>
-                                                 <p class="text-gray-700 text-base"><strong>Mensagens:</strong> ${ad.messages}</p>
-                                                 <p class="text-gray-700 text-base"><strong>Custo por Msg:</strong> R$ ${ad.costPerMessage.replace('.', ',')}</p>
-                                             </div>
-                                         </div>
-                                     `
-                                 )
-                                 .join('')}
-                         </div>`
-                     : '<p class="text-gray-600 text-base">Nenhum anúncio com dados (leads ou investimento) encontrado para este período.</p>'
-                     : '<p class="text-gray-600 text-base">Nenhum anúncio com conversas iniciadas encontrado para este período.</p>'
-             }
-         </div>
-     `;
- 
-     reportContainer.insertAdjacentHTML('beforeend', reportHTML);
- }
+    const formattedStartDate = startDate ? startDate.split('-').reverse().join('/') : 'N/A';
+    const formattedEndDate = endDate ? endDate.split('-').reverse().join('/') : 'N/A';
+
+    let comparisonPeriod = '';
+    if (comparisonMetrics || comparisonTotalLeads !== null) {
+        const compareStart = comparisonData?.startDate ? comparisonData.startDate.split('-').reverse().join('/') : 'N/A';
+        const compareEnd = comparisonData?.endDate ? comparisonData.endDate.split('-').reverse().join('/') : 'N/A';
+        comparisonPeriod = `
+            <p class="text-gray-600 text-base mb-2">
+                <i class="fas fa-calendar-alt mr-2"></i>Comparação: 
+                ${compareStart} a ${compareEnd}
+            </p>
+        `;
+    }
+
+    let variations = {
+        reach: calculateVariation(metrics.reach, comparisonMetrics?.reach, 'reach'),
+        conversations: calculateVariation(metrics.conversations, comparisonMetrics?.conversations, 'conversations'),
+        costPerConversation: calculateVariation(metrics.costPerConversation, comparisonMetrics?.costPerConversation, 'costPerConversation')
+    };
+
+    let blackVariations = {};
+    let totalLeads = 0;
+    let totalLeadsVariation = null;
+    if (hasBlack && blackMetrics) {
+        blackVariations = {
+            reach: calculateVariation(blackMetrics.reach, blackComparisonMetrics?.reach, 'reach'),
+            conversations: calculateVariation(blackMetrics.conversations, blackComparisonMetrics?.conversations, 'conversations'),
+            costPerConversation: calculateVariation(blackMetrics.costPerConversation, blackComparisonMetrics?.costPerConversation, 'costPerConversation')
+        };
+        console.log(`Conversas White: ${metrics.conversations}, Conversas Black: ${blackMetrics.conversations}`);
+        totalLeads = (parseInt(metrics.conversations) || 0) + (parseInt(blackMetrics.conversations) || 0);
+        console.log(`Total de leads calculado: ${totalLeads}`);
+
+        if (comparisonTotalLeads !== null) {
+            totalLeadsVariation = calculateVariation(totalLeads, comparisonTotalLeads, 'conversations');
+        }
+    }
+
+    const reportHTML = `
+        <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
+            <h2 class="text-2xl font-semibold text-primary mb-4">Relatório Completo - ${unitName}</h2>
+            <p class="text-gray-600 text-base mb-4">
+                <i class="fas fa-calendar-alt mr-2"></i>Período Analisado: ${formattedStartDate} a ${formattedEndDate}
+            </p>
+            ${comparisonPeriod}
+            ${
+                hasBlack
+                    ? `
+                        <div class="bg-blue-900 text-white rounded-lg p-4 mb-6">
+                            <h3 class="text-xl font-semibold uppercase mb-3">Campanhas White</h3>
+                            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                                <div class="metric-card">
+                                    <h4 class="text-sm font-medium text-gray-200 mb-1">Investimento</h4>
+                                    <p class="text-lg font-semibold text-white">R$ ${metrics.spend.toFixed(2).replace('.', ',')}</p>
+                                </div>
+                                <div class="metric-card">
+                                    <h4 class="text-sm font-medium text-gray-200 mb-1">Alcance</h4>
+                                    <p class="text-lg font-semibold text-white">${metrics.reach}</p>
+                                </div>
+                                <div class="metric-card">
+                                    <h4 class="text-sm font-medium text-gray-200 mb-1">Conversas Iniciadas</h4>
+                                    <p class="text-lg font-semibold text-white">${metrics.conversations}</p>
+                                </div>
+                                <div class="metric-card">
+                                    <h4 class="text-sm font-medium text-gray-200 mb-1">Custo por Conversa</h4>
+                                    <p class="text-lg font-semibold text-white">R$ ${metrics.costPerConversation.toFixed(2).replace('.', ',')}</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="bg-blue-900 text-white rounded-lg p-4 mb-6">
+                            <h3 class="text-xl font-semibold uppercase mb-3">Campanhas Black</h3>
+                            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                                <div class="metric-card">
+                                    <h4 class="text-sm font-medium text-gray-200 mb-1">Investimento</h4>
+                                    <p class="text-lg font-semibold text-white">R$ ${blackMetrics.spend.toFixed(2).replace('.', ',')}</p>
+                                </div>
+                                <div class="metric-card">
+                                    <h4 class="text-sm font-medium text-gray-200 mb-1">Alcance</h4>
+                                    <p class="text-lg font-semibold text-white">${blackMetrics.reach}</p>
+                                </div>
+                                <div class="metric-card">
+                                    <h4 class="text-sm font-medium text-gray-200 mb-1">Conversas Iniciadas</h4>
+                                    <p class="text-lg font-semibold text-white">${blackMetrics.conversations}</p>
+                                </div>
+                                <div class="metric-card">
+                                    <h4 class="text-sm font-medium text-gray-200 mb-1">Custo por Conversa</h4>
+                                    <p class="text-lg font-semibold text-white">R$ ${blackMetrics.costPerConversation.toFixed(2).replace('.', ',')}</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="text-center bg-gray-100 rounded-lg p-4 mb-6">
+                            <p class="text-lg font-semibold text-gray-700">
+                                Número total de leads: <span class="text-2xl font-bold text-primary">${totalLeads}</span>
+                                ${
+                                    totalLeadsVariation
+                                        ? `
+                                            <p class="metric-comparison ${
+                                                totalLeadsVariation.direction === 'positive' ? 'increase' : 'decrease'
+                                            } text-sm mt-1">
+                                                <i class="fas fa-arrow-${
+                                                    totalLeadsVariation.direction === 'positive' ? 'up' : 'down'
+                                                } mr-1"></i>
+                                                ${totalLeadsVariation.percentage}% em relação ao período anterior
+                                            </p>`
+                                        : ''
+                                }
+                            </p>
+                        </div>`
+                    : `
+                        <div class="bg-blue-900 text-white rounded-lg p-4 mb-6">
+                            <h3 class="text-xl font-semibold uppercase mb-3">Campanhas</h3>
+                            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                                <div class="metric-card">
+                                    <h4 class="text-sm font-medium text-gray-200 mb-1">Investimento</h4>
+                                    <p class="text-lg font-semibold text-white">R$ ${metrics.spend.toFixed(2).replace('.', ',')}</p>
+                                </div>
+                                <div class="metric-card">
+                                    <h4 class="text-sm font-medium text-gray-200 mb-1">Alcance</h4>
+                                    <p class="text-lg font-semibold text-white">${metrics.reach}</p>
+                                    ${
+                                        comparisonMetrics
+                                            ? `
+                                                <p class="metric-comparison ${
+                                                    variations.reach.direction === 'positive' ? 'increase' : 'decrease'
+                                                } text-sm mt-1">
+                                                    <i class="fas fa-arrow-${
+                                                        variations.reach.direction === 'positive' ? 'up' : 'down'
+                                                    } mr-1"></i>
+                                                    ${variations.reach.percentage}% em relação ao período anterior
+                                                </p>`
+                                            : ''
+                                    }
+                                </div>
+                                <div class="metric-card">
+                                    <h4 class="text-sm font-medium text-gray-200 mb-1">Conversas Iniciadas</h4>
+                                    <p class="text-lg font-semibold text-white">${metrics.conversations}</p>
+                                    ${
+                                        comparisonMetrics
+                                            ? `
+                                                <p class="metric-comparison ${
+                                                    variations.conversations.direction === 'positive' ? 'increase' : 'decrease'
+                                                } text-sm mt-1">
+                                                    <i class="fas fa-arrow-${
+                                                        variations.conversations.direction === 'positive' ? 'up' : 'down'
+                                                    } mr-1"></i>
+                                                    ${variations.conversations.percentage}% em relação ao período anterior
+                                                </p>`
+                                            : ''
+                                    }
+                                </div>
+                                <div class="metric-card">
+                                    <h4 class="text-sm font-medium text-gray-200 mb-1">Custo por Conversa</h4>
+                                    <p class="text-lg font-semibold text-white">R$ ${metrics.costPerConversation.toFixed(2).replace('.', ',')}</p>
+                                    ${
+                                        comparisonMetrics
+                                            ? `
+                                                <p class="metric-comparison ${
+                                                    variations.costPerConversation.direction === 'positive' ? 'increase' : 'decrease'
+                                                } text-sm mt-1">
+                                                    <i class="fas fa-arrow-${
+                                                        variations.costPerConversation.direction === 'positive' ? 'down' : 'up'
+                                                    } mr-1"></i>
+                                                    ${variations.costPerConversation.percentage}% em relação ao período anterior
+                                                </p>`
+                                            : ''
+                                    }
+                                </div>
+                            </div>
+                        </div>`
+            }
+            ${
+                bestAds.length > 0
+                    ? `
+                        <h3 class="text-xl font-semibold text-primary mb-3">Anúncios em Destaque</h3>
+                        <div class="space-y-4">
+                            ${bestAds
+                                .map(
+                                    ad => `
+                                        <div class="flex items-center bg-white border border-gray-200 rounded-lg p-3">
+                                            <img src="${ad.imageUrl}" alt="Anúncio" class="w-24 h-24 object-cover rounded-md mr-4">
+                                            <div>
+                                                <p class="text-gray-700 text-base"><strong>Leads:</strong> ${ad.messages}</p>
+                                                <p class="text-gray-700 text-base"><strong>Investimento:</strong> R$ ${ad.spend.toFixed(2).replace('.', ',')}</p>
+                                                <p class="text-gray-700 text-base"><strong>Custo por Lead:</strong> R$ ${ad.costPerMessage.replace('.', ',')}</p>
+                                            </div>
+                                        </div>
+                                    `
+                                )
+                                .join('')}
+                        </div>`
+                    : '<p class="text-gray-600 text-base">Nenhum anúncio com dados (leads ou investimento) encontrado para este período.</p>'
+            }
+        </div>
+    `;
+
+    reportContainer.insertAdjacentHTML('beforeend', reportHTML);
+}
  
  
  

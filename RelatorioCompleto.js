@@ -1031,11 +1031,7 @@ form.addEventListener('submit', async (e) => {
     }
 });
 
-async function generateReport() {
-    const unitId = document.getElementById('unitId').value;
-    const unitName = fbAuth.getAdAccounts()[unitId] || 'Unidade Desconhecida';
-    const startDate = document.getElementById('startDate').value;
-    const endDate = document.getElementById('endDate').value;
+async function generateReport(unitId, unitName, startDate, endDate) {
     // Capturar os novos campos
     const budgetsCompleted = parseInt(document.getElementById('budgetsCompleted').value) || 0;
     const salesCount = parseInt(document.getElementById('salesCount').value) || 0;
@@ -1055,18 +1051,57 @@ async function generateReport() {
     const formattedStartDate = new Date(startDate).toLocaleDateString('pt-BR');
     const formattedEndDate = new Date(endDate).toLocaleDateString('pt-BR');
 
-    const campaigns = await fbAuth.fetchCampaigns(unitId, startDate, endDate);
-    const campaignsData = await Promise.all(campaigns.map(async (campaign) => {
-        const insights = await fbAuth.fetchInsights(campaign.id, startDate, endDate);
-        return { ...campaign, insights };
-    }));
+    // Garantir que as campanhas foram carregadas
+    if (!campaignsMap[unitId]) {
+        await loadCampaigns(unitId, startDate, endDate);
+    }
 
-    const totalSpend = campaignsData.reduce((sum, campaign) => sum + (campaign.insights?.spend || 0), 0);
-    const totalReach = campaignsData.reduce((sum, campaign) => sum + (campaign.insights?.reach || 0), 0);
-    const totalConversations = campaignsData.reduce((sum, campaign) => sum + (campaign.insights?.messaging_conversations || 0), 0);
+    // Filtrar campanhas com base nos filtros selecionados
+    let campaigns = Object.entries(campaignsMap[unitId] || {});
+    if (hasBlack) {
+        if (selectedWhiteCampaigns.size > 0) {
+            campaigns = campaigns.filter(([id]) => selectedWhiteCampaigns.has(id));
+        } else if (selectedBlackCampaigns.size > 0) {
+            campaigns = campaigns.filter(([id]) => selectedBlackCampaigns.has(id));
+        }
+    } else if (selectedCampaigns.size > 0) {
+        campaigns = campaigns.filter(([id]) => selectedCampaigns.has(id));
+    }
+
+    // Mapear as campanhas para o formato esperado
+    const campaignsData = await Promise.all(
+        campaigns.map(async ([id, campaign]) => {
+            const insights = await getCampaignInsights(id, startDate, endDate);
+            return { id, name: campaign.name, insights };
+        })
+    );
+
+    // Calcular métricas totais
+    const totalSpend = campaignsData.reduce((sum, campaign) => sum + (parseFloat(campaign.insights.spend) || 0), 0);
+    const totalReach = campaignsData.reduce((sum, campaign) => sum + (parseInt(campaign.insights.reach) || 0), 0);
+    let totalConversations = 0;
+    campaignsData.forEach(campaign => {
+        if (campaign.insights.actions) {
+            const conversationAction = campaign.insights.actions.find(
+                action => action.action_type === 'onsite_conversion.messaging_conversation_started_7d'
+            );
+            if (conversationAction && conversationAction.value) {
+                totalConversations += parseInt(conversationAction.value) || 0;
+            }
+            const customConversions = campaign.insights.actions.filter(
+                action => action.action_type.startsWith('offsite_conversion.')
+            );
+            customConversions.forEach(action => {
+                if (action.value) {
+                    totalConversations += parseInt(action.value) || 0;
+                }
+            });
+        }
+    });
+
     const costPerConversation = totalConversations > 0 ? (totalSpend / totalConversations).toFixed(2) : '0.00';
 
-    const reportContainer = document.getElementById('reportContainer');
+    // Renderizar o relatório
     reportContainer.innerHTML = `
         <div class="report-container">
             <h2 class="text-2xl font-bold text-white mb-4">Relatório Completo - ${unitName}</h2>
@@ -1112,7 +1147,7 @@ async function generateReport() {
         </div>
     `;
 
-    const shareWhatsAppBtn = document.getElementById('shareWhatsAppBtn');
+    // Configurar o botão de compartilhamento no WhatsApp
     shareWhatsAppBtn.classList.remove('hidden');
     shareWhatsAppBtn.addEventListener('click', () => {
         const reportText = `

@@ -195,8 +195,6 @@ function updateFilterButtons() {
     }
 }
 
-
-
 // Event Listeners para os botões "Sim" e "Não"
 hasBlackYesBtn.addEventListener('click', () => {
     hasBlack = true;
@@ -215,7 +213,6 @@ hasBlackNoBtn.addEventListener('click', () => {
     comparisonFilter.classList.remove('hidden');
     enableButtons();
 });
-
 
 // Carregar dados quando o formulário é preenchido
 form.addEventListener('input', async function(e) {
@@ -990,11 +987,14 @@ form.addEventListener('submit', async (e) => {
     e.preventDefault();
     try {
         const unitId = document.getElementById('unitId').value;
+        const unitName = unitSelect.options[unitSelect.selectedIndex].text;
         const startDate = document.getElementById('startDate').value;
         const endDate = document.getElementById('endDate').value;
 
+        console.log(`Dados do formulário - unitId: ${unitId}, unitName: ${unitName}, startDate: ${startDate}, endDate: ${endDate}`);
+
         if (!unitId || !startDate || !endDate) {
-            alert('Preencha todos os campos obrigatórios');
+            alert('Por favor, preencha todos os campos obrigatórios (unidade, data de início e data de fim).');
             return;
         }
 
@@ -1008,7 +1008,8 @@ form.addEventListener('submit', async (e) => {
         submitButton.disabled = true;
         submitButton.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Gerando...';
 
-        await generateReport();
+        // Corrigir a chamada para passar os parâmetros
+        await generateReport(unitId, unitName, startDate, endDate);
 
         submitButton.disabled = false;
         submitButton.innerHTML = originalText;
@@ -1020,6 +1021,13 @@ form.addEventListener('submit', async (e) => {
 
 async function generateReport(unitId, unitName, startDate, endDate) {
     try {
+        console.log(`Gerando relatório para unitId: ${unitId}, unitName: ${unitName}, startDate: ${startDate}, endDate: ${endDate}`);
+
+        // Validação adicional para startDate e endDate
+        if (!startDate || !endDate) {
+            throw new Error('Datas de início ou fim não fornecidas.');
+        }
+
         reportContainer.innerHTML = '<p class="text-center text-gray-600">Gerando relatório, por favor aguarde...</p>';
         shareWhatsAppBtn.classList.add('hidden');
 
@@ -1062,7 +1070,6 @@ async function generateReport(unitId, unitName, startDate, endDate) {
         reportContainer.innerHTML = '<p class="text-center text-red-600">Erro ao gerar o relatório. Por favor, tente novamente.</p>';
     }
 }
-
 
 async function calculateMetrics(unitId, startDate, endDate, campaignsSet, adSetsSet) {
     let totalSpend = 0;
@@ -1115,8 +1122,6 @@ async function calculateMetrics(unitId, startDate, endDate, campaignsSet, adSets
     return { spend: totalSpend, conversations: totalConversations, reach: totalReach, costPerConversation };
 }
 
-
-
 async function calculateTotalLeadsForAccount(unitId, startDate, endDate) {
     let totalConversations = 0;
 
@@ -1155,8 +1160,6 @@ async function calculateTotalLeadsForAccount(unitId, startDate, endDate) {
     console.log(`Total de leads da conta no período de comparação: ${totalConversations}`);
     return totalConversations;
 }
-
-
 
 async function getBestAds(unitId, startDate, endDate) {
     const bestAds = [];
@@ -1207,8 +1210,6 @@ async function getBestAds(unitId, startDate, endDate) {
     return bestAds;
 }
 
-
-
 function calculateVariation(current, previous, metric) {
     if (!previous || previous === 0) return { percentage: 0, direction: 'neutral' };
     const percentage = ((current - previous) / previous) * 100;
@@ -1224,16 +1225,17 @@ function calculateVariation(current, previous, metric) {
 }
 
 function renderReport(unitName, startDate, endDate, metrics, comparisonMetrics, blackMetrics, blackComparisonMetrics, bestAds, comparisonTotalLeads) {
-    const formattedStartDate = startDate.split('-').reverse().join('/');
-    const formattedEndDate = endDate.split('-').reverse().join('/');
+    const formattedStartDate = startDate ? startDate.split('-').reverse().join('/') : 'N/A';
+    const formattedEndDate = endDate ? endDate.split('-').reverse().join('/') : 'N/A';
 
     let comparisonPeriod = '';
     if (comparisonMetrics || comparisonTotalLeads !== null) {
+        const compareStart = comparisonData?.startDate ? comparisonData.startDate.split('-').reverse().join('/') : 'N/A';
+        const compareEnd = comparisonData?.endDate ? comparisonData.endDate.split('-').reverse().join('/') : 'N/A';
         comparisonPeriod = `
             <p class="text-gray-600 text-base mb-2">
                 <i class="fas fa-calendar-alt mr-2"></i>Comparação: 
-                ${comparisonData.startDate.split('-').reverse().join('/')} a 
-                ${comparisonData.endDate.split('-').reverse().join('/')}
+                ${compareStart} a ${compareEnd}
             </p>
         `;
     }
@@ -1421,8 +1423,6 @@ function renderReport(unitName, startDate, endDate, metrics, comparisonMetrics, 
 
     reportContainer.insertAdjacentHTML('beforeend', reportHTML);
 }
-
-
 
 // Compartilhar no WhatsApp
 shareWhatsAppBtn.addEventListener('click', () => {

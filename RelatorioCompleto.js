@@ -1119,7 +1119,7 @@ async function calculateMetrics(unitId, startDate, endDate, campaigns = null, ad
             if (insights.actions) {
                 insights.actions.forEach(action => {
                     if (action.action_type === 'onsite_conversion.messaging_conversation_started_7d') {
-                        totalConversations += parseInt(action.value);
+                        totalConversations += parseInt(action.value) || 0;
                     }
                 });
             }
@@ -1132,7 +1132,7 @@ async function calculateMetrics(unitId, startDate, endDate, campaigns = null, ad
             if (insights.actions) {
                 insights.actions.forEach(action => {
                     if (action.action_type === 'onsite_conversion.messaging_conversation_started_7d') {
-                        totalConversations += parseInt(action.value);
+                        totalConversations += parseInt(action.value) || 0;
                     }
                 });
             }
@@ -1158,7 +1158,7 @@ async function calculateMetrics(unitId, startDate, endDate, campaigns = null, ad
                 if (data.actions) {
                     data.actions.forEach(action => {
                         if (action.action_type === 'onsite_conversion.messaging_conversation_started_7d') {
-                            totalConversations += parseInt(action.value);
+                            totalConversations += parseInt(action.value) || 0;
                         }
                     });
                 }
@@ -1166,10 +1166,13 @@ async function calculateMetrics(unitId, startDate, endDate, campaigns = null, ad
         }
     }
 
+    // Log para depuração
+    console.log(`Métricas calculadas - Investimento: ${totalSpend}, Alcance: ${totalReach}, Conversas: ${totalConversations}`);
+
     return {
         spend: totalSpend,
-        conversations: totalConversations,
-        reach: totalReach,
+        conversations: totalConversations || 0,
+        reach: totalReach || 0,
         costPerConversation: totalConversations > 0 ? totalSpend / totalConversations : 0
     };
 }
@@ -1195,7 +1198,7 @@ function renderReport(unitName, startDate, endDate, metrics, comparisonMetrics, 
     let comparisonPeriod = '';
     if (comparisonMetrics && comparisonData) {
         comparisonPeriod = `
-            <p class="text-gray-600">
+            <p class="text-gray-600 text-base mb-2">
                 <i class="fas fa-calendar-alt mr-2"></i>Comparação: 
                 ${comparisonData.startDate.split('-').reverse().join('/')} a 
                 ${comparisonData.endDate.split('-').reverse().join('/')}
@@ -1217,35 +1220,38 @@ function renderReport(unitName, startDate, endDate, metrics, comparisonMetrics, 
             conversations: calculateVariation(blackMetrics.conversations, blackComparisonMetrics?.conversations, 'conversations'),
             costPerConversation: calculateVariation(blackMetrics.costPerConversation, blackComparisonMetrics?.costPerConversation, 'costPerConversation')
         };
-        totalLeads = metrics.conversations + blackMetrics.conversations;
+        // Log para depuração
+        console.log(`Conversas White: ${metrics.conversations}, Conversas Black: ${blackMetrics.conversations}`);
+        totalLeads = (metrics.conversations || 0) + (blackMetrics.conversations || 0);
+        console.log(`Total de leads calculado: ${totalLeads}`);
     }
 
     const reportHTML = `
         <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
             <h2 class="text-2xl font-semibold text-primary mb-4">Relatório Completo - ${unitName}</h2>
-            <p class="text-gray-600 mb-4">
+            <p class="text-gray-600 text-base mb-4">
                 <i class="fas fa-calendar-alt mr-2"></i>Período Analisado: ${formattedStartDate} a ${formattedEndDate}
             </p>
             ${comparisonPeriod}
             ${
                 hasBlack
                     ? `
-                        <div class="bg-blue-900 text-white rounded-lg p-4 mb-4">
-                            <h3 class="text-lg font-semibold uppercase mb-2">Campanhas White</h3>
+                        <div class="bg-blue-900 text-white rounded-lg p-4 mb-6">
+                            <h3 class="text-xl font-semibold uppercase mb-3">Campanhas White</h3>
                             <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
                                 <div class="metric-card">
-                                    <h4 class="text-sm font-medium text-gray-200">Investimento</h4>
-                                    <p class="text-lg font-semibold">R$ ${metrics.spend.toFixed(2).replace('.', ',')}</p>
+                                    <h4 class="text-sm font-medium text-gray-200 mb-1">Investimento</h4>
+                                    <p class="text-lg font-semibold text-white">R$ ${metrics.spend.toFixed(2).replace('.', ',')}</p>
                                 </div>
                                 <div class="metric-card">
-                                    <h4 class="text-sm font-medium text-gray-200">Alcance</h4>
-                                    <p class="text-lg font-semibold">${metrics.reach}</p>
+                                    <h4 class="text-sm font-medium text-gray-200 mb-1">Alcance</h4>
+                                    <p class="text-lg font-semibold text-white">${metrics.reach}</p>
                                     ${
                                         comparisonMetrics
                                             ? `
                                                 <p class="metric-comparison ${
                                                     variations.reach.direction === 'positive' ? 'increase' : 'decrease'
-                                                }">
+                                                } text-sm mt-1">
                                                     <i class="fas fa-arrow-${
                                                         variations.reach.direction === 'positive' ? 'up' : 'down'
                                                     } mr-1"></i>
@@ -1255,14 +1261,14 @@ function renderReport(unitName, startDate, endDate, metrics, comparisonMetrics, 
                                     }
                                 </div>
                                 <div class="metric-card">
-                                    <h4 class="text-sm font-medium text-gray-200">Conversas Iniciadas</h4>
-                                    <p class="text-lg font-semibold">${metrics.conversations}</p>
+                                    <h4 class="text-sm font-medium text-gray-200 mb-1">Conversas Iniciadas</h4>
+                                    <p class="text-lg font-semibold text-white">${metrics.conversations}</p>
                                     ${
                                         comparisonMetrics
                                             ? `
                                                 <p class="metric-comparison ${
                                                     variations.conversations.direction === 'positive' ? 'increase' : 'decrease'
-                                                }">
+                                                } text-sm mt-1">
                                                     <i class="fas fa-arrow-${
                                                         variations.conversations.direction === 'positive' ? 'up' : 'down'
                                                     } mr-1"></i>
@@ -1272,14 +1278,14 @@ function renderReport(unitName, startDate, endDate, metrics, comparisonMetrics, 
                                     }
                                 </div>
                                 <div class="metric-card">
-                                    <h4 class="text-sm font-medium text-gray-200">Custo por Conversa</h4>
-                                    <p class="text-lg font-semibold">R$ ${metrics.costPerConversation.toFixed(2).replace('.', ',')}</p>
+                                    <h4 class="text-sm font-medium text-gray-200 mb-1">Custo por Conversa</h4>
+                                    <p class="text-lg font-semibold text-white">R$ ${metrics.costPerConversation.toFixed(2).replace('.', ',')}</p>
                                     ${
                                         comparisonMetrics
                                             ? `
                                                 <p class="metric-comparison ${
                                                     variations.costPerConversation.direction === 'positive' ? 'increase' : 'decrease'
-                                                }">
+                                                } text-sm mt-1">
                                                     <i class="fas fa-arrow-${
                                                         variations.costPerConversation.direction === 'positive' ? 'down' : 'up'
                                                     } mr-1"></i>
@@ -1290,22 +1296,22 @@ function renderReport(unitName, startDate, endDate, metrics, comparisonMetrics, 
                                 </div>
                             </div>
                         </div>
-                        <div class="bg-blue-900 text-white rounded-lg p-4 mb-4">
-                            <h3 class="text-lg font-semibold uppercase mb-2">Campanhas Black</h3>
+                        <div class="bg-blue-900 text-white rounded-lg p-4 mb-6">
+                            <h3 class="text-xl font-semibold uppercase mb-3">Campanhas Black</h3>
                             <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
                                 <div class="metric-card">
-                                    <h4 class="text-sm font-medium text-gray-200">Investimento</h4>
-                                    <p class="text-lg font-semibold">R$ ${blackMetrics.spend.toFixed(2).replace('.', ',')}</p>
+                                    <h4 class="text-sm font-medium text-gray-200 mb-1">Investimento</h4>
+                                    <p class="text-lg font-semibold text-white">R$ ${blackMetrics.spend.toFixed(2).replace('.', ',')}</p>
                                 </div>
                                 <div class="metric-card">
-                                    <h4 class="text-sm font-medium text-gray-200">Alcance</h4>
-                                    <p class="text-lg font-semibold">${blackMetrics.reach}</p>
+                                    <h4 class="text-sm font-medium text-gray-200 mb-1">Alcance</h4>
+                                    <p class="text-lg font-semibold text-white">${blackMetrics.reach}</p>
                                     ${
                                         blackComparisonMetrics
                                             ? `
                                                 <p class="metric-comparison ${
                                                     blackVariations.reach.direction === 'positive' ? 'increase' : 'decrease'
-                                                }">
+                                                } text-sm mt-1">
                                                     <i class="fas fa-arrow-${
                                                         blackVariations.reach.direction === 'positive' ? 'up' : 'down'
                                                     } mr-1"></i>
@@ -1315,14 +1321,14 @@ function renderReport(unitName, startDate, endDate, metrics, comparisonMetrics, 
                                     }
                                 </div>
                                 <div class="metric-card">
-                                    <h4 class="text-sm font-medium text-gray-700 mb-2">Conversas Iniciadas</h4>
-                                    <p class="text-lg font-semibold">${blackMetrics.conversations}</p>
+                                    <h4 class="text-sm font-medium text-gray-200 mb-1">Conversas Iniciadas</h4>
+                                    <p class="text-lg font-semibold text-white">${blackMetrics.conversations}</p>
                                     ${
                                         blackComparisonMetrics
                                             ? `
                                                 <p class="metric-comparison ${
                                                     blackVariations.conversations.direction === 'positive' ? 'increase' : 'decrease'
-                                                }">
+                                                } text-sm mt-1">
                                                     <i class="fas fa-arrow-${
                                                         blackVariations.conversations.direction === 'positive' ? 'up' : 'down'
                                                     } mr-1"></i>
@@ -1332,14 +1338,14 @@ function renderReport(unitName, startDate, endDate, metrics, comparisonMetrics, 
                                     }
                                 </div>
                                 <div class="metric-card">
-                                    <h4 class="text-sm font-medium text-gray-200">Custo por Conversa</h4>
-                                    <p class="text-lg font-semibold">R$ ${blackMetrics.costPerConversation.toFixed(2).replace('.', ',')}</p>
+                                    <h4 class="text-sm font-medium text-gray-200 mb-1">Custo por Conversa</h4>
+                                    <p class="text-lg font-semibold text-white">R$ ${blackMetrics.costPerConversation.toFixed(2).replace('.', ',')}</p>
                                     ${
                                         blackComparisonMetrics
                                             ? `
                                                 <p class="metric-comparison ${
                                                     blackVariations.costPerConversation.direction === 'positive' ? 'increase' : 'decrease'
-                                                }">
+                                                } text-sm mt-1">
                                                     <i class="fas fa-arrow-${
                                                         blackVariations.costPerConversation.direction === 'positive' ? 'down' : 'up'
                                                     } mr-1"></i>
@@ -1350,28 +1356,28 @@ function renderReport(unitName, startDate, endDate, metrics, comparisonMetrics, 
                                 </div>
                             </div>
                         </div>
-                        <div class="mb-6">
-                            <p class="text-gray-600 text-lg font-semibold">
-                                Número total de leads: <span class="text-primary">${totalLeads}</span>
+                        <div class="text-center bg-gray-100 rounded-lg p-4 mb-6">
+                            <p class="text-lg font-semibold text-gray-700">
+                                Número total de leads: <span class="text-2xl font-bold text-primary">${totalLeads}</span>
                             </p>
                         </div>`
                     : `
-                        <div class="bg-blue-900 text-white rounded-lg p-4 mb-4">
-                            <h3 class="text-lg font-semibold uppercase mb-2">Campanhas</h3>
+                        <div class="bg-blue-900 text-white rounded-lg p-4 mb-6">
+                            <h3 class="text-xl font-semibold uppercase mb-3">Campanhas</h3>
                             <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
                                 <div class="metric-card">
-                                    <h4 class="text-sm font-medium text-gray-200">Investimento</h4>
-                                    <p class="text-lg font-semibold">R$ ${metrics.spend.toFixed(2).replace('.', ',')}</p>
+                                    <h4 class="text-sm font-medium text-gray-200 mb-1">Investimento</h4>
+                                    <p class="text-lg font-semibold text-white">R$ ${metrics.spend.toFixed(2).replace('.', ',')}</p>
                                 </div>
                                 <div class="metric-card">
-                                    <h4 class="text-sm font-medium text-gray-200">Alcance</h4>
-                                    <p class="text-lg font-semibold">${metrics.reach}</p>
+                                    <h4 class="text-sm font-medium text-gray-200 mb-1">Alcance</h4>
+                                    <p class="text-lg font-semibold text-white">${metrics.reach}</p>
                                     ${
                                         comparisonMetrics
                                             ? `
                                                 <p class="metric-comparison ${
                                                     variations.reach.direction === 'positive' ? 'increase' : 'decrease'
-                                                }">
+                                                } text-sm mt-1">
                                                     <i class="fas fa-arrow-${
                                                         variations.reach.direction === 'positive' ? 'up' : 'down'
                                                     } mr-1"></i>
@@ -1381,14 +1387,14 @@ function renderReport(unitName, startDate, endDate, metrics, comparisonMetrics, 
                                     }
                                 </div>
                                 <div class="metric-card">
-                                    <h4 class="text-sm font-medium text-gray-200">Conversas Iniciadas</h4>
-                                    <p class="text-lg font-semibold">${metrics.conversations}</p>
+                                    <h4 class="text-sm font-medium text-gray-200 mb-1">Conversas Iniciadas</h4>
+                                    <p class="text-lg font-semibold text-white">${metrics.conversations}</p>
                                     ${
                                         comparisonMetrics
                                             ? `
                                                 <p class="metric-comparison ${
                                                     variations.conversations.direction === 'positive' ? 'increase' : 'decrease'
-                                                }">
+                                                } text-sm mt-1">
                                                     <i class="fas fa-arrow-${
                                                         variations.conversations.direction === 'positive' ? 'up' : 'down'
                                                     } mr-1"></i>
@@ -1398,14 +1404,14 @@ function renderReport(unitName, startDate, endDate, metrics, comparisonMetrics, 
                                     }
                                 </div>
                                 <div class="metric-card">
-                                    <h4 class="text-sm font-medium text-gray-200">Custo por Conversa</h4>
-                                    <p class="text-lg font-semibold">R$ ${metrics.costPerConversation.toFixed(2).replace('.', ',')}</p>
+                                    <h4 class="text-sm font-medium text-gray-200 mb-1">Custo por Conversa</h4>
+                                    <p class="text-lg font-semibold text-white">R$ ${metrics.costPerConversation.toFixed(2).replace('.', ',')}</p>
                                     ${
                                         comparisonMetrics
                                             ? `
                                                 <p class="metric-comparison ${
                                                     variations.costPerConversation.direction === 'positive' ? 'increase' : 'decrease'
-                                                }">
+                                                } text-sm mt-1">
                                                     <i class="fas fa-arrow-${
                                                         variations.costPerConversation.direction === 'positive' ? 'down' : 'up'
                                                     } mr-1"></i>
@@ -1420,7 +1426,7 @@ function renderReport(unitName, startDate, endDate, metrics, comparisonMetrics, 
             ${
                 bestAds.length > 0
                     ? `
-                        <h3 class="text-xl font-semibold text-primary mb-4">Anúncios em Destaque</h3>
+                        <h3 class="text-xl font-semibold text-primary mb-3">Anúncios em Destaque</h3>
                         <div class="space-y-4">
                             ${bestAds
                                 .map(
@@ -1428,15 +1434,15 @@ function renderReport(unitName, startDate, endDate, metrics, comparisonMetrics, 
                                         <div class="flex items-center bg-white border border-gray-200 rounded-lg p-3">
                                             <img src="${ad.imageUrl}" alt="Anúncio" class="w-24 h-24 object-cover rounded-md mr-4">
                                             <div>
-                                                <p class="text-gray-700"><strong>Mensagens:</strong> ${ad.messages}</p>
-                                                <p class="text-gray-700"><strong>Custo por Msg:</strong> R$ ${ad.costPerMessage.replace('.', ',')}</p>
+                                                <p class="text-gray-700 text-base"><strong>Mensagens:</strong> ${ad.messages}</p>
+                                                <p class="text-gray-700 text-base"><strong>Custo por Msg:</strong> R$ ${ad.costPerMessage.replace('.', ',')}</p>
                                             </div>
                                         </div>
                                     `
                                 )
                                 .join('')}
                         </div>`
-                    : '<p class="text-gray-600">Nenhum anúncio com conversas iniciadas encontrado para este período.</p>'
+                    : '<p class="text-gray-600 text-base">Nenhum anúncio com conversas iniciadas encontrado para este período.</p>'
             }
         </div>
     `;

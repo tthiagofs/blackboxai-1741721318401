@@ -1167,13 +1167,22 @@ async function calculateTotalLeadsForAccount(unitId, startDate, endDate) {
 async function getBestAds(unitId, startDate, endDate) {
     const adsWithActions = []; // Anúncios com mensagens/conversões
     const adsWithoutActions = []; // Anúncios sem mensagens/conversões, mas com gasto
-    let url = `/${unitId}/ads?fields=id,name,creative,insights{actions,spend,reach}&time_range[since]=${startDate}&time_range[until]=${endDate}&access_token=${currentAccessToken}&limit=50`;
+    let url = `/${unitId}/ads`;
 
     // Buscar todos os anúncios da conta com insights incluídos
     const adsList = [];
     while (url) {
         const adResponse = await new Promise((resolve) => {
-            FB.api(url, resolve);
+            FB.api(
+                url,
+                {
+                    fields: 'id,name,creative,insights{actions,spend,reach}',
+                    time_range: { since: startDate, until: endDate },
+                    access_token: currentAccessToken,
+                    limit: 50
+                },
+                resolve
+            );
         });
         if (adResponse && !adResponse.error) {
             adsList.push(...adResponse.data);
@@ -1182,7 +1191,6 @@ async function getBestAds(unitId, startDate, endDate) {
             console.error(`Erro ao carregar anúncios da conta ${unitId}:`, adResponse?.error);
             url = null;
         }
-        // Removido o delay para melhorar a performance
     }
 
     // Processar os anúncios
@@ -1192,30 +1200,38 @@ async function getBestAds(unitId, startDate, endDate) {
         let spend = 0;
         let imageUrl = 'https://dummyimage.com/150x150/ccc/fff';
 
-        // Extrair métricas dos insights já retornados
+        // Extrair métricas dos insights, garantindo que sejam do período
         if (ad.insights && ad.insights.data && ad.insights.data.length > 0) {
             const insights = ad.insights.data[0];
-            if (insights.actions) {
-                // Contar mensagens
-                const conversationAction = insights.actions.find(
-                    action => action.action_type === 'onsite_conversion.messaging_conversation_started_7d'
-                );
-                if (conversationAction && conversationAction.value) {
-                    totalActions += parseInt(conversationAction.value) || 0;
-                }
-
-                // Contar todas as conversões personalizadas
-                const customConversions = insights.actions.filter(
-                    action => action.action_type.startsWith('offsite_conversion.')
-                );
-                customConversions.forEach(action => {
-                    if (action.value) {
-                        totalActions += parseInt(action.value) || 0;
+            // Verificar se o período dos insights corresponde ao solicitado
+            if (insights.date_start === startDate && insights.date_stop === endDate) {
+                if (insights.actions) {
+                    // Contar mensagens
+                    const conversationAction = insights.actions.find(
+                        action => action.action_type === 'onsite_conversion.messaging_conversation_started_7d'
+                    );
+                    if (conversationAction && conversationAction.value) {
+                        totalActions += parseInt(conversationAction.value) || 0;
                     }
-                });
+
+                    // Contar todas as conversões personalizadas
+                    const customConversions = insights.actions.filter(
+                        action => action.action_type.startsWith('offsite_conversion.')
+                    );
+                    customConversions.forEach(action => {
+                        if (action.value) {
+                            totalActions += parseInt(action.value) || 0;
+                        }
+                    });
+                }
+                spend = insights.spend ? parseFloat(insights.spend) : 0;
+                costPerAction = totalActions > 0 ? (spend / totalActions).toFixed(2) : '0.00';
+            } else {
+                // Se os insights não correspondem ao período, descartar as métricas
+                totalActions = 0;
+                spend = 0;
+                costPerAction = '0.00';
             }
-            spend = insights.spend ? parseFloat(insights.spend) : 0;
-            costPerAction = totalActions > 0 ? (spend / totalActions).toFixed(2) : '0.00';
         }
 
         // Adicionar o anúncio à lista apropriada

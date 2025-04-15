@@ -43,6 +43,7 @@ const closeBlackCampaignsModalBtn = document.getElementById('closeBlackCampaigns
 const closeBlackAdSetsModalBtn = document.getElementById('closeBlackAdSetsModal');
 const applyBlackCampaignsBtn = document.getElementById('applyBlackCampaigns');
 const applyBlackAdSetsBtn = document.getElementById('applyBlackAdSets');
+const refreshBtn = document.getElementById('refreshBtn');
 
 // Estado
 let selectedCampaigns = new Set();
@@ -1513,4 +1514,34 @@ shareWhatsAppBtn.addEventListener('click', () => {
 // Voltar para a seleção de relatórios
 backToReportSelectionBtn.addEventListener('click', () => {
     window.location.href = 'index.html?appLoggedIn=true';
+});
+
+
+// Limpar seleções e recarregar a página
+refreshBtn.addEventListener('click', () => {
+    // Limpar todas as seleções
+    selectedCampaigns.clear();
+    selectedAdSets.clear();
+    selectedWhiteCampaigns.clear();
+    selectedWhiteAdSets.clear();
+    selectedBlackCampaigns.clear();
+    selectedBlackAdSets.clear();
+    comparisonData = null;
+    hasBlack = null;
+
+    // Limpar o formulário
+    form.reset();
+    reportContainer.innerHTML = '';
+    shareWhatsAppBtn.classList.add('hidden');
+
+    // Limpar os filtros visuais
+    whiteFilters.classList.add('hidden');
+    blackFilters.classList.add('hidden');
+    defaultFilters.classList.remove('hidden');
+
+    // Desabilitar botões novamente até que "A unidade possui Black?" seja respondido
+    disableButtons();
+
+    // Recarregar a página
+    window.location.reload();
 });

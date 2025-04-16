@@ -1727,17 +1727,27 @@ exportPdfBtn.addEventListener('click', async () => {
     }
 
     // Forçar renderização completa do DOM após adição dinâmica
-    await new Promise(resolve => setTimeout(resolve, 1200)); // Aumentar para 1200ms
+    await new Promise(resolve => setTimeout(resolve, 1500)); // Aumentar para 1500ms
 
     // Aguarda o carregamento de todas as imagens
     const images = reportElement.getElementsByTagName('img');
     await Promise.all(Array.from(images).map(img => {
         return new Promise((resolve) => {
-            if (img.complete) resolve();
+            if (img.complete && img.naturalHeight !== 0) resolve();
             img.onload = () => resolve();
-            img.onerror = () => resolve(); // Resolver mesmo em caso de erro
+            img.onerror = () => {
+                console.warn(`Imagem não carregada: ${img.src}, usando fallback.`);
+                img.src = 'https://dummyimage.com/150x150/ccc/fff'; // Fallback
+                resolve();
+            };
         });
     }));
+
+    // Forçar recálculo de layout
+    reportElement.style.width = '100%';
+    reportElement.style.height = 'auto';
+    reportElement.style.overflow = 'visible';
+    await new Promise(resolve => requestAnimationFrame(() => resolve()));
 
     // Depurar o conteúdo completo a ser exportado
     console.log('Conteúdo a ser exportado:', reportElement.outerHTML);
@@ -1746,44 +1756,37 @@ exportPdfBtn.addEventListener('click', async () => {
     const hiddenElements = reportContainer.querySelectorAll('.hidden');
     hiddenElements.forEach(el => el.classList.remove('hidden'));
 
-    // Forçar recálculo de layout e garantir que o conteúdo dinâmico seja incluído
-    reportElement.style.height = 'auto';
-    reportElement.style.overflow = 'visible';
-    await new Promise(resolve => requestAnimationFrame(() => resolve()));
-
     const opt = {
-        margin: [10, 10, 10, 10],
+        margin: [10, 10, 10, 10], // Margens em mm
         filename: `Relatorio_Completo_${unitSelect.options[unitSelect.selectedIndex].text}_${document.getElementById('startDate').value}.pdf`,
         image: { type: 'jpeg', quality: 0.98 },
         html2canvas: {
-            scale: 1,
+            scale: 2, // Aumentar scale para melhor resolução
             useCORS: true,
-            windowWidth: document.documentElement.scrollWidth * 1.5, // Aumentar largura para evitar corte
-            windowHeight: document.documentElement.scrollHeight, // Garantir altura suficiente
+            windowWidth: document.documentElement.scrollWidth * 2, // Ajuste dinâmico
+            windowHeight: document.documentElement.scrollHeight * 2, // Ajuste dinâmico
             logging: true,
             ignoreElements: (element) => element.tagName.toLowerCase() === 'iframe'
         },
-        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+        pagebreak: { mode: ['css', 'legacy'] } // Forçar quebras de página corretas
     };
 
     try {
-        await html2pdf().from(reportElement).set(opt).toPdf().get('pdf').then((pdf) => {
-            const totalPages = pdf.internal.getNumberOfPages();
-            console.log(`Total de páginas geradas: ${totalPages}`);
-            pdf.save();
-        });
+        const pdf = await html2pdf().from(reportElement).set(opt).toPdf().get('pdf');
+        const totalPages = pdf.internal.getNumberOfPages();
+        console.log(`Total de páginas geradas: ${totalPages}`);
+        pdf.save();
     } catch (error) {
         console.error('Erro ao gerar PDF:', error);
         alert('Ocorreu um erro ao gerar o PDF. Por favor, tente novamente.');
     } finally {
         hiddenElements.forEach(el => el.classList.add('hidden'));
+        reportElement.style.width = '';
         reportElement.style.height = '';
         reportElement.style.overflow = '';
-        reportElement.style.display = '';
-        reportElement.style.visibility = '';
     }
 });
-
 
 // Voltar para a seleção de relatórios
 backToReportSelectionBtn.addEventListener('click', () => {

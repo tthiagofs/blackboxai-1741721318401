@@ -153,14 +153,31 @@
         height: auto !important;
         break-inside: avoid !important;
     }
-    /* Garantir que todas as seções sejam incluídas */
     #reportContainer {
         width: 100% !important;
         max-width: 100% !important;
         height: auto !important;
+        position: relative !important;
+        top: 0 !important;
+    }
+    .grid-cols-4 {
+        grid-template-columns: repeat(4, 1fr) !important;
+    }
+    .metric-card {
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+        padding: 10mm !important;
+    }
+    .top-ad-card {
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
     }
     .hidden {
         display: block !important;
+    }
+    /* Esconder elementos desnecessários */
+    #form, #backToReportSelectionBtn, #refreshBtn {
+        display: none !important;
     }
 }
 

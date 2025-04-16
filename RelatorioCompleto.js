@@ -1730,29 +1730,48 @@ exportPdfBtn.addEventListener('click', async () => {
         return;
     }
 
+    // Forçar renderização completa do DOM
+   await new Promise(resolve => setTimeout(resolve, 100)); // Pequeno delay após renderizar
+console.log('Relatório renderizado:', reportContainer.innerHTML);
+
+    // Depurar o conteúdo a ser exportado
     console.log('Conteúdo a ser exportado:', reportElement.outerHTML);
 
-    // Remover classes hidden temporariamente para garantir que tudo seja capturado
+    // Remover classes hidden temporariamente
     const hiddenElements = reportContainer.querySelectorAll('.hidden');
     hiddenElements.forEach(el => el.classList.remove('hidden'));
 
-    await new Promise(resolve => setTimeout(resolve, 100));
+    // Forçar recálculo de layout
+    reportElement.style.display = 'block';
+    reportElement.style.visibility = 'visible';
+    await new Promise(resolve => requestAnimationFrame(() => resolve()));
 
     const opt = {
         margin: [10, 10, 10, 10],
         filename: `Relatorio_Completo_${unitSelect.options[unitSelect.selectedIndex].text}_${document.getElementById('startDate').value}.pdf`,
         image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 2, useCORS: true, windowWidth: document.body.scrollWidth },
+        html2canvas: {
+            scale: 1, // Reduzir scale para evitar corte
+            useCORS: true,
+            windowWidth: document.documentElement.scrollWidth, // Usar a largura total do documento
+            logging: true // Habilitar logs para depuração
+        },
         jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
     };
 
     try {
-        await html2pdf().from(reportElement).set(opt).save();
+        await html2pdf().from(reportElement).set(opt).toPdf().get('pdf').then((pdf) => {
+            const totalPages = pdf.internal.getNumberOfPages();
+            console.log(`Total de páginas geradas: ${totalPages}`);
+            pdf.save();
+        });
     } catch (error) {
         console.error('Erro ao gerar PDF:', error);
         alert('Ocorreu um erro ao gerar o PDF. Por favor, tente novamente.');
     } finally {
         hiddenElements.forEach(el => el.classList.add('hidden'));
+        reportElement.style.display = '';
+        reportElement.style.visibility = '';
     }
 });
 

@@ -10,8 +10,6 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Adicionando a biblioteca html2pdf.js -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <script>
         tailwind.config = {
             theme: {
@@ -28,175 +26,111 @@
         }
     </script>
     <style>
-        /* Estilo do Modal */
-        #campaignsModal .max-h-64,
-        #adSetsModal .max-h-64,
-        #whiteCampaignsModal .max-h-64,
-        #whiteAdSetsModal .max-h-64,
-        #blackCampaignsModal .max-h-64,
-        #blackAdSetsModal .max-h-64 {
-            max-height: 16rem;
-            overflow-y: auto;
-            scrollbar-width: thin;
-            scrollbar-color: #d1d5db #f3f4f6;
-        }
+     /* Estilo do Modal */
+    #campaignsModal .max-h-64,
+    #adSetsModal .max-h-64,
+    #whiteCampaignsModal .max-h-64,
+    #whiteAdSetsModal .max-h-64,
+    #blackCampaignsModal .max-h-64,
+    #blackAdSetsModal .max-h-64 {
+        max-height: 16rem;
+        overflow-y: auto;
+        scrollbar-width: thin;
+        scrollbar-color: #d1d5db #f3f4f6;
+    }
 
-        #campaignsModal .max-h-64::-webkit-scrollbar,
-        #adSetsModal .max-h-64::-webkit-scrollbar,
-        #whiteCampaignsModal .max-h-64::-webkit-scrollbar,
-        #whiteAdSetsModal .max-h-64::-webkit-scrollbar,
-        #blackCampaignsModal .max-h-64::-webkit-scrollbar,
-        #blackAdSetsModal .max-h-64::-webkit-scrollbar {
-            width: 6px;
-        }
+    #campaignsModal .max-h-64::-webkit-scrollbar,
+    #adSetsModal .max-h-64::-webkit-scrollbar,
+    #whiteCampaignsModal .max-h-64::-webkit-scrollbar,
+    #whiteAdSetsModal .max-h-64::-webkit-scrollbar,
+    #blackCampaignsModal .max-h-64::-webkit-scrollbar,
+    #blackAdSetsModal .max-h-64::-webkit-scrollbar {
+        width: 6px;
+    }
 
-        #campaignsModal .max-h-64::-webkit-scrollbar-thumb,
-        #adSetsModal .max-h-64::-webkit-scrollbar-thumb,
-        #whiteCampaignsModal .max-h-64::-webkit-scrollbar-thumb,
-        #whiteAdSetsModal .max-h-64::-webkit-scrollbar-thumb,
-        #blackCampaignsModal .max-h-64::-webkit-scrollbar-thumb,
-        #blackAdSetsModal .max-h-64::-webkit-scrollbar-thumb {
-            background-color: #d1d5db;
-            border-radius: 3px;
-        }
+    #campaignsModal .max-h-64::-webkit-scrollbar-thumb,
+    #adSetsModal .max-h-64::-webkit-scrollbar-thumb,
+    #whiteCampaignsModal .max-h-64::-webkit-scrollbar-thumb,
+    #whiteAdSetsModal .max-h-64::-webkit-scrollbar-thumb,
+    #blackCampaignsModal .max-h-64::-webkit-scrollbar-thumb,
+    #blackAdSetsModal .max-h-64::-webkit-scrollbar-thumb {
+        background-color: #d1d5db;
+        border-radius: 3px;
+    }
 
-        #campaignsModal .max-h-64::-webkit-scrollbar-track,
-        #adSetsModal .max-h-64::-webkit-scrollbar-track,
-        #whiteCampaignsModal .max-h-64::-webkit-scrollbar-track,
-        #whiteAdSetsModal .max-h-64::-webkit-scrollbar-track,
-        #blackCampaignsModal .max-h-64::-webkit-scrollbar-track,
-        #blackAdSetsModal .max-h-64::-webkit-scrollbar-track {
-            background-color: #f3f4f6;
-        }
+    #campaignsModal .max-h-64::-webkit-scrollbar-track,
+    #adSetsModal .max-h-64::-webkit-scrollbar-track,
+    #whiteCampaignsModal .max-h-64::-webkit-scrollbar-track,
+    #whiteAdSetsModal .max-h-64::-webkit-scrollbar-track,
+    #blackCampaignsModal .max-h-64::-webkit-scrollbar-track,
+    #blackAdSetsModal .max-h-64::-webkit-scrollbar-track {
+        background-color: #f3f4f6;
+    }
 
-        /* Estilo dos Itens */
-        .filter-option {
-            padding: 0.5rem 0.75rem; /* Equivalente a px-3 py-2 */
-            background: #ffffff; /* Fundo branco direto, sem Tailwind */
-            cursor: pointer;
-            transition: all 0.2s ease;
-            border-bottom: 1px solid #f1f1f1;
-        }
+    /* Estilo dos Itens */
+    .filter-option {
+        padding: 0.5rem 0.75rem; /* Equivalente a px-3 py-2 */
+        background: #ffffff; /* Fundo branco direto, sem Tailwind */
+        cursor: pointer;
+        transition: all 0.2s ease;
+        border-bottom: 1px solid #f1f1f1;
+    }
 
-        .filter-option:last-child {
-            border-bottom: none;
-        }
+    .filter-option:last-child {
+        border-bottom: none;
+    }
 
-        .filter-option:hover {
-            background: #f1f5f9;
-            transform: scale(1.01);
-        }
+    .filter-option:hover {
+        background: #f1f5f9;
+        transform: scale(1.01);
+    }
 
-        /* Aumentar especificidade para evitar conflitos com Tailwind */
-        div.filter-option.selected {
-            background: #2563eb !important;
-            color: #ffffff !important;
-        }
+    /* Aumentar especificidade para evitar conflitos com Tailwind */
+    div.filter-option.selected {
+        background: #2563eb !important;
+        color: #ffffff !important;
+    }
 
-        div.filter-option.selected:hover {
-            background: #1d4ed8 !important;
-        }
+    div.filter-option.selected:hover {
+        background: #1d4ed8 !important;
+    }
 
-        .filter-option .flex {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
+    .filter-option .flex {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
 
-        div.filter-option.selected .text-green-600,
-        div.filter-option.selected .text-gray-500 {
-            color: #ffffff !important;
-        }
+    div.filter-option.selected .text-green-600,
+    div.filter-option.selected .text-gray-500 {
+        color: #ffffff !important;
+    }
 
         .metric-card {
             @apply bg-white p-6 rounded-lg shadow-lg transition-transform duration-300 hover:transform hover:-translate-y-1;
         }
-
         .metric-comparison.increase {
             @apply text-green-500 flex items-center;
         }
-
         .metric-comparison.decrease {
             @apply text-red-500 flex items-center;
         }
-
         .top-ad-card {
             @apply bg-white p-4 rounded-lg shadow-md transition-all duration-300 hover:shadow-lg;
         }
 
-        /* Estilo para os itens da lista de análise */
-        ul.list-disc li {
-            margin-bottom: 0.5rem; /* Espaçamento entre os itens da lista */
-            line-height: 1.5; /* Altura da linha para melhor legibilidade */
-        }
-
-        /* Garantir que o texto dentro de cada <li> respeite o formato */
-        ul.list-disc li br {
-            display: block; /* Forçar a quebra de linha */
-            content: ''; /* Garantir compatibilidade */
-        }
-
-        /* Ajuste específico para o PDF: reduzir o tamanho das imagens */
-        @media print {
-            /* Renomear a classe para corresponder ao HTML gerado (best-ad-card em vez de top-ad-card) */
-.best-ad-card img {
-    max-height: 100px;
-    width: auto;
-    object-fit: contain;
+/* Estilo para os itens da lista de análise */
+ul.list-disc li {
+    margin-bottom: 0.5rem; /* Espaçamento entre os itens da lista */
+    line-height: 1.5; /* Altura da linha para melhor legibilidade */
 }
 
-/* Ajustes específicos para o PDF */
-@media print {
-    .bg-white {
-        break-inside: avoid; /* Evitar quebras dentro do relatório */
-        margin: 0.5in; /* Margem interna */
-    }
-    /* Ajustes específicos para o PDF */
-@media print {
-    #reportContainer {
-        position: static !important; /* Garantir que o contêiner não tenha posicionamento que atrapalhe */
-        top: 0 !important; /* Forçar o início no topo */
-        margin: 0 !important; /* Remover margens externas */
-        padding: 0 !important; /* Remover padding */
-    }
-    .bg-white {
-        break-inside: avoid; /* Evitar quebras dentro do relatório */
-        margin: 10mm !important; /* Margem interna ajustada para milímetros */
-        padding: 0 !important;
-        box-shadow: none !important; /* Remover sombra para o PDF */
-    }
-    .grid {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 1rem;
-    }
-    .md\:grid-cols-4 > div,
-    .md\:grid-cols-3 > div {
-        flex: 1 1 20%; /* Ajustar largura dos itens na grade */
-        max-width: 25%;
-        box-sizing: border-box;
-    }
-    .md\:grid-cols-3 > div {
-        max-width: 33.33%;
-    }
-    .best-ad-card {
-        break-inside: avoid; /* Evitar quebras dentro dos cartões de anúncios */
-        page-break-inside: avoid;
-    }
-    .best-ad-card img {
-        max-height: 80px !important; /* Reduzir ainda mais no PDF */
-        width: auto !important;
-        object-fit: contain !important;
-    }
+/* Garantir que o texto dentro de cada <li> respeite o formato */
+ul.list-disc li br {
+    display: block; /* Forçar a quebra de linha */
+    content: ''; /* Garantir compatibilidade */
 }
-        }
 
-        /* Ajuste para html2pdf: forçar imagens menores no PDF */
-        .top-ad-card img {
-            max-height: 120px;
-            width: auto;
-            object-fit: contain;
-        }
     </style>
 </head>
 <body class="bg-gradient-to-br from-primary to-secondary min-h-screen p-4 font-sans">
@@ -334,10 +268,9 @@
                 class="flex-1 bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-4 rounded-md transition duration-300">
                 <i class="fas fa-sync-alt mr-2"></i>Refresh
             </button>
-            <!-- Botão de exportação para PDF, inicialmente escondido -->
-            <button id="exportPdfBtn"
-                class="hidden flex-1 bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-4 rounded-md transition duration-300">
-                <i class="fas fa-file-pdf mr-2"></i>Exportar PDF
+            <button id="shareWhatsAppBtn"
+                class="hidden flex-1 bg-[#25D366] hover:bg-[#20c058] text-white font-medium py-2 px-4 rounded-md transition duration-300">
+                <i class="fab fa-whatsapp mr-2"></i>Compartilhar no WhatsApp
             </button>
         </div>
     </div>
@@ -500,9 +433,5 @@
     <!-- Scripts -->
     <script async defer crossorigin="anonymous" src="https://connect.facebook.net/en_US/sdk.js"></script>
     <script type="module" src="RelatorioCompleto.js"></script>
-    <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'93075eeb8ba96b9d',t:'MTc0NDY3NzQwOC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script>
-    <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'930c0ec9980abce6',t:'MTc0NDcyNjU1NS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script>
-    <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'930e06e76bdd8027',t:'MTc0NDc0NzIwMy4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script>
-    <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9314013c9eebb027',t:'MTc0NDgwOTg4Ni4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script>
-</body>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'93075eeb8ba96b9d',t:'MTc0NDY3NzQwOC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script><script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'930c0ec9980abce6',t:'MTc0NDcyNjU1NS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script><script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'930e06e76bdd8027',t:'MTc0NDc0NzIwMy4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>

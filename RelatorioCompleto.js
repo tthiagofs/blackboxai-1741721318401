@@ -1,4 +1,5 @@
 import { fbAuth } from './auth.js';
+import { exportReportToPDF } from './exportPDF.js';
 
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -11,6 +12,7 @@ if (!currentAccessToken) {
 }
 
 // Elementos do DOM
+const exportPDFBtn = document.getElementById('exportPDFBtn');
 const form = document.getElementById('form');
 const reportContainer = document.getElementById('reportContainer');
 const shareWhatsAppBtn = document.getElementById('shareWhatsAppBtn');
@@ -1187,6 +1189,7 @@ async function generateReport(unitId, unitName, startDate, endDate) {
 
     // Exibir o botão de compartilhamento
     shareWhatsAppBtn.classList.remove('hidden');
+    exportPDFBtn.classList.remove('hidden');
 }
 
 
@@ -1718,6 +1721,11 @@ shareWhatsAppBtn.addEventListener('click', () => {
     const encodedMessage = encodeURIComponent(message);
     const whatsappUrl = `https://api.whatsapp.com/send?text=${encodedMessage}`;
     window.open(whatsappUrl, '_blank');
+});
+
+/ Exportar relatório em PDF
+exportPDFBtn.addEventListener('click', () => {
+    exportReportToPDF();
 });
 
 // Voltar para a seleção de relatórios

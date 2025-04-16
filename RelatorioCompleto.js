@@ -1143,22 +1143,21 @@ async function generateReport(unitId, unitName, startDate, endDate) {
     `;
     reportDiv.insertAdjacentHTML('beforeend', businessResultsHTML);
 
-    if (performanceAnalysis.trim()) {
-        const paragraphs = performanceAnalysis.split(/\n\s*\n/).filter(p => p.trim());
-        const analysisHTML = `
-            <div class="mt-8">
-                <h3 class="text-xl font-semibold text-primary mb-4">Análise de Desempenho e Pontos de Melhoria</h3>
-                <ul class="list-disc list-inside space-y-2 text-gray-700">
-                    ${paragraphs.map(paragraph => `<li>${paragraph.trim()}</li>`).join('')}
-                    ${paragraphs.map(paragraph => {
-                        const formattedParagraph = paragraph.replace(/\n/g, '<br>');
-                        return `<li>${formattedParagraph}</li>`;
-                    }).join('')}
-                </ul>
-            </div>
-        `;
-        reportDiv.insertAdjacentHTML('beforeend', analysisHTML);
-    }
+   if (performanceAnalysis.trim()) {
+    const paragraphs = performanceAnalysis.split(/\n\s*\n/).filter(p => p.trim());
+    const analysisHTML = `
+        <div class="mt-8">
+            <h3 class="text-xl font-semibold text-primary mb-4">Análise de Desempenho e Pontos de Melhoria</h3>
+            <ul class="list-disc list-inside space-y-2 text-gray-700">
+                ${paragraphs.map(paragraph => {
+                    const formattedParagraph = paragraph.trim().replace(/\n/g, '<br>');
+                    return `<li>${formattedParagraph}</li>`;
+                }).join('')}
+            </ul>
+        </div>
+    `;
+    reportDiv.insertAdjacentHTML('beforeend', analysisHTML);
+}
 
     exportPdfBtn.classList.remove('hidden');
 }
@@ -1595,15 +1594,17 @@ exportPdfBtn.addEventListener('click', () => {
     const formattedEndDate = new Date(endDate).toLocaleDateString('pt-BR').replace(/\//g, '-');
 
     const opt = {
-        margin: 0.5,
+        margin: [0.5, 0.5, 0.5, 0.5], // Margens uniformes em polegadas (top, right, bottom, left)
         filename: `Relatorio_${unitName}_${formattedStartDate}_a_${formattedEndDate}.pdf`,
         image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 2, useCORS: true },
-        jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
+        html2canvas: { scale: 3, useCORS: true }, // Aumentar a escala para melhor qualidade
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }, // Usar A4 em milímetros
+        pagebreak: { mode: ['css', 'legacy'], avoid: ['.best-ad-card', '.metric-card'] } // Respeitar quebras de página
     };
 
     html2pdf().set(opt).from(element).save();
 });
+
 
 // Voltar para a seleção de relatório
 backToReportSelectionBtn.addEventListener('click', () => {

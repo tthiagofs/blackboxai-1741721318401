@@ -138,11 +138,43 @@
 
         /* Ajuste específico para o PDF: reduzir o tamanho das imagens */
         @media print {
-            .top-ad-card img {
-                max-height: 100px !important;
-                width: auto !important;
-                object-fit: contain !important;
-            }
+            /* Renomear a classe para corresponder ao HTML gerado (best-ad-card em vez de top-ad-card) */
+.best-ad-card img {
+    max-height: 100px;
+    width: auto;
+    object-fit: contain;
+}
+
+/* Ajustes específicos para o PDF */
+@media print {
+    .bg-white {
+        break-inside: avoid; /* Evitar quebras dentro do relatório */
+        margin: 0.5in; /* Margem interna */
+    }
+    .grid {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+    .md\:grid-cols-4 > div,
+    .md\:grid-cols-3 > div {
+        flex: 1 1 20%; /* Ajustar largura dos itens na grade */
+        max-width: 25%;
+        box-sizing: border-box;
+    }
+    .md\:grid-cols-3 > div {
+        max-width: 33.33%;
+    }
+    .best-ad-card {
+        break-inside: avoid; /* Evitar quebras dentro dos cartões de anúncios */
+        page-break-inside: avoid;
+    }
+    .best-ad-card img {
+        max-height: 80px !important; /* Reduzir ainda mais no PDF */
+        width: auto !important;
+        object-fit: contain !important;
+    }
+}
         }
 
         /* Ajuste para html2pdf: forçar imagens menores no PDF */

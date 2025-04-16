@@ -1185,6 +1185,12 @@ if (performanceAnalysis.trim()) {
     reportDiv.insertAdjacentHTML('beforeend', analysisHTML);
 }
 
+// Adicionar visibilidade dos botões de compartilhamento e exportação
+shareWhatsAppBtn.classList.remove('hidden');
+if (exportPdfBtn) {
+    exportPdfBtn.classList.remove('hidden');
+}
+
 // Adicionar log de depuração e delay para garantir renderização
 console.log('Relatório completo renderizado:', reportContainer.innerHTML);
 await new Promise(resolve => setTimeout(resolve, 200)); // Pequeno delay de 200ms

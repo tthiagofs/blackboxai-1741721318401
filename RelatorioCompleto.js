@@ -1758,3 +1758,43 @@ backToReportSelectionBtn.addEventListener('click', () => {
 
 // Limpar seleções e recarregar a página
 refreshBtn.addEventListener('click', () => {
+    // Limpar seleções
+    selectedCampaigns.clear();
+    selectedAdSets.clear();
+    selectedWhiteCampaigns.clear();
+    selectedWhiteAdSets.clear();
+    selectedBlackCampaigns.clear();
+    selectedBlackAdSets.clear();
+    isFilterActivated = false;
+    comparisonData = null;
+    hasBlack = null;
+
+    // Limpar formulário
+    form.reset();
+    reportContainer.innerHTML = '';
+    shareWhatsAppBtn.classList.add('hidden');
+    if (exportPdfBtn) {
+        exportPdfBtn.classList.add('hidden');
+    }
+
+    // Reabilitar estado inicial
+    disableButtons();
+    whiteFilters.classList.add('hidden');
+    blackFilters.classList.add('hidden');
+    defaultFilters.classList.remove('hidden');
+    comparisonFilter.classList.add('hidden');
+
+    // Opcional: recarregar dados do select de unidades, se necessário
+    unitSelect.innerHTML = '<option value="">Escolha a unidade</option>';
+    const sortedAccounts = adAccountsMap && typeof adAccountsMap === 'object'
+        ? Object.entries(adAccountsMap)
+            .map(([id, name]) => ({ id, name }))
+            .sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'))
+        : [];
+    sortedAccounts.forEach(account => {
+        const option = document.createElement('option');
+        option.value = account.id;
+        option.textContent = account.name;
+        unitSelect.appendChild(option);
+    });
+});

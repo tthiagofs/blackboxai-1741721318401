@@ -1,4 +1,5 @@
 import { fbAuth } from './auth.js';
+import html2pdf from 'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js';
 
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -1031,8 +1032,6 @@ form.addEventListener('submit', async (e) => {
     }
 });
 
-
-
 async function generateReport(unitId, unitName, startDate, endDate) {
     // Capturar os novos campos
     const budgetsCompleted = parseInt(document.getElementById('budgetsCompleted').value) || 0;
@@ -1187,8 +1186,12 @@ async function generateReport(unitId, unitName, startDate, endDate) {
 
     // Exibir o botão de compartilhamento
     shareWhatsAppBtn.classList.remove('hidden');
+    // Exibir o botão de exportar PDF
+    const exportPdfBtn = document.getElementById('exportPdfBtn');
+    if (exportPdfBtn) {
+        exportPdfBtn.classList.remove('hidden');
+    }
 }
-
 
 async function calculateMetrics(unitId, startDate, endDate, campaignsSet, adSetsSet) {
     let totalSpend = 0;
@@ -1449,7 +1452,6 @@ async function getBestAds(unitId, startDate, endDate) {
 
     return bestAds;
 }
-
 
 function calculateVariation(current, previous, metric) {
     if (!previous || previous === 0) return { percentage: 0, direction: 'neutral' };
@@ -1720,6 +1722,35 @@ shareWhatsAppBtn.addEventListener('click', () => {
     window.open(whatsappUrl, '_blank');
 });
 
+// Exportar para PDF
+const exportPdfBtn = document.getElementById('exportPdfBtn');
+if (exportPdfBtn) {
+    exportPdfBtn.addEventListener('click', async () => {
+        const reportElement = document.getElementById('reportContainer').querySelector('.bg-white');
+        if (!reportElement) {
+            alert('Nenhum relatório encontrado para exportar.');
+            return;
+        }
+
+        // Configurações para o html2pdf
+        const opt = {
+            margin: [10, 10, 10, 10],
+            filename: `Relatorio_Completo_${unitSelect.options[unitSelect.selectedIndex].text}_${document.getElementById('startDate').value}.pdf`,
+            image: { type: 'jpeg', quality: 0.98 },
+            html2canvas: { scale: 2, useCORS: true },
+            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        };
+
+        try {
+            // Gerar e baixar o PDF
+            await html2pdf().from(reportElement).set(opt).save();
+        } catch (error) {
+            console.error('Erro ao gerar PDF:', error);
+            alert('Ocorreu um erro ao gerar o PDF. Por favor, tente novamente.');
+        }
+    });
+}
+
 // Voltar para a seleção de relatórios
 backToReportSelectionBtn.addEventListener('click', () => {
     window.location.href = 'index.html?appLoggedIn=true';
@@ -1727,30 +1758,3 @@ backToReportSelectionBtn.addEventListener('click', () => {
 
 // Limpar seleções e recarregar a página
 refreshBtn.addEventListener('click', () => {
-    // Limpar todas as seleções
-    selectedCampaigns.clear();
-    selectedAdSets.clear();
-    selectedWhiteCampaigns.clear();
-    selectedWhiteAdSets.clear();
-    selectedBlackCampaigns.clear();
-    selectedBlackAdSets.clear();
-    comparisonData = null;
-    hasBlack = null;
-
-    // Limpar o formulário
-    form.reset();
-    reportContainer.innerHTML = '';
-    shareWhatsAppBtn.classList.add('hidden');
-
-    // Limpar os filtros visuais
-    whiteFilters.classList.add('hidden');
-    blackFilters.classList.add('hidden');
-    defaultFilters.classList.remove('hidden');
-    comparisonFilter.classList.remove('hidden');
-
-    // Desabilitar botões novamente até que "A unidade possui Black?" seja respondido
-    disableButtons();
-
-    // Recarregar a página
-    window.location.reload();
-});

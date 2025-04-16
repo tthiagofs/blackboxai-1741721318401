@@ -13,7 +13,7 @@ if (!currentAccessToken) {
 // Elementos do DOM
 const form = document.getElementById('form');
 const reportContainer = document.getElementById('reportContainer');
-const shareWhatsAppBtn = document.getElementById('shareWhatsAppBtn');
+const exportPdfBtn = document.getElementById('exportPdfBtn');
 const filterCampaignsBtn = document.getElementById('filterCampaigns');
 const filterAdSetsBtn = document.getElementById('filterAdSets');
 const comparePeriodsBtn = document.getElementById('comparePeriods');
@@ -891,866 +891,408 @@ function renderBlackAdSetOptions() {
     });
 }
 
-// Event Listeners
-if (filterCampaignsBtn) {
-    filterCampaignsBtn.addEventListener('click', () => toggleModal('campaignsModal', true));
-}
-if (filterAdSetsBtn) {
-    filterAdSetsBtn.addEventListener('click', () => toggleModal('adSetsModal', true));
-}
-if (filterWhiteCampaignsBtn) {
-    filterWhiteCampaignsBtn.addEventListener('click', () => toggleModal('whiteCampaignsModal', true));
-}
-if (filterWhiteAdSetsBtn) {
-    filterWhiteAdSetsBtn.addEventListener('click', () => toggleModal('whiteAdSetsModal', true));
-}
-if (filterBlackCampaignsBtn) {
-    filterBlackCampaignsBtn.addEventListener('click', () => toggleModal('blackCampaignsModal', true));
-}
-if (filterBlackAdSetsBtn) {
-    filterBlackAdSetsBtn.addEventListener('click', () => toggleModal('blackAdSetsModal', true));
-}
-if (comparePeriodsBtn) {
-    comparePeriodsBtn.addEventListener('click', () => toggleModal('comparisonModal', true));
-}
-if (closeCampaignsModalBtn) {
-    closeCampaignsModalBtn.addEventListener('click', () => toggleModal('campaignsModal', false));
-}
-if (closeAdSetsModalBtn) {
-    closeAdSetsModalBtn.addEventListener('click', () => toggleModal('adSetsModal', false));
-}
-if (applyCampaignsBtn) {
-    applyCampaignsBtn.addEventListener('click', () => toggleModal('campaignsModal', false));
-}
-if (applyAdSetsBtn) {
-    applyAdSetsBtn.addEventListener('click', () => toggleModal('adSetsModal', false));
-}
-if (closeWhiteCampaignsModalBtn) {
-    closeWhiteCampaignsModalBtn.addEventListener('click', () => toggleModal('whiteCampaignsModal', false));
-}
-if (closeWhiteAdSetsModalBtn) {
-    closeWhiteAdSetsModalBtn.addEventListener('click', () => toggleModal('whiteAdSetsModal', false));
-}
-if (applyWhiteCampaignsBtn) {
-    applyWhiteCampaignsBtn.addEventListener('click', () => toggleModal('whiteCampaignsModal', false));
-}
-if (applyWhiteAdSetsBtn) {
-    applyWhiteAdSetsBtn.addEventListener('click', () => toggleModal('whiteAdSetsModal', false));
-}
-if (closeBlackCampaignsModalBtn) {
-    closeBlackCampaignsModalBtn.addEventListener('click', () => toggleModal('blackCampaignsModal', false));
-}
-if (closeBlackAdSetsModalBtn) {
-    closeBlackAdSetsModalBtn.addEventListener('click', () => toggleModal('blackAdSetsModal', false));
-}
-if (applyBlackCampaignsBtn) {
-    applyBlackCampaignsBtn.addEventListener('click', () => toggleModal('blackCampaignsModal', false));
-}
-if (applyBlackAdSetsBtn) {
-    applyBlackAdSetsBtn.addEventListener('click', () => toggleModal('blackAdSetsModal', false));
-}
-if (cancelComparisonBtn) {
-    cancelComparisonBtn.addEventListener('click', () => toggleModal('comparisonModal', false));
-}
-
-// Funções de comparação
-confirmComparisonBtn.addEventListener('click', () => {
-    const option = document.querySelector('input[name="comparisonOption"]:checked').value;
-    const startDate = document.getElementById('startDate').value;
-    const endDate = document.getElementById('endDate').value;
-
-    if (option === 'custom') {
-        const compareStartDate = document.getElementById('compareStartDate').value;
-        const compareEndDate = document.getElementById('compareEndDate').value;
-        if (!compareStartDate || !compareEndDate) {
-            alert('Por favor, preencha as datas do período de comparação.');
-            return;
-        }
-        comparisonData = { startDate: compareStartDate, endDate: compareEndDate, isPrevious: false };
-    } else if (option === 'previous') {
-        const { start, end } = calculatePreviousPeriod(startDate, endDate);
-        comparisonData = { startDate: start, endDate: end, isPrevious: true };
-    } else {
-        comparisonData = null;
-    }
-
-    toggleModal('comparisonModal', false);
-});
-
-function calculatePreviousPeriod(startDate, endDate) {
-    const start = new Date(startDate);
-    const end = new Date(endDate);
-    const diffDays = (end - start) / (1000 * 60 * 60 * 24);
-
-    const previousEnd = new Date(start);
-    previousEnd.setDate(previousEnd.getDate() - 1);
-
-    const previousStart = new Date(previousEnd);
-    previousStart.setDate(previousStart.getDate() - diffDays);
-
-    return {
-        start: previousStart.toISOString().split('T')[0],
-        end: previousEnd.toISOString().split('T')[0]
-    };
-}
-
-// Geração do relatório
+// Manipulação do formulário
 form.addEventListener('submit', async (e) => {
     e.preventDefault();
-    try {
-        const unitId = document.getElementById('unitId').value;
-        const unitName = unitSelect.options[unitSelect.selectedIndex].text;
-        const startDate = document.getElementById('startDate').value;
-        const endDate = document.getElementById('endDate').value;
 
-        console.log(`Dados do formulário - unitId: ${unitId}, unitName: ${unitName}, startDate: ${startDate}, endDate: ${endDate}`);
-
-        if (!unitId || !startDate || !endDate) {
-            alert('Por favor, preencha todos os campos obrigatórios (unidade, data de início e data de fim).');
-            return;
-        }
-
-        if (hasBlack === null) {
-            alert('Por favor, responda se a unidade possui Black antes de gerar o relatório.');
-            return;
-        }
-
-        const submitButton = form.querySelector('button[type="submit"]');
-        const originalText = submitButton.innerHTML;
-        submitButton.disabled = true;
-        submitButton.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Gerando...';
-
-        // Corrigir a chamada para passar os parâmetros
-        await generateReport(unitId, unitName, startDate, endDate);
-
-        submitButton.disabled = false;
-        submitButton.innerHTML = originalText;
-    } catch (error) {
-        console.error('Erro ao gerar relatório:', error);
-        alert('Ocorreu um erro ao gerar o relatório. Por favor, tente novamente.');
-    }
-});
-
-
-
-async function generateReport(unitId, unitName, startDate, endDate) {
-    // Capturar os novos campos
+    const unitId = document.getElementById('unitId').value;
+    const startDate = document.getElementById('startDate').value;
+    const endDate = document.getElementById('endDate').value;
     const budgetsCompleted = parseInt(document.getElementById('budgetsCompleted').value) || 0;
     const salesCount = parseInt(document.getElementById('salesCount').value) || 0;
     const revenue = parseFloat(document.getElementById('revenue').value) || 0;
-    const performanceAnalysis = document.getElementById('performanceAnalysis')?.value || ''; // Capturar a análise
+    const performanceAnalysis = document.getElementById('performanceAnalysis').value.trim();
 
-    if (!unitId || !startDate || !endDate) {
-        alert('Preencha todos os campos obrigatórios');
-        return;
-    }
+    reportContainer.innerHTML = '<p class="text-center text-gray-600"><i class="fas fa-spinner fa-spin mr-2"></i>Gerando relatório, por favor aguarde...</p>';
 
-    // Validação adicional para os novos campos
-    if (budgetsCompleted < 0 || salesCount < 0 || revenue < 0) {
-        alert('Os valores de orçamentos, vendas e faturamento não podem ser negativos.');
-        return;
-    }
+    let adsMapWhite = {};
+    let adsMapBlack = {};
 
-    // Garantir que as campanhas foram carregadas
-    if (!campaignsMap[unitId]) {
-        await loadCampaigns(unitId, startDate, endDate);
-    }
-
-    // Determinar quais campanhas usar com base nos filtros
-    let whiteCampaigns = [];
-    let blackCampaigns = [];
-    let allCampaigns = Object.entries(campaignsMap[unitId] || {});
-    
     if (hasBlack) {
-        whiteCampaigns = selectedWhiteCampaigns.size > 0 
-            ? allCampaigns.filter(([id]) => selectedWhiteCampaigns.has(id))
-            : allCampaigns; // Se não houver filtro White, usa todas as campanhas
-        blackCampaigns = selectedBlackCampaigns.size > 0 
-            ? allCampaigns.filter(([id]) => selectedBlackCampaigns.has(id))
-            : allCampaigns; // Se não houver filtro Black, usa todas as campanhas
+        adsMapWhite = await loadAds(unitId, startDate, endDate, selectedWhiteCampaigns.size > 0 ? selectedWhiteCampaigns : null, selectedWhiteAdSets.size > 0 ? selectedWhiteAdSets : null);
+        adsMapBlack = await loadAds(unitId, startDate, endDate, selectedBlackCampaigns.size > 0 ? selectedBlackCampaigns : null, selectedBlackAdSets.size > 0 ? selectedBlackAdSets : null);
     } else {
-        if (selectedCampaigns.size > 0) {
-            allCampaigns = allCampaigns.filter(([id]) => selectedCampaigns.has(id));
-        } else if (selectedAdSets.size > 0) {
-            allCampaigns = allCampaigns; // Pode ser ajustado se precisar filtrar por ad sets
+        const adsMap = await loadAds(unitId, startDate, endDate, selectedCampaigns.size > 0 ? selectedCampaigns : null, selectedAdSets.size > 0 ? selectedAdSets : null);
+        adsMapWhite = adsMap; // Sem Black, todos os dados são considerados White
+    }
+
+    let comparisonAdsMapWhite = {};
+    let comparisonAdsMapBlack = {};
+
+    if (comparisonData && (comparisonData.startDate || comparisonData.isPrevious)) {
+        let compareStartDate = comparisonData.startDate;
+        let compareEndDate = comparisonData.endDate;
+
+        if (comparisonData.isPrevious) {
+            const start = new Date(startDate);
+            const end = new Date(endDate);
+            const diffDays = (end - start) / (1000 * 60 * 60 * 24);
+            const newEnd = new Date(start);
+            newEnd.setDate(newEnd.getDate() - 1);
+            const newStart = new Date(newEnd);
+            newStart.setDate(newStart.getDate() - diffDays);
+
+            compareStartDate = newStart.toISOString().split('T')[0];
+            compareEndDate = newEnd.toISOString().split('T')[0];
         }
-    }
 
-    // Calcular métricas para campanhas White e Black (ou todas as campanhas se hasBlack for false)
-    let metrics = { spend: 0, reach: 0, conversations: 0, costPerConversation: 0 };
-    let blackMetrics = null;
-
-    // Usar calculateMetrics para obter as métricas diretamente da API, considerando os filtros
-    if (hasBlack) {
-        // Métricas para White
-        const whiteMetricsResult = await calculateMetrics(unitId, startDate, endDate, selectedWhiteCampaigns, selectedWhiteAdSets);
-        metrics = whiteMetricsResult;
-
-        // Métricas para Black
-        const blackMetricsResult = await calculateMetrics(unitId, startDate, endDate, selectedBlackCampaigns, selectedBlackAdSets);
-        blackMetrics = blackMetricsResult;
-    } else {
-        // Métricas gerais (sem distinção de White/Black)
-        const generalMetrics = await calculateMetrics(unitId, startDate, endDate, selectedCampaigns, selectedAdSets);
-        metrics = generalMetrics;
-    }
-
-    // Calcular métricas de comparação (se houver comparisonData)
-    let comparisonMetrics = null;
-    let blackComparisonMetrics = null;
-    let comparisonTotalLeads = null;
-
-    if (comparisonData) {
-        const compareStartDate = comparisonData.startDate;
-        const compareEndDate = comparisonData.endDate;
-
-        // Recarregar campanhas para o período de comparação
-        await loadCampaigns(unitId, compareStartDate, compareEndDate);
-
-        let compareWhiteCampaigns = [];
-        let compareBlackCampaigns = [];
-        let compareAllCampaigns = Object.entries(campaignsMap[unitId] || {});
-        
         if (hasBlack) {
-            compareWhiteCampaigns = selectedWhiteCampaigns.size > 0 
-                ? compareAllCampaigns.filter(([id]) => selectedWhiteCampaigns.has(id))
-                : compareAllCampaigns;
-            compareBlackCampaigns = selectedBlackCampaigns.size > 0 
-                ? compareAllCampaigns.filter(([id]) => selectedBlackCampaigns.has(id))
-                : compareAllCampaigns;
-
-            // Métricas de comparação para White
-            comparisonMetrics = await calculateMetrics(unitId, compareStartDate, compareEndDate, selectedWhiteCampaigns, selectedWhiteAdSets);
-
-            // Métricas de comparação para Black
-            blackComparisonMetrics = await calculateMetrics(unitId, compareStartDate, compareEndDate, selectedBlackCampaigns, selectedBlackAdSets);
-
-            // Calcular total de leads para o período de comparação
-            comparisonTotalLeads = await calculateTotalLeadsForAccount(unitId, compareStartDate, compareEndDate);
+            comparisonAdsMapWhite = await loadAds(unitId, compareStartDate, compareEndDate, selectedWhiteCampaigns.size > 0 ? selectedWhiteCampaigns : null, selectedWhiteAdSets.size > 0 ? selectedWhiteAdSets : null);
+            comparisonAdsMapBlack = await loadAds(unitId, compareStartDate, compareEndDate, selectedBlackCampaigns.size > 0 ? selectedBlackCampaigns : null, selectedBlackAdSets.size > 0 ? selectedBlackAdSets : null);
         } else {
-            if (selectedCampaigns.size > 0) {
-                compareAllCampaigns = compareAllCampaigns.filter(([id]) => selectedCampaigns.has(id));
-            }
-            // Métricas de comparação gerais
-            comparisonMetrics = await calculateMetrics(unitId, compareStartDate, compareEndDate, selectedCampaigns, selectedAdSets);
+            const comparisonAdsMap = await loadAds(unitId, compareStartDate, compareEndDate, selectedCampaigns.size > 0 ? selectedCampaigns : null, selectedAdSets.size > 0 ? selectedAdSets : null);
+            comparisonAdsMapWhite = comparisonAdsMap;
         }
     }
 
-    // Obter melhores anúncios
-    const bestAds = await getBestAds(unitId, startDate, endDate);
+    const metricsWhite = calculateMetrics(adsMapWhite);
+    const metricsBlack = hasBlack ? calculateMetrics(adsMapBlack) : null;
+    const comparisonMetricsWhite = comparisonData ? calculateMetrics(comparisonAdsMapWhite) : null;
+    const comparisonMetricsBlack = comparisonData && hasBlack ? calculateMetrics(comparisonAdsMapBlack) : null;
 
-    // Renderizar o relatório usando a função renderReport
-    reportContainer.innerHTML = '';
-    renderReport(unitName, startDate, endDate, metrics, comparisonMetrics, blackMetrics, blackComparisonMetrics, bestAds, comparisonTotalLeads);
+    const topAdsWhite = calculateTopAds(adsMapWhite);
+    const topAdsBlack = hasBlack ? calculateTopAds(adsMapBlack) : null;
 
-    // Adicionar seção de Resultados de Negócios
-    const reportDiv = reportContainer.querySelector('.bg-white');
-    const businessResultsHTML = `
-        <div class="mt-8">
-            <h3 class="text-xl font-semibold text-primary mb-4">Resultados de Negócios</h3>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div class="metric-card">
-                    <h4 class="text-sm font-medium text-gray-600 mb-1">Orçamentos Realizados</h4>
-                    <p class="text-lg font-semibold text-gray-800">${budgetsCompleted.toLocaleString('pt-BR')}</p>
-                </div>
-                <div class="metric-card">
-                    <h4 class="text-sm font-medium text-gray-600 mb-1">Número de Vendas</h4>
-                    <p class="text-lg font-semibold text-gray-800">${salesCount.toLocaleString('pt-BR')}</p>
-                </div>
-                <div class="metric-card">
-                    <h4 class="text-sm font-medium text-gray-600 mb-1">Faturamento</h4>
-                    <p class="text-lg font-semibold text-gray-800">R$ ${revenue.toFixed(2).replace('.', ',')}</p>
-                </div>
+    renderReport(metricsWhite, metricsBlack, comparisonMetricsWhite, comparisonMetricsBlack, topAdsWhite, topAdsBlack, startDate, endDate, budgetsCompleted, salesCount, revenue, performanceAnalysis);
+
+    // Mostrar o botão de exportar PDF após gerar o relatório
+    exportPdfBtn.classList.remove('hidden');
+    form.classList.add('hidden');
+    isFilterActivated = true;
+    updateFilterButtons();
+});
+
+// Função para calcular métricas
+function calculateMetrics(adsMap) {
+    let totalSpend = 0;
+    let totalReach = 0;
+    let totalConversations = 0;
+
+    Object.values(adsMap).forEach(ad => {
+        const insights = ad.insights;
+        totalSpend += parseFloat(insights.spend || 0);
+        totalReach += parseInt(insights.reach || 0);
+
+        if (insights.actions) {
+            const conversationAction = insights.actions.find(action => action.action_type === 'onsite_conversion.message_send');
+            totalConversations += conversationAction ? parseInt(conversationAction.value) : 0;
+        }
+    });
+
+    const costPerConversation = totalConversations > 0 ? totalSpend / totalConversations : 0;
+
+    return {
+        totalSpend,
+        totalReach,
+        totalConversations,
+        costPerConversation
+    };
+}
+
+// Função para calcular os melhores anúncios
+function calculateTopAds(adsMap) {
+    const adsArray = Object.entries(adsMap).map(([id, ad]) => {
+        const conversations = ad.insights.actions?.find(action => action.action_type === 'onsite_conversion.message_send')?.value || 0;
+        return {
+            id,
+            imageUrl: ad.creative.imageUrl,
+            spend: parseFloat(ad.insights.spend || 0),
+            reach: parseInt(ad.insights.reach || 0),
+            conversations: parseInt(conversations)
+        };
+    });
+
+    return adsArray
+        .sort((a, b) => b.conversations - a.conversations || b.spend - a.spend)
+        .slice(0, 3);
+}
+
+// Função para renderizar o relatório
+function renderReport(metricsWhite, metricsBlack, comparisonMetricsWhite, comparisonMetricsBlack, topAdsWhite, topAdsBlack, startDate, endDate, budgetsCompleted, salesCount, revenue, performanceAnalysis) {
+    const unitId = document.getElementById('unitId').value;
+    const unitName = adAccountsMap[unitId] || 'Unidade Desconhecida';
+    const formatDate = (date) => new Date(date).toLocaleDateString('pt-BR');
+
+    reportContainer.innerHTML = `
+        <div class="text-center mb-6">
+            <h2 class="text-2xl font-semibold text-primary">Relatório de Anúncios</h2>
+            <p class="text-gray-600">Unidade: ${unitName}</p>
+            <p class="text-gray-600">Período: ${formatDate(startDate)} a ${formatDate(endDate)}</p>
+        </div>
+    `;
+
+    // Seção de métricas White
+    reportContainer.innerHTML += `
+        <h3 class="text-xl font-medium text-primary mb-4">${hasBlack ? 'Resultados White' : 'Resultados Gerais'}</h3>
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+            <div class="metric-card">
+                <h4 class="text-gray-600 mb-2">Investimento</h4>
+                <p class="text-2xl font-semibold text-primary">R$ ${metricsWhite.totalSpend.toFixed(2).replace('.', ',')}</p>
+                ${comparisonMetricsWhite ? `
+                    <p class="metric-comparison ${comparisonMetricsWhite.totalSpend > metricsWhite.totalSpend ? 'decrease' : 'increase'}">
+                        <i class="fas ${comparisonMetricsWhite.totalSpend > metricsWhite.totalSpend ? 'fa-arrow-down' : 'fa-arrow-up'} mr-1"></i>
+                        ${((metricsWhite.totalSpend - comparisonMetricsWhite.totalSpend) / comparisonMetricsWhite.totalSpend * 100).toFixed(1)}%
+                    </p>
+                ` : ''}
+            </div>
+            <div class="metric-card">
+                <h4 class="text-gray-600 mb-2">Alcance</h4>
+                <p class="text-2xl font-semibold text-primary">${metricsWhite.totalReach.toLocaleString('pt-BR')}</p>
+                ${comparisonMetricsWhite ? `
+                    <p class="metric-comparison ${comparisonMetricsWhite.totalReach > metricsWhite.totalReach ? 'decrease' : 'increase'}">
+                        <i class="fas ${comparisonMetricsWhite.totalReach > metricsWhite.totalReach ? 'fa-arrow-down' : 'fa-arrow-up'} mr-1"></i>
+                        ${((metricsWhite.totalReach - comparisonMetricsWhite.totalReach) / comparisonMetricsWhite.totalReach * 100).toFixed(1)}%
+                    </p>
+                ` : ''}
+            </div>
+            <div class="metric-card">
+                <h4 class="text-gray-600 mb-2">Conversas Iniciadas</h4>
+                <p class="text-2xl font-semibold text-primary">${metricsWhite.totalConversations.toLocaleString('pt-BR')}</p>
+                ${comparisonMetricsWhite ? `
+                    <p class="metric-comparison ${comparisonMetricsWhite.totalConversations > metricsWhite.totalConversations ? 'decrease' : 'increase'}">
+                        <i class="fas ${comparisonMetricsWhite.totalConversations > metricsWhite.totalConversations ? 'fa-arrow-down' : 'fa-arrow-up'} mr-1"></i>
+                        ${((metricsWhite.totalConversations - comparisonMetricsWhite.totalConversations) / comparisonMetricsWhite.totalConversations * 100).toFixed(1)}%
+                    </p>
+                ` : ''}
+            </div>
+            <div class="metric-card">
+                <h4 class="text-gray-600 mb-2">Custo por Conversa</h4>
+                <p class="text-2xl font-semibold text-primary">R$ ${metricsWhite.costPerConversation.toFixed(2).replace('.', ',')}</p>
+                ${comparisonMetricsWhite ? `
+                    <p class="metric-comparison ${comparisonMetricsWhite.costPerConversation > metricsWhite.costPerConversation ? 'increase' : 'decrease'}">
+                        <i class="fas ${comparisonMetricsWhite.costPerConversation > metricsWhite.costPerConversation ? 'fa-arrow-up' : 'fa-arrow-down'} mr-1"></i>
+                        ${((metricsWhite.costPerConversation - comparisonMetricsWhite.costPerConversation) / comparisonMetricsWhite.costPerConversation * 100).toFixed(1)}%
+                    </p>
+                ` : ''}
             </div>
         </div>
     `;
-    reportDiv.insertAdjacentHTML('beforeend', businessResultsHTML);
 
-    // Adicionar seção de Análise de Desempenho e Pontos de Melhoria (se houver texto)
-    if (performanceAnalysis.trim()) {
-        // Dividir os parágrafos com base em linhas em branco
-        const paragraphs = performanceAnalysis.split(/\n\s*\n/).filter(p => p.trim());
-        const analysisHTML = `
-            <div class="mt-8">
-                <h3 class="text-xl font-semibold text-primary mb-4">Análise de Desempenho e Pontos de Melhoria</h3>
-                <ul class="list-disc list-inside space-y-2 text-gray-700">
-                    ${paragraphs.map(paragraph => {
-                        // Substituir quebras de linha dentro do parágrafo por <br>
-                        const formattedParagraph = paragraph.replace(/\n/g, '<br>');
-                        return `<li>${formattedParagraph}</li>`;
-                    }).join('')}
+    // Seção de métricas Black (se aplicável)
+    if (hasBlack && metricsBlack) {
+        reportContainer.innerHTML += `
+            <h3 class="text-xl font-medium text-primary mb-4">Resultados Black</h3>
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+                <div class="metric-card">
+                    <h4 class="text-gray-600 mb-2">Investimento</h4>
+                    <p class="text-2xl font-semibold text-primary">R$ ${metricsBlack.totalSpend.toFixed(2).replace('.', ',')}</p>
+                    ${comparisonMetricsBlack ? `
+                        <p class="metric-comparison ${comparisonMetricsBlack.totalSpend > metricsBlack.totalSpend ? 'decrease' : 'increase'}">
+                            <i class="fas ${comparisonMetricsBlack.totalSpend > metricsBlack.totalSpend ? 'fa-arrow-down' : 'fa-arrow-up'} mr-1"></i>
+                            ${((metricsBlack.totalSpend - comparisonMetricsBlack.totalSpend) / comparisonMetricsBlack.totalSpend * 100).toFixed(1)}%
+                        </p>
+                    ` : ''}
+                </div>
+                <div class="metric-card">
+                    <h4 class="text-gray-600 mb-2">Alcance</h4>
+                    <p class="text-2xl font-semibold text-primary">${metricsBlack.totalReach.toLocaleString('pt-BR')}</p>
+                    ${comparisonMetricsBlack ? `
+                        <p class="metric-comparison ${comparisonMetricsBlack.totalReach > metricsBlack.totalReach ? 'decrease' : 'increase'}">
+                            <i class="fas ${comparisonMetricsBlack.totalReach > metricsBlack.totalReach ? 'fa-arrow-down' : 'fa-arrow-up'} mr-1"></i>
+                            ${((metricsBlack.totalReach - comparisonMetricsBlack.totalReach) / comparisonMetricsBlack.totalReach * 100).toFixed(1)}%
+                        </p>
+                    ` : ''}
+                </div>
+                <div class="metric-card">
+                    <h4 class="text-gray-600 mb-2">Conversas Iniciadas</h4>
+                    <p class="text-2xl font-semibold text-primary">${metricsBlack.totalConversations.toLocaleString('pt-BR')}</p>
+                    ${comparisonMetricsBlack ? `
+                        <p class="metric-comparison ${comparisonMetricsBlack.totalConversations > metricsBlack.totalConversations ? 'decrease' : 'increase'}">
+                            <i class="fas ${comparisonMetricsBlack.totalConversations > metricsBlack.totalConversations ? 'fa-arrow-down' : 'fa-arrow-up'} mr-1"></i>
+                            ${((metricsBlack.totalConversations - comparisonMetricsBlack.totalConversations) / comparisonMetricsBlack.totalConversations * 100).toFixed(1)}%
+                        </p>
+                    ` : ''}
+                </div>
+                <div class="metric-card">
+                    <h4 class="text-gray-600 mb-2">Custo por Conversa</h4>
+                    <p class="text-2xl font-semibold text-primary">R$ ${metricsBlack.costPerConversation.toFixed(2).replace('.', ',')}</p>
+                    ${comparisonMetricsBlack ? `
+                        <p class="metric-comparison ${comparisonMetricsBlack.costPerConversation > metricsBlack.costPerConversation ? 'increase' : 'decrease'}">
+                            <i class="fas ${comparisonMetricsBlack.costPerConversation > metricsBlack.costPerConversation ? 'fa-arrow-up' : 'fa-arrow-down'} mr-1"></i>
+                            ${((metricsBlack.costPerConversation - comparisonMetricsBlack.costPerConversation) / comparisonMetricsBlack.costPerConversation * 100).toFixed(1)}%
+                        </p>
+                    ` : ''}
+                </div>
+            </div>
+        `;
+    }
+
+    // Seção de Resultados de Negócios
+    reportContainer.innerHTML += `
+        <h3 class="text-xl font-medium text-primary mb-4">Resultados de Negócios</h3>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+            <div class="metric-card">
+                <h4 class="text-gray-600 mb-2">Orçamentos Realizados</h4>
+                <p class="text-2xl font-semibold text-primary">${budgetsCompleted.toLocaleString('pt-BR')}</p>
+            </div>
+            <div class="metric-card">
+                <h4 class="text-gray-600 mb-2">Número de Vendas</h4>
+                <p class="text-2xl font-semibold text-primary">${salesCount.toLocaleString('pt-BR')}</p>
+            </div>
+            <div class="metric-card">
+                <h4 class="text-gray-600 mb-2">Faturamento</h4>
+                <p class="text-2xl font-semibold text-primary">R$ ${revenue.toFixed(2).replace('.', ',')}</p>
+            </div>
+        </div>
+    `;
+
+    // Seção de Anúncios em Destaque White
+    if (topAdsWhite && topAdsWhite.length > 0) {
+        reportContainer.innerHTML += `
+            <h3 class="text-xl font-medium text-primary mb-4">${hasBlack ? 'Anúncios em Destaque White' : 'Anúncios em Destaque'}</h3>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+                ${topAdsWhite.map(ad => `
+                    <div class="top-ad-card">
+                        <img src="${ad.imageUrl}" alt="Anúncio" class="w-full h-48 object-cover rounded-md mb-4">
+                        <p class="text-gray-600">Conversas: <span class="font-semibold">${ad.conversations.toLocaleString('pt-BR')}</span></p>
+                        <p class="text-gray-600">Investimento: <span class="font-semibold">R$ ${ad.spend.toFixed(2).replace('.', ',')}</span></p>
+                        <p class="text-gray-600">Alcance: <span class="font-semibold">${ad.reach.toLocaleString('pt-BR')}</span></p>
+                    </div>
+                `).join('')}
+            </div>
+        `;
+    }
+
+    // Seção de Anúncios em Destaque Black
+    if (hasBlack && topAdsBlack && topAdsBlack.length > 0) {
+        reportContainer.innerHTML += `
+            <h3 class="text-xl font-medium text-primary mb-4">Anúncios em Destaque Black</h3>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+                ${topAdsBlack.map(ad => `
+                    <div class="top-ad-card">
+                        <img src="${ad.imageUrl}" alt="Anúncio" class="w-full h-48 object-cover rounded-md mb-4">
+                        <p class="text-gray-600">Conversas: <span class="font-semibold">${ad.conversations.toLocaleString('pt-BR')}</span></p>
+                        <p class="text-gray-600">Investimento: <span class="font-semibold">R$ ${ad.spend.toFixed(2).replace('.', ',')}</span></p>
+                        <p class="text-gray-600">Alcance: <span class="font-semibold">${ad.reach.toLocaleString('pt-BR')}</span></p>
+                    </div>
+                `).join('')}
+            </div>
+        `;
+    }
+
+    // Seção de Análise de Desempenho
+    if (performanceAnalysis) {
+        const analysisPoints = performanceAnalysis.split(/\n\s*\n/).filter(point => point.trim());
+        reportContainer.innerHTML += `
+            <h3 class="text-xl font-medium text-primary mb-4">Análise de Desempenho e Pontos de Melhoria</h3>
+            <div class="bg-white p-6 rounded-lg shadow-lg">
+                <ul class="list-disc pl-5 text-gray-700">
+                    ${analysisPoints.map(point => `<li>${point.replace(/\n/g, '<br>')}</li>`).join('')}
                 </ul>
             </div>
         `;
-        reportDiv.insertAdjacentHTML('beforeend', analysisHTML);
     }
-
-    // Exibir o botão de compartilhamento
-    shareWhatsAppBtn.classList.remove('hidden');
 }
 
+// Event Listeners para os modais e botões
+filterCampaignsBtn.addEventListener('click', () => toggleModal('campaignsModal', true));
+filterAdSetsBtn.addEventListener('click', () => toggleModal('adSetsModal', true));
+comparePeriodsBtn.addEventListener('click', () => {
+    setupComparisonModal();
+    toggleModal('comparisonModal', true);
+});
 
-async function calculateMetrics(unitId, startDate, endDate, campaignsSet, adSetsSet) {
-    let totalSpend = 0;
-    let totalConversations = 0;
-    let totalReach = 0;
+filterWhiteCampaignsBtn.addEventListener('click', () => toggleModal('whiteCampaignsModal', true));
+filterWhiteAdSetsBtn.addEventListener('click', () => toggleModal('whiteAdSetsModal', true));
+filterBlackCampaignsBtn.addEventListener('click', () => toggleModal('blackCampaignsModal', true));
+filterBlackAdSetsBtn.addEventListener('click', () => toggleModal('blackAdSetsModal', true));
 
-    const response = await new Promise((resolve) => {
-        FB.api(
-            `/${unitId}/insights`,
-            {
-                fields: ['spend', 'reach', 'actions'],
-                time_range: { since: startDate, until: endDate },
-                filtering: [
-                    campaignsSet.size > 0 ? { field: 'campaign.id', operator: 'IN', value: Array.from(campaignsSet) } : {},
-                    adSetsSet.size > 0 ? { field: 'adset.id', operator: 'IN', value: Array.from(adSetsSet) } : {}
-                ].filter(filter => Object.keys(filter).length > 0),
-                access_token: currentAccessToken
-            },
-            resolve
-        );
-    });
+closeCampaignsModalBtn.addEventListener('click', () => toggleModal('campaignsModal', false));
+closeAdSetsModalBtn.addEventListener('click', () => toggleModal('adSetsModal', false));
+closeWhiteCampaignsModalBtn.addEventListener('click', () => toggleModal('whiteCampaignsModal', false));
+closeWhiteAdSetsModalBtn.addEventListener('click', () => toggleModal('whiteAdSetsModal', false));
+closeBlackCampaignsModalBtn.addEventListener('click', () => toggleModal('blackCampaignsModal', false));
+closeBlackAdSetsModalBtn.addEventListener('click', () => toggleModal('blackAdSetsModal', false));
+cancelComparisonBtn.addEventListener('click', () => toggleModal('comparisonModal', false));
 
-    if (response && !response.error && response.data && response.data.length > 0) {
-        response.data.forEach(data => {
-            totalSpend += parseFloat(data.spend) || 0;
-            totalReach += parseInt(data.reach) || 0;
-            if (data.actions && Array.isArray(data.actions)) {
-                const conversationAction = data.actions.find(
-                    action => action.action_type === 'onsite_conversion.messaging_conversation_started_7d'
-                );
-                if (conversationAction && conversationAction.value) {
-                    totalConversations += parseInt(conversationAction.value) || 0;
-                }
+applyCampaignsBtn.addEventListener('click', () => {
+    toggleModal('campaignsModal', false);
+    isCampaignFilterActive = selectedCampaigns.size > 0;
+    updateFilterButtons();
+});
 
-                const customConversions = data.actions.filter(
-                    action => action.action_type.startsWith('offsite_conversion.')
-                );
-                customConversions.forEach(action => {
-                    if (action.value) {
-                        totalConversations += parseInt(action.value) || 0;
-                    }
-                });
-            }
-        });
-    }
+applyAdSetsBtn.addEventListener('click', () => {
+    toggleModal('adSetsModal', false);
+    isAdSetFilterActive = selectedAdSets.size > 0;
+    updateFilterButtons();
+});
 
-    const costPerConversation = totalConversations > 0 ? totalSpend / totalConversations : 0;
-    return { spend: totalSpend, conversations: totalConversations, reach: totalReach, costPerConversation };
-}
+applyWhiteCampaignsBtn.addEventListener('click', () => {
+    toggleModal('whiteCampaignsModal', false);
+    updateFilterButtons();
+});
 
-async function calculateTotalLeadsForAccount(unitId, startDate, endDate) {
-    let totalConversations = 0;
+applyWhiteAdSetsBtn.addEventListener('click', () => {
+    toggleModal('whiteAdSetsModal', false);
+    updateFilterButtons();
+});
 
-    const response = await new Promise((resolve) => {
-        FB.api(
-            `/${unitId}/insights`,
-            {
-                fields: ['actions'],
-                time_range: { since: startDate, until: endDate },
-                level: 'account',
-                access_token: currentAccessToken
-            },
-            resolve
-        );
-    });
+applyBlackCampaignsBtn.addEventListener('click', () => {
+    toggleModal('blackCampaignsModal', false);
+    updateFilterButtons();
+});
 
-    if (response && !response.error && response.data && response.data.length > 0) {
-        response.data.forEach(data => {
-            if (data.actions && Array.isArray(data.actions)) {
-                const conversationAction = data.actions.find(
-                    action => action.action_type === 'onsite_conversion.messaging_conversation_started_7d'
-                );
-                if (conversationAction && conversationAction.value) {
-                    totalConversations += parseInt(conversationAction.value) || 0;
-                }
+applyBlackAdSetsBtn.addEventListener('click', () => {
+    toggleModal('blackAdSetsModal', false);
+    updateFilterButtons();
+});
 
-                const customConversions = data.actions.filter(
-                    action => action.action_type.startsWith('offsite_conversion.')
-                );
-                customConversions.forEach(action => {
-                    if (action.value) {
-                        totalConversations += parseInt(action.value) || 0;
-                    }
-                });
-            }
-        });
-    }
-
-    return totalConversations;
-}
-
-async function getBestAds(unitId, startDate, endDate) {
-    const adsWithActions = []; // Anúncios com mensagens/conversões
-    const adsWithoutActions = []; // Anúncios sem mensagens/conversões, mas com gasto
-
-    // Determinar as entidades (campanhas, ad sets ou conta) para buscar os anúncios
-    const entitiesToFetch = [];
-    if (hasBlack && (selectedWhiteAdSets.size > 0 || selectedBlackAdSets.size > 0)) {
-        // Se tem Black e há ad sets White ou Black selecionados
-        const adSetIds = [...Array.from(selectedWhiteAdSets), ...Array.from(selectedBlackAdSets)];
-        entitiesToFetch.push(...adSetIds.map(id => ({ type: 'adset', id })));
-    } else if (hasBlack && (selectedWhiteCampaigns.size > 0 || selectedBlackCampaigns.size > 0)) {
-        // Se tem Black e há campanhas White ou Black selecionadas
-        const campaignIds = [...Array.from(selectedWhiteCampaigns), ...Array.from(selectedBlackCampaigns)];
-        entitiesToFetch.push(...campaignIds.map(id => ({ type: 'campaign', id })));
-    } else if (selectedAdSets.size > 0) {
-        // Se há ad sets selecionados
-        entitiesToFetch.push(...Array.from(selectedAdSets).map(id => ({ type: 'adset', id })));
-    } else if (selectedCampaigns.size > 0) {
-        // Se há campanhas selecionadas
-        entitiesToFetch.push(...Array.from(selectedCampaigns).map(id => ({ type: 'campaign', id })));
-    } else {
-        // Se não há filtros, buscar todos os anúncios da conta
-        entitiesToFetch.push({ type: 'account', id: unitId });
-    }
-
-    console.log(`Entidades para buscar anúncios:`, entitiesToFetch);
-
-    // Buscar todos os anúncios das entidades
-    const adsList = [];
-    for (const entity of entitiesToFetch) {
-        let entityUrl = entity.type === 'account' ? `/${entity.id}/ads` : `/${entity.id}/ads`;
-        console.log(`Buscando anúncios com URL: ${entityUrl}`);
-        while (entityUrl) {
-            const adResponse = await new Promise((resolve) => {
-                FB.api(
-                    entityUrl,
-                    {
-                        fields: 'id,name,creative',
-                        time_range: { since: startDate, until: endDate },
-                        access_token: currentAccessToken,
-                        limit: 50
-                    },
-                    resolve
-                );
-            });
-
-            if (adResponse && !adResponse.error) {
-                adsList.push(...adResponse.data);
-                entityUrl = adResponse.paging && adResponse.paging.next ? adResponse.paging.next : null;
-            } else {
-                console.error(`Erro ao carregar anúncios para ${entity.type} ${entity.id}:`, adResponse?.error);
-                entityUrl = null;
-            }
-            await delay(500);
-        }
-    }
-
-    console.log(`Total de anúncios encontrados: ${adsList.length}`);
-    if (adsList.length === 0) {
-        console.log('Nenhum anúncio encontrado para o período ou filtros selecionados.');
-    }
-
-    // Processar os anúncios
-    for (const ad of adsList) {
-        let totalActions = 0;
-        let spend = 0;
-        let costPerAction = 0;
-        let imageUrl = 'https://dummyimage.com/150x150/ccc/fff';
-
-        // Buscar insights do anúncio
-        const insightsResponse = await new Promise((resolve) => {
-            FB.api(
-                `/${ad.id}/insights`,
-                {
-                    fields: 'actions,spend,reach',
-                    time_range: { since: startDate, until: endDate },
-                    access_token: currentAccessToken
-                },
-                resolve
-            );
-        });
-
-        if (insightsResponse && !insightsResponse.error && insightsResponse.data && insightsResponse.data.length > 0) {
-            const insights = insightsResponse.data[0];
-            console.log(`Insights para o anúncio ${ad.id}:`, insights);
-
-            // Calcular leads (conversas)
-            if (insights.actions) {
-                const conversationAction = insights.actions.find(
-                    action => action.action_type === 'onsite_conversion.messaging_conversation_started_7d'
-                );
-                if (conversationAction && conversationAction.value) {
-                    totalActions += parseInt(conversationAction.value) || 0;
-                }
-
-                const customConversions = insights.actions.filter(
-                    action => action.action_type.startsWith('offsite_conversion.')
-                );
-                customConversions.forEach(action => {
-                    if (action.value) {
-                        totalActions += parseInt(action.value) || 0;
-                    }
-                });
-            }
-
-            // Calcular investimento
-            spend = insights.spend ? parseFloat(insights.spend) : 0;
-
-            // Calcular custo por lead
-            costPerAction = totalActions > 0 ? (spend / totalActions).toFixed(2) : '0.00';
+confirmComparisonBtn.addEventListener('click', () => {
+    const selectedOption = document.querySelector('input[name="comparisonOption"]:checked').value;
+    if (selectedOption === 'custom') {
+        const compareStartDate = document.getElementById('compareStartDate').value;
+        const compareEndDate = document.getElementById('compareEndDate').value;
+        if (compareStartDate && compareEndDate) {
+            comparisonData = { startDate: compareStartDate, endDate: compareEndDate, isPrevious: false };
         } else {
-            console.log(`Nenhum insight encontrado para o anúncio ${ad.id}`);
-            if (insightsResponse?.error) {
-                console.error(`Erro ao buscar insights do anúncio ${ad.id}:`, insightsResponse.error);
-            }
+            alert('Por favor, preencha as datas de início e fim para a comparação.');
+            return;
         }
-
-        console.log(`Anúncio ${ad.id} - Leads: ${totalActions}, Investimento: ${spend}, Custo por Lead: ${costPerAction}`);
-
-        // Adicionar o anúncio à lista apropriada
-        const adData = {
-            creativeId: ad.creative?.id,
-            imageUrl: imageUrl,
-            messages: totalActions,
-            spend: spend,
-            costPerMessage: costPerAction
-        };
-
-        if (totalActions > 0) {
-            adsWithActions.push(adData);
-        } else if (spend > 0) {
-            adsWithoutActions.push(adData);
-        }
-    }
-
-    // Ordenar e selecionar os melhores anúncios
-    adsWithActions.sort((a, b) => b.messages - a.messages);
-    adsWithoutActions.sort((a, b) => b.spend - a.spend);
-
-    const bestAds = [];
-    bestAds.push(...adsWithActions.slice(0, 2));
-    if (bestAds.length < 2 && adsWithoutActions.length > 0) {
-        const remainingSlots = 2 - bestAds.length;
-        bestAds.push(...adsWithoutActions.slice(0, remainingSlots));
-    }
-
-    if (adsWithActions.length === 0 && adsWithoutActions.length === 1) {
-        bestAds.length = 0;
-        bestAds.push(...adsWithoutActions);
-    } else if (adsWithActions.length === 1 && adsWithoutActions.length === 0) {
-        bestAds.length = 0;
-        bestAds.push(...adsWithActions);
-    }
-
-    console.log(`Melhores anúncios selecionados:`, bestAds);
-
-    // Buscar imagens dos criativos
-    const imagePromises = bestAds.map(async (ad) => {
-        if (ad.creativeId) {
-            const creativeData = await getCreativeData(ad.creativeId);
-            ad.imageUrl = creativeData.imageUrl;
-        }
-        return ad;
-    });
-
-    await Promise.all(imagePromises);
-
-    return bestAds;
-}
-
-
-function calculateVariation(current, previous, metric) {
-    if (!previous || previous === 0) return { percentage: 0, direction: 'neutral' };
-    const percentage = ((current - previous) / previous) * 100;
-
-    let direction;
-    if (metric === 'costPerConversation') {
-        direction = percentage < 0 ? 'positive' : 'negative';
+    } else if (selectedOption === 'previous') {
+        comparisonData = { startDate: null, endDate: null, isPrevious: true };
     } else {
-        direction = percentage >= 0 ? 'positive' : 'negative';
+        comparisonData = null;
     }
+    toggleModal('comparisonModal', false);
+});
 
-    return { percentage: Math.abs(percentage).toFixed(2), direction };
-}
+backToReportSelectionBtn.addEventListener('click', () => {
+    reportContainer.innerHTML = '';
+    form.classList.remove('hidden');
+    exportPdfBtn.classList.add('hidden');
+    isFilterActivated = false;
+    updateFilterButtons();
+});
 
-function renderReport(unitName, startDate, endDate, metrics, comparisonMetrics, blackMetrics, blackComparisonMetrics, bestAds, comparisonTotalLeads) {
-    const formattedStartDate = startDate ? startDate.split('-').reverse().join('/') : 'N/A';
-    const formattedEndDate = endDate ? endDate.split('-').reverse().join('/') : 'N/A';
+refreshBtn.addEventListener('click', () => {
+    window.location.reload();
+});
 
-    let comparisonPeriod = '';
-    if (comparisonMetrics || comparisonTotalLeads !== null) {
-        const compareStart = comparisonData?.startDate ? comparisonData.startDate.split('-').reverse().join('/') : 'N/A';
-        const compareEnd = comparisonData?.endDate ? comparisonData.endDate.split('-').reverse().join('/') : 'N/A';
-        comparisonPeriod = `
-            <p class="text-gray-600 text-base mb-2">
-                <i class="fas fa-calendar-alt mr-2"></i>Comparação: 
-                ${compareStart} a ${compareEnd}
-            </p>
-        `;
-    }
-
-    let variations = {
-        reach: calculateVariation(metrics.reach, comparisonMetrics?.reach, 'reach'),
-        conversations: calculateVariation(metrics.conversations, comparisonMetrics?.conversations, 'conversations'),
-        costPerConversation: calculateVariation(metrics.costPerConversation, comparisonMetrics?.costPerConversation, 'costPerConversation')
+// Event Listener para exportar o relatório em PDF
+exportPdfBtn.addEventListener('click', () => {
+    const element = document.getElementById('reportContainer');
+    const opt = {
+        margin: 0.5,
+        filename: 'Relatorio_Anuncios.pdf',
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2, useCORS: true },
+        jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
     };
 
-    let blackVariations = {};
-    let totalLeads = 0;
-    let totalLeadsVariation = null;
-    if (hasBlack && blackMetrics) {
-        blackVariations = {
-            reach: calculateVariation(blackMetrics.reach, blackComparisonMetrics?.reach, 'reach'),
-            conversations: calculateVariation(blackMetrics.conversations, blackComparisonMetrics?.conversations, 'conversations'),
-            costPerConversation: calculateVariation(blackMetrics.costPerConversation, blackComparisonMetrics?.costPerConversation, 'costPerConversation')
-        };
-        console.log(`Conversas White: ${metrics.conversations}, Conversas Black: ${blackMetrics.conversations}`);
-        totalLeads = (parseInt(metrics.conversations) || 0) + (parseInt(blackMetrics.conversations) || 0);
-        console.log(`Total de leads calculado: ${totalLeads}`);
-
-        if (comparisonTotalLeads !== null) {
-            totalLeadsVariation = calculateVariation(totalLeads, comparisonTotalLeads, 'conversations');
-        }
-    }
-
-    const reportHTML = `
-        <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
-            <h2 class="text-2xl font-semibold text-primary mb-4">Relatório Completo - ${unitName}</h2>
-            <p class="text-gray-600 text-base mb-4">
-                <i class="fas fa-calendar-alt mr-2"></i>Período Analisado: ${formattedStartDate} a ${formattedEndDate}
-            </p>
-            ${comparisonPeriod}
-            ${
-                hasBlack
-                    ? `
-                        <div class="bg-blue-900 text-white rounded-lg p-4 mb-6">
-                            <h3 class="text-xl font-semibold uppercase mb-3">Campanhas White</h3>
-                            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                                <div class="metric-card">
-                                    <h4 class="text-sm font-medium text-gray-200 mb-1">Investimento</h4>
-                                    <p class="text-lg font-semibold text-white">R$ ${metrics.spend.toFixed(2).replace('.', ',')}</p>
-                                </div>
-                                <div class="metric-card">
-                                    <h4 class="text-sm font-medium text-gray-200 mb-1">Alcance</h4>
-                                    <p class="text-lg font-semibold text-white">${metrics.reach}</p>
-                                </div>
-                                <div class="metric-card">
-                                    <h4 class="text-sm font-medium text-gray-200 mb-1">Conversas Iniciadas</h4>
-                                    <p class="text-lg font-semibold text-white">${metrics.conversations}</p>
-                                </div>
-                                <div class="metric-card">
-                                    <h4 class="text-sm font-medium text-gray-200 mb-1">Custo por Conversa</h4>
-                                    <p class="text-lg font-semibold text-white">R$ ${metrics.costPerConversation.toFixed(2).replace('.', ',')}</p>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="bg-blue-900 text-white rounded-lg p-4 mb-6">
-                            <h3 class="text-xl font-semibold uppercase mb-3">Campanhas Black</h3>
-                            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                                <div class="metric-card">
-                                    <h4 class="text-sm font-medium text-gray-200 mb-1">Investimento</h4>
-                                    <p class="text-lg font-semibold text-white">R$ ${blackMetrics.spend.toFixed(2).replace('.', ',')}</p>
-                                </div>
-                                <div class="metric-card">
-                                    <h4 class="text-sm font-medium text-gray-200 mb-1">Alcance</h4>
-                                    <p class="text-lg font-semibold text-white">${blackMetrics.reach}</p>
-                                </div>
-                                <div class="metric-card">
-                                    <h4 class="text-sm font-medium text-gray-200 mb-1">Conversas Iniciadas</h4>
-                                    <p class="text-lg font-semibold text-white">${blackMetrics.conversations}</p>
-                                </div>
-                                <div class="metric-card">
-                                    <h4 class="text-sm font-medium text-gray-200 mb-1">Custo por Conversa</h4>
-                                    <p class="text-lg font-semibold text-white">R$ ${blackMetrics.costPerConversation.toFixed(2).replace('.', ',')}</p>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="text-center bg-gray-100 rounded-lg p-4 mb-6">
-                            <p class="text-lg font-semibold text-gray-700">
-                                Número total de leads: <span class="text-2xl font-bold text-primary">${totalLeads}</span>
-                                ${
-                                    totalLeadsVariation
-                                        ? `
-                                            <p class="metric-comparison ${
-                                                totalLeadsVariation.direction === 'positive' ? 'increase' : 'decrease'
-                                            } text-sm mt-1">
-                                                <i class="fas fa-arrow-${
-                                                    totalLeadsVariation.direction === 'positive' ? 'up' : 'down'
-                                                } mr-1"></i>
-                                                ${totalLeadsVariation.percentage}% em relação ao período anterior
-                                            </p>`
-                                        : ''
-                                }
-                            </p>
-                        </div>`
-                    : `
-                        <div class="bg-blue-900 text-white rounded-lg p-4 mb-6">
-                            <h3 class="text-xl font-semibold uppercase mb-3">Campanhas</h3>
-                            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                                <div class="metric-card">
-                                    <h4 class="text-sm font-medium text-gray-200 mb-1">Investimento</h4>
-                                    <p class="text-lg font-semibold text-white">R$ ${metrics.spend.toFixed(2).replace('.', ',')}</p>
-                                </div>
-                                <div class="metric-card">
-                                    <h4 class="text-sm font-medium text-gray-200 mb-1">Alcance</h4>
-                                    <p class="text-lg font-semibold text-white">${metrics.reach}</p>
-                                    ${
-                                        comparisonMetrics
-                                            ? `
-                                                <p class="metric-comparison ${
-                                                    variations.reach.direction === 'positive' ? 'increase' : 'decrease'
-                                                } text-sm mt-1">
-                                                    <i class="fas fa-arrow-${
-                                                        variations.reach.direction === 'positive' ? 'up' : 'down'
-                                                    } mr-1"></i>
-                                                    ${variations.reach.percentage}% em relação ao período anterior
-                                                </p>`
-                                            : ''
-                                    }
-                                </div>
-                                <div class="metric-card">
-                                    <h4 class="text-sm font-medium text-gray-200 mb-1">Conversas Iniciadas</h4>
-                                    <p class="text-lg font-semibold text-white">${metrics.conversations}</p>
-                                    ${
-                                        comparisonMetrics
-                                            ? `
-                                                <p class="metric-comparison ${
-                                                    variations.conversations.direction === 'positive' ? 'increase' : 'decrease'
-                                                } text-sm mt-1">
-                                                    <i class="fas fa-arrow-${
-                                                        variations.conversations.direction === 'positive' ? 'up' : 'down'
-                                                    } mr-1"></i>
-                                                    ${variations.conversations.percentage}% em relação ao período anterior
-                                                </p>`
-                                            : ''
-                                    }
-                                </div>
-                                <div class="metric-card">
-                                    <h4 class="text-sm font-medium text-gray-200 mb-1">Custo por Conversa</h4>
-                                    <p class="text-lg font-semibold text-white">R$ ${metrics.costPerConversation.toFixed(2).replace('.', ',')}</p>
-                                    ${
-                                        comparisonMetrics
-                                            ? `
-                                                <p class="metric-comparison ${
-                                                    variations.costPerConversation.direction === 'positive' ? 'increase' : 'decrease'
-                                                } text-sm mt-1">
-                                                    <i class="fas fa-arrow-${
-                                                        variations.costPerConversation.direction === 'positive' ? 'down' : 'up'
-                                                    } mr-1"></i>
-                                                    ${variations.costPerConversation.percentage}% em relação ao período anterior
-                                                </p>`
-                                            : ''
-                                    }
-                                </div>
-                            </div>
-                        </div>`
-            }
-            ${
-                bestAds.length > 0
-                    ? `
-                        <h3 class="text-xl font-semibold text-primary mb-3">Anúncios em Destaque</h3>
-                        <div class="space-y-4">
-                            ${bestAds
-                                .map(
-                                    ad => `
-                                        <div class="flex items-center bg-white border border-gray-200 rounded-lg p-3">
-                                            <img src="${ad.imageUrl}" alt="Anúncio" class="w-24 h-24 object-cover rounded-md mr-4">
-                                            <div>
-                                                <p class="text-gray-700 text-base"><strong>Leads:</strong> ${ad.messages}</p>
-                                                <p class="text-gray-700 text-base"><strong>Investimento:</strong> R$ ${ad.spend.toFixed(2).replace('.', ',')}</p>
-                                                <p class="text-gray-700 text-base"><strong>Custo por Lead:</strong> R$ ${ad.costPerMessage.replace('.', ',')}</p>
-                                            </div>
-                                        </div>
-                                    `
-                                )
-                                .join('')}
-                        </div>`
-                    : '<p class="text-gray-600 text-base">Nenhum anúncio com dados (leads ou investimento) encontrado para este período.</p>'
-            }
-        </div>
-    `;
-
-    reportContainer.insertAdjacentHTML('beforeend', reportHTML);
-}
-
-// Compartilhar no WhatsApp
-shareWhatsAppBtn.addEventListener('click', () => {
-    const unitId = document.getElementById('unitId').value;
-    const unitName = adAccountsMap[unitId] || 'Unidade Desconhecida';
-    const startDate = document.getElementById('startDate').value.split('-').reverse().join('/');
-    const endDate = document.getElementById('endDate').value.split('-').reverse().join('/');
-
-    let message = `Relatório Completo - ${unitName}\n`;
-    message += `Período Analisado: ${startDate} a ${endDate}\n\n`;
-
-    const report = reportContainer.querySelector('.bg-white');
-    if (hasBlack) {
-        message += `Campanhas White:\n`;
-        const whiteMetrics = report.querySelectorAll('.metric-card')[0].parentElement.querySelectorAll('.metric-card');
-        whiteMetrics.forEach(metric => {
-            const label = metric.querySelector('h4').textContent;
-            const value = metric.querySelector('p.text-lg').textContent;
-            message += `${label}: ${value}\n`;
+    // Garantir que as imagens sejam carregadas antes de gerar o PDF
+    const images = element.querySelectorAll('img');
+    const imagePromises = Array.from(images).map(img => {
+        if (img.complete) return Promise.resolve();
+        return new Promise(resolve => {
+            img.onload = resolve;
+            img.onerror = resolve;
         });
+    });
 
-        message += `\nCampanhas Black:\n`;
-        const blackMetrics = report.querySelectorAll('.metric-card')[4].parentElement.querySelectorAll('.metric-card');
-        blackMetrics.forEach(metric => {
-            const label = metric.querySelector('h4').textContent;
-            const value = metric.querySelector('p.text-lg').textContent;
-            message += `${label}: ${value}\n`;
-        });
-
-        const totalLeads = report.querySelector('p.text-lg.font-semibold span').textContent;
-        message += `\nNúmero total de leads: ${totalLeads}\n`;
-    } else {
-        message += `Campanhas:\n`;
-        const metrics = report.querySelectorAll('.metric-card');
-        metrics.forEach(metric => {
-            const label = metric.querySelector('h4').textContent;
-            const value = metric.querySelector('p.text-lg').textContent;
-            message += `${label}: ${value}\n`;
-        });
-    }
-
-    const bestAds = report.querySelectorAll('.flex.items-center');
-    if (bestAds.length > 0) {
-        message += `\nAnúncios em Destaque:\n`;
-        bestAds.forEach((ad, adIndex) => {
-            const messages = ad.querySelector('p:nth-child(1)').textContent;
-            const costPerMessage = ad.querySelector('p:nth-child(2)').textContent;
-            message += `Anúncio ${adIndex + 1}:\n${messages}\n${costPerMessage}\n`;
-        });
-    }
-
-    const encodedMessage = encodeURIComponent(message);
-    const whatsappUrl = `https://api.whatsapp.com/send?text=${encodedMessage}`;
-    window.open(whatsappUrl, '_blank');
-});
-
-// Voltar para a seleção de relatórios
-backToReportSelectionBtn.addEventListener('click', () => {
-    window.location.href = 'index.html?appLoggedIn=true';
-});
-
-// Limpar seleções e recarregar a página
-refreshBtn.addEventListener('click', () => {
-    // Limpar todas as seleções
-    selectedCampaigns.clear();
-    selectedAdSets.clear();
-    selectedWhiteCampaigns.clear();
-    selectedWhiteAdSets.clear();
-    selectedBlackCampaigns.clear();
-    selectedBlackAdSets.clear();
-    comparisonData = null;
-    hasBlack = null;
-
-    // Limpar o formulário
-    form.reset();
-    reportContainer.innerHTML = '';
-    shareWhatsAppBtn.classList.add('hidden');
-
-    // Limpar os filtros visuais
-    whiteFilters.classList.add('hidden');
-    blackFilters.classList.add('hidden');
-    defaultFilters.classList.remove('hidden');
-    comparisonFilter.classList.remove('hidden');
-
-    // Desabilitar botões novamente até que "A unidade possui Black?" seja respondido
-    disableButtons();
-
-    // Recarregar a página
-    window.location.reload();
+    Promise.all(imagePromises).then(() => {
+        html2pdf().set(opt).from(element).save();
+    }).catch(error => {
+        console.error('Erro ao gerar PDF:', error);
+        alert('Houve um erro ao gerar o PDF. Por favor, tente novamente.');
+    });
 });

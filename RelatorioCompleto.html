@@ -10,6 +10,8 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- html2pdf.js CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <script>
         tailwind.config = {
             theme: {
@@ -119,17 +121,17 @@
             @apply bg-white p-4 rounded-lg shadow-md transition-all duration-300 hover:shadow-lg;
         }
 
-/* Estilo para os itens da lista de análise */
-ul.list-disc li {
-    margin-bottom: 0.5rem; /* Espaçamento entre os itens da lista */
-    line-height: 1.5; /* Altura da linha para melhor legibilidade */
-}
+    /* Estilo para os itens da lista de análise */
+    ul.list-disc li {
+        margin-bottom: 0.5rem; /* Espaçamento entre os itens da lista */
+        line-height: 1.5; /* Altura da linha para melhor legibilidade */
+    }
 
-/* Garantir que o texto dentro de cada <li> respeite o formato */
-ul.list-disc li br {
-    display: block; /* Forçar a quebra de linha */
-    content: ''; /* Garantir compatibilidade */
-}
+    /* Garantir que o texto dentro de cada <li> respeite o formato */
+    ul.list-disc li br {
+        display: block; /* Forçar a quebra de linha */
+        content: ''; /* Garantir compatibilidade */
+    }
 
     </style>
 </head>
@@ -268,9 +270,9 @@ ul.list-disc li br {
                 class="flex-1 bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-4 rounded-md transition duration-300">
                 <i class="fas fa-sync-alt mr-2"></i>Refresh
             </button>
-            <button id="shareWhatsAppBtn"
-                class="hidden flex-1 bg-[#25D366] hover:bg-[#20c058] text-white font-medium py-2 px-4 rounded-md transition duration-300">
-                <i class="fab fa-whatsapp mr-2"></i>Compartilhar no WhatsApp
+            <button id="exportPdfBtn"
+                class="hidden flex-1 bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-4 rounded-md transition duration-300">
+                <i class="fas fa-file-pdf mr-2"></i>Exportar PDF
             </button>
         </div>
     </div>
@@ -433,5 +435,5 @@ ul.list-disc li br {
     <!-- Scripts -->
     <script async defer crossorigin="anonymous" src="https://connect.facebook.net/en_US/sdk.js"></script>
     <script type="module" src="RelatorioCompleto.js"></script>
-<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'93075eeb8ba96b9d',t:'MTc0NDY3NzQwOC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script><script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'930c0ec9980abce6',t:'MTc0NDcyNjU1NS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script><script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'930e06e76bdd8027',t:'MTc0NDc0NzIwMy4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</body>
 </html>

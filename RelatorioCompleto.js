@@ -1138,6 +1138,23 @@ async function generateReport(unitId, unitName, startDate, endDate) {
         }
     }
 
+    // Validar totalLeads e totalLeadsVariation
+    let totalLeads = 0;
+    let totalLeadsVariation = null;
+    if (hasBlack && blackMetrics) {
+        const whiteConversations = parseInt(metrics.conversations) || 0;
+        const blackConversations = parseInt(blackMetrics.conversations) || 0;
+        totalLeads = whiteConversations + blackConversations;
+        console.log(`Conversas White: ${whiteConversations}, Conversas Black: ${blackConversations}, Total de leads: ${totalLeads}`);
+
+        if (comparisonTotalLeads !== null && !isNaN(comparisonTotalLeads)) {
+            totalLeadsVariation = calculateVariation(totalLeads, comparisonTotalLeads, 'conversations');
+            console.log(`Variação de leads: ${totalLeadsVariation.percentage}% (${totalLeadsVariation.direction})`);
+        } else {
+            console.log('Nenhuma variação de leads calculada (comparisonTotalLeads é null ou inválido).');
+        }
+    }
+
     // Obter melhores anúncios
     const bestAds = await getBestAds(unitId, startDate, endDate);
 
@@ -1187,7 +1204,7 @@ async function generateReport(unitId, unitName, startDate, endDate) {
         reportDiv.insertAdjacentHTML('beforeend', analysisHTML);
     }
 
-    // Exibir o botão de compartilhamento
+    // Exibir os botões de compartilhamento e exportação
     shareWhatsAppBtn.classList.remove('hidden');
     exportPDFBtn.classList.remove('hidden');
 }
@@ -1469,6 +1486,8 @@ function calculateVariation(current, previous, metric) {
 }
 
 function renderReport(unitName, startDate, endDate, metrics, comparisonMetrics, blackMetrics, blackComparisonMetrics, bestAds, comparisonTotalLeads) {
+    // Sanitizar valores para evitar problemas no template literal
+    const safeUnitName = unitName ? String(unitName).replace(/[<>"']/g, '') : 'Unidade Desconhecida';
     const formattedStartDate = startDate ? startDate.split('-').reverse().join('/') : 'N/A';
     const formattedEndDate = endDate ? endDate.split('-').reverse().join('/') : 'N/A';
 
@@ -1493,24 +1512,46 @@ function renderReport(unitName, startDate, endDate, metrics, comparisonMetrics, 
     let blackVariations = {};
     let totalLeads = 0;
     let totalLeadsVariation = null;
+    let totalLeadsHTML = '';
     if (hasBlack && blackMetrics) {
         blackVariations = {
             reach: calculateVariation(blackMetrics.reach, blackComparisonMetrics?.reach, 'reach'),
             conversations: calculateVariation(blackMetrics.conversations, blackComparisonMetrics?.conversations, 'conversations'),
             costPerConversation: calculateVariation(blackMetrics.costPerConversation, blackComparisonMetrics?.costPerConversation, 'costPerConversation')
         };
-        console.log(`Conversas White: ${metrics.conversations}, Conversas Black: ${blackMetrics.conversations}`);
         totalLeads = (parseInt(metrics.conversations) || 0) + (parseInt(blackMetrics.conversations) || 0);
-        console.log(`Total de leads calculado: ${totalLeads}`);
+        console.log(`Renderizando total de leads: ${totalLeads}`);
 
-        if (comparisonTotalLeads !== null) {
+        if (comparisonTotalLeads !== null && !isNaN(comparisonTotalLeads)) {
             totalLeadsVariation = calculateVariation(totalLeads, comparisonTotalLeads, 'conversations');
+            console.log(`Variação de leads no render: ${totalLeadsVariation.percentage}% (${totalLeadsVariation.direction})`);
         }
+
+        totalLeadsHTML = `
+            <div class="text-center bg-gray-100 rounded-lg p-4 mb-6">
+                <p class="text-lg font-semibold text-gray-700">
+                    Número total de leads: <span class="text-2xl font-bold text-primary">${totalLeads}</span>
+                </p>
+                ${
+                    totalLeadsVariation
+                        ? `
+                            <p class="metric-comparison ${
+                                totalLeadsVariation.direction === 'positive' ? 'increase' : 'decrease'
+                            } text-sm mt-1">
+                                <i class="fas fa-arrow-${
+                                    totalLeadsVariation.direction === 'positive' ? 'up' : 'down'
+                                } mr-1"></i>
+                                ${totalLeadsVariation.percentage}% em relação ao período anterior
+                            </p>`
+                        : ''
+                }
+            </div>
+        `;
     }
 
     const reportHTML = `
         <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
-            <h2 class="text-2xl font-semibold text-primary mb-4">Relatório Completo - ${unitName}</h2>
+            <h2 class="text-2xl font-semibold text-primary mb-4">Relatório Completo - ${safeUnitName}</h2>
             <p class="text-gray-600 text-base mb-4">
                 <i class="fas fa-calendar-alt mr-2"></i>Período Analisado: ${formattedStartDate} a ${formattedEndDate}
             </p>
@@ -1560,24 +1601,7 @@ function renderReport(unitName, startDate, endDate, metrics, comparisonMetrics, 
                                 </div>
                             </div>
                         </div>
-                        <div class="text-center bg-gray-100 rounded-lg p-4 mb-6">
-                            <p class="text-lg font-semibold text-gray-700">
-                                Número total de leads: <span class="text-2xl font-bold text-primary">${totalLeads}</span>
-                                ${
-                                    totalLeadsVariation
-                                        ? `
-                                            <p class="metric-comparison ${
-                                                totalLeadsVariation.direction === 'positive' ? 'increase' : 'decrease'
-                                            } text-sm mt-1">
-                                                <i class="fas fa-arrow-${
-                                                    totalLeadsVariation.direction === 'positive' ? 'up' : 'down'
-                                                } mr-1"></i>
-                                                ${totalLeadsVariation.percentage}% em relação ao período anterior
-                                            </p>`
-                                        : ''
-                                }
-                            </p>
-                        </div>`
+                        ${totalLeadsHTML}`
                     : `
                         <div class="bg-blue-900 text-white rounded-lg p-4 mb-6">
                             <h3 class="text-xl font-semibold uppercase mb-3">Campanhas</h3>
@@ -1667,6 +1691,7 @@ function renderReport(unitName, startDate, endDate, metrics, comparisonMetrics, 
 
     reportContainer.insertAdjacentHTML('beforeend', reportHTML);
 }
+
 
 // Compartilhar no WhatsApp
 shareWhatsAppBtn.addEventListener('click', () => {

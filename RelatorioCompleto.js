@@ -87,6 +87,7 @@ if (!unitSelect) {
             option.value = account.id;
             option.textContent = account.name;
             unitSelect.appendChild(option);
+console.log('adAccountsMap:', adAccountsMap);
         });
     }
 }
@@ -1834,4 +1835,6 @@ refreshBtn.addEventListener('click', () => {
         option.textContent = account.name;
         unitSelect.appendChild(option);
     });
+});
+
 });

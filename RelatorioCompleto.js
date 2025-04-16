@@ -1,5 +1,4 @@
 import { fbAuth } from './auth.js';
-import { exportReportToPDF } from './exportPDF.js';
 
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -12,7 +11,6 @@ if (!currentAccessToken) {
 }
 
 // Elementos do DOM
-const exportPDFBtn = document.getElementById('exportPDFBtn');
 const form = document.getElementById('form');
 const reportContainer = document.getElementById('reportContainer');
 const shareWhatsAppBtn = document.getElementById('shareWhatsAppBtn');
@@ -1036,28 +1034,29 @@ form.addEventListener('submit', async (e) => {
 
 
 async function generateReport(unitId, unitName, startDate, endDate) {
-    console.log('generateReport chamado com:', { unitId, unitName, startDate, endDate });
-
+    // Capturar os novos campos
     const budgetsCompleted = parseInt(document.getElementById('budgetsCompleted').value) || 0;
     const salesCount = parseInt(document.getElementById('salesCount').value) || 0;
     const revenue = parseFloat(document.getElementById('revenue').value) || 0;
-    const performanceAnalysis = document.getElementById('performanceAnalysis')?.value || '';
-    console.log('Novos campos:', { budgetsCompleted, salesCount, revenue, performanceAnalysis });
+    const performanceAnalysis = document.getElementById('performanceAnalysis')?.value || ''; // Capturar a análise
 
     if (!unitId || !startDate || !endDate) {
         alert('Preencha todos os campos obrigatórios');
         return;
     }
 
+    // Validação adicional para os novos campos
     if (budgetsCompleted < 0 || salesCount < 0 || revenue < 0) {
         alert('Os valores de orçamentos, vendas e faturamento não podem ser negativos.');
         return;
     }
 
+    // Garantir que as campanhas foram carregadas
     if (!campaignsMap[unitId]) {
         await loadCampaigns(unitId, startDate, endDate);
     }
 
+    // Determinar quais campanhas usar com base nos filtros
     let whiteCampaigns = [];
     let blackCampaigns = [];
     let allCampaigns = Object.entries(campaignsMap[unitId] || {});
@@ -1065,31 +1064,38 @@ async function generateReport(unitId, unitName, startDate, endDate) {
     if (hasBlack) {
         whiteCampaigns = selectedWhiteCampaigns.size > 0 
             ? allCampaigns.filter(([id]) => selectedWhiteCampaigns.has(id))
-            : allCampaigns;
+            : allCampaigns; // Se não houver filtro White, usa todas as campanhas
         blackCampaigns = selectedBlackCampaigns.size > 0 
             ? allCampaigns.filter(([id]) => selectedBlackCampaigns.has(id))
-            : allCampaigns;
+            : allCampaigns; // Se não houver filtro Black, usa todas as campanhas
     } else {
         if (selectedCampaigns.size > 0) {
             allCampaigns = allCampaigns.filter(([id]) => selectedCampaigns.has(id));
+        } else if (selectedAdSets.size > 0) {
+            allCampaigns = allCampaigns; // Pode ser ajustado se precisar filtrar por ad sets
         }
     }
 
+    // Calcular métricas para campanhas White e Black (ou todas as campanhas se hasBlack for false)
     let metrics = { spend: 0, reach: 0, conversations: 0, costPerConversation: 0 };
     let blackMetrics = null;
 
+    // Usar calculateMetrics para obter as métricas diretamente da API, considerando os filtros
     if (hasBlack) {
+        // Métricas para White
         const whiteMetricsResult = await calculateMetrics(unitId, startDate, endDate, selectedWhiteCampaigns, selectedWhiteAdSets);
         metrics = whiteMetricsResult;
+
+        // Métricas para Black
         const blackMetricsResult = await calculateMetrics(unitId, startDate, endDate, selectedBlackCampaigns, selectedBlackAdSets);
         blackMetrics = blackMetricsResult;
     } else {
+        // Métricas gerais (sem distinção de White/Black)
         const generalMetrics = await calculateMetrics(unitId, startDate, endDate, selectedCampaigns, selectedAdSets);
         metrics = generalMetrics;
     }
-    console.log('metrics:', metrics);
-    console.log('blackMetrics:', blackMetrics);
 
+    // Calcular métricas de comparação (se houver comparisonData)
     let comparisonMetrics = null;
     let blackComparisonMetrics = null;
     let comparisonTotalLeads = null;
@@ -1097,6 +1103,8 @@ async function generateReport(unitId, unitName, startDate, endDate) {
     if (comparisonData) {
         const compareStartDate = comparisonData.startDate;
         const compareEndDate = comparisonData.endDate;
+
+        // Recarregar campanhas para o período de comparação
         await loadCampaigns(unitId, compareStartDate, compareEndDate);
 
         let compareWhiteCampaigns = [];
@@ -1111,49 +1119,31 @@ async function generateReport(unitId, unitName, startDate, endDate) {
                 ? compareAllCampaigns.filter(([id]) => selectedBlackCampaigns.has(id))
                 : compareAllCampaigns;
 
+            // Métricas de comparação para White
             comparisonMetrics = await calculateMetrics(unitId, compareStartDate, compareEndDate, selectedWhiteCampaigns, selectedWhiteAdSets);
+
+            // Métricas de comparação para Black
             blackComparisonMetrics = await calculateMetrics(unitId, compareStartDate, compareEndDate, selectedBlackCampaigns, selectedBlackAdSets);
+
+            // Calcular total de leads para o período de comparação
             comparisonTotalLeads = await calculateTotalLeadsForAccount(unitId, compareStartDate, compareEndDate);
         } else {
             if (selectedCampaigns.size > 0) {
                 compareAllCampaigns = compareAllCampaigns.filter(([id]) => selectedCampaigns.has(id));
             }
+            // Métricas de comparação gerais
             comparisonMetrics = await calculateMetrics(unitId, compareStartDate, compareEndDate, selectedCampaigns, selectedAdSets);
         }
     }
-    console.log('comparisonMetrics:', comparisonMetrics);
-    console.log('blackComparisonMetrics:', blackComparisonMetrics);
-    console.log('comparisonTotalLeads:', comparisonTotalLeads);
 
-    let totalLeads = 0;
-    let totalLeadsVariation = null;
-    if (hasBlack && blackMetrics) {
-        const whiteConversations = parseInt(metrics.conversations) || 0;
-        const blackConversations = parseInt(blackMetrics.conversations) || 0;
-        totalLeads = whiteConversations + blackConversations;
-        console.log('whiteConversations:', whiteConversations);
-        console.log('blackConversations:', blackConversations);
-        console.log('totalLeads:', totalLeads);
-
-        if (comparisonTotalLeads !== null && !isNaN(comparisonTotalLeads)) {
-            totalLeadsVariation = calculateVariation(totalLeads, comparisonTotalLeads, 'conversations');
-            if (totalLeadsVariation.percentage === null || isNaN(totalLeadsVariation.percentage)) {
-                console.warn('totalLeadsVariation.percentage é inválido:', totalLeadsVariation.percentage);
-                totalLeadsVariation = null;
-            } else {
-                console.log('totalLeadsVariation:', totalLeadsVariation);
-            }
-        } else {
-            console.log('Nenhuma variação de leads calculada.');
-        }
-    }
-
+    // Obter melhores anúncios
     const bestAds = await getBestAds(unitId, startDate, endDate);
-    console.log('bestAds:', bestAds);
 
+    // Renderizar o relatório usando a função renderReport
     reportContainer.innerHTML = '';
     renderReport(unitName, startDate, endDate, metrics, comparisonMetrics, blackMetrics, blackComparisonMetrics, bestAds, comparisonTotalLeads);
 
+    // Adicionar seção de Resultados de Negócios
     const reportDiv = reportContainer.querySelector('.bg-white');
     const businessResultsHTML = `
         <div class="mt-8">
@@ -1176,13 +1166,16 @@ async function generateReport(unitId, unitName, startDate, endDate) {
     `;
     reportDiv.insertAdjacentHTML('beforeend', businessResultsHTML);
 
+    // Adicionar seção de Análise de Desempenho e Pontos de Melhoria (se houver texto)
     if (performanceAnalysis.trim()) {
+        // Dividir os parágrafos com base em linhas em branco
         const paragraphs = performanceAnalysis.split(/\n\s*\n/).filter(p => p.trim());
         const analysisHTML = `
             <div class="mt-8">
                 <h3 class="text-xl font-semibold text-primary mb-4">Análise de Desempenho e Pontos de Melhoria</h3>
                 <ul class="list-disc list-inside space-y-2 text-gray-700">
                     ${paragraphs.map(paragraph => {
+                        // Substituir quebras de linha dentro do parágrafo por <br>
                         const formattedParagraph = paragraph.replace(/\n/g, '<br>');
                         return `<li>${formattedParagraph}</li>`;
                     }).join('')}
@@ -1192,10 +1185,59 @@ async function generateReport(unitId, unitName, startDate, endDate) {
         reportDiv.insertAdjacentHTML('beforeend', analysisHTML);
     }
 
+    // Exibir o botão de compartilhamento
     shareWhatsAppBtn.classList.remove('hidden');
-    exportPDFBtn.classList.remove('hidden');
 }
 
+
+async function calculateMetrics(unitId, startDate, endDate, campaignsSet, adSetsSet) {
+    let totalSpend = 0;
+    let totalConversations = 0;
+    let totalReach = 0;
+
+    const response = await new Promise((resolve) => {
+        FB.api(
+            `/${unitId}/insights`,
+            {
+                fields: ['spend', 'reach', 'actions'],
+                time_range: { since: startDate, until: endDate },
+                filtering: [
+                    campaignsSet.size > 0 ? { field: 'campaign.id', operator: 'IN', value: Array.from(campaignsSet) } : {},
+                    adSetsSet.size > 0 ? { field: 'adset.id', operator: 'IN', value: Array.from(adSetsSet) } : {}
+                ].filter(filter => Object.keys(filter).length > 0),
+                access_token: currentAccessToken
+            },
+            resolve
+        );
+    });
+
+    if (response && !response.error && response.data && response.data.length > 0) {
+        response.data.forEach(data => {
+            totalSpend += parseFloat(data.spend) || 0;
+            totalReach += parseInt(data.reach) || 0;
+            if (data.actions && Array.isArray(data.actions)) {
+                const conversationAction = data.actions.find(
+                    action => action.action_type === 'onsite_conversion.messaging_conversation_started_7d'
+                );
+                if (conversationAction && conversationAction.value) {
+                    totalConversations += parseInt(conversationAction.value) || 0;
+                }
+
+                const customConversions = data.actions.filter(
+                    action => action.action_type.startsWith('offsite_conversion.')
+                );
+                customConversions.forEach(action => {
+                    if (action.value) {
+                        totalConversations += parseInt(action.value) || 0;
+                    }
+                });
+            }
+        });
+    }
+
+    const costPerConversation = totalConversations > 0 ? totalSpend / totalConversations : 0;
+    return { spend: totalSpend, conversations: totalConversations, reach: totalReach, costPerConversation };
+}
 
 async function calculateTotalLeadsForAccount(unitId, startDate, endDate) {
     let totalConversations = 0;
@@ -1424,24 +1466,8 @@ function calculateVariation(current, previous, metric) {
 }
 
 function renderReport(unitName, startDate, endDate, metrics, comparisonMetrics, blackMetrics, blackComparisonMetrics, bestAds, comparisonTotalLeads) {
-    console.log('Iniciando renderReport com os seguintes parâmetros:');
-    console.log('unitName:', unitName);
-    console.log('startDate:', startDate);
-    console.log('endDate:', endDate);
-    console.log('metrics:', metrics);
-    console.log('comparisonMetrics:', comparisonMetrics);
-    console.log('blackMetrics:', blackMetrics);
-    console.log('blackComparisonMetrics:', blackComparisonMetrics);
-    console.log('bestAds:', bestAds);
-    console.log('comparisonTotalLeads:', comparisonTotalLeads);
-
-    // Sanitizar valores para evitar problemas no template literal
-    const safeUnitName = unitName ? String(unitName).replace(/[<>"']/g, '') : 'Unidade Desconhecida';
     const formattedStartDate = startDate ? startDate.split('-').reverse().join('/') : 'N/A';
     const formattedEndDate = endDate ? endDate.split('-').reverse().join('/') : 'N/A';
-    console.log('safeUnitName:', safeUnitName);
-    console.log('formattedStartDate:', formattedStartDate);
-    console.log('formattedEndDate:', formattedEndDate);
 
     let comparisonPeriod = '';
     if (comparisonMetrics || comparisonTotalLeads !== null) {
@@ -1460,59 +1486,28 @@ function renderReport(unitName, startDate, endDate, metrics, comparisonMetrics, 
         conversations: calculateVariation(metrics.conversations, comparisonMetrics?.conversations, 'conversations'),
         costPerConversation: calculateVariation(metrics.costPerConversation, comparisonMetrics?.costPerConversation, 'costPerConversation')
     };
-    console.log('variations:', variations);
 
     let blackVariations = {};
     let totalLeads = 0;
     let totalLeadsVariation = null;
-    let totalLeadsHTML = '';
     if (hasBlack && blackMetrics) {
         blackVariations = {
             reach: calculateVariation(blackMetrics.reach, blackComparisonMetrics?.reach, 'reach'),
             conversations: calculateVariation(blackMetrics.conversations, blackComparisonMetrics?.conversations, 'conversations'),
             costPerConversation: calculateVariation(blackMetrics.costPerConversation, blackComparisonMetrics?.costPerConversation, 'costPerConversation')
         };
-        console.log('blackVariations:', blackVariations);
+        console.log(`Conversas White: ${metrics.conversations}, Conversas Black: ${blackMetrics.conversations}`);
+        totalLeads = (parseInt(metrics.conversations) || 0) + (parseInt(blackMetrics.conversations) || 0);
+        console.log(`Total de leads calculado: ${totalLeads}`);
 
-        const whiteConversations = parseInt(metrics.conversations) || 0;
-        const blackConversations = parseInt(blackMetrics.conversations) || 0;
-        totalLeads = whiteConversations + blackConversations;
-        console.log('whiteConversations:', whiteConversations);
-        console.log('blackConversations:', blackConversations);
-        console.log('totalLeads:', totalLeads);
-
-        if (comparisonTotalLeads !== null && !isNaN(comparisonTotalLeads)) {
+        if (comparisonTotalLeads !== null) {
             totalLeadsVariation = calculateVariation(totalLeads, comparisonTotalLeads, 'conversations');
-            console.log('totalLeadsVariation:', totalLeadsVariation);
-        } else {
-            console.log('Nenhuma variação de leads calculada (comparisonTotalLeads inválido).');
         }
-
-        totalLeadsHTML = `
-            <div class="text-center bg-gray-100 rounded-lg p-4 mb-6">
-                <p class="text-lg font-semibold text-gray-700">
-                    Número total de leads: <span class="text-2xl font-bold text-primary">${totalLeads}</span>
-                </p>
-                ${
-                    totalLeadsVariation
-                        ? `
-                            <p class="metric-comparison ${
-                                totalLeadsVariation.direction === 'positive' ? 'increase' : 'decrease'
-                            } text-sm mt-1">
-                                <i class="fas fa-arrow-${
-                                    totalLeadsVariation.direction === 'positive' ? 'up' : 'down'
-                                } mr-1"></i>
-                                ${totalLeadsVariation.percentage}% em relação ao período anterior
-                            </p>`
-                        : ''
-                }
-            </div>
-        `;
     }
 
     const reportHTML = `
         <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
-            <h2 class="text-2xl font-semibold text-primary mb-4">Relatório Completo - ${safeUnitName}</h2>
+            <h2 class="text-2xl font-semibold text-primary mb-4">Relatório Completo - ${unitName}</h2>
             <p class="text-gray-600 text-base mb-4">
                 <i class="fas fa-calendar-alt mr-2"></i>Período Analisado: ${formattedStartDate} a ${formattedEndDate}
             </p>
@@ -1562,7 +1557,24 @@ function renderReport(unitName, startDate, endDate, metrics, comparisonMetrics, 
                                 </div>
                             </div>
                         </div>
-                        ${totalLeadsHTML}`
+                        <div class="text-center bg-gray-100 rounded-lg p-4 mb-6">
+                            <p class="text-lg font-semibold text-gray-700">
+                                Número total de leads: <span class="text-2xl font-bold text-primary">${totalLeads}</span>
+                                ${
+                                    totalLeadsVariation
+                                        ? `
+                                            <p class="metric-comparison ${
+                                                totalLeadsVariation.direction === 'positive' ? 'increase' : 'decrease'
+                                            } text-sm mt-1">
+                                                <i class="fas fa-arrow-${
+                                                    totalLeadsVariation.direction === 'positive' ? 'up' : 'down'
+                                                } mr-1"></i>
+                                                ${totalLeadsVariation.percentage}% em relação ao período anterior
+                                            </p>`
+                                        : ''
+                                }
+                            </p>
+                        </div>`
                     : `
                         <div class="bg-blue-900 text-white rounded-lg p-4 mb-6">
                             <h3 class="text-xl font-semibold uppercase mb-3">Campanhas</h3>
@@ -1574,14 +1586,53 @@ function renderReport(unitName, startDate, endDate, metrics, comparisonMetrics, 
                                 <div class="metric-card">
                                     <h4 class="text-sm font-medium text-gray-200 mb-1">Alcance</h4>
                                     <p class="text-lg font-semibold text-white">${metrics.reach}</p>
+                                    ${
+                                        comparisonMetrics
+                                            ? `
+                                                <p class="metric-comparison ${
+                                                    variations.reach.direction === 'positive' ? 'increase' : 'decrease'
+                                                } text-sm mt-1">
+                                                    <i class="fas fa-arrow-${
+                                                        variations.reach.direction === 'positive' ? 'up' : 'down'
+                                                    } mr-1"></i>
+                                                    ${variations.reach.percentage}% em relação ao período anterior
+                                                </p>`
+                                            : ''
+                                    }
                                 </div>
                                 <div class="metric-card">
                                     <h4 class="text-sm font-medium text-gray-200 mb-1">Conversas Iniciadas</h4>
                                     <p class="text-lg font-semibold text-white">${metrics.conversations}</p>
+                                    ${
+                                        comparisonMetrics
+                                            ? `
+                                                <p class="metric-comparison ${
+                                                    variations.conversations.direction === 'positive' ? 'increase' : 'decrease'
+                                                } text-sm mt-1">
+                                                    <i class="fas fa-arrow-${
+                                                        variations.conversations.direction === 'positive' ? 'up' : 'down'
+                                                    } mr-1"></i>
+                                                    ${variations.conversations.percentage}% em relação ao período anterior
+                                                </p>`
+                                            : ''
+                                    }
                                 </div>
                                 <div class="metric-card">
                                     <h4 class="text-sm font-medium text-gray-200 mb-1">Custo por Conversa</h4>
                                     <p class="text-lg font-semibold text-white">R$ ${metrics.costPerConversation.toFixed(2).replace('.', ',')}</p>
+                                    ${
+                                        comparisonMetrics
+                                            ? `
+                                                <p class="metric-comparison ${
+                                                    variations.costPerConversation.direction === 'positive' ? 'increase' : 'decrease'
+                                                } text-sm mt-1">
+                                                    <i class="fas fa-arrow-${
+                                                        variations.costPerConversation.direction === 'positive' ? 'down' : 'up'
+                                                    } mr-1"></i>
+                                                    ${variations.costPerConversation.percentage}% em relação ao período anterior
+                                                </p>`
+                                            : ''
+                                    }
                                 </div>
                             </div>
                         </div>`
@@ -1611,8 +1662,6 @@ function renderReport(unitName, startDate, endDate, metrics, comparisonMetrics, 
         </div>
     `;
 
-    console.log('reportHTML gerado com sucesso');
-    reportContainer.innerHTML = '';
     reportContainer.insertAdjacentHTML('beforeend', reportHTML);
 }
 
@@ -1669,11 +1718,6 @@ shareWhatsAppBtn.addEventListener('click', () => {
     const encodedMessage = encodeURIComponent(message);
     const whatsappUrl = `https://api.whatsapp.com/send?text=${encodedMessage}`;
     window.open(whatsappUrl, '_blank');
-});
-
-/ Exportar relatório em PDF
-exportPDFBtn.addEventListener('click', () => {
-    exportReportToPDF();
 });
 
 // Voltar para a seleção de relatórios

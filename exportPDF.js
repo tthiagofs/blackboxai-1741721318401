@@ -1,6 +1,5 @@
-import jsPDF from 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.es.min.js';
-
 export async function exportReportToPDF() {
+    const { jsPDF } = window.jspdf;
     const reportContainer = document.getElementById('reportContainer');
     if (!reportContainer) {
         alert('Relatório não encontrado. Por favor, gere o relatório primeiro.');
@@ -18,13 +17,11 @@ export async function exportReportToPDF() {
     const startDate = document.getElementById('startDate').value.split('-').reverse().join('/');
     const endDate = document.getElementById('endDate').value.split('-').reverse().join('/');
 
-    // Título
     pdf.setFont('helvetica', 'bold');
     pdf.setFontSize(18);
-    pdf.setTextColor(30, 60, 114); // Cor primary (#1e3c72)
+    pdf.setTextColor(30, 60, 114);
     pdf.text(`Relatório Completo - ${unitName}`, 20, 20);
 
-    // Período
     pdf.setFont('helvetica', 'normal');
     pdf.setFontSize(12);
     pdf.setTextColor(100, 100, 100);
@@ -32,12 +29,11 @@ export async function exportReportToPDF() {
 
     let yOffset = 40;
 
-    // Função auxiliar para adicionar seção
     const addSection = (title, metrics, y) => {
         pdf.setFont('helvetica', 'bold');
         pdf.setFontSize(14);
         pdf.setTextColor(255, 255, 255);
-        pdf.setFillColor(30, 60, 114); // Cor primary
+        pdf.setFillColor(30, 60, 114);
         pdf.rect(20, y, 170, 10, 'F');
         pdf.text(title.toUpperCase(), 25, y + 7);
 
@@ -62,12 +58,10 @@ export async function exportReportToPDF() {
         return y + metricsData.length * 10 + 10;
     };
 
-    // Capturar métricas do relatório
     const report = reportContainer.querySelector('.bg-white');
     const hasBlack = document.getElementById('blackFilters').classList.contains('hidden') ? false : true;
 
     if (hasBlack) {
-        // Campanhas White
         const whiteMetricsElements = report.querySelectorAll('.metric-card')[0].parentElement.querySelectorAll('.metric-card');
         const whiteMetrics = {
             spend: parseFloat(whiteMetricsElements[0].querySelector('p.text-lg').textContent.replace('R$ ', '').replace(',', '.')),
@@ -77,7 +71,6 @@ export async function exportReportToPDF() {
         };
         yOffset = addSection('Campanhas White', whiteMetrics, yOffset);
 
-        // Campanhas Black
         const blackMetricsElements = report.querySelectorAll('.metric-card')[4].parentElement.querySelectorAll('.metric-card');
         const blackMetrics = {
             spend: parseFloat(blackMetricsElements[0].querySelector('p.text-lg').textContent.replace('R$ ', '').replace(',', '.')),
@@ -87,7 +80,6 @@ export async function exportReportToPDF() {
         };
         yOffset = addSection('Campanhas Black', blackMetrics, yOffset);
 
-        // Total de Leads
         const totalLeads = report.querySelector('p.text-lg.font-semibold span').textContent;
         pdf.setFont('helvetica', 'bold');
         pdf.setFontSize(14);
@@ -97,7 +89,6 @@ export async function exportReportToPDF() {
         pdf.text(totalLeads, 60, yOffset);
         yOffset += 15;
     } else {
-        // Campanhas Gerais
         const metricsElements = report.querySelectorAll('.metric-card');
         const metrics = {
             spend: parseFloat(metricsElements[0].querySelector('p.text-lg').textContent.replace('R$ ', '').replace(',', '.')),
@@ -108,7 +99,6 @@ export async function exportReportToPDF() {
         yOffset = addSection('Campanhas', metrics, yOffset);
     }
 
-    // Resultados de Negócios
     const businessResults = report.querySelectorAll('.metric-card').length > (hasBlack ? 8 : 4) ? report.querySelectorAll('.metric-card').slice(hasBlack ? 8 : 4, hasBlack ? 11 : 7) : null;
     if (businessResults) {
         pdf.setFont('helvetica', 'bold');
@@ -134,7 +124,6 @@ export async function exportReportToPDF() {
         yOffset += businessData.length * 10 + 10;
     }
 
-    // Análise de Desempenho
     const analysisSection = report.querySelector('ul.list-disc');
     if (analysisSection) {
         pdf.setFont('helvetica', 'bold');
@@ -161,6 +150,5 @@ export async function exportReportToPDF() {
         });
     }
 
-    // Salvar o PDF
     pdf.save(`Relatorio_Completo_${unitName}_${startDate.replace(/\//g, '-')}_a_${endDate.replace(/\//g, '-')}.pdf`);
 }

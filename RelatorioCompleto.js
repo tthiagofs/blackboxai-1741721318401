@@ -1,5 +1,4 @@
 import { fbAuth } from './auth.js';
-import html2pdf from 'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js';
 
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -62,6 +61,7 @@ let hasBlack = null; // null (não respondido), true (Sim), false (Não)
 
 // Mapas
 const adAccountsMap = fbAuth.getAdAccounts();
+console.log('adAccountsMap:', adAccountsMap);
 const adSetsMap = {};
 const campaignsMap = {};
 

@@ -1,33 +1,43 @@
-import { fbAuth } from './auth.js';
+// Esperar o site carregar completamente antes de começar
+window.addEventListener('load', () => {
+    // Importar a autenticação do Facebook
+    import { fbAuth } from './auth.js';
 
-const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+    // Função de atraso
+    const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
-// Verificar autenticação
-const currentAccessToken = fbAuth.getAccessToken();
-if (!currentAccessToken) {
-    alert('Você precisa fazer login com o Facebook primeiro. Redirecionando para a página inicial.');
-    window.location.replace('index.html');
-    throw new Error('Token de acesso não encontrado');
-}
+    // Verificar autenticação
+    const currentAccessToken = fbAuth.getAccessToken();
+    if (!currentAccessToken) {
+        alert('Você precisa fazer login com o Facebook primeiro. Redirecionando para a página inicial.');
+        window.location.replace('index.html');
+        throw new Error('Token de acesso não encontrado');
+    }
 
-// Elementos do DOM
-const form = document.getElementById('form');
-const reportContainer = document.getElementById('reportContainer');
-const shareWhatsAppBtn = document.getElementById('shareWhatsAppBtn');
-const filterCampaignsBtn = document.getElementById('filterCampaigns');
-const filterAdSetsBtn = document.getElementById('filterAdSets');
-const comparePeriodsBtn = document.getElementById('comparePeriods');
-const backToReportSelectionBtn = document.getElementById('backToReportSelectionBtn');
-const hasBlackYesBtn = document.getElementById('hasBlackYesBtn');
-const hasBlackNoBtn = document.getElementById('hasBlackNoBtn');
-const filterWhiteCampaignsBtn = document.getElementById('filterWhiteCampaigns');
-const filterWhiteAdSetsBtn = document.getElementById('filterWhiteAdSets');
-const filterBlackCampaignsBtn = document.getElementById('filterBlackCampaigns');
-const filterBlackAdSetsBtn = document.getElementById('filterBlackAdSets');
-const whiteFilters = document.getElementById('whiteFilters');
-const blackFilters = document.getElementById('blackFilters');
-const defaultFilters = document.getElementById('defaultFilters');
-const comparisonFilter = document.getElementById('comparisonFilter');
+    // Elementos do DOM
+    const form = document.getElementById('form');
+    const reportContainer = document.getElementById('reportContainer');
+    let exportPdfBtn = document.getElementById('exportPdfBtn'); // Botão de exportar PDF
+    const shareWhatsAppBtn = document.getElementById('shareWhatsAppBtn');
+    const filterCampaignsBtn = document.getElementById('filterCampaigns');
+    const filterAdSetsBtn = document.getElementById('filterAdSets');
+    const comparePeriodsBtn = document.getElementById('comparePeriods');
+    const backToReportSelectionBtn = document.getElementById('backToReportSelectionBtn');
+    const hasBlackYesBtn = document.getElementById('hasBlackYesBtn');
+    const hasBlackNoBtn = document.getElementById('hasBlackNoBtn');
+    const filterWhiteCampaignsBtn = document.getElementById('filterWhiteCampaigns');
+    const filterWhiteAdSetsBtn = document.getElementById('filterWhiteAdSets');
+    const filterBlackCampaignsBtn = document.getElementById('filterBlackCampaigns');
+    const filterBlackAdSetsBtn = document.getElementById('filterBlackAdSets');
+    const whiteFilters = document.getElementById('whiteFilters');
+    const blackFilters = document.getElementById('blackFilters');
+    const defaultFilters = document.getElementById('defaultFilters');
+    const comparisonFilter = document.getElementById('comparisonFilter');
+
+    // Verificar se o botão de exportar existe
+    if (!exportPdfBtn) {
+        console.error('Botão exportPdfBtn não encontrado! Verifique o HTML.');
+    }
 
 // Modais
 const closeCampaignsModalBtn = document.getElementById('closeCampaignsModal');
@@ -1168,14 +1178,12 @@ async function generateReport(unitId, unitName, startDate, endDate) {
 
 // Adicionar seção de Análise de Desempenho e Pontos de Melhoria (se houver texto)
 if (performanceAnalysis.trim()) {
-    // Dividir os parágrafos com base em linhas em branco
     const paragraphs = performanceAnalysis.split(/\n\s*\n/).filter(p => p.trim());
     const analysisHTML = `
         <div class="mt-8">
             <h3 class="text-xl font-semibold text-primary mb-4">Análise de Desempenho e Pontos de Melhoria</h3>
             <ul class="list-disc list-inside space-y-2 text-gray-700">
                 ${paragraphs.map(paragraph => {
-                    // Substituir quebras de linha dentro do parágrafo por <br>
                     const formattedParagraph = paragraph.replace(/\n/g, '<br>');
                     return `<li>${formattedParagraph}</li>`;
                 }).join('')}
@@ -1185,10 +1193,13 @@ if (performanceAnalysis.trim()) {
     reportDiv.insertAdjacentHTML('beforeend', analysisHTML);
 }
 
-// Adicionar visibilidade dos botões de compartilhamento e exportação
+// Garantir que os botões apareçam
 shareWhatsAppBtn.classList.remove('hidden');
 if (exportPdfBtn) {
     exportPdfBtn.classList.remove('hidden');
+    console.log('Botão Exportar PDF agora visível!');
+} else {
+    console.error('Botão Exportar PDF não encontrado após gerar o relatório!');
 }
 
 // Adicionar log de depuração e delay para garantir renderização

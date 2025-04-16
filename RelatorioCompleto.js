@@ -1731,8 +1731,17 @@ exportPdfBtn.addEventListener('click', async () => {
     }
 
     // Forçar renderização completa do DOM
-   await new Promise(resolve => setTimeout(resolve, 100)); // Pequeno delay após renderizar
-console.log('Relatório renderizado:', reportContainer.innerHTML);
+    await new Promise(resolve => setTimeout(resolve, 1000)); // Aumentar para 1000ms
+
+    // Aguarda o carregamento de todas as imagens
+    const images = reportElement.getElementsByTagName('img');
+    await Promise.all(Array.from(images).map(img => {
+        return new Promise((resolve) => {
+            if (img.complete) resolve();
+            img.onload = () => resolve();
+            img.onerror = () => resolve(); // Resolver mesmo em caso de erro para evitar travamento
+        });
+    }));
 
     // Depurar o conteúdo a ser exportado
     console.log('Conteúdo a ser exportado:', reportElement.outerHTML);
@@ -1753,8 +1762,9 @@ console.log('Relatório renderizado:', reportContainer.innerHTML);
         html2canvas: {
             scale: 1, // Reduzir scale para evitar corte
             useCORS: true,
-            windowWidth: document.documentElement.scrollWidth, // Usar a largura total do documento
-            logging: true // Habilitar logs para depuração
+            windowWidth: document.documentElement.scrollWidth,
+            logging: true,
+            ignoreElements: (element) => element.tagName.toLowerCase() === 'iframe' // Ignorar iframes (se houver)
         },
         jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
     };

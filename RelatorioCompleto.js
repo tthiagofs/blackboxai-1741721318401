@@ -1730,8 +1730,8 @@ exportPdfBtn.addEventListener('click', async () => {
         return;
     }
 
-    // Forçar renderização completa do DOM
-    await new Promise(resolve => setTimeout(resolve, 1000)); // Aumentar para 1000ms
+    // Forçar renderização completa do DOM após adição dinâmica
+    await new Promise(resolve => setTimeout(resolve, 1200)); // Aumentar para 1200ms
 
     // Aguarda o carregamento de todas as imagens
     const images = reportElement.getElementsByTagName('img');
@@ -1739,20 +1739,20 @@ exportPdfBtn.addEventListener('click', async () => {
         return new Promise((resolve) => {
             if (img.complete) resolve();
             img.onload = () => resolve();
-            img.onerror = () => resolve(); // Resolver mesmo em caso de erro para evitar travamento
+            img.onerror = () => resolve(); // Resolver mesmo em caso de erro
         });
     }));
 
-    // Depurar o conteúdo a ser exportado
+    // Depurar o conteúdo completo a ser exportado
     console.log('Conteúdo a ser exportado:', reportElement.outerHTML);
 
     // Remover classes hidden temporariamente
     const hiddenElements = reportContainer.querySelectorAll('.hidden');
     hiddenElements.forEach(el => el.classList.remove('hidden'));
 
-    // Forçar recálculo de layout
-    reportElement.style.display = 'block';
-    reportElement.style.visibility = 'visible';
+    // Forçar recálculo de layout e garantir que o conteúdo dinâmico seja incluído
+    reportElement.style.height = 'auto';
+    reportElement.style.overflow = 'visible';
     await new Promise(resolve => requestAnimationFrame(() => resolve()));
 
     const opt = {
@@ -1760,11 +1760,12 @@ exportPdfBtn.addEventListener('click', async () => {
         filename: `Relatorio_Completo_${unitSelect.options[unitSelect.selectedIndex].text}_${document.getElementById('startDate').value}.pdf`,
         image: { type: 'jpeg', quality: 0.98 },
         html2canvas: {
-            scale: 1, // Reduzir scale para evitar corte
+            scale: 1,
             useCORS: true,
-            windowWidth: document.documentElement.scrollWidth,
+            windowWidth: document.documentElement.scrollWidth * 1.5, // Aumentar largura para evitar corte
+            windowHeight: document.documentElement.scrollHeight, // Garantir altura suficiente
             logging: true,
-            ignoreElements: (element) => element.tagName.toLowerCase() === 'iframe' // Ignorar iframes (se houver)
+            ignoreElements: (element) => element.tagName.toLowerCase() === 'iframe'
         },
         jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
     };
@@ -1780,6 +1781,8 @@ exportPdfBtn.addEventListener('click', async () => {
         alert('Ocorreu um erro ao gerar o PDF. Por favor, tente novamente.');
     } finally {
         hiddenElements.forEach(el => el.classList.add('hidden'));
+        reportElement.style.height = '';
+        reportElement.style.overflow = '';
         reportElement.style.display = '';
         reportElement.style.visibility = '';
     }

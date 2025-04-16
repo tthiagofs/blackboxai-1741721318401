@@ -1403,43 +1403,8 @@ function renderReport(unitName, startDate, endDate, metrics, comparisonMetrics, 
     const formattedStartDate = formatDate(startDate);
     const formattedEndDate = formatDate(endDate);
 
-    const comparisonPeriodHTML = comparisonMetrics ? `
-        <h3 class="text-lg font-semibold text-gray-700 mb-4">Comparação com o Período Anterior (${formatDate(comparisonData.startDate)} - ${formatDate(comparisonData.endDate)})</h3>
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-            <div class="metric-card">
-                <h4 class="text-sm font-medium text-gray-600 mb-1">Investimento</h4>
-                <p class="text-lg font-semibold text-gray-800">R$ ${comparisonMetrics.spend.toFixed(2).replace('.', ',')}</p>
-                <p class="text-sm ${metrics.spend >= comparisonMetrics.spend ? 'text-green-600' : 'text-red-600'}">
-                    ${metrics.spend >= comparisonMetrics.spend ? '↑' : '↓'} 
-                    ${Math.abs(((metrics.spend - comparisonMetrics.spend) / comparisonMetrics.spend) * 100).toFixed(2)}%
-                </p>
-            </div>
-            <div class="metric-card">
-                <h4 class="text-sm font-medium text-gray-600 mb-1">Alcance</h4>
-                <p class="text-lg font-semibold text-gray-800">${comparisonMetrics.reach.toLocaleString('pt-BR')}</p>
-                <p class="text-sm ${metrics.reach >= comparisonMetrics.reach ? 'text-green-600' : 'text-red-600'}">
-                    ${metrics.reach >= comparisonMetrics.reach ? '↑' : '↓'} 
-                    ${Math.abs(((metrics.reach - comparisonMetrics.reach) / comparisonMetrics.reach) * 100).toFixed(2)}%
-                </p>
-            </div>
-            <div class="metric-card">
-                <h4 class="text-sm font-medium text-gray-600 mb-1">Conversas Iniciadas</h4>
-                <p class="text-lg font-semibold text-gray-800">${comparisonMetrics.conversations.toLocaleString('pt-BR')}</p>
-                <p class="text-sm ${metrics.conversations >= comparisonMetrics.conversations ? 'text-green-600' : 'text-red-600'}">
-                    ${metrics.conversations >= comparisonMetrics.conversations ? '↑' : '↓'} 
-                    ${comparisonMetrics.conversations > 0 ? Math.abs(((metrics.conversations - comparisonMetrics.conversations) / comparisonMetrics.conversations) * 100).toFixed(2) : 'N/A'}%
-                </p>
-            </div>
-            <div class="metric-card">
-                <h4 class="text-sm font-medium text-gray-600 mb-1">Custo por Conversa</h4>
-                <p class="text-lg font-semibold text-gray-800">R$ ${comparisonMetrics.costPerConversation.toFixed(2).replace('.', ',')}</p>
-                <p class="text-sm ${metrics.costPerConversation <= comparisonMetrics.costPerConversation ? 'text-green-600' : 'text-red-600'}">
-                    ${metrics.costPerConversation <= comparisonMetrics.costPerConversation ? '↓' : '↑'} 
-                    ${comparisonMetrics.costPerConversation > 0 ? Math.abs(((metrics.costPerConversation - comparisonMetrics.costPerConversation) / comparisonMetrics.costPerConversation) * 100).toFixed(2) : 'N/A'}%
-                </p>
-            </div>
-        </div>
-    ` : '';
+   
+
 
     const blackComparisonHTML = blackComparisonMetrics ? `
         <h3 class="text-lg font-semibold text-gray-700 mb-4">Comparação Black com o Período Anterior (${formatDate(comparisonData.startDate)} - ${formatDate(comparisonData.endDate)})</h3>
@@ -1533,51 +1498,98 @@ function renderReport(unitName, startDate, endDate, metrics, comparisonMetrics, 
             </div>
 
             ${hasBlack ? `
-                <h3 class="text-xl font-semibold text-primary mb-4">Métricas White</h3>
-                <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-                    <div class="metric-card">
-                        <h4 class="text-sm font-medium text-gray-600 mb-1">Investimento (White)</h4>
-                        <p class="text-lg font-semibold text-gray-800">R$ ${metrics.spend.toFixed(2).replace('.', ',')}</p>
-                    </div>
-                    <div class="metric-card">
-                        <h4 class="text-sm font-medium text-gray-600 mb-1">Alcance (White)</h4>
-                        <p class="text-lg font-semibold text-gray-800">${metrics.reach.toLocaleString('pt-BR')}</p>
-                    </div>
-                    <div class="metric-card">
-                        <h4 class="text-sm font-medium text-gray-600 mb-1">Conversas Iniciadas (White)</h4>
-                        <p class="text-lg font-semibold text-gray-800">${metrics.conversations.toLocaleString('pt-BR')}</p>
-                    </div>
-                    <div class="metric-card">
-                        <h4 class="text-sm font-medium text-gray-600 mb-1">Custo por Conversa (White)</h4>
-                        <p class="text-lg font-semibold text-gray-800">R$ ${metrics.costPerConversation.toFixed(2).replace('.', ',')}</p>
-                    </div>
-                </div>
-            ` : `
-                <h3 class="text-xl font-semibold text-primary mb-4">Métricas Gerais</h3>
-                <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-                    <div class="metric-card">
-                        <h4 class="text-sm font-medium text-gray-600 mb-1">Investimento</h4>
-                        <p class="text-lg font-semibold text-gray-800">R$ ${metrics.spend.toFixed(2).replace('.', ',')}</p>
-                    </div>
-                    <div class="metric-card">
-                        <h4 class="text-sm font-medium text-gray-600 mb-1">Alcance</h4>
-                        <p class="text-lg font-semibold text-gray-800">${metrics.reach.toLocaleString('pt-BR')}</p>
-                    </div>
-                    <div class="metric-card">
-                        <h4 class="text-sm font-medium text-gray-600 mb-1">Conversas Iniciadas</h4>
-                        <p class="text-lg font-semibold text-gray-800">${metrics.conversations.toLocaleString('pt-BR')}</p>
-                    </div>
-                    <div class="metric-card">
-                        <h4 class="text-sm font-medium text-gray-600 mb-1">Custo por Conversa</h4>
-                        <p class="text-lg font-semibold text-gray-800">R$ ${metrics.costPerConversation.toFixed(2).replace('.', ',')}</p>
-                    </div>
-                </div>
-            `}
+    <h3 class="text-xl font-semibold text-primary mb-4">Métricas White</h3>
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <div class="metric-card">
+            <h4 class="text-sm font-medium text-gray-600 mb-1">Investimento (White)</h4>
+            <p class="text-lg font-semibold text-gray-800">R$ ${metrics.spend.toFixed(2).replace('.', ',')}</p>
+            ${comparisonMetrics ? `
+                <p class="text-sm ${metrics.spend >= comparisonMetrics.spend ? 'text-green-600' : 'text-red-600'}">
+                    ${metrics.spend >= comparisonMetrics.spend ? '↑' : '↓'} 
+                    ${comparisonMetrics.spend > 0 ? Math.abs(((metrics.spend - comparisonMetrics.spend) / comparisonMetrics.spend) * 100).toFixed(2) : 'N/A'}%
+                </p>
+            ` : ''}
+        </div>
+        <div class="metric-card">
+            <h4 class="text-sm font-medium text-gray-600 mb-1">Alcance (White)</h4>
+            <p class="text-lg font-semibold text-gray-800">${metrics.reach.toLocaleString('pt-BR')}</p>
+            ${comparisonMetrics ? `
+                <p class="text-sm ${metrics.reach >= comparisonMetrics.reach ? 'text-green-600' : 'text-red-600'}">
+                    ${metrics.reach >= comparisonMetrics.reach ? '↑' : '↓'} 
+                    ${comparisonMetrics.reach > 0 ? Math.abs(((metrics.reach - comparisonMetrics.reach) / comparisonMetrics.reach) * 100).toFixed(2) : 'N/A'}%
+                </p>
+            ` : ''}
+        </div>
+        <div class="metric-card">
+            <h4 class="text-sm font-medium text-gray-600 mb-1">Conversas Iniciadas (White)</h4>
+            <p class="text-lg font-semibold text-gray-800">${metrics.conversations.toLocaleString('pt-BR')}</p>
+            ${comparisonMetrics ? `
+                <p class="text-sm ${metrics.conversations >= comparisonMetrics.conversations ? 'text-green-600' : 'text-red-600'}">
+                    ${metrics.conversations >= comparisonMetrics.conversations ? '↑' : '↓'} 
+                    ${comparisonMetrics.conversations > 0 ? Math.abs(((metrics.conversations - comparisonMetrics.conversations) / comparisonMetrics.conversations) * 100).toFixed(2) : 'N/A'}%
+                </p>
+            ` : ''}
+        </div>
+        <div class="metric-card">
+            <h4 class="text-sm font-medium text-gray-600 mb-1">Custo por Conversa (White)</h4>
+            <p class="text-lg font-semibold text-gray-800">R$ ${metrics.costPerConversation.toFixed(2).replace('.', ',')}</p>
+            ${comparisonMetrics ? `
+                <p class="text-sm ${metrics.costPerConversation <= comparisonMetrics.costPerConversation ? 'text-green-600' : 'text-red-600'}">
+                    ${metrics.costPerConversation <= comparisonMetrics.costPerConversation ? '↓' : '↑'} 
+                    ${comparisonMetrics.costPerConversation > 0 ? Math.abs(((metrics.costPerConversation - comparisonMetrics.costPerConversation) / comparisonMetrics.costPerConversation) * 100).toFixed(2) : 'N/A'}%
+                </p>
+            ` : ''}
+        </div>
+    </div>
+` : `
+    <h3 class="text-xl font-semibold text-primary mb-4">Métricas Gerais</h3>
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <div class="metric-card">
+            <h4 class="text-sm font-medium text-gray-600 mb-1">Investimento</h4>
+            <p class="text-lg font-semibold text-gray-800">R$ ${metrics.spend.toFixed(2).replace('.', ',')}</p>
+            ${comparisonMetrics ? `
+                <p class="text-sm ${metrics.spend >= comparisonMetrics.spend ? 'text-green-600' : 'text-red-600'}">
+                    ${metrics.spend >= comparisonMetrics.spend ? '↑' : '↓'} 
+                    ${comparisonMetrics.spend > 0 ? Math.abs(((metrics.spend - comparisonMetrics.spend) / comparisonMetrics.spend) * 100).toFixed(2) : 'N/A'}%
+                </p>
+            ` : ''}
+        </div>
+        <div class="metric-card">
+            <h4 class="text-sm font-medium text-gray-600 mb-1">Alcance</h4>
+            <p class="text-lg font-semibold text-gray-800">${metrics.reach.toLocaleString('pt-BR')}</p>
+            ${comparisonMetrics ? `
+                <p class="text-sm ${metrics.reach >= comparisonMetrics.reach ? 'text-green-600' : 'text-red-600'}">
+                    ${metrics.reach >= comparisonMetrics.reach ? '↑' : '↓'} 
+                    ${comparisonMetrics.reach > 0 ? Math.abs(((metrics.reach - comparisonMetrics.reach) / comparisonMetrics.reach) * 100).toFixed(2) : 'N/A'}%
+                </p>
+            ` : ''}
+        </div>
+        <div class="metric-card">
+            <h4 class="text-sm font-medium text-gray-600 mb-1">Conversas Iniciadas</h4>
+            <p class="text-lg font-semibold text-gray-800">${metrics.conversations.toLocaleString('pt-BR')}</p>
+            ${comparisonMetrics ? `
+                <p class="text-sm ${metrics.conversations >= comparisonMetrics.conversations ? 'text-green-600' : 'text-red-600'}">
+                    ${metrics.conversations >= comparisonMetrics.conversations ? '↑' : '↓'} 
+                    ${comparisonMetrics.conversations > 0 ? Math.abs(((metrics.conversations - comparisonMetrics.conversations) / comparisonMetrics.conversations) * 100).toFixed(2) : 'N/A'}%
+                </p>
+            ` : ''}
+        </div>
+        <div class="metric-card">
+            <h4 class="text-sm font-medium text-gray-600 mb-1">Custo por Conversa</h4>
+            <p class="text-lg font-semibold text-gray-800">R$ ${metrics.costPerConversation.toFixed(2).replace('.', ',')}</p>
+            ${comparisonMetrics ? `
+                <p class="text-sm ${metrics.costPerConversation <= comparisonMetrics.costPerConversation ? 'text-green-600' : 'text-red-600'}">
+                    ${metrics.costPerConversation <= comparisonMetrics.costPerConversation ? '↓' : '↑'} 
+                    ${comparisonMetrics.costPerConversation > 0 ? Math.abs(((metrics.costPerConversation - comparisonMetrics.costPerConversation) / comparisonMetrics.costPerConversation) * 100).toFixed(2) : 'N/A'}%
+                </p>
+            ` : ''}
+        </div>
+    </div>
+`}
 
-            ${blackMetricsHTML}
-            ${comparisonPeriodHTML}
-            ${blackComparisonHTML}
-            ${bestAdsHTML}
+${blackMetricsHTML}
+${blackComparisonHTML}
+${bestAdsHTML}
         </div>
     `;
 
@@ -1594,15 +1606,24 @@ exportPdfBtn.addEventListener('click', () => {
     const formattedEndDate = new Date(endDate).toLocaleDateString('pt-BR').replace(/\//g, '-');
 
     const opt = {
-        margin: [0.5, 0.5, 0.5, 0.5], // Margens uniformes em polegadas (top, right, bottom, left)
+        margin: [10, 10, 10, 10], // Margens uniformes em milímetros (top, right, bottom, left)
         filename: `Relatorio_${unitName}_${formattedStartDate}_a_${formattedEndDate}.pdf`,
         image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 3, useCORS: true }, // Aumentar a escala para melhor qualidade
-        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }, // Usar A4 em milímetros
-        pagebreak: { mode: ['css', 'legacy'], avoid: ['.best-ad-card', '.metric-card'] } // Respeitar quebras de página
+        html2canvas: { scale: 2, useCORS: true, windowWidth: 794, windowHeight: 1123 }, // Ajustar para A4
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+        pagebreak: { mode: ['css', 'legacy'], avoid: ['.best-ad-card', '.metric-card'] }
     };
 
-    html2pdf().set(opt).from(element).save();
+    // Clonar o elemento para evitar interferências no layout original
+    const clonedElement = element.cloneNode(true);
+    document.body.appendChild(clonedElement);
+    clonedElement.style.position = 'absolute';
+    clonedElement.style.left = '-9999px';
+    clonedElement.style.width = '794px'; // Largura de A4 em pixels (aproximadamente)
+
+    html2pdf().set(opt).from(clonedElement).save().finally(() => {
+        document.body.removeChild(clonedElement); // Remover o clone após a geração
+    });
 });
 
 

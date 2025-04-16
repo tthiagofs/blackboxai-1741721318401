@@ -151,6 +151,20 @@
         break-inside: avoid; /* Evitar quebras dentro do relatório */
         margin: 0.5in; /* Margem interna */
     }
+    /* Ajustes específicos para o PDF */
+@media print {
+    #reportContainer {
+        position: static !important; /* Garantir que o contêiner não tenha posicionamento que atrapalhe */
+        top: 0 !important; /* Forçar o início no topo */
+        margin: 0 !important; /* Remover margens externas */
+        padding: 0 !important; /* Remover padding */
+    }
+    .bg-white {
+        break-inside: avoid; /* Evitar quebras dentro do relatório */
+        margin: 10mm !important; /* Margem interna ajustada para milímetros */
+        padding: 0 !important;
+        box-shadow: none !important; /* Remover sombra para o PDF */
+    }
     .grid {
         display: flex;
         flex-wrap: wrap;

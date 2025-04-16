@@ -138,36 +138,48 @@
 
         /* Estilos para impressão/PDF */
         @media print {
-            .bg-white {
-                background-color: #ffffff !important;
-                color: #000000 !important;
-            }
-            .bg-blue-900 {
-                background-color: #1e3a8a !important;
-                color: #ffffff !important;
-            }
-            .metric-card {
-                border: 1px solid #e5e7eb !important;
-                page-break-inside: avoid !important;
-            }
-            .text-primary {
-                color: #1e3c72 !important;
-            }
-            img {
-                max-width: 100% !important;
-                height: auto !important;
-            }
-            .space-y-8 > * {
-                page-break-inside: avoid !important;
-            }
-            ul.list-disc li br {
-                display: block !important;
-                content: '' !important;
-            }
-            body, .bg-white, .metric-card, h1, h2, h3, h4, p, span {
-                font-family: 'Poppins', sans-serif !important;
-            }
-        }
+    .bg-white {
+        background-color: #ffffff !important;
+        color: #000000 !important;
+    }
+    .bg-blue-900 {
+        background-color: #1e3a8a !important;
+        color: #ffffff !important;
+    }
+    .metric-card {
+        border: 1px solid #e5e7eb !important;
+        page-break-inside: avoid !important;
+        break-inside: avoid !important; /* Suporte adicional para alguns navegadores */
+    }
+    .text-primary {
+        color: #1e3c72 !important;
+    }
+    img {
+        max-width: 100% !important;
+        height: auto !important;
+    }
+    .space-y-8 > * {
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+    }
+    ul.list-disc li br {
+        display: block !important;
+        content: '' !important;
+    }
+    body, .bg-white, .metric-card, h1, h2, h3, h4, p, span {
+        font-family: 'Poppins', sans-serif !important;
+    }
+    /* Garantir que elementos dinâmicos sejam incluídos */
+    .hidden {
+        display: block !important; /* Forçar exibição de elementos ocultos no PDF */
+    }
+    /* Ajustar largura para evitar corte */
+    #reportContainer, .bg-white {
+        width: 100% !important;
+        max-width: 100% !important;
+    }
+}
+
     </style>
 </head>
 <body class="bg-gradient-to-br from-primary to-secondary min-h-screen p-4 font-sans">

@@ -1723,33 +1723,39 @@ shareWhatsAppBtn.addEventListener('click', () => {
 });
 
 // Exportar para PDF
-const exportPdfBtn = document.getElementById('exportPdfBtn');
-if (exportPdfBtn) {
-    exportPdfBtn.addEventListener('click', async () => {
-        const reportElement = document.getElementById('reportContainer').querySelector('.bg-white');
-        if (!reportElement) {
-            alert('Nenhum relatório encontrado para exportar.');
-            return;
-        }
+exportPdfBtn.addEventListener('click', async () => {
+    const reportElement = document.getElementById('reportContainer').querySelector('.bg-white');
+    if (!reportElement) {
+        alert('Nenhum relatório encontrado para exportar.');
+        return;
+    }
 
-        // Configurações para o html2pdf
-        const opt = {
-            margin: [10, 10, 10, 10],
-            filename: `Relatorio_Completo_${unitSelect.options[unitSelect.selectedIndex].text}_${document.getElementById('startDate').value}.pdf`,
-            image: { type: 'jpeg', quality: 0.98 },
-            html2canvas: { scale: 2, useCORS: true },
-            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-        };
+    console.log('Conteúdo a ser exportado:', reportElement.outerHTML);
 
-        try {
-            // Gerar e baixar o PDF
-            await html2pdf().from(reportElement).set(opt).save();
-        } catch (error) {
-            console.error('Erro ao gerar PDF:', error);
-            alert('Ocorreu um erro ao gerar o PDF. Por favor, tente novamente.');
-        }
-    });
-}
+    // Remover classes hidden temporariamente para garantir que tudo seja capturado
+    const hiddenElements = reportContainer.querySelectorAll('.hidden');
+    hiddenElements.forEach(el => el.classList.remove('hidden'));
+
+    await new Promise(resolve => setTimeout(resolve, 100));
+
+    const opt = {
+        margin: [10, 10, 10, 10],
+        filename: `Relatorio_Completo_${unitSelect.options[unitSelect.selectedIndex].text}_${document.getElementById('startDate').value}.pdf`,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2, useCORS: true, windowWidth: document.body.scrollWidth },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+    };
+
+    try {
+        await html2pdf().from(reportElement).set(opt).save();
+    } catch (error) {
+        console.error('Erro ao gerar PDF:', error);
+        alert('Ocorreu um erro ao gerar o PDF. Por favor, tente novamente.');
+    } finally {
+        hiddenElements.forEach(el => el.classList.add('hidden'));
+    }
+});
+
 
 // Voltar para a seleção de relatórios
 backToReportSelectionBtn.addEventListener('click', () => {

@@ -1165,33 +1165,29 @@ async function generateReport(unitId, unitName, startDate, endDate) {
     `;
     reportDiv.insertAdjacentHTML('beforeend', businessResultsHTML);
 
-    // Adicionar seção de Análise de Desempenho e Pontos de Melhoria (se houver texto)
-    if (performanceAnalysis.trim()) {
-        // Dividir os parágrafos com base em linhas em branco
-        const paragraphs = performanceAnalysis.split(/\n\s*\n/).filter(p => p.trim());
-        const analysisHTML = `
-            <div class="mt-8">
-                <h3 class="text-xl font-semibold text-primary mb-4">Análise de Desempenho e Pontos de Melhoria</h3>
-                <ul class="list-disc list-inside space-y-2 text-gray-700">
-                    ${paragraphs.map(paragraph => {
-                        // Substituir quebras de linha dentro do parágrafo por <br>
-                        const formattedParagraph = paragraph.replace(/\n/g, '<br>');
-                        return `<li>${formattedParagraph}</li>`;
-                    }).join('')}
-                </ul>
-            </div>
-        `;
-        reportDiv.insertAdjacentHTML('beforeend', analysisHTML);
-    }
-
-    // Exibir o botão de compartilhamento
-    shareWhatsAppBtn.classList.remove('hidden');
-    // Exibir o botão de exportar PDF
-    const exportPdfBtn = document.getElementById('exportPdfBtn');
-    if (exportPdfBtn) {
-        exportPdfBtn.classList.remove('hidden');
-    }
+// Adicionar seção de Análise de Desempenho e Pontos de Melhoria (se houver texto)
+if (performanceAnalysis.trim()) {
+    // Dividir os parágrafos com base em linhas em branco
+    const paragraphs = performanceAnalysis.split(/\n\s*\n/).filter(p => p.trim());
+    const analysisHTML = `
+        <div class="mt-8">
+            <h3 class="text-xl font-semibold text-primary mb-4">Análise de Desempenho e Pontos de Melhoria</h3>
+            <ul class="list-disc list-inside space-y-2 text-gray-700">
+                ${paragraphs.map(paragraph => {
+                    // Substituir quebras de linha dentro do parágrafo por <br>
+                    const formattedParagraph = paragraph.replace(/\n/g, '<br>');
+                    return `<li>${formattedParagraph}</li>`;
+                }).join('')}
+            </ul>
+        </div>
+    `;
+    reportDiv.insertAdjacentHTML('beforeend', analysisHTML);
 }
+
+// Adicionar log de depuração e delay para garantir renderização
+console.log('Relatório completo renderizado:', reportContainer.innerHTML);
+await new Promise(resolve => setTimeout(resolve, 200)); // Pequeno delay de 200ms
+
 
 async function calculateMetrics(unitId, startDate, endDate, campaignsSet, adSetsSet) {
     let totalSpend = 0;

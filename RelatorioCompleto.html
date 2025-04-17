@@ -131,6 +131,28 @@ ul.list-disc li br {
     content: ''; /* Garantir compatibilidade */
 }
 
+/* Estilo para o relatório White (fundo azul) */
+.campaign-section.white-report {
+    background-color: #1e3c72; /* Azul definido no Tailwind */
+    color: #ffffff; /* Texto branco para contraste */
+}
+
+/* Estilo para o relatório Black (fundo preto) */
+.campaign-section.black-report {
+    background-color: #000000; /* Preto */
+    color: #ffffff; /* Texto branco */
+}
+
+/* Garantir que os textos dentro da seção fiquem brancos */
+.campaign-section.white-report h3,
+.campaign-section.white-report h4,
+.campaign-section.white-report p,
+.campaign-section.black-report h3,
+.campaign-section.black-report h4,
+.campaign-section.black-report p {
+    color: #ffffff;
+}
+
     </style>
 
 <!-- Scripts -->

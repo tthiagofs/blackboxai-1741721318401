@@ -1,4 +1,5 @@
 import { fbAuth } from './auth.js';
+import { exportToPDF } from './exportPDF.js';
 
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -1508,6 +1509,9 @@ function renderReport(unitName, startDate, endDate, metrics, comparisonMetrics, 
     const reportHTML = `
         <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
             <h2 class="text-2xl font-semibold text-primary mb-4">Relatório Completo - ${unitName}</h2>
+<button id="exportPDFBtn" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition mb-4">
+    <i class="fas fa-file-pdf mr-2"></i>Exportar para PDF
+</button>
             <p class="text-gray-600 text-base mb-4">
                 <i class="fas fa-calendar-alt mr-2"></i>Período Analisado: ${formattedStartDate} a ${formattedEndDate}
             </p>
@@ -1664,6 +1668,37 @@ function renderReport(unitName, startDate, endDate, metrics, comparisonMetrics, 
 
     reportContainer.insertAdjacentHTML('beforeend', reportHTML);
 }
+
+
+// Evento para o botão de exportar PDF
+document.addEventListener('click', (event) => {
+    if (event.target.closest('#exportPDFBtn')) {
+        const unitId = document.getElementById('unitId').value;
+        const unitName = adAccountsMap[unitId] || 'Unidade Desconhecida';
+        const startDate = document.getElementById('startDate').value;
+        const endDate = document.getElementById('endDate').value;
+        const budgetsCompleted = parseInt(document.getElementById('budgetsCompleted').value) || 0;
+        const salesCount = parseInt(document.getElementById('salesCount').value) || 0;
+        const revenue = parseFloat(document.getElementById('revenue').value) || 0;
+        const performanceAnalysis = document.getElementById('performanceAnalysis')?.value || '';
+
+        exportToPDF(
+            unitId,
+            unitName,
+            startDate,
+            endDate,
+            metrics,
+            blackMetrics || { spend: 0, reach: 0, conversations: 0, costPerConversation: 0 }, // blackMetrics pode ser nulo
+            hasBlack,
+            budgetsCompleted,
+            salesCount,
+            revenue,
+            performanceAnalysis,
+            bestAds
+        );
+    }
+});
+
 
 // Compartilhar no WhatsApp
 shareWhatsAppBtn.addEventListener('click', () => {

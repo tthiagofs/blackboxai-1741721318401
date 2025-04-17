@@ -14,7 +14,6 @@ class FacebookAuth {
         this.accessToken = localStorage.getItem('fbAccessToken');
         this.adAccountsMap = JSON.parse(localStorage.getItem('adAccountsMap')) || {};
 
-        // Verificar estado de login no início
         const appLoggedIn = localStorage.getItem('appLoggedIn') === 'true';
         const storedToken = localStorage.getItem('fbAccessToken');
         console.log('appLoggedIn (do localStorage):', appLoggedIn);
@@ -114,6 +113,17 @@ class FacebookAuth {
                         auth_type: 'rerequest'
                     });
                 });
+            }
+
+            // Verificar permissões concedidas
+            const grantedScopes = response.authResponse.grantedScopes.split(',');
+            const requiredScopes = ['public_profile', 'ads_read'];
+            const missingScopes = requiredScopes.filter(scope => !grantedScopes.includes(scope));
+            if (missingScopes.length > 0) {
+                console.warn('Permissões necessárias não foram concedidas:', missingScopes);
+                // Fazer logout para limpar o estado
+                await this.logout();
+                throw new Error('Permissões necessárias não foram concedidas: ' + missingScopes.join(', '));
             }
 
             this.accessToken = response.authResponse.accessToken;

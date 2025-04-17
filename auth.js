@@ -1,3 +1,4 @@
+// Classe para autenticação do aplicativo
 class AppAuth {
     constructor() {
         this.username = '@admin';
@@ -9,25 +10,11 @@ class AppAuth {
     }
 }
 
+// Classe para autenticação do Facebook
 class FacebookAuth {
     constructor() {
         this.accessToken = localStorage.getItem('fbAccessToken');
         this.adAccountsMap = JSON.parse(localStorage.getItem('adAccountsMap')) || {};
-
-        const appLoggedIn = localStorage.getItem('appLoggedIn') === 'true';
-        const storedToken = localStorage.getItem('fbAccessToken');
-        console.log('appLoggedIn (do localStorage):', appLoggedIn);
-        console.log('storedToken (tem token do Facebook?):', storedToken ? 'Sim' : 'Não');
-
-        if (appLoggedIn && !storedToken) {
-            console.log('Token ausente, forçando logout e limpando estado');
-            localStorage.removeItem('appLoggedIn');
-            localStorage.removeItem('fbAccessToken');
-            localStorage.removeItem('adAccountsMap');
-            this.accessToken = null;
-            this.adAccountsMap = {};
-        }
-
         this.initializeFacebookSDK();
     }
 
@@ -36,12 +23,13 @@ class FacebookAuth {
             try {
                 const initFB = () => {
                     FB.init({
-                        appId: '1595817924411708',
+                        appId: '1595817924411708', // Novo App ID
                         cookie: true,
                         xfbml: true,
-                        version: 'v22.0'
+                        version: 'v22.0' // Nova versão da API
                     });
-
+                    
+                    // Check login status first
                     FB.getLoginStatus((response) => {
                         if (response.status === 'connected') {
                             this.accessToken = response.authResponse.accessToken;
@@ -54,11 +42,14 @@ class FacebookAuth {
                     });
                 };
 
+                // Check if FB SDK is loaded
                 if (window.FB) {
                     initFB();
                 } else {
+                    // If not loaded, set up async init and wait
                     window.fbAsyncInit = initFB;
-
+                    
+                    // Create script element if not exists
                     if (!document.getElementById('facebook-jssdk')) {
                         const js = document.createElement('script');
                         js.id = 'facebook-jssdk';
@@ -68,7 +59,8 @@ class FacebookAuth {
                         js.defer = true;
                         document.head.appendChild(js);
                     }
-
+                    
+                    // Wait for SDK to load
                     const checkFB = setInterval(() => {
                         if (window.FB) {
                             clearInterval(checkFB);
@@ -76,6 +68,7 @@ class FacebookAuth {
                         }
                     }, 100);
 
+                    // Timeout after 10 seconds
                     setTimeout(() => {
                         clearInterval(checkFB);
                         reject(new Error('Timeout ao carregar Facebook SDK'));
@@ -90,7 +83,8 @@ class FacebookAuth {
     async login() {
         try {
             await this.initializeFacebookSDK();
-
+            
+            // First check if we already have a valid session
             const statusResponse = await new Promise((resolve) => {
                 FB.getLoginStatus((response) => resolve(response));
             });
@@ -99,6 +93,7 @@ class FacebookAuth {
             if (statusResponse.status === 'connected') {
                 response = statusResponse;
             } else {
+                // If no valid session, proceed with login
                 response = await new Promise((resolve, reject) => {
                     FB.login((loginResponse) => {
                         if (loginResponse.authResponse) {
@@ -108,42 +103,18 @@ class FacebookAuth {
                             reject(new Error('Login do Facebook não autorizado'));
                         }
                     }, {
-                        scope: 'public_profile,ads_read',
+                        scope: 'public_profile,ads_read', // Ajustado para incluir apenas permissões necessárias
                         return_scopes: true,
-                        auth_type: 'rerequest'
+                        auth_type: 'rerequest'  // Force re-authentication
                     });
                 });
             }
 
-            // Verificar permissões concedidas
-            const grantedScopes = response.authResponse.grantedScopes.split(',');
-            const requiredScopes = ['public_profile', 'ads_read'];
-            const missingScopes = requiredScopes.filter(scope => !grantedScopes.includes(scope));
-            if (missingScopes.length > 0) {
-                console.warn('Permissões necessárias não foram concedidas:', missingScopes);
-                // Fazer logout para limpar o estado
-                await this.logout();
-                throw new Error('Permissões necessárias não foram concedidas: ' + missingScopes.join(', '));
-            }
-
+            // Set access token and load accounts after successful login/status check
             this.accessToken = response.authResponse.accessToken;
             localStorage.setItem('fbAccessToken', this.accessToken);
-
-            const adAccounts = await this.loadAllAdAccounts();
-            if (adAccounts.length === 0) {
-                throw new Error('Nenhuma conta de anúncios encontrada. Verifique suas permissões no Facebook.');
-            }
-
-            this.adAccountsMap = {};
-            adAccounts.forEach(account => {
-                if (account.account_status === 1) {
-                    this.adAccountsMap[account.id] = account.name;
-                }
-            });
-
-            localStorage.setItem('adAccountsMap', JSON.stringify(this.adAccountsMap));
-            localStorage.setItem('appLoggedIn', 'true');
-
+            await this.loadAllAdAccounts();
+            
             return response;
         } catch (error) {
             console.error('Erro durante o processo de login:', error);
@@ -153,29 +124,100 @@ class FacebookAuth {
 
     async loadAllAdAccounts() {
         try {
-            console.log('Carregando contas de anúncios...');
-            const response = await new Promise((resolve, reject) => {
-                FB.api('/me/adaccounts', { fields: 'id,name,account_id,account_status,business_name' }, (response) => {
-                    if (response.error) {
-                        console.error('Erro do Facebook API:', response.error);
-                        reject(response.error);
-                    } else {
-                        resolve(response);
-                    }
-                });
-            });
-
-            if (!response.data || response.data.length === 0) {
-                console.warn('Nenhuma conta de anúncios encontrada para este usuário.');
-                return [];
+            await this.loadPersonalAdAccounts();
+            const businesses = await this.getBusinesses();
+            
+            for (const business of businesses) {
+                await Promise.all([
+                    this.loadOwnedAccounts(business.id),
+                    this.loadClientAccounts(business.id)
+                ]);
             }
 
-            console.log('Contas de anúncios carregadas:', response.data);
-            return response.data;
+            localStorage.setItem('adAccountsMap', JSON.stringify(this.adAccountsMap));
+            return this.adAccountsMap;
         } catch (error) {
-            console.error('Erro ao carregar contas de anúncios:', error);
-            throw new Error('Erro ao carregar contas de anúncios: ' + (error.message || 'Erro desconhecido'));
+            console.error('Erro ao carregar contas:', error);
+            throw error;
         }
+    }
+
+    async loadPersonalAdAccounts() {
+        return new Promise((resolve, reject) => {
+            FB.api('/me/adaccounts', {
+                fields: 'id,name,account_status',
+                access_token: this.accessToken
+            }, (response) => {
+                if (response && !response.error) {
+                    const accounts = response.data || [];
+                    accounts.forEach(account => {
+                        if (account.account_status === 1) {
+                            this.adAccountsMap[account.id] = account.name;
+                        }
+                    });
+                    resolve(accounts);
+                } else {
+                    reject(new Error('Erro ao carregar contas pessoais'));
+                }
+            });
+        });
+    }
+
+    async getBusinesses() {
+        return new Promise((resolve, reject) => {
+            FB.api('/me/businesses', {
+                fields: 'id,name',
+                access_token: this.accessToken
+            }, (response) => {
+                if (response && !response.error) {
+                    resolve(response.data || []);
+                } else {
+                    reject(new Error('Erro ao carregar Business Managers'));
+                }
+            });
+        });
+    }
+
+    async loadOwnedAccounts(businessId) {
+        return new Promise((resolve) => {
+            FB.api(`/${businessId}/owned_ad_accounts`, {
+                fields: 'id,name,account_status',
+                access_token: this.accessToken
+            }, (response) => {
+                if (response && !response.error) {
+                    const accounts = response.data || [];
+                    accounts.forEach(account => {
+                        if (account.account_status === 1) {
+                            this.adAccountsMap[account.id] = account.name;
+                        }
+                    });
+                    resolve(accounts);
+                } else {
+                    resolve([]);
+                }
+            });
+        });
+    }
+
+    async loadClientAccounts(businessId) {
+        return new Promise((resolve) => {
+            FB.api(`/${businessId}/client_ad_accounts`, {
+                fields: 'id,name,account_status',
+                access_token: this.accessToken
+            }, (response) => {
+                if (response && !response.error) {
+                    const accounts = response.data || [];
+                    accounts.forEach(account => {
+                        if (account.account_status === 1) {
+                            this.adAccountsMap[account.id] = account.name;
+                        }
+                    });
+                    resolve(accounts);
+                } else {
+                    resolve([]);
+                }
+            });
+        });
     }
 
     getAccessToken() {
@@ -191,7 +233,6 @@ class FacebookAuth {
             FB.logout(() => {
                 localStorage.removeItem('fbAccessToken');
                 localStorage.removeItem('adAccountsMap');
-                localStorage.removeItem('appLoggedIn');
                 this.accessToken = null;
                 this.adAccountsMap = {};
                 resolve();
@@ -200,6 +241,7 @@ class FacebookAuth {
     }
 }
 
+// Criar e exportar instâncias únicas
 const appAuth = new AppAuth();
 const fbAuth = new FacebookAuth();
 

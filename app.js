@@ -132,34 +132,55 @@ completeReportBtn.addEventListener('click', async () => {
 });
 
 // Login com Facebook
-async function handleFacebookLogin(response) {
+async function handleFacebookLogin() {
+    const loginError = document.getElementById('loginError');
+    loginError.style.display = 'none';
+    loginBtn.disabled = true;
+    loginBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Conectando...';
+
     try {
-        // Verificar permissões concedidas
-        const grantedScopes = response.authResponse.grantedScopes.split(',');
-        const requiredScopes = ['public_profile', 'ads_read'];
-
-        const missingScopes = requiredScopes.filter(scope => !grantedScopes.includes(scope));
-        if (missingScopes.length > 0) {
-            console.warn('Permissões necessárias não foram concedidas:', missingScopes);
-            alert('Você precisa conceder todas as permissões solicitadas para usar o app. Por favor, tente novamente e aceite as permissões.');
+        // Limpar qualquer token antigo
+        localStorage.removeItem('fbAccessToken');
+        localStorage.removeItem('adAccountsMap');
+        
+        const response = await fbAuth.login();
+        if (response && response.authResponse) {
+            currentAccessToken = response.authResponse.accessToken;
             
-            // Fazer logout para forçar um novo login
-            await fbAuth.logout();
-            window.location.href = '/login'; // Ajuste conforme a URL de login do seu app
-            return;
-        }
+            // Verificar se temos permissões necessárias
+            const permissions = await new Promise((resolve) => {
+                FB.api('/me/permissions', (response) => resolve(response.data || []));
+            });
 
-        // Se todas as permissões foram concedidas, prosseguir
-        console.log('Login bem-sucedido com todas as permissões necessárias:', grantedScopes);
-        // Prosseguir com o fluxo do app (exemplo: redirecionar para o dashboard)
-        window.location.href = '/dashboard'; // Ajuste conforme a URL do seu app
+            const hasAllPermissions = ['ads_read', 'ads_management', 'business_management']
+                .every(perm => permissions.some(p => p.permission === perm && p.status === 'granted'));
+
+            if (!hasAllPermissions) {
+                throw new Error('Permissões necessárias não foram concedidas');
+            }
+
+            if (simpleReportBtn.classList.contains('active')) {
+                showScreen(mainContent);
+                await loadAdAccounts();
+            } else {
+                window.location.href = 'RelatorioCompleto.html';
+            }
+        } else {
+            throw new Error('Login não autorizado');
+        }
     } catch (error) {
         console.error('Erro detalhado:', error);
-        throw new Error('Permissões necessárias não foram concedidas');
+        loginError.textContent = `Erro no login: ${error.message}`;
+        loginError.style.display = 'block';
+        
+        // Limpar tokens em caso de erro
+        localStorage.removeItem('fbAccessToken');
+        localStorage.removeItem('adAccountsMap');
+    } finally {
+        loginBtn.disabled = false;
+        loginBtn.innerHTML = '<i class="fab fa-facebook-f mr-2"></i>Continuar com Facebook';
     }
 }
-
-
 
 // Função para carregar contas de anúncio
 async function loadAdAccounts() {

@@ -1099,7 +1099,7 @@ reportMetrics = metrics;
         // Métricas para Black
         const blackMetricsResult = await calculateMetrics(unitId, startDate, endDate, selectedBlackCampaigns, selectedBlackAdSets);
         blackMetrics = blackMetricsResult;
-console.log('Black Metrics:', black feriaMetrics);
+console.log('Black Metrics:', blackMetrics);
 console.log('Report Black Metrics:', reportBlackMetrics);
 reportBlackMetrics = blackMetrics;
 

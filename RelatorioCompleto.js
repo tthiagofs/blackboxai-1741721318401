@@ -1820,3 +1820,65 @@ refreshBtn.addEventListener('click', () => {
     // Recarregar a página
     window.location.reload();
 });
+
+
+// Função para formatar a data no formato YYYY-MM-DD
+function formatDate(date) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0'); // Mês começa em 0, então somamos 1
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+}
+
+// Função para configurar os períodos predefinidos
+function setupPredefinedPeriods() {
+    const startDateInput = document.getElementById('startDate');
+    const endDateInput = document.getElementById('endDate');
+    const lastWeekBtn = document.getElementById('lastWeekBtn');
+    const lastMonthBtn = document.getElementById('lastMonthBtn');
+    const thisMonthBtn = document.getElementById('thisMonthBtn');
+
+    // Data atual (17/04/2025, conforme fornecido)
+    const currentDate = new Date('2025-04-17');
+
+    // Botão "Última Semana" (7 dias a partir de ontem)
+    lastWeekBtn.addEventListener('click', () => {
+        const endDate = new Date(currentDate);
+        endDate.setDate(currentDate.getDate() - 1); // Ontem (16/04/2025)
+        const startDate = new Date(endDate);
+        startDate.setDate(endDate.getDate() - 6); // 7 dias antes de ontem (10/04/2025)
+
+        startDateInput.value = formatDate(startDate);
+        endDateInput.value = formatDate(endDate);
+    });
+
+    // Botão "Último Mês" (mês anterior completo)
+    lastMonthBtn.addEventListener('click', () => {
+        const startDate = new Date(currentDate);
+        startDate.setMonth(currentDate.getMonth() - 1); // Mês anterior (março)
+        startDate.setDate(1); // Primeiro dia do mês (01/03/2025)
+
+        const endDate = new Date(startDate);
+        endDate.setMonth(startDate.getMonth() + 1); // Próximo mês (abril)
+        endDate.setDate(0); // Último dia do mês anterior (31/03/2025)
+
+        startDateInput.value = formatDate(startDate);
+        endDateInput.value = formatDate(endDate);
+    });
+
+    // Botão "Este Mês" (mês atual até a data atual)
+    thisMonthBtn.addEventListener('click', () => {
+        const startDate = new Date(currentDate);
+        startDate.setDate(1); // Primeiro dia do mês atual (01/04/2025)
+
+        const endDate = new Date(currentDate); // Data atual (17/04/2025)
+
+        startDateInput.value = formatDate(startDate);
+        endDateInput.value = formatDate(endDate);
+    });
+}
+
+// Chamar a função ao carregar a página
+document.addEventListener('DOMContentLoaded', () => {
+    setupPredefinedPeriods();
+});

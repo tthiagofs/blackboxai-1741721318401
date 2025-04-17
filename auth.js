@@ -1,15 +1,3 @@
-// Classe para autenticação do aplicativo
-class AppAuth {
-    constructor() {
-        this.username = '@admin';
-        this.password = '134679';
-    }
-
-    validateAppLogin(username, password) {
-        return username === this.username && password === this.password;
-    }
-}
-
 // Classe para autenticação do Facebook
 class FacebookAuth {
     constructor() {
@@ -23,13 +11,12 @@ class FacebookAuth {
             try {
                 const initFB = () => {
                     FB.init({
-                        appId: '1595817924411708', // Novo App ID
+                        appId: '1595817924411708',
                         cookie: true,
                         xfbml: true,
-                        version: 'v22.0' // Nova versão da API
+                        version: 'v22.0'
                     });
                     
-                    // Check login status first
                     FB.getLoginStatus((response) => {
                         if (response.status === 'connected') {
                             this.accessToken = response.authResponse.accessToken;
@@ -42,14 +29,11 @@ class FacebookAuth {
                     });
                 };
 
-                // Check if FB SDK is loaded
                 if (window.FB) {
                     initFB();
                 } else {
-                    // If not loaded, set up async init and wait
                     window.fbAsyncInit = initFB;
                     
-                    // Create script element if not exists
                     if (!document.getElementById('facebook-jssdk')) {
                         const js = document.createElement('script');
                         js.id = 'facebook-jssdk';
@@ -60,7 +44,6 @@ class FacebookAuth {
                         document.head.appendChild(js);
                     }
                     
-                    // Wait for SDK to load
                     const checkFB = setInterval(() => {
                         if (window.FB) {
                             clearInterval(checkFB);
@@ -68,7 +51,6 @@ class FacebookAuth {
                         }
                     }, 100);
 
-                    // Timeout after 10 seconds
                     setTimeout(() => {
                         clearInterval(checkFB);
                         reject(new Error('Timeout ao carregar Facebook SDK'));
@@ -84,7 +66,6 @@ class FacebookAuth {
         try {
             await this.initializeFacebookSDK();
             
-            // First check if we already have a valid session
             const statusResponse = await new Promise((resolve) => {
                 FB.getLoginStatus((response) => resolve(response));
             });
@@ -93,7 +74,6 @@ class FacebookAuth {
             if (statusResponse.status === 'connected') {
                 response = statusResponse;
             } else {
-                // If no valid session, proceed with login
                 response = await new Promise((resolve, reject) => {
                     FB.login((loginResponse) => {
                         if (loginResponse.authResponse) {
@@ -103,14 +83,13 @@ class FacebookAuth {
                             reject(new Error('Login do Facebook não autorizado'));
                         }
                     }, {
-                        scope: 'public_profile,ads_read', // Ajustado para incluir apenas permissões necessárias
+                        scope: 'public_profile,ads_read,ads_management,business_management',
                         return_scopes: true,
-                        auth_type: 'rerequest'  // Force re-authentication
+                        auth_type: 'rerequest'
                     });
                 });
             }
 
-            // Set access token and load accounts after successful login/status check
             this.accessToken = response.authResponse.accessToken;
             localStorage.setItem('fbAccessToken', this.accessToken);
             await this.loadAllAdAccounts();
@@ -124,100 +103,162 @@ class FacebookAuth {
 
     async loadAllAdAccounts() {
         try {
-            await this.loadPersonalAdAccounts();
+            // Limpar o mapa de contas antes de recarregar
+            this.adAccountsMap = {};
+
+            // Carregar contas pessoais
+            const personalAccounts = await this.loadPersonalAdAccounts();
+            console.log('Contas pessoais carregadas:', personalAccounts.length);
+
+            // Carregar gerenciadores de negócios
             const businesses = await this.getBusinesses();
-            
+            console.log('Gerenciadores de negócios encontrados:', businesses.length);
+
+            // Para cada gerenciador de negócios, carregar contas próprias e de clientes
             for (const business of businesses) {
-                await Promise.all([
+                console.log(`Carregando contas do gerenciador de negócios: ${business.name} (${business.id})`);
+                const [ownedAccounts, clientAccounts] = await Promise.all([
                     this.loadOwnedAccounts(business.id),
                     this.loadClientAccounts(business.id)
                 ]);
+                console.log(`Contas próprias (${business.name}):`, ownedAccounts.length);
+                console.log(`Contas de clientes (${business.name}):`, clientAccounts.length);
+            }
+
+            // Verificar se alguma conta foi carregada
+            const totalAccounts = Object.keys(this.adAccountsMap).length;
+            if (totalAccounts === 0) {
+                console.warn('Nenhuma conta de anúncio foi carregada. Verifique as permissões e o status das contas.');
+            } else {
+                console.log(`Total de contas carregadas: ${totalAccounts}`);
             }
 
             localStorage.setItem('adAccountsMap', JSON.stringify(this.adAccountsMap));
             return this.adAccountsMap;
         } catch (error) {
-            console.error('Erro ao carregar contas:', error);
-            throw error;
+            console.error('Erro ao carregar contas de anúncio:', error);
+            throw new Error(`Falha ao carregar contas: ${error.message}`);
         }
     }
 
     async loadPersonalAdAccounts() {
-        return new Promise((resolve, reject) => {
-            FB.api('/me/adaccounts', {
-                fields: 'id,name,account_status',
-                access_token: this.accessToken
-            }, (response) => {
+        try {
+            let allAccounts = [];
+            let url = '/me/adaccounts?fields=id,name,account_status&access_token=' + this.accessToken;
+
+            while (url) {
+                const response = await new Promise((resolve) => {
+                    FB.api(url, resolve);
+                });
+
                 if (response && !response.error) {
-                    const accounts = response.data || [];
-                    accounts.forEach(account => {
-                        if (account.account_status === 1) {
-                            this.adAccountsMap[account.id] = account.name;
-                        }
-                    });
-                    resolve(accounts);
+                    allAccounts = allAccounts.concat(response.data || []);
+                    url = response.paging && response.paging.next ? response.paging.next : null;
                 } else {
-                    reject(new Error('Erro ao carregar contas pessoais'));
+                    throw new Error(response?.error?.message || 'Erro ao carregar contas pessoais');
+                }
+            }
+
+            allAccounts.forEach(account => {
+                if (account.account_status === 1) {
+                    this.adAccountsMap[account.id] = account.name;
                 }
             });
-        });
+
+            return allAccounts;
+        } catch (error) {
+            console.error('Erro ao carregar contas pessoais:', error);
+            throw new Error(`Falha ao carregar contas pessoais: ${error.message}`);
+        }
     }
 
     async getBusinesses() {
-        return new Promise((resolve, reject) => {
-            FB.api('/me/businesses', {
-                fields: 'id,name',
-                access_token: this.accessToken
-            }, (response) => {
+        try {
+            let allBusinesses = [];
+            let url = '/me/businesses?fields=id,name&access_token=' + this.accessToken;
+
+            while (url) {
+                const response = await new Promise((resolve) => {
+                    FB.api(url, resolve);
+                });
+
                 if (response && !response.error) {
-                    resolve(response.data || []);
+                    allBusinesses = allBusinesses.concat(response.data || []);
+                    url = response.paging && response.paging.next ? response.paging.next : null;
                 } else {
-                    reject(new Error('Erro ao carregar Business Managers'));
+                    throw new Error(response?.error?.message || 'Erro ao carregar Business Managers');
                 }
-            });
-        });
+            }
+
+            return allBusinesses;
+        } catch (error) {
+            console.error('Erro ao carregar gerenciadores de negócios:', error);
+            throw new Error(`Falha ao carregar gerenciadores de negócios: ${error.message}`);
+        }
     }
 
     async loadOwnedAccounts(businessId) {
-        return new Promise((resolve) => {
-            FB.api(`/${businessId}/owned_ad_accounts`, {
-                fields: 'id,name,account_status',
-                access_token: this.accessToken
-            }, (response) => {
+        try {
+            let allAccounts = [];
+            let url = `/${businessId}/owned_ad_accounts?fields=id,name,account_status&access_token=${this.accessToken}`;
+
+            while (url) {
+                const response = await new Promise((resolve) => {
+                    FB.api(url, resolve);
+                });
+
                 if (response && !response.error) {
-                    const accounts = response.data || [];
-                    accounts.forEach(account => {
-                        if (account.account_status === 1) {
-                            this.adAccountsMap[account.id] = account.name;
-                        }
-                    });
-                    resolve(accounts);
+                    allAccounts = allAccounts.concat(response.data || []);
+                    url = response.paging && response.paging.next ? response.paging.next : null;
                 } else {
-                    resolve([]);
+                    console.error(`Erro ao carregar contas próprias do gerenciador ${businessId}:`, response?.error);
+                    url = null;
+                }
+            }
+
+            allAccounts.forEach(account => {
+                if (account.account_status === 1) {
+                    this.adAccountsMap[account.id] = account.name;
                 }
             });
-        });
+
+            return allAccounts;
+        } catch (error) {
+            console.error(`Erro ao carregar contas próprias do gerenciador ${businessId}:`, error);
+            return [];
+        }
     }
 
     async loadClientAccounts(businessId) {
-        return new Promise((resolve) => {
-            FB.api(`/${businessId}/client_ad_accounts`, {
-                fields: 'id,name,account_status',
-                access_token: this.accessToken
-            }, (response) => {
+        try {
+            let allAccounts = [];
+            let url = `/${businessId}/client_ad_accounts?fields=id,name,account_status&access_token=${this.accessToken}`;
+
+            while (url) {
+                const response = await new Promise((resolve) => {
+                    FB.api(url, resolve);
+                });
+
                 if (response && !response.error) {
-                    const accounts = response.data || [];
-                    accounts.forEach(account => {
-                        if (account.account_status === 1) {
-                            this.adAccountsMap[account.id] = account.name;
-                        }
-                    });
-                    resolve(accounts);
+                    allAccounts = allAccounts.concat(response.data || []);
+                    url = response.paging && response.paging.next ? response.paging.next : null;
                 } else {
-                    resolve([]);
+                    console.error(`Erro ao carregar contas de clientes do gerenciador ${businessId}:`, response?.error);
+                    url = null;
+                }
+            }
+
+            allAccounts.forEach(account => {
+                if (account.account_status === 1) {
+                    this.adAccountsMap[account.id] = account.name;
                 }
             });
-        });
+
+            return allAccounts;
+        } catch (error) {
+            console.error(`Erro ao carregar contas de clientes do gerenciador ${businessId}:`, error);
+            return [];
+        }
     }
 
     getAccessToken() {

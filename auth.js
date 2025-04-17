@@ -1,9 +1,24 @@
+// Classe para autenticação do aplicativo
+class AppAuth {
+    constructor() {
+        this.username = '@admin';
+        this.password = '134679';
+    }
+
+    validateAppLogin(username, password) {
+        return username === this.username && password === this.password;
+    }
+}
+
 // Classe para autenticação do Facebook
 class FacebookAuth {
     constructor() {
         this.accessToken = localStorage.getItem('fbAccessToken');
         this.adAccountsMap = JSON.parse(localStorage.getItem('adAccountsMap')) || {};
-        this.initializeFacebookSDK();
+        this.initializeFacebookSDK().catch(error => {
+            console.error('Erro ao inicializar o Facebook SDK no construtor:', error);
+            // Não interrompe a execução do app, apenas loga o erro
+        });
     }
 
     initializeFacebookSDK() {
@@ -11,12 +26,13 @@ class FacebookAuth {
             try {
                 const initFB = () => {
                     FB.init({
-                        appId: '1595817924411708',
+                        appId: '1595817924411708', // Novo App ID
                         cookie: true,
                         xfbml: true,
-                        version: 'v22.0'
+                        version: 'v22.0' // Nova versão da API
                     });
                     
+                    // Check login status first
                     FB.getLoginStatus((response) => {
                         if (response.status === 'connected') {
                             this.accessToken = response.authResponse.accessToken;
@@ -29,11 +45,14 @@ class FacebookAuth {
                     });
                 };
 
+                // Check if FB SDK is loaded
                 if (window.FB) {
                     initFB();
                 } else {
+                    // If not loaded, set up async init and wait
                     window.fbAsyncInit = initFB;
                     
+                    // Create script element if not exists
                     if (!document.getElementById('facebook-jssdk')) {
                         const js = document.createElement('script');
                         js.id = 'facebook-jssdk';
@@ -44,6 +63,7 @@ class FacebookAuth {
                         document.head.appendChild(js);
                     }
                     
+                    // Wait for SDK to load
                     const checkFB = setInterval(() => {
                         if (window.FB) {
                             clearInterval(checkFB);
@@ -51,6 +71,7 @@ class FacebookAuth {
                         }
                     }, 100);
 
+                    // Timeout after 10 seconds
                     setTimeout(() => {
                         clearInterval(checkFB);
                         reject(new Error('Timeout ao carregar Facebook SDK'));
@@ -66,6 +87,7 @@ class FacebookAuth {
         try {
             await this.initializeFacebookSDK();
             
+            // First check if we already have a valid session
             const statusResponse = await new Promise((resolve) => {
                 FB.getLoginStatus((response) => resolve(response));
             });
@@ -74,6 +96,7 @@ class FacebookAuth {
             if (statusResponse.status === 'connected') {
                 response = statusResponse;
             } else {
+                // If no valid session, proceed with login
                 response = await new Promise((resolve, reject) => {
                     FB.login((loginResponse) => {
                         if (loginResponse.authResponse) {
@@ -83,13 +106,14 @@ class FacebookAuth {
                             reject(new Error('Login do Facebook não autorizado'));
                         }
                     }, {
-                        scope: 'public_profile,ads_read,ads_management,business_management',
+                        scope: 'public_profile,ads_read,ads_management,business_management', // Incluídas permissões necessárias para gerenciadores de negócios
                         return_scopes: true,
-                        auth_type: 'rerequest'
+                        auth_type: 'rerequest'  // Force re-authentication
                     });
                 });
             }
 
+            // Set access token and load accounts after successful login/status check
             this.accessToken = response.authResponse.accessToken;
             localStorage.setItem('fbAccessToken', this.accessToken);
             await this.loadAllAdAccounts();
@@ -136,7 +160,7 @@ class FacebookAuth {
             localStorage.setItem('adAccountsMap', JSON.stringify(this.adAccountsMap));
             return this.adAccountsMap;
         } catch (error) {
-            console.error('Erro ao carregar contas de anúncio:', error);
+            console.error('Erro ao carregar contas:', error);
             throw new Error(`Falha ao carregar contas: ${error.message}`);
         }
     }
@@ -144,7 +168,7 @@ class FacebookAuth {
     async loadPersonalAdAccounts() {
         try {
             let allAccounts = [];
-            let url = '/me/adaccounts?fields=id,name,account_status&access_token=' + this.accessToken;
+            let url = `/me/adaccounts?fields=id,name,account_status&access_token=${this.accessToken}`;
 
             while (url) {
                 const response = await new Promise((resolve) => {
@@ -175,7 +199,7 @@ class FacebookAuth {
     async getBusinesses() {
         try {
             let allBusinesses = [];
-            let url = '/me/businesses?fields=id,name&access_token=' + this.accessToken;
+            let url = `/me/businesses?fields=id,name&access_token=${this.accessToken}`;
 
             while (url) {
                 const response = await new Promise((resolve) => {
@@ -211,8 +235,7 @@ class FacebookAuth {
                     allAccounts = allAccounts.concat(response.data || []);
                     url = response.paging && response.paging.next ? response.paging.next : null;
                 } else {
-                    console.error(`Erro ao carregar contas próprias do gerenciador ${businessId}:`, response?.error);
-                    url = null;
+                    throw new Error(response?.error?.message || `Erro ao carregar contas próprias do gerenciador ${businessId}`);
                 }
             }
 
@@ -225,7 +248,7 @@ class FacebookAuth {
             return allAccounts;
         } catch (error) {
             console.error(`Erro ao carregar contas próprias do gerenciador ${businessId}:`, error);
-            return [];
+            throw new Error(`Falha ao carregar contas próprias: ${error.message}`);
         }
     }
 
@@ -243,8 +266,7 @@ class FacebookAuth {
                     allAccounts = allAccounts.concat(response.data || []);
                     url = response.paging && response.paging.next ? response.paging.next : null;
                 } else {
-                    console.error(`Erro ao carregar contas de clientes do gerenciador ${businessId}:`, response?.error);
-                    url = null;
+                    throw new Error(response?.error?.message || `Erro ao carregar contas de clientes do gerenciador ${businessId}`);
                 }
             }
 
@@ -257,7 +279,7 @@ class FacebookAuth {
             return allAccounts;
         } catch (error) {
             console.error(`Erro ao carregar contas de clientes do gerenciador ${businessId}:`, error);
-            return [];
+            throw new Error(`Falha ao carregar contas de clientes: ${error.message}`);
         }
     }
 

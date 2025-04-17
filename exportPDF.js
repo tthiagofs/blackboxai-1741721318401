@@ -1,5 +1,3 @@
-import { jsPDF } from 'jspdf';
-
 export async function exportToPDF(
     unitId,
     unitName,
@@ -14,6 +12,9 @@ export async function exportToPDF(
     performanceAnalysis,
     bestAds
 ) {
+    // Acessar jsPDF do escopo global
+    const { jsPDF } = window.jspdf;
+
     // Converter as datas para o formato dd/mm/aaaa
     const formattedStartDate = startDate.split('-').reverse().join('/');
     const formattedEndDate = endDate.split('-').reverse().join('/');

@@ -1039,6 +1039,7 @@ form.addEventListener('submit', async (e) => {
 
 
 async function generateReport(unitId, unitName, startDate, endDate) {
+console.log('Iniciando generateReport:', { unitId, unitName, startDate, endDate });
     // Capturar os novos campos
     const budgetsCompleted = parseInt(document.getElementById('budgetsCompleted').value) || 0;
     const salesCount = parseInt(document.getElementById('salesCount').value) || 0;
@@ -1090,18 +1091,24 @@ async function generateReport(unitId, unitName, startDate, endDate) {
         // Métricas para White
         const whiteMetricsResult = await calculateMetrics(unitId, startDate, endDate, selectedWhiteCampaigns, selectedWhiteAdSets);
         metrics = whiteMetricsResult;
+console.log('White Metrics:', metrics);
+console.log('Report Metrics (White):', reportMetrics);
 reportMetrics = metrics;
 
 
         // Métricas para Black
         const blackMetricsResult = await calculateMetrics(unitId, startDate, endDate, selectedBlackCampaigns, selectedBlackAdSets);
         blackMetrics = blackMetricsResult;
+console.log('Black Metrics:', black feriaMetrics);
+console.log('Report Black Metrics:', reportBlackMetrics);
 reportBlackMetrics = blackMetrics;
 
     } else {
         // Métricas gerais (sem distinção de White/Black)
         const generalMetrics = await calculateMetrics(unitId, startDate, endDate, selectedCampaigns, selectedAdSets);
         metrics = generalMetrics;
+console.log('General Metrics:', metrics);
+console.log('Report Metrics (General):', reportMetrics);
     }
 
     // Calcular métricas de comparação (se houver comparisonData)
@@ -1147,6 +1154,8 @@ reportBlackMetrics = blackMetrics;
 
     // Obter melhores anúncios
     const bestAds = await getBestAds(unitId, startDate, endDate);
+console.log('Best Ads:', bestAds);
+console.log('Report Best Ads:', reportBestAds);
 reportBestAds = bestAds;
 
     // Renderizar o relatório usando a função renderReport

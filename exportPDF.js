@@ -1,6 +1,5 @@
-import { jsPDF } from 'https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.es.min.js';
-
 export function exportToPDF(unitId, unitName, startDate, endDate, metrics, blackMetrics, hasBlack, budgetsCompleted, salesCount, revenue, performanceAnalysis, bestAds) {
+    const { jsPDF } = window.jspdf; // Acessa o jsPDF do objeto global
     const doc = new jsPDF({
         orientation: 'portrait',
         unit: 'mm',

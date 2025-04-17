@@ -1163,11 +1163,11 @@ console.log('Report Best Ads:', reportBestAds);
     reportContainer.innerHTML = '';
     renderReport(unitName, startDate, endDate, metrics, comparisonMetrics, blackMetrics, blackComparisonMetrics, bestAds, comparisonTotalLeads);
 
-    // Adicionar seção de Resultados de Negócios
+    // Adicionar seção de Resultados 
     const reportDiv = reportContainer.querySelector('.bg-white');
     const businessResultsHTML = `
         <div class="mt-8">
-            <h3 class="text-xl font-semibold text-primary mb-4">Resultados de Negócios</h3>
+            <h3 class="text-xl font-semibold text-primary mb-4">Resultados</h3>
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div class="metric-card">
                     <h4 class="text-sm font-medium text-gray-600 mb-1">Orçamentos Realizados</h4>

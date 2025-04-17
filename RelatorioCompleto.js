@@ -1153,10 +1153,12 @@ console.log('Report Metrics (General):', reportMetrics);
     }
 
     // Obter melhores anúncios
-    const bestAds = await getBestAds(unitId, startDate, endDate);
+const bestAds = await getBestAds(unitId, startDate, endDate);
+console.log('Antes de atribuir reportBestAds:', reportBestAds);
+reportBestAds = bestAds; // Salvar na variável global
+console.log('Depois de atribuir reportBestAds:', reportBestAds);
 console.log('Best Ads:', bestAds);
 console.log('Report Best Ads:', reportBestAds);
-reportBestAds = bestAds;
 
     // Renderizar o relatório usando a função renderReport
     reportContainer.innerHTML = '';
@@ -1693,10 +1695,11 @@ function renderReport(unitName, startDate, endDate, metrics, comparisonMetrics, 
 document.addEventListener('click', (event) => {
     if (event.target.closest('#exportPDFBtn')) {
         // Verificar se o relatório foi gerado
-        if (!reportMetrics || !reportBestAds) {
-            alert('Por favor, gere o relatório antes de exportar para PDF.');
-            return;
-        }
+      
+if (!reportMetrics) {
+    alert('Por favor, gere o relatório antes de exportar para PDF.');
+    return;
+}
 
         const unitId = document.getElementById('unitId').value;
         const unitName = adAccountsMap[unitId] || 'Unidade Desconhecida';

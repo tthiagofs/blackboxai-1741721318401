@@ -1087,29 +1087,28 @@ console.log('Iniciando generateReport:', { unitId, unitName, startDate, endDate 
     let blackMetrics = null;
 
     // Usar calculateMetrics para obter as métricas diretamente da API, considerando os filtros
-    if (hasBlack) {
-        // Métricas para White
-        const whiteMetricsResult = await calculateMetrics(unitId, startDate, endDate, selectedWhiteCampaigns, selectedWhiteAdSets);
-        metrics = whiteMetricsResult;
-console.log('White Metrics:', metrics);
-console.log('Report Metrics (White):', reportMetrics);
-reportMetrics = metrics;
+   if (hasBlack) {
+    // Métricas para White
+    const whiteMetricsResult = await calculateMetrics(unitId, startDate, endDate, selectedWhiteCampaigns, selectedWhiteAdSets);
+    metrics = whiteMetricsResult;
+    console.log('White Metrics:', metrics);
+    console.log('Report Metrics (White):', reportMetrics);
+    reportMetrics = metrics;
 
-
-        // Métricas para Black
-        const blackMetricsResult = await calculateMetrics(unitId, startDate, endDate, selectedBlackCampaigns, selectedBlackAdSets);
-        blackMetrics = blackMetricsResult;
-console.log('Black Metrics:', blackMetrics);
-console.log('Report Black Metrics:', reportBlackMetrics);
-reportBlackMetrics = blackMetrics;
-
-    } else {
-        // Métricas gerais (sem distinção de White/Black)
-        const generalMetrics = await calculateMetrics(unitId, startDate, endDate, selectedCampaigns, selectedAdSets);
-        metrics = generalMetrics;
-console.log('General Metrics:', metrics);
-console.log('Report Metrics (General):', reportMetrics);
-    }
+    // Métricas para Black
+    const blackMetricsResult = await calculateMetrics(unitId, startDate, endDate, selectedBlackCampaigns, selectedBlackAdSets);
+    blackMetrics = blackMetricsResult;
+    console.log('Black Metrics:', blackMetrics);
+    console.log('Report Black Metrics:', reportBlackMetrics);
+    reportBlackMetrics = blackMetrics;
+} else {
+    // Métricas gerais (sem distinção de White/Black)
+    const generalMetrics = await calculateMetrics(unitId, startDate, endDate, selectedCampaigns, selectedAdSets);
+    metrics = generalMetrics;
+    console.log('General Metrics:', metrics);
+    console.log('Report Metrics (General):', reportMetrics);
+    reportMetrics = metrics; // Adicionada esta linha
+}
 
     // Calcular métricas de comparação (se houver comparisonData)
     let comparisonMetrics = null;

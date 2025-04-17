@@ -56,17 +56,17 @@ export async function exportToPDF(
     const pdfHeight = 297;
 
     // Converter dimensões de pixels para mm (1 pixel = 0.0353 mm em 72 DPI)
-    const imgWidthInMm = (imgWidth * 0.0353);
-    const imgHeightInMm = (imgHeight * 0.0353);
+    const imgWidthInMm = imgWidth * 0.0353;
+    const imgHeightInMm = imgHeight * 0.0353;
 
-    // Calcular a proporção para ajustar a imagem à página A4
-    const ratio = Math.min(pdfWidth / imgWidthInMm, pdfHeight / imgHeightInMm);
+    // Calcular a proporção para ajustar a imagem à largura da página A4
+    const ratio = pdfWidth / imgWidthInMm;
     const scaledWidth = imgWidthInMm * ratio;
     const scaledHeight = imgHeightInMm * ratio;
 
-    // Centralizar a imagem na página
-    const xOffset = (pdfWidth - scaledWidth) / 2;
-    const yOffset = (pdfHeight - scaledHeight) / 2;
+    // Ajustar o posicionamento
+    const xOffset = 0; // Alinhar à esquerda (0 mm de margem à esquerda)
+    const yOffset = 10; // Começar a 10 mm do topo da página (margem superior mínima)
 
     // Criar o PDF
     const doc = new jsPDF({

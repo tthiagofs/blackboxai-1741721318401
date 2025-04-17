@@ -59,6 +59,10 @@ let isAdSetFilterActive = false;
 let isFilterActivated = false;
 let comparisonData = null;
 let hasBlack = null; // null (não respondido), true (Sim), false (Não)
+let reportMetrics = null;      // Para armazenar as métricas (metrics)
+let reportBlackMetrics = null; // Para armazenar as métricas Black (blackMetrics)
+let reportBestAds = null;      // Para armazenar os melhores anúncios (bestAds)
+
 
 // Mapas
 const adAccountsMap = fbAuth.getAdAccounts();
@@ -1086,10 +1090,14 @@ async function generateReport(unitId, unitName, startDate, endDate) {
         // Métricas para White
         const whiteMetricsResult = await calculateMetrics(unitId, startDate, endDate, selectedWhiteCampaigns, selectedWhiteAdSets);
         metrics = whiteMetricsResult;
+reportMetrics = metrics;
+
 
         // Métricas para Black
         const blackMetricsResult = await calculateMetrics(unitId, startDate, endDate, selectedBlackCampaigns, selectedBlackAdSets);
         blackMetrics = blackMetricsResult;
+reportBlackMetrics = blackMetrics;
+
     } else {
         // Métricas gerais (sem distinção de White/Black)
         const generalMetrics = await calculateMetrics(unitId, startDate, endDate, selectedCampaigns, selectedAdSets);
@@ -1139,6 +1147,7 @@ async function generateReport(unitId, unitName, startDate, endDate) {
 
     // Obter melhores anúncios
     const bestAds = await getBestAds(unitId, startDate, endDate);
+reportBestAds = bestAds;
 
     // Renderizar o relatório usando a função renderReport
     reportContainer.innerHTML = '';
@@ -1670,9 +1679,16 @@ function renderReport(unitName, startDate, endDate, metrics, comparisonMetrics, 
 }
 
 
+
 // Evento para o botão de exportar PDF
 document.addEventListener('click', (event) => {
     if (event.target.closest('#exportPDFBtn')) {
+        // Verificar se o relatório foi gerado
+        if (!reportMetrics || !reportBestAds) {
+            alert('Por favor, gere o relatório antes de exportar para PDF.');
+            return;
+        }
+
         const unitId = document.getElementById('unitId').value;
         const unitName = adAccountsMap[unitId] || 'Unidade Desconhecida';
         const startDate = document.getElementById('startDate').value;
@@ -1687,17 +1703,18 @@ document.addEventListener('click', (event) => {
             unitName,
             startDate,
             endDate,
-            metrics,
-            blackMetrics || { spend: 0, reach: 0, conversations: 0, costPerConversation: 0 }, // blackMetrics pode ser nulo
+            reportMetrics, // Usar a variável global
+            reportBlackMetrics || { spend: 0, reach: 0, conversations: 0, costPerConversation: 0 }, // Usar a variável global
             hasBlack,
             budgetsCompleted,
             salesCount,
             revenue,
             performanceAnalysis,
-            bestAds
+            reportBestAds // Usar a variável global
         );
     }
 });
+
 
 
 // Compartilhar no WhatsApp
@@ -1771,6 +1788,9 @@ refreshBtn.addEventListener('click', () => {
     selectedBlackAdSets.clear();
     comparisonData = null;
     hasBlack = null;
+    reportMetrics = null;      // Limpar métricas
+    reportBlackMetrics = null; // Limpar métricas Black
+    reportBestAds = null;      // Limpar melhores anúncios
 
     // Limpar o formulário
     form.reset();

@@ -62,6 +62,19 @@ let hasBlack = null; // null (não respondido), true (Sim), false (Não)
 let reportMetrics = null;      // Para armazenar as métricas (metrics)
 let reportBlackMetrics = null; // Para armazenar as métricas Black (blackMetrics)
 let reportBestAds = null;      // Para armazenar os melhores anúncios (bestAds)
+let lastFormState = {
+    unitId: null,
+    startDate: null,
+    endDate: null,
+    selectedCampaigns: new Set(),
+    selectedAdSets: new Set(),
+    selectedWhiteCampaigns: new Set(),
+    selectedWhiteAdSets: new Set(),
+    selectedBlackCampaigns: new Set(),
+    selectedBlackAdSets: new Set(),
+    comparisonData: null,
+    hasBlack: null
+};
 
 
 // Mapas
@@ -94,6 +107,29 @@ if (!unitSelect) {
         });
     }
 }
+
+// Função para armazenar cache
+const CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 horas em milissegundos
+
+function getCachedData(key) {
+    const cached = localStorage.getItem(key);
+    if (!cached) return null;
+    const { data, timestamp } = JSON.parse(cached);
+    if (Date.now() - timestamp > CACHE_DURATION) {
+        localStorage.removeItem(key);
+        return null;
+    }
+    return data;
+}
+
+function setCachedData(key, data) {
+    const cacheEntry = {
+        data,
+        timestamp: Date.now()
+    };
+    localStorage.setItem(key, JSON.stringify(cacheEntry));
+}
+
 
 // Desabilitar botões até que a pergunta "A unidade possui Black?" seja respondida
 function disableButtons() {
@@ -410,6 +446,19 @@ async function getCreativeData(creativeId) {
 
 async function loadCampaigns(unitId, startDate, endDate) {
     try {
+        const cacheKey = `campaigns_${unitId}_${startDate}_${endDate}`;
+        const cachedCampaigns = getCachedData(cacheKey);
+        if (cachedCampaigns) {
+            campaignsMap[unitId] = cachedCampaigns;
+            if (hasBlack) {
+                renderWhiteCampaignOptions();
+                renderBlackCampaignOptions();
+            } else {
+                renderCampaignOptions();
+            }
+            return;
+        }
+
         campaignsMap[unitId] = {};
         let allCampaigns = [];
         let url = `/${unitId}/campaigns?fields=id,name&access_token=${currentAccessToken}&limit=50`;
@@ -426,18 +475,44 @@ async function loadCampaigns(unitId, startDate, endDate) {
                 console.error(`Erro ao carregar campanhas para a unidade ${unitId}:`, response?.error);
                 url = null;
             }
-            await delay(500);
+            await delay(200);
         }
 
-        const campaignIds = allCampaigns.map(camp => camp.id);
-        const insights = await Promise.all(
-            campaignIds.map(id => getCampaignInsights(id, startDate, endDate))
-        );
+        const batchRequests = allCampaigns.map(campaign => ({
+            method: 'GET',
+            relative_url: `${campaign.id}/insights?fields=spend,actions,reach&time_range={"since":"${startDate}","until":"${endDate}"}&level=campaign&access_token=${currentAccessToken}`
+        }));
 
-        campaignIds.forEach((id, index) => {
-            const campaign = allCampaigns.find(c => c.id === id);
+        const batchSize = 50;
+        const insights = [];
+        for (let i = 0; i < batchRequests.length; i += batchSize) {
+            const batch = batchRequests.slice(i, i + batchSize);
+            const batchResponse = await new Promise((resolve) => {
+                FB.api('/', 'POST', {
+                    batch: batch,
+                    access_token: currentAccessToken
+                }, resolve);
+            });
+
+            batchResponse.forEach((resp, index) => {
+                if (resp.code === 200) {
+                    const data = JSON.parse(resp.body);
+                    if (data.data && data.data.length > 0) {
+                        insights[i + index] = data.data[0];
+                    } else {
+                        insights[i + index] = { spend: '0', actions: [], reach: '0' };
+                    }
+                } else {
+                    console.error(`Erro ao buscar insights para campanha ${allCampaigns[i + index].id}:`, resp);
+                    insights[i + index] = { spend: '0', actions: [], reach: '0' };
+                }
+            });
+            await delay(200);
+        }
+
+        allCampaigns.forEach((campaign, index) => {
             const spend = insights[index].spend ? parseFloat(insights[index].spend) : 0;
-            campaignsMap[unitId][id] = {
+            campaignsMap[unitId][campaign.id] = {
                 name: campaign.name.toLowerCase(),
                 insights: { 
                     spend,
@@ -447,7 +522,8 @@ async function loadCampaigns(unitId, startDate, endDate) {
             };
         });
 
-        console.log('Campanhas carregadas:', campaignsMap[unitId]);
+        // Salvar no cache
+        setCachedData(cacheKey, campaignsMap[unitId]);
 
         if (hasBlack) {
             renderWhiteCampaignOptions();
@@ -459,6 +535,7 @@ async function loadCampaigns(unitId, startDate, endDate) {
         console.error('Erro ao carregar campanhas:', error);
     }
 }
+
 
 async function loadAdSets(unitId, startDate, endDate) {
     try {
@@ -1007,8 +1084,10 @@ form.addEventListener('submit', async (e) => {
         const unitName = unitSelect.options[unitSelect.selectedIndex].text;
         const startDate = document.getElementById('startDate').value;
         const endDate = document.getElementById('endDate').value;
-
-        console.log(`Dados do formulário - unitId: ${unitId}, unitName: ${unitName}, startDate: ${startDate}, endDate: ${endDate}`);
+        const performanceAnalysis = document.getElementById('performanceAnalysis')?.value || '';
+        const budgetsCompleted = parseInt(document.getElementById('budgetsCompleted').value) || 0;
+        const salesCount = parseInt(document.getElementById('salesCount').value) || 0;
+        const revenue = parseFloat(document.getElementById('revenue').value) || 0;
 
         if (!unitId || !startDate || !endDate) {
             alert('Por favor, preencha todos os campos obrigatórios (unidade, data de início e data de fim).');
@@ -1020,13 +1099,105 @@ form.addEventListener('submit', async (e) => {
             return;
         }
 
+        // Função para verificar se dois Sets são iguais
+        const areSetsEqual = (setA, setB) => {
+            if (setA.size !== setB.size) return false;
+            return Array.from(setA).every(item => setB.has(item));
+        };
+
+        // Verificar se os campos principais mudaram
+        const formStateChanged = (
+            lastFormState.unitId !== unitId ||
+            lastFormState.startDate !== startDate ||
+            lastFormState.endDate !== endDate ||
+            !areSetsEqual(lastFormState.selectedCampaigns, selectedCampaigns) ||
+            !areSetsEqual(lastFormState.selectedAdSets, selectedAdSets) ||
+            !areSetsEqual(lastFormState.selectedWhiteCampaigns, selectedWhiteCampaigns) ||
+            !areSetsEqual(lastFormState.selectedWhiteAdSets, selectedWhiteAdSets) ||
+            !areSetsEqual(lastFormState.selectedBlackCampaigns, selectedBlackCampaigns) ||
+            !areSetsEqual(lastFormState.selectedBlackAdSets, selectedBlackAdSets) ||
+            lastFormState.hasBlack !== hasBlack ||
+            JSON.stringify(lastFormState.comparisonData) !== JSON.stringify(comparisonData)
+        );
+
         const submitButton = form.querySelector('button[type="submit"]');
         const originalText = submitButton.innerHTML;
         submitButton.disabled = true;
         submitButton.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Gerando...';
 
-        // Corrigir a chamada para passar os parâmetros
-        await generateReport(unitId, unitName, startDate, endDate);
+        let metrics = reportMetrics;
+        let blackMetrics = reportBlackMetrics;
+        let bestAds = reportBestAds;
+        let comparisonMetrics = null;
+        let blackComparisonMetrics = null;
+        let comparisonTotalLeads = null;
+
+        // Se os dados ainda não foram carregados ou o estado do formulário mudou, buscar os dados
+        if (formStateChanged || !metrics || (hasBlack && !blackMetrics) || !bestAds) {
+            await generateReport(unitId, unitName, startDate, endDate);
+        } else {
+            // Apenas re-renderizar o relatório com os dados existentes
+            reportContainer.innerHTML = '';
+            renderReport(unitName, startDate, endDate, metrics, comparisonMetrics, blackMetrics, blackComparisonMetrics, bestAds, comparisonTotalLeads);
+
+            // Adicionar seção de Resultados
+            const reportDiv = reportContainer.querySelector('.bg-white');
+            const businessResultsHTML = `
+                <div class="mt-8">
+                    <h3 class="text-xl font-semibold text-primary mb-4">Resultados</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div class="metric-card">
+                            <h4 class="text-sm font-medium text-gray-600 mb-1">Orçamentos Realizados</h4>
+                            <p class="text-lg font-semibold text-gray-800">${budgetsCompleted.toLocaleString('pt-BR')}</p>
+                        </div>
+                        <div class="metric-card">
+                            <h4 class="text-sm font-medium text-gray-600 mb-1">Número de Vendas</h4>
+                            <p class="text-lg font-semibold text-gray-800">${salesCount.toLocaleString('pt-BR')}</p>
+                        </div>
+                        <div class="metric-card">
+                            <h4 class="text-sm font-medium text-gray-600 mb-1">Faturamento</h4>
+                            <p class="text-lg font-semibold text-gray-800">R$ ${revenue.toFixed(2).replace('.', ',')}</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+            reportDiv.insertAdjacentHTML('beforeend', businessResultsHTML);
+
+            // Adicionar seção de Análise de Desempenho e Pontos de Melhoria (se houver texto)
+            if (performanceAnalysis.trim()) {
+                const paragraphs = performanceAnalysis.split(/\n\s*\n/).filter(p => p.trim());
+                const analysisHTML = `
+                    <div class="mt-8">
+                        <h3 class="text-xl font-semibold text-primary mb-4">Análise de Desempenho e Pontos de Melhoria</h3>
+                        <ul class="list-disc list-inside space-y-2 text-gray-700">
+                            ${paragraphs.map(paragraph => {
+                                const formattedParagraph = paragraph.replace(/\n/g, '<br>');
+                                return `<li>${formattedParagraph}</li>`;
+                            }).join('')}
+                        </ul>
+                    </div>
+                `;
+                reportDiv.insertAdjacentHTML('beforeend', analysisHTML);
+            }
+
+            // Exibir o botão de compartilhamento
+            shareWhatsAppBtn.classList.remove('hidden');
+        }
+
+        // Atualizar o último estado do formulário
+        lastFormState = {
+            unitId,
+            startDate,
+            endDate,
+            selectedCampaigns: new Set(selectedCampaigns),
+            selectedAdSets: new Set(selectedAdSets),
+            selectedWhiteCampaigns: new Set(selectedWhiteCampaigns),
+            selectedWhiteAdSets: new Set(selectedWhiteAdSets),
+            selectedBlackCampaigns: new Set(selectedBlackCampaigns),
+            selectedBlackAdSets: new Set(selectedBlackAdSets),
+            comparisonData: comparisonData ? { ...comparisonData } : null,
+            hasBlack
+        };
 
         submitButton.disabled = false;
         submitButton.innerHTML = originalText;
@@ -1037,32 +1208,27 @@ form.addEventListener('submit', async (e) => {
 });
 
 
-
 async function generateReport(unitId, unitName, startDate, endDate) {
-console.log('Iniciando generateReport:', { unitId, unitName, startDate, endDate });
-    // Capturar os novos campos
+    console.log('Iniciando generateReport:', { unitId, unitName, startDate, endDate });
     const budgetsCompleted = parseInt(document.getElementById('budgetsCompleted').value) || 0;
     const salesCount = parseInt(document.getElementById('salesCount').value) || 0;
     const revenue = parseFloat(document.getElementById('revenue').value) || 0;
-    const performanceAnalysis = document.getElementById('performanceAnalysis')?.value || ''; // Capturar a análise
+    const performanceAnalysis = document.getElementById('performanceAnalysis')?.value || '';
 
     if (!unitId || !startDate || !endDate) {
         alert('Preencha todos os campos obrigatórios');
         return;
     }
 
-    // Validação adicional para os novos campos
     if (budgetsCompleted < 0 || salesCount < 0 || revenue < 0) {
         alert('Os valores de orçamentos, vendas e faturamento não podem ser negativos.');
         return;
     }
 
-    // Garantir que as campanhas foram carregadas
     if (!campaignsMap[unitId]) {
         await loadCampaigns(unitId, startDate, endDate);
     }
 
-    // Determinar quais campanhas usar com base nos filtros
     let whiteCampaigns = [];
     let blackCampaigns = [];
     let allCampaigns = Object.entries(campaignsMap[unitId] || {});
@@ -1070,47 +1236,37 @@ console.log('Iniciando generateReport:', { unitId, unitName, startDate, endDate 
     if (hasBlack) {
         whiteCampaigns = selectedWhiteCampaigns.size > 0 
             ? allCampaigns.filter(([id]) => selectedWhiteCampaigns.has(id))
-            : allCampaigns; // Se não houver filtro White, usa todas as campanhas
+            : allCampaigns;
         blackCampaigns = selectedBlackCampaigns.size > 0 
             ? allCampaigns.filter(([id]) => selectedBlackCampaigns.has(id))
-            : allCampaigns; // Se não houver filtro Black, usa todas as campanhas
+            : allCampaigns;
     } else {
         if (selectedCampaigns.size > 0) {
             allCampaigns = allCampaigns.filter(([id]) => selectedCampaigns.has(id));
         } else if (selectedAdSets.size > 0) {
-            allCampaigns = allCampaigns; // Pode ser ajustado se precisar filtrar por ad sets
+            allCampaigns = allCampaigns;
         }
     }
 
-    // Calcular métricas para campanhas White e Black (ou todas as campanhas se hasBlack for false)
     let metrics = { spend: 0, reach: 0, conversations: 0, costPerConversation: 0 };
     let blackMetrics = null;
 
-    // Usar calculateMetrics para obter as métricas diretamente da API, considerando os filtros
-   if (hasBlack) {
-    // Métricas para White
-    const whiteMetricsResult = await calculateMetrics(unitId, startDate, endDate, selectedWhiteCampaigns, selectedWhiteAdSets);
-    metrics = whiteMetricsResult;
-    console.log('White Metrics:', metrics);
-    console.log('Report Metrics (White):', reportMetrics);
-    reportMetrics = metrics;
+    // Paralelizar a busca de métricas White e Black
+    if (hasBlack) {
+        const [whiteMetricsResult, blackMetricsResult] = await Promise.all([
+            calculateMetrics(unitId, startDate, endDate, selectedWhiteCampaigns, selectedWhiteAdSets),
+            calculateMetrics(unitId, startDate, endDate, selectedBlackCampaigns, selectedBlackAdSets)
+        ]);
+        metrics = whiteMetricsResult;
+        blackMetrics = blackMetricsResult;
+        reportMetrics = metrics;
+        reportBlackMetrics = blackMetrics;
+    } else {
+        const generalMetrics = await calculateMetrics(unitId, startDate, endDate, selectedCampaigns, selectedAdSets);
+        metrics = generalMetrics;
+        reportMetrics = metrics;
+    }
 
-    // Métricas para Black
-    const blackMetricsResult = await calculateMetrics(unitId, startDate, endDate, selectedBlackCampaigns, selectedBlackAdSets);
-    blackMetrics = blackMetricsResult;
-    console.log('Black Metrics:', blackMetrics);
-    console.log('Report Black Metrics:', reportBlackMetrics);
-    reportBlackMetrics = blackMetrics;
-} else {
-    // Métricas gerais (sem distinção de White/Black)
-    const generalMetrics = await calculateMetrics(unitId, startDate, endDate, selectedCampaigns, selectedAdSets);
-    metrics = generalMetrics;
-    console.log('General Metrics:', metrics);
-    console.log('Report Metrics (General):', reportMetrics);
-    reportMetrics = metrics; // Adicionada esta linha
-}
-
-    // Calcular métricas de comparação (se houver comparisonData)
     let comparisonMetrics = null;
     let blackComparisonMetrics = null;
     let comparisonTotalLeads = null;
@@ -1119,7 +1275,6 @@ console.log('Iniciando generateReport:', { unitId, unitName, startDate, endDate 
         const compareStartDate = comparisonData.startDate;
         const compareEndDate = comparisonData.endDate;
 
-        // Recarregar campanhas para o período de comparação
         await loadCampaigns(unitId, compareStartDate, compareEndDate);
 
         let compareWhiteCampaigns = [];
@@ -1134,36 +1289,28 @@ console.log('Iniciando generateReport:', { unitId, unitName, startDate, endDate 
                 ? compareAllCampaigns.filter(([id]) => selectedBlackCampaigns.has(id))
                 : compareAllCampaigns;
 
-            // Métricas de comparação para White
-            comparisonMetrics = await calculateMetrics(unitId, compareStartDate, compareEndDate, selectedWhiteCampaigns, selectedWhiteAdSets);
-
-            // Métricas de comparação para Black
-            blackComparisonMetrics = await calculateMetrics(unitId, compareStartDate, compareEndDate, selectedBlackCampaigns, selectedBlackAdSets);
-
-            // Calcular total de leads para o período de comparação
-            comparisonTotalLeads = await calculateTotalLeadsForAccount(unitId, compareStartDate, compareEndDate);
+            const [compMetrics, compBlackMetrics, compTotalLeads] = await Promise.all([
+                calculateMetrics(unitId, compareStartDate, compareEndDate, selectedWhiteCampaigns, selectedWhiteAdSets),
+                calculateMetrics(unitId, compareStartDate, compareEndDate, selectedBlackCampaigns, selectedBlackAdSets),
+                calculateTotalLeadsForAccount(unitId, compareStartDate, compareEndDate)
+            ]);
+            comparisonMetrics = compMetrics;
+            blackComparisonMetrics = compBlackMetrics;
+            comparisonTotalLeads = compTotalLeads;
         } else {
             if (selectedCampaigns.size > 0) {
                 compareAllCampaigns = compareAllCampaigns.filter(([id]) => selectedCampaigns.has(id));
             }
-            // Métricas de comparação gerais
             comparisonMetrics = await calculateMetrics(unitId, compareStartDate, compareEndDate, selectedCampaigns, selectedAdSets);
         }
     }
 
-    // Obter melhores anúncios
-const bestAds = await getBestAds(unitId, startDate, endDate);
-console.log('Antes de atribuir reportBestAds:', reportBestAds);
-reportBestAds = bestAds; // Salvar na variável global
-console.log('Depois de atribuir reportBestAds:', reportBestAds);
-console.log('Best Ads:', bestAds);
-console.log('Report Best Ads:', reportBestAds);
+    const bestAds = await getBestAds(unitId, startDate, endDate);
+    reportBestAds = bestAds;
 
-    // Renderizar o relatório usando a função renderReport
     reportContainer.innerHTML = '';
     renderReport(unitName, startDate, endDate, metrics, comparisonMetrics, blackMetrics, blackComparisonMetrics, bestAds, comparisonTotalLeads);
 
-    // Adicionar seção de Resultados 
     const reportDiv = reportContainer.querySelector('.bg-white');
     const businessResultsHTML = `
         <div class="mt-8">
@@ -1186,16 +1333,13 @@ console.log('Report Best Ads:', reportBestAds);
     `;
     reportDiv.insertAdjacentHTML('beforeend', businessResultsHTML);
 
-    // Adicionar seção de Análise de Desempenho e Pontos de Melhoria (se houver texto)
     if (performanceAnalysis.trim()) {
-        // Dividir os parágrafos com base em linhas em branco
         const paragraphs = performanceAnalysis.split(/\n\s*\n/).filter(p => p.trim());
         const analysisHTML = `
             <div class="mt-8">
                 <h3 class="text-xl font-semibold text-primary mb-4">Análise de Desempenho e Pontos de Melhoria</h3>
                 <ul class="list-disc list-inside space-y-2 text-gray-700">
                     ${paragraphs.map(paragraph => {
-                        // Substituir quebras de linha dentro do parágrafo por <br>
                         const formattedParagraph = paragraph.replace(/\n/g, '<br>');
                         return `<li>${formattedParagraph}</li>`;
                     }).join('')}
@@ -1205,7 +1349,6 @@ console.log('Report Best Ads:', reportBestAds);
         reportDiv.insertAdjacentHTML('beforeend', analysisHTML);
     }
 
-    // Exibir o botão de compartilhamento
     shareWhatsAppBtn.classList.remove('hidden');
 }
 
@@ -1219,12 +1362,13 @@ async function calculateMetrics(unitId, startDate, endDate, campaignsSet, adSets
         FB.api(
             `/${unitId}/insights`,
             {
-                fields: ['spend', 'reach', 'actions'],
+                fields: 'spend,reach,actions{action_type,value}',
                 time_range: { since: startDate, until: endDate },
                 filtering: [
                     campaignsSet.size > 0 ? { field: 'campaign.id', operator: 'IN', value: Array.from(campaignsSet) } : {},
                     adSetsSet.size > 0 ? { field: 'adset.id', operator: 'IN', value: Array.from(adSetsSet) } : {}
                 ].filter(filter => Object.keys(filter).length > 0),
+                action_breakdowns: 'action_type',
                 access_token: currentAccessToken
             },
             resolve
@@ -1258,6 +1402,7 @@ async function calculateMetrics(unitId, startDate, endDate, campaignsSet, adSets
     const costPerConversation = totalConversations > 0 ? totalSpend / totalConversations : 0;
     return { spend: totalSpend, conversations: totalConversations, reach: totalReach, costPerConversation };
 }
+
 
 async function calculateTotalLeadsForAccount(unitId, startDate, endDate) {
     let totalConversations = 0;

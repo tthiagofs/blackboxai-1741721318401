@@ -29,6 +29,13 @@ const whiteFilters = document.getElementById('whiteFilters');
 const blackFilters = document.getElementById('blackFilters');
 const defaultFilters = document.getElementById('defaultFilters');
 const comparisonFilter = document.getElementById('comparisonFilter');
+const includeMonthlyReportCheckbox = document.getElementById('includeMonthlyReport');
+const monthlyReportDates = document.getElementById('monthlyReportDates');
+
+includeMonthlyReportCheckbox.addEventListener('change', () => {
+    monthlyReportDates.classList.toggle('hidden', !includeMonthlyReportCheckbox.checked);
+});
+
 
 // Modais
 const closeCampaignsModalBtn = document.getElementById('closeCampaignsModal');
@@ -74,7 +81,13 @@ let lastFormState = {
     selectedBlackAdSets: new Set(),
     comparisonData: null,
     hasBlack: null
+    monthlyReportStartDate: null,
+    monthlyReportEndDate: null
 };
+
+let monthlyReportStartDate = null;
+let monthlyReportEndDate = null;
+let monthlyReportMetrics = null;
 
 
 // Mapas
@@ -1088,6 +1101,22 @@ form.addEventListener('submit', async (e) => {
         const budgetsCompleted = parseInt(document.getElementById('budgetsCompleted').value) || 0;
         const salesCount = parseInt(document.getElementById('salesCount').value) || 0;
         const revenue = parseFloat(document.getElementById('revenue').value) || 0;
+        const includeMonthlyReport = includeMonthlyReportCheckbox.checked;
+        if (includeMonthlyReport) {
+            monthlyReportStartDate = document.getElementById('monthlyStartDate').value;
+            monthlyReportEndDate = document.getElementById('monthlyEndDate').value;
+            if (!monthlyReportStartDate || !monthlyReportEndDate) {
+                alert('Por favor, preencha as datas do relatório mensal.');
+                submitButton.disabled = false;
+                submitButton.innerHTML = originalText;
+                return;
+            }
+        } else {
+            monthlyReportStartDate = null;
+            monthlyReportEndDate = null;
+            monthlyReportMetrics = null;
+        }
+
 
         if (!unitId || !startDate || !endDate) {
             alert('Por favor, preencha todos os campos obrigatórios (unidade, data de início e data de fim).');
@@ -1197,6 +1226,8 @@ form.addEventListener('submit', async (e) => {
             selectedBlackAdSets: new Set(selectedBlackAdSets),
             comparisonData: comparisonData ? { ...comparisonData } : null,
             hasBlack
+            monthlyReportStartDate: monthlyReportStartDate,
+monthlyReportEndDate: monthlyReportEndDate
         };
 
         submitButton.disabled = false;
@@ -1261,7 +1292,28 @@ async function generateReport(unitId, unitName, startDate, endDate) {
         blackMetrics = blackMetricsResult;
         reportMetrics = metrics;
         reportBlackMetrics = blackMetrics;
+
+
+    } if (includeMonthlyReport && monthlyReportStartDate && monthlyReportEndDate) {
+    await loadCampaigns(unitId, monthlyReportStartDate, monthlyReportEndDate);
+    if (hasBlack) {
+        monthlyReportMetrics = await calculateMetrics(
+            unitId,
+            monthlyReportStartDate,
+            monthlyReportEndDate,
+            selectedWhiteCampaigns.size > 0 ? selectedWhiteCampaigns : null,
+            selectedWhiteAdSets.size > 0 ? selectedWhiteAdSets : null
+        );
     } else {
+        monthlyReportMetrics = await calculateMetrics(
+            unitId,
+            monthlyReportStartDate,
+            monthlyReportEndDate,
+            selectedCampaigns,
+            selectedAdSets
+        );
+    }
+}else {
         const generalMetrics = await calculateMetrics(unitId, startDate, endDate, selectedCampaigns, selectedAdSets);
         metrics = generalMetrics;
         reportMetrics = metrics;
@@ -1673,76 +1725,76 @@ function renderReport(unitName, startDate, endDate, metrics, comparisonMetrics, 
     const reportHTML = `
         <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
             <h2 class="text-2xl font-semibold text-primary mb-4">Relatório Completo - ${unitName}</h2>
-<button id="exportPDFBtn" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition mb-4">
-    <i class="fas fa-file-pdf mr-2"></i>Exportar para PDF
-</button>
+            <button id="exportPDFBtn" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition mb-4">
+                <i class="fas fa-file-pdf mr-2"></i>Exportar para PDF
+            </button>
             <p class="text-gray-600 text-base mb-4">
                 <i class="fas fa-calendar-alt mr-2"></i>Período Analisado: ${formattedStartDate} a ${formattedEndDate}
             </p>
             ${comparisonPeriod}
-          ${
-    hasBlack
-        ? `
-            <div class="campaign-section white-report text-white rounded-lg p-4 mb-6">
-                <h3 class="text-xl font-semibold uppercase mb-3">Campanhas White</h3>
-                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                    <div class="metric-card">
-                        <h4 class="text-sm font-medium text-gray-200 mb-1">Investimento</h4>
-                        <p class="text-lg font-semibold text-white">R$ ${metrics.spend.toFixed(2).replace('.', ',')}</p>
-                    </div>
-                    <div class="metric-card">
-                        <h4 class="text-sm font-medium text-gray-200 mb-1">Alcance</h4>
-                        <p class="text-lg font-semibold text-white">${metrics.reach}</p>
-                    </div>
-                    <div class="metric-card">
-                        <h4 class="text-sm font-medium text-gray-200 mb-1">Conversas Iniciadas</h4>
-                        <p class="text-lg font-semibold text-white">${metrics.conversations}</p>
-                    </div>
-                    <div class="metric-card">
-                        <h4 class="text-sm font-medium text-gray-200 mb-1">Custo por Conversa</h4>
-                        <p class="text-lg font-semibold text-white">R$ ${metrics.costPerConversation.toFixed(2).replace('.', ',')}</p>
-                    </div>
-                </div>
-            </div>
-            <div class="campaign-section black-report text-white rounded-lg p-4 mb-6">
-                <h3 class="text-xl font-semibold uppercase mb-3">Campanhas Black</h3>
-                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                    <div class="metric-card">
-                        <h4 class="text-sm font-medium text-gray-200 mb-1">Investimento</h4>
-                        <p class="text-lg font-semibold text-white">R$ ${blackMetrics.spend.toFixed(2).replace('.', ',')}</p>
-                    </div>
-                    <div class="metric-card">
-                        <h4 class="text-sm font-medium text-gray-200 mb-1">Alcance</h4>
-                        <p class="text-lg font-semibold text-white">${blackMetrics.reach}</p>
-                    </div>
-                    <div class="metric-card">
-                        <h4 class="text-sm font-medium text-gray-200 mb-1">Conversas Iniciadas</h4>
-                        <p class="text-lg font-semibold text-white">${blackMetrics.conversations}</p>
-                    </div>
-                    <div class="metric-card">
-                        <h4 class="text-sm font-medium text-gray-200 mb-1">Custo por Conversa</h4>
-                        <p class="text-lg font-semibold text-white">R$ ${blackMetrics.costPerConversation.toFixed(2).replace('.', ',')}</p>
-                    </div>
-                </div>
-            </div>
-            <div class="text-center bg-gray-100 rounded-lg p-4 mb-6">
-                <p class="text-lg font-semibold text-gray-700">
-                    Número total de leads: <span class="text-2xl font-bold text-primary">${totalLeads}</span>
-                    ${
-                        totalLeadsVariation
-                            ? `
-                                <p class="metric-comparison ${
-                                    totalLeadsVariation.direction === 'positive' ? 'increase' : 'decrease'
-                                } text-sm mt-1">
-                                    <i class="fas fa-arrow-${
-                                        totalLeadsVariation.direction === 'positive' ? 'up' : 'down'
-                                    } mr-1"></i>
-                                    ${totalLeadsVariation.percentage}% em relação ao período anterior
-                                </p>`
-                            : ''
-                    }
-                </p>
-            </div>`
+            ${
+                hasBlack
+                    ? `
+                        <div class="campaign-section white-report text-white rounded-lg p-4 mb-6">
+                            <h3 class="text-xl font-semibold uppercase mb-3">Campanhas White</h3>
+                            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                                <div class="metric-card">
+                                    <h4 class="text-sm font-medium text-gray-200 mb-1">Investimento</h4>
+                                    <p class="text-lg font-semibold text-white">R$ ${metrics.spend.toFixed(2).replace('.', ',')}</p>
+                                </div>
+                                <div class="metric-card">
+                                    <h4 class="text-sm font-medium text-gray-200 mb-1">Alcance</h4>
+                                    <p class="text-lg font-semibold text-white">${metrics.reach}</p>
+                                </div>
+                                <div class="metric-card">
+                                    <h4 class="text-sm font-medium text-gray-200 mb-1">Conversas Iniciadas</h4>
+                                    <p class="text-lg font-semibold text-white">${metrics.conversations}</p>
+                                </div>
+                                <div class="metric-card">
+                                    <h4 class="text-sm font-medium text-gray-200 mb-1">Custo por Conversa</h4>
+                                    <p class="text-lg font-semibold text-white">R$ ${metrics.costPerConversation.toFixed(2).replace('.', ',')}</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="campaign-section black-report text-white rounded-lg p-4 mb-6">
+                            <h3 class="text-xl font-semibold uppercase mb-3">Campanhas Black</h3>
+                            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                                <div class="metric-card">
+                                    <h4 class="text-sm font-medium text-gray-200 mb-1">Investimento</h4>
+                                    <p class="text-lg font-semibold text-white">R$ ${blackMetrics.spend.toFixed(2).replace('.', ',')}</p>
+                                </div>
+                                <div class="metric-card">
+                                    <h4 class="text-sm font-medium text-gray-200 mb-1">Alcance</h4>
+                                    <p class="text-lg font-semibold text-white">${blackMetrics.reach}</p>
+                                </div>
+                                <div class="metric-card">
+                                    <h4 class="text-sm font-medium text-gray-200 mb-1">Conversas Iniciadas</h4>
+                                    <p class="text-lg font-semibold text-white">${blackMetrics.conversations}</p>
+                                </div>
+                                <div class="metric-card">
+                                    <h4 class="text-sm font-medium text-gray-200 mb-1">Custo por Conversa</h4>
+                                    <p class="text-lg font-semibold text-white">R$ ${blackMetrics.costPerConversation.toFixed(2).replace('.', ',')}</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="text-center bg-gray-100 rounded-lg p-4 mb-6">
+                            <p class="text-lg font-semibold text-gray-700">
+                                Número total de leads: <span class="text-2xl font-bold text-primary">${totalLeads}</span>
+                                ${
+                                    totalLeadsVariation
+                                        ? `
+                                            <p class="metric-comparison ${
+                                                totalLeadsVariation.direction === 'positive' ? 'increase' : 'decrease'
+                                            } text-sm mt-1">
+                                                <i class="fas fa-arrow-${
+                                                    totalLeadsVariation.direction === 'positive' ? 'up' : 'down'
+                                                } mr-1"></i>
+                                                ${totalLeadsVariation.percentage}% em relação ao período anterior
+                                            </p>`
+                                        : ''
+                                }
+                            </p>
+                        </div>`
                     : `
                         <div class="bg-blue-900 text-white rounded-lg p-4 mb-6">
                             <h3 class="text-xl font-semibold uppercase mb-3">Campanhas</h3>
@@ -1804,6 +1856,35 @@ function renderReport(unitName, startDate, endDate, metrics, comparisonMetrics, 
                                 </div>
                             </div>
                         </div>`
+            }
+            ${
+                monthlyReportMetrics && monthlyReportStartDate && monthlyReportEndDate
+                    ? `
+                        <div class="campaign-section monthly-report text-white rounded-lg p-4 mb-6">
+                            <h3 class="text-xl font-semibold uppercase mb-3">Relatório Mensal</h3>
+                            <p class="text-gray-200 text-base mb-4">
+                                <i class="fas fa-calendar-alt mr-2"></i>Período: ${monthlyReportStartDate.split('-').reverse().join('/')} a ${monthlyReportEndDate.split('-').reverse().join('/')}
+                            </p>
+                            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                                <div class="metric-card">
+                                    <h4 class="text-sm font-medium text-gray-200 mb-1">Investimento</h4>
+                                    <p class="text-lg font-semibold text-white">R$ ${monthlyReportMetrics.spend.toFixed(2).replace('.', ',')}</p>
+                                </div>
+                                <div class="metric-card">
+                                    <h4 class="text-sm font-medium text-gray-200 mb-1">Alcance</h4>
+                                    <p class="text-lg font-semibold text-white">${monthlyReportMetrics.reach}</p>
+                                </div>
+                                <div class="metric-card">
+                                    <h4 class="text-sm font-medium text-gray-200 mb-1">Conversas Iniciadas</h4>
+                                    <p class="text-lg font-semibold text-white">${monthlyReportMetrics.conversations}</p>
+                                </div>
+                                <div class="metric-card">
+                                    <h4 class="text-sm font-medium text-gray-200 mb-1">Custo por Conversa</h4>
+                                    <p class="text-lg font-semibold text-white">R$ ${monthlyReportMetrics.costPerConversation.toFixed(2).replace('.', ',')}</p>
+                                </div>
+                            </div>
+                        </div>`
+                    : ''
             }
             ${
                 bestAds.length > 0

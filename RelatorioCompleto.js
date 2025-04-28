@@ -1741,7 +1741,7 @@ function renderReport(unitName, startDate, endDate, metrics, comparisonMetrics, 
                                 <p class="text-lg font-semibold text-white">R$ ${metrics.spend.toFixed(2).replace('.', ',')}</p>
                             </div>
                             <div class="metric-card">
-                                <h4 class="text-sm font-medium text-gray-200 mb-1">Alcance</h4>
+                                <h4 class="text-g sm font-medium text-gray-200 mb-1">Alcance</h4>
                                 <p class="text-lg font-semibold text-white">${metrics.reach}</p>
                             </div>
                             <div class="metric-card">
@@ -1882,12 +1882,6 @@ function renderReport(unitName, startDate, endDate, metrics, comparisonMetrics, 
 
     reportContainer.innerHTML = ''; // Limpar o contêiner antes de adicionar o novo relatório
     reportContainer.insertAdjacentHTML('beforeend', reportHTML);
-
-    // Mostrar o botão de Relatório Mensal após o relatório semanal ser gerado
-    const monthlyReportTrigger = document.getElementById('monthlyReportTrigger');
-    if (monthlyReportTrigger) {
-        monthlyReportTrigger.classList.remove('hidden');
-    }
 }
 
 async function renderMonthlyReport() {

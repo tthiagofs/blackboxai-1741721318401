@@ -106,86 +106,99 @@
         color: #ffffff !important;
     }
 
-        .metric-card {
-            @apply bg-white p-6 rounded-lg shadow-lg transition-transform duration-300 hover:transform hover:-translate-y-1;
-        }
-        .metric-comparison.increase {
-            @apply text-green-500 flex items-center;
-        }
-        .metric-comparison.decrease {
-            @apply text-red-500 flex items-center;
-        }
-        .top-ad-card {
-            @apply bg-white p-4 rounded-lg shadow-md transition-all duration-300 hover:shadow-lg;
-        }
+    .metric-card {
+        @apply bg-white p-6 rounded-lg shadow-lg transition-transform duration-300 hover:transform hover:-translate-y-1;
+    }
+    .metric-comparison.increase {
+        @apply text-green-500 flex items-center;
+    }
+    .metric-comparison.decrease {
+        @apply text-red-500 flex items-center;
+    }
+    .top-ad-card {
+        @apply bg-white p-4 rounded-lg shadow-md transition-all duration-300 hover:shadow-lg;
+    }
 
-/* Estilo para os itens da lista de análise */
-ul.list-disc li {
-    margin-bottom: 0.5rem; /* Espaçamento entre os itens da lista */
-    line-height: 1.5; /* Altura da linha para melhor legibilidade */
-}
+    /* Estilo para os itens da lista de análise */
+    ul.list-disc li {
+        margin-bottom: 0.5rem; /* Espaçamento entre os itens da lista */
+        line-height: 1.5; /* Altura da linha para melhor legibilidade */
+    }
 
-/* Garantir que o texto dentro de cada <li> respeite o formato */
-ul.list-disc li br {
-    display: block; /* Forçar a quebra de linha */
-    content: ''; /* Garantir compatibilidade */
-}
+    /* Garantir que o texto dentro de cada <li> respeite o formato */
+    ul.list-disc li br {
+        display: block; /* Forçar a quebra de linha */
+        content: ''; /* Garantir compatibilidade */
+    }
 
-/* Estilo para o relatório White (fundo azul) */
-.campaign-section.white-report {
-    background-color: #1e3c72; /* Azul definido no Tailwind */
-    color: #ffffff; /* Texto branco para contraste */
-}
+    /* Estilo para o relatório White (fundo azul) */
+    .campaign-section.white-report {
+        background-color: #1e3c72; /* Azul definido no Tailwind */
+        color: #ffffff; /* Texto branco para contraste */
+    }
 
-/* Estilo para o relatório Black (fundo preto) */
-.campaign-section.black-report {
-    background-color: #000000; /* Preto */
-    color: #ffffff; /* Texto branco */
-}
+    /* Estilo para o relatório Black (fundo preto) */
+    .campaign-section.black-report {
+        background-color: #000000; /* Preto */
+        color: #ffffff; /* Texto branco */
+    }
 
-/* Garantir que os textos dentro da seção fiquem brancos */
-.campaign-section.white-report h3,
-.campaign-section.white-report h4,
-.campaign-section.white-report p,
-.campaign-section.black-report h3,
-.campaign-section.black-report h4,
-.campaign-section.black-report p {
-    color: #ffffff;
-}
+    /* Garantir que os textos dentro da seção fiquem brancos */
+    .campaign-section.white-report h3,
+    .campaign-section.white-report h4,
+    .campaign-section.white-report p,
+    .campaign-section.black-report h3,
+    .campaign-section.black-report h4,
+    .campaign-section.black-report p {
+        color: #ffffff;
+    }
 
-/* Estilo para a seção de Relatório Mensal */
-.monthly-report-section {
-    background-color: #f1f5f9;
-    border-radius: 0.5rem;
-    padding: 1.5rem;
-    margin-top: 2rem;
-}
+    /* Estilo para a seção de Relatório Mensal */
+    .monthly-report-section {
+        background-color: #f1f5f9;
+        border-radius: 0.5rem;
+        padding: 1.5rem;
+        margin-top: 2rem;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
 
-.monthly-report-section h3 {
-    color: #1e3c72;
-    font-size: 1.25rem;
-    font-weight: 600;
-    margin-bottom: 1rem;
-}
+    .monthly-report-section h3 {
+        color: #1e3c72;
+        font-size: 1.5rem;
+        font-weight: 600;
+        margin-bottom: 1rem;
+        text-align: center;
+    }
 
-.monthly-report-section .metric-card {
-    background-color: #ffffff;
-    padding: 1.5rem;
-    border-radius: 0.5rem;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    transition: transform 0.3s ease;
-}
+    .monthly-report-section .metric-card {
+        background-color: #ffffff;
+        padding: 1.5rem;
+        border-radius: 0.5rem;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        transition: transform 0.3s ease;
+    }
 
-.monthly-report-section .metric-card:hover {
-    transform: translateY(-4px);
-}
+    .monthly-report-section .metric-card:hover {
+        transform: translateY(-4px);
+    }
 
+    /* Estilo para o botão de toggle do relatório mensal */
+    .toggle-monthly-btn {
+        background-color: #1e3c72;
+        color: #ffffff;
+        padding: 0.5rem 1rem;
+        border-radius: 0.5rem;
+        margin-bottom: 1rem;
+        transition: background-color 0.3s ease;
+    }
 
+    .toggle-monthly-btn:hover {
+        background-color: #2a5298;
+    }
     </style>
 
-<!-- Scripts -->
-<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
-
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 </head>
 <body class="bg-gradient-to-br from-primary to-secondary min-h-screen p-4 font-sans">
     <div id="mainContent" class="bg-white rounded-xl shadow-2xl p-8 max-w-6xl mx-auto">
@@ -205,35 +218,19 @@ ul.list-disc li br {
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                     <label for="startDate" class="block text-sm font-medium text-gray-700 mb-1">
-                        <i class="fas fa-calendar-alt mr-2"></i>Data Início
+                        <i class="fas fa-calendar-alt mr-2"></i>Data Início (Semanal)
                     </label>
                     <input type="date" id="startDate" required
                         class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent">
                 </div>
                 <div>
                     <label for="endDate" class="block text-sm font-medium text-gray-700 mb-1">
-                        <i class="fas fa-calendar-alt mr-2"></i>Data Fim
+                        <i class="fas fa-calendar-alt mr-2"></i>Data Fim (Semanal)
                     </label>
                     <input type="date" id="endDate" required
                         class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent">
                 </div>
-
-                <div>
-                    <label for="reportMonth" class="block text-sm font-medium text-gray-700 mb-1">
-                        <i class="fas fa-calendar-alt mr-2"></i>Mês do Relatório Mensal
-                    </label>
-                    <select id="reportMonth" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent">
-                        <option value="">Selecione o mês</option>
-                        <option value="2025-01">Janeiro 2025</option>
-                        <option value="2025-02">Fevereiro 2025</option>
-                        <option value="2025-03">Março 2025</option>
-                        <option value="2025-04">Abril 2025</option>
-                    </select>
-                </div>
-
-
             </div>
-
 
             <!-- Nova Pergunta: A unidade possui Black? -->
             <div id="blackQuestion" class="text-center">
@@ -454,6 +451,7 @@ ul.list-disc li br {
         </div>
     </div>
 
+    <!-- Modal de Período de Comparação -->
     <div id="comparisonModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
         <div class="bg-white rounded-lg shadow-xl p-6 max-w-lg w-full">
             <h2 class="text-xl font-semibold text-primary mb-4">
@@ -501,9 +499,40 @@ ul.list-disc li br {
         </div>
     </div>
 
+    <!-- Modal de Período Mensal -->
+    <div id="monthlyPeriodModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-lg shadow-xl p-6 max-w-lg w-full">
+            <h2 class="text-xl font-semibold text-primary mb-4">
+                <i class="fas fa-calendar-alt mr-2"></i>Período do Relatório Mensal
+            </h2>
+            <div class="space-y-4">
+                <div>
+                    <label for="monthlyStartDate" class="block text-sm font-medium text-gray-700">Data Início</label>
+                    <input type="date" id="monthlyStartDate"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent">
+                </div>
+                <div>
+                    <label for="monthlyEndDate" class="block text-sm font-medium text-gray-700">Data Fim</label>
+                    <input type="date" id="monthlyEndDate"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent">
+                </div>
+            </div>
+            <div class="flex space-x-4 mt-6">
+                <button type="button" id="confirmMonthlyPeriod"
+                    class="flex-1 bg-primary hover:bg-secondary text-white font-medium py-2 px-4 rounded-md transition duration-300">
+                    <i class="fas fa-check mr-2"></i>Confirmar
+                </button>
+                <button type="button" id="cancelMonthlyPeriod"
+                    class="flex-1 bg-gray-500 hover:bg-gray-600 text-white font-medium py-2 px-4 rounded-md transition duration-300">
+                    <i class="fas fa-times mr-2"></i>Cancelar
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- Scripts -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script async defer crossorigin="anonymous" src="https://connect.facebook.net/en_US/sdk.js"></script>
     <script type="module" src="RelatorioCompleto.js"></script>
-<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'93075eeb8ba96b9d',t:'MTc0NDY3NzQwOC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script><script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'930c0ec9980abce6',t:'MTc0NDcyNjU1NS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script><script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'930e06e76bdd8027',t:'MTc0NDc0NzIwMy4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</body>
 </html>

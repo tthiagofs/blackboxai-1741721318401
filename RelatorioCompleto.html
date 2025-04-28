@@ -32,8 +32,7 @@
     #whiteCampaignsModal .max-h-64,
     #whiteAdSetsModal .max-h-64,
     #blackCampaignsModal .max-h-64,
-    #blackAdSetsModal .max-h-64,
-    #monthlyReportModal .max-h-64 {
+    #blackAdSetsModal .max-h-64 {
         max-height: 16rem;
         overflow-y: auto;
         scrollbar-width: thin;
@@ -45,8 +44,7 @@
     #whiteCampaignsModal .max-h-64::-webkit-scrollbar,
     #whiteAdSetsModal .max-h-64::-webkit-scrollbar,
     #blackCampaignsModal .max-h-64::-webkit-scrollbar,
-    #blackAdSetsModal .max-h-64::-webkit-scrollbar,
-    #monthlyReportModal .max-h-64::-webkit-scrollbar {
+    #blackAdSetsModal .max-h-64::-webkit-scrollbar {
         width: 6px;
     }
 
@@ -55,8 +53,7 @@
     #whiteCampaignsModal .max-h-64::-webkit-scrollbar-thumb,
     #whiteAdSetsModal .max-h-64::-webkit-scrollbar-thumb,
     #blackCampaignsModal .max-h-64::-webkit-scrollbar-thumb,
-    #blackAdSetsModal .max-h-64::-webkit-scrollbar-thumb,
-    #monthlyReportModal .max-h-64::-webkit-scrollbar-thumb {
+    #blackAdSetsModal .max-h-64::-webkit-scrollbar-thumb {
         background-color: #d1d5db;
         border-radius: 3px;
     }
@@ -66,8 +63,7 @@
     #whiteCampaignsModal .max-h-64::-webkit-scrollbar-track,
     #whiteAdSetsModal .max-h-64::-webkit-scrollbar-track,
     #blackCampaignsModal .max-h-64::-webkit-scrollbar-track,
-    #blackAdSetsModal .max-h-64::-webkit-scrollbar-track,
-    #monthlyReportModal .max-h-64::-webkit-scrollbar-track {
+    #blackAdSetsModal .max-h-64::-webkit-scrollbar-track {
         background-color: #f3f4f6;
     }
 
@@ -147,22 +143,13 @@ ul.list-disc li br {
     color: #ffffff; /* Texto branco */
 }
 
-/* Estilo para o relatório Mensal (fundo azul) */
-.campaign-section.monthly-report {
-    background-color: #1e3c72; /* Usar a cor primária do tema */
-    color: #ffffff; /* Texto branco */
-}
-
 /* Garantir que os textos dentro da seção fiquem brancos */
 .campaign-section.white-report h3,
 .campaign-section.white-report h4,
 .campaign-section.white-report p,
 .campaign-section.black-report h3,
 .campaign-section.black-report h4,
-.campaign-section.black-report p,
-.campaign-section.monthly-report h3,
-.campaign-section.monthly-report h4,
-.campaign-section.monthly-report p {
+.campaign-section.black-report p {
     color: #ffffff;
 }
 
@@ -204,32 +191,21 @@ ul.list-disc li br {
                 </div>
             </div>
 
-            <!-- Seção para "A unidade possui Black?" e "Incluir Relatório Mensal" -->
-            <div class="flex flex-col md:flex-row md:space-x-6 items-center justify-center space-y-4 md:space-y-0 mt-4">
-                <!-- Pergunta: A unidade possui Black? -->
-                <div id="blackQuestion" class="text-center">
-                    <p class="text-sm font-medium text-gray-700 mb-2">A unidade possui Black?</p>
-                    <div class="flex justify-center space-x-4">
-                        <button type="button" id="hasBlackYesBtn"
-                            class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition duration-300">
-                            Sim
-                        </button>
-                        <button type="button" id="hasBlackNoBtn"
-                            class="bg-gray-500 hover:bg-gray-600 text-white font-medium py-2 px-4 rounded-md transition duration-300">
-                            Não
-                        </button>
-                    </div>
-                </div>
 
-                <!-- Botão: Incluir Relatório Mensal -->
-                <div id="monthlyReportTrigger" class="text-center">
-                    <button type="button" id="monthlyReportBtn"
-                        class="bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-4 rounded-md transition duration-300">
-                        <i class="fas fa-calendar-month mr-2"></i>Incluir Relatório Mensal
+            <!-- Nova Pergunta: A unidade possui Black? -->
+            <div id="blackQuestion" class="text-center">
+                <p class="text-sm font-medium text-gray-700 mb-2">A unidade possui Black?</p>
+                <div class="flex justify-center space-x-4">
+                    <button type="button" id="hasBlackYesBtn"
+                        class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition duration-300">
+                        Sim
+                    </button>
+                    <button type="button" id="hasBlackNoBtn"
+                        class="bg-gray-500 hover:bg-gray-600 text-white font-medium py-2 px-4 rounded-md transition duration-300">
+                        Não
                     </button>
                 </div>
             </div>
-
             <div id="whiteFilters" class="hidden flex flex-wrap gap-4">
                 <button type="button" id="filterWhiteCampaigns"
                     class="flex-1 bg-primary hover:bg-secondary text-white font-medium py-2 px-4 rounded-md transition duration-300">
@@ -435,37 +411,6 @@ ul.list-disc li br {
         </div>
     </div>
 
-    <!-- Modal de Período do Relatório Mensal -->
-    <div id="monthlyReportModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-        <div class="bg-white rounded-lg shadow-xl p-6 max-w-lg w-full">
-            <h2 class="text-xl font-semibold text-primary mb-4">
-                <i class="fas fa-calendar-month mr-2"></i>Período do Relatório Mensal
-            </h2>
-            <div class="space-y-4">
-                <div>
-                    <label for="monthlyStartDate" class="block text-sm font-medium text-gray-700">Data Início</label>
-                    <input type="date" id="monthlyStartDate"
-                        class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent">
-                </div>
-                <div>
-                    <label for="monthlyEndDate" class="block text-sm font-medium text-gray-700">Data Fim</label>
-                    <input type="date" id="monthlyEndDate"
-                        class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent">
-                </div>
-            </div>
-            <div class="flex space-x-4 mt-6">
-                <button type="button" id="confirmMonthlyReport"
-                    class="flex-1 bg-primary hover:bg-secondary text-white font-medium py-2 px-4 rounded-md transition duration-300">
-                    <i class="fas fa-check mr-2"></i>Confirmar
-                </button>
-                <button type="button" id="cancelMonthlyReport"
-                    class="flex-1 bg-gray-500 hover:bg-gray-600 text-white font-medium py-2 px-4 rounded-md transition duration-300">
-                    <i class="fas fa-times mr-2"></i>Cancelar
-                </button>
-            </div>
-        </div>
-    </div>
-
     <div id="comparisonModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
         <div class="bg-white rounded-lg shadow-xl p-6 max-w-lg w-full">
             <h2 class="text-xl font-semibold text-primary mb-4">
@@ -517,5 +462,5 @@ ul.list-disc li br {
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script async defer crossorigin="anonymous" src="https://connect.facebook.net/en_US/sdk.js"></script>
     <script type="module" src="RelatorioCompleto.js"></script>
-<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'93075eeb8ba96b9d',t:'MTc0NDY3NzQwOC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script><script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'930c0ec9980abce6',t:'MTc0NDcyNjU1NS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script><script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'930e06e76bdd8027',t:'MTc0NDc0NzIwMy4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script><script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9378aebbca2eb038',t:'MTc0NTg2NTU2OC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'93075eeb8ba96b9d',t:'MTc0NDY3NzQwOC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script><script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'930c0ec9980abce6',t:'MTc0NDcyNjU1NS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script><script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'930e06e76bdd8027',t:'MTc0NDc0NzIwMy4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>

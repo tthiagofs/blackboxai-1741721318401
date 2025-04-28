@@ -80,7 +80,7 @@ let lastFormState = {
     selectedBlackCampaigns: new Set(),
     selectedBlackAdSets: new Set(),
     comparisonData: null,
-    hasBlack: null
+    hasBlack: null,
     monthlyReportStartDate: null,
     monthlyReportEndDate: null
 };

@@ -1053,6 +1053,13 @@ if (confirmMonthlyPeriodBtn) {
     });
 }
 
+const cancelMonthlyPeriodBtn = document.getElementById('cancelMonthlyPeriodBtn');
+if (cancelMonthlyPeriodBtn) {
+    cancelMonthlyPeriodBtn.addEventListener('click', () => {
+        toggleModal('monthlyPeriodModal', false);
+    });
+}
+
 
 
 // Funções de comparação
@@ -1865,11 +1872,23 @@ function renderReport(unitName, startDate, endDate, metrics, comparisonMetrics, 
 
 reportContainer.insertAdjacentHTML('beforeend', reportHTML);
 
-    // Adicionar evento ao botão de toggle do relatório mensal
+// Adicionar botão "Gerar Relatório Mensal" e contêiner para o relatório mensal fora do relatório principal
+const monthlyButtonHTML = `
+    <div class="text-center mt-8">
+        <button id="toggleMonthlyReportBtn" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition">
+            <i class="fas fa-calendar-alt mr-2"></i>Gerar Relatório Mensal
+        </button>
+    </div>
+    <div id="monthlyReportSection" class="monthly-report-section hidden mt-8"></div>
+`;
+reportContainer.insertAdjacentHTML('beforeend', monthlyButtonHTML);
+
+// Adicionar evento ao botão de toggle do relatório mensal
 document.getElementById('toggleMonthlyReportBtn').addEventListener('click', () => {
     toggleModal('monthlyPeriodModal', true);
 });
-}
+
+
 
 async function renderMonthlyReport() {
     if (!monthlyPeriodData) return;

@@ -1421,7 +1421,7 @@ async function generateReport(unitId, unitName, startDate, endDate) {
             const [compMetrics, compBlackMetrics, compTotalLeads] = await Promise.all([
                 calculateMetrics(unitId, compareStartDate, compareEndDate, selectedWhiteCampaigns, selectedWhiteAdSets),
                 calculateMetrics(unitId, compareStartDate, compareEndDate, selectedBlackCampaigns, selectedBlackAdSets),
-                calculateTotalLeadsForAccount(unitId, compareStartDate, compareEndDate)
+                calculateTotalConversationsForAccount(unitId, compareStartDate, compareEndDate)
             ]);
             comparisonMetrics = compMetrics;
             blackComparisonMetrics = compBlackMetrics;
@@ -1533,7 +1533,7 @@ async function calculateMetrics(unitId, startDate, endDate, campaignsSet, adSets
 }
 
 
-async function calculateTotalLeadsForAccount(unitId, startDate, endDate) {
+async function calculateTotalConversationsForAccount(unitId, startDate, endDate) {
     let totalConversations = 0;
 
     const response = await new Promise((resolve) => {
@@ -1575,8 +1575,8 @@ async function calculateTotalLeadsForAccount(unitId, startDate, endDate) {
 }
 
 async function getBestAds(unitId, startDate, endDate) {
-    const adsWithActions = []; // Anúncios com mensagens/conversões
-    const adsWithoutActions = []; // Anúncios sem mensagens/conversões, mas com gasto
+    const adsWithActions = []; // Anúncios com mensagens/conversas
+    const adsWithoutActions = []; // Anúncios sem mensagens/conversas, mas com gasto
 
     // Determinar as entidades (campanhas, ad sets ou conta) para buscar os anúncios
     const entitiesToFetch = [];
@@ -1638,9 +1638,9 @@ async function getBestAds(unitId, startDate, endDate) {
 
     // Processar os anúncios
     for (const ad of adsList) {
-        let totalActions = 0;
+        let totalConversations = 0;
         let spend = 0;
-        let costPerAction = 0;
+        let costPerConversation = 0;
         let imageUrl = 'https://dummyimage.com/150x150/ccc/fff';
 
         // Buscar insights do anúncio
@@ -1660,13 +1660,13 @@ async function getBestAds(unitId, startDate, endDate) {
             const insights = insightsResponse.data[0];
             console.log(`Insights para o anúncio ${ad.id}:`, insights);
 
-            // Calcular leads (conversas)
+            // Calcular conversas
             if (insights.actions) {
                 const conversationAction = insights.actions.find(
                     action => action.action_type === 'onsite_conversion.messaging_conversation_started_7d'
                 );
                 if (conversationAction && conversationAction.value) {
-                    totalActions += parseInt(conversationAction.value) || 0;
+                    totalConversations += parseInt(conversationAction.value) || 0;
                 }
 
                 const customConversions = insights.actions.filter(
@@ -1674,7 +1674,7 @@ async function getBestAds(unitId, startDate, endDate) {
                 );
                 customConversions.forEach(action => {
                     if (action.value) {
-                        totalActions += parseInt(action.value) || 0;
+                        totalConversations += parseInt(action.value) || 0;
                     }
                 });
             }
@@ -1682,8 +1682,8 @@ async function getBestAds(unitId, startDate, endDate) {
             // Calcular investimento
             spend = insights.spend ? parseFloat(insights.spend) : 0;
 
-            // Calcular custo por lead
-            costPerAction = totalActions > 0 ? (spend / totalActions).toFixed(2) : '0.00';
+            // Calcular custo por conversa
+            costPerConversation = totalConversations > 0 ? (spend / totalConversations).toFixed(2) : '0.00';
         } else {
             console.log(`Nenhum insight encontrado para o anúncio ${ad.id}`);
             if (insightsResponse?.error) {
@@ -1691,18 +1691,18 @@ async function getBestAds(unitId, startDate, endDate) {
             }
         }
 
-        console.log(`Anúncio ${ad.id} - Leads: ${totalActions}, Investimento: ${spend}, Custo por Lead: ${costPerAction}`);
+        console.log(`Anúncio ${ad.id} - Conversas: ${totalConversations}, Investimento: ${spend}, Custo por Conversa: ${costPerConversation}`);
 
         // Adicionar o anúncio à lista apropriada
         const adData = {
             creativeId: ad.creative?.id,
             imageUrl: imageUrl,
-            messages: totalActions,
+            messages: totalConversations,
             spend: spend,
-            costPerMessage: costPerAction
+            costPerMessage: costPerConversation
         };
 
-        if (totalActions > 0) {
+        if (totalConversations > 0) {
             adsWithActions.push(adData);
         } else if (spend > 0) {
             adsWithoutActions.push(adData);
@@ -1782,8 +1782,8 @@ function renderReport(unitName, startDate, endDate, metrics, comparisonMetrics, 
     };
 
     let blackVariations = {};
-    let totalLeads = 0;
-    let totalLeadsVariation = null;
+    let totalConversations = 0;
+    let totalConversationsVariation = null;
     if (hasBlack && blackMetrics) {
         blackVariations = {
             reach: calculateVariation(blackMetrics.reach, blackComparisonMetrics?.reach, 'reach'),
@@ -1791,11 +1791,11 @@ function renderReport(unitName, startDate, endDate, metrics, comparisonMetrics, 
             costPerConversation: calculateVariation(blackMetrics.costPerConversation, blackComparisonMetrics?.costPerConversation, 'costPerConversation')
         };
         console.log(`Conversas White: ${metrics.conversations}, Conversas Black: ${blackMetrics.conversations}`);
-        totalLeads = (parseInt(metrics.conversations) || 0) + (parseInt(blackMetrics.conversations) || 0);
-        console.log(`Total de leads calculado: ${totalLeads}`);
+        totalConversations = (parseInt(metrics.conversations) || 0) + (parseInt(blackMetrics.conversations) || 0);
+        console.log(`Total de conversas calculado: ${totalConversations}`);
 
         if (comparisonTotalLeads !== null) {
-            totalLeadsVariation = calculateVariation(totalLeads, comparisonTotalLeads, 'conversations');
+            totalConversationsVariation = calculateVariation(totalConversations, comparisonTotalLeads, 'conversations');
         }
     }
 
@@ -1856,17 +1856,17 @@ function renderReport(unitName, startDate, endDate, metrics, comparisonMetrics, 
                         </div>
                         <div class="text-center bg-gray-100 rounded-lg p-4 mb-6">
                             <p class="text-lg font-semibold text-gray-700">
-                                Número total de leads: <span class="text-2xl font-bold text-primary">${totalLeads}</span>
+                                Número total de conversas: <span class="text-2xl font-bold text-primary">${totalConversations}</span>
                                 ${
-                                    totalLeadsVariation
+                                    totalConversationsVariation
                                         ? `
                                             <p class="metric-comparison ${
-                                                totalLeadsVariation.direction === 'positive' ? 'increase' : 'decrease'
+                                                totalConversationsVariation.direction === 'positive' ? 'increase' : 'decrease'
                                             } text-sm mt-1">
                                                 <i class="fas fa-arrow-${
-                                                    totalLeadsVariation.direction === 'positive' ? 'up' : 'down'
+                                                    totalConversationsVariation.direction === 'positive' ? 'up' : 'down'
                                                 } mr-1"></i>
-                                                ${totalLeadsVariation.percentage}% em relação ao período anterior
+                                                ${totalConversationsVariation.percentage}% em relação ao período anterior
                                             </p>`
                                         : ''
                                 }
@@ -1945,16 +1945,16 @@ function renderReport(unitName, startDate, endDate, metrics, comparisonMetrics, 
                                         <div class="flex items-center bg-white border border-gray-200 rounded-lg p-3">
                                             <img src="${ad.imageUrl}" alt="Anúncio" class="w-24 h-24 object-cover rounded-md mr-4">
                                             <div>
-                                                <p class="text-gray-700 text-base"><strong>Leads:</strong> ${ad.messages}</p>
+                                                <p class="text-gray-700 text-base"><strong>Conversas:</strong> ${ad.messages}</p>
                                                 <p class="text-gray-700 text-base"><strong>Investimento:</strong> R$ ${ad.spend.toFixed(2).replace('.', ',')}</p>
-                                                <p class="text-gray-700 text-base"><strong>Custo por Lead:</strong> R$ ${ad.costPerMessage.replace('.', ',')}</p>
+                                                <p class="text-gray-700 text-base"><strong>Custo por Conversa:</strong> R$ ${ad.costPerMessage.replace('.', ',')}</p>
                                             </div>
                                         </div>
                                     `
                                 )
                                 .join('')}
                         </div>`
-                    : '<p class="text-gray-600 text-base">Nenhum anúncio com dados (leads ou investimento) encontrado para este período.</p>'
+                    : '<p class="text-gray-600 text-base">Nenhum anúncio com dados (conversas ou investimento) encontrado para este período.</p>'
             }
             ${
                 monthlyReportData && reportMonthlyMetrics
@@ -1988,44 +1988,45 @@ function renderReport(unitName, startDate, endDate, metrics, comparisonMetrics, 
 
     reportContainer.insertAdjacentHTML('beforeend', reportHTML);
 
-// Evento para o botão de exportar PDF
-document.addEventListener('click', (event) => {
-    if (event.target.closest('#exportPDFBtn')) {
-        // Verificar se o relatório foi gerado
-      
-if (!reportMetrics) {
-    alert('Por favor, gere o relatório antes de exportar para PDF.');
-    return;
+    // Evento para o botão de exportar PDF
+    const exportPDFBtn = document.getElementById('exportPDFBtn');
+    if (exportPDFBtn) {
+        exportPDFBtn.addEventListener('click', () => {
+            if (!reportMetrics) {
+                alert('Por favor, gere o relatório antes de exportar para PDF.');
+                return;
+            }
+
+            const unitId = document.getElementById('unitId').value;
+            const unitName = adAccountsMap[unitId] || 'Unidade Desconhecida';
+            const startDate = document.getElementById('startDate').value;
+            const endDate = document.getElementById('endDate').value;
+            const budgetsCompleted = parseInt(document.getElementById('budgetsCompleted').value) || 0;
+            const salesCount = parseInt(document.getElementById('salesCount').value) || 0;
+            const revenue = parseFloat(document.getElementById('revenue').value) || 0;
+            const performanceAnalysis = document.getElementById('performanceAnalysis')?.value || '';
+
+            exportToPDF(
+                unitId,
+                unitName,
+                startDate,
+                endDate,
+                reportMetrics,
+                reportBlackMetrics || { spend: 0, reach: 0, conversations: 0, costPerConversation: 0 },
+                hasBlack,
+                budgetsCompleted,
+                salesCount,
+                revenue,
+                performanceAnalysis,
+                reportBestAds
+            );
+        });
+    }
 }
 
-        const unitId = document.getElementById('unitId').value;
-        const unitName = adAccountsMap[unitId] || 'Unidade Desconhecida';
-        const startDate = document.getElementById('startDate').value;
-        const endDate = document.getElementById('endDate').value;
-        const budgetsCompleted = parseInt(document.getElementById('budgetsCompleted').value) || 0;
-        const salesCount = parseInt(document.getElementById('salesCount').value) || 0;
-        const revenue = parseFloat(document.getElementById('revenue').value) || 0;
-        const performanceAnalysis = document.getElementById('performanceAnalysis')?.value || '';
-
-        exportToPDF(
-            unitId,
-            unitName,
-            startDate,
-            endDate,
-            reportMetrics, // Usar a variável global
-            reportBlackMetrics || { spend: 0, reach: 0, conversations: 0, costPerConversation: 0 }, // Usar a variável global
-            hasBlack,
-            budgetsCompleted,
-            salesCount,
-            revenue,
-            performanceAnalysis,
-            reportBestAds // Usar a variável global
-        );
-    }
-});
 
 
-
+// Compartilhar no WhatsApp
 // Compartilhar no WhatsApp
 shareWhatsAppBtn.addEventListener('click', () => {
     const unitId = document.getElementById('unitId').value;
@@ -2054,8 +2055,8 @@ shareWhatsAppBtn.addEventListener('click', () => {
             message += `${label}: ${value}\n`;
         });
 
-        const totalLeads = report.querySelector('p.text-lg.font-semibold span').textContent;
-        message += `\nNúmero total de leads: ${totalLeads}\n`;
+        const totalConversations = report.querySelector('p.text-lg.font-semibold span').textContent;
+        message += `\nNúmero total de conversas: ${totalConversations}\n`;
     } else {
         message += `Campanhas:\n`;
         const metrics = report.querySelectorAll('.metric-card');
@@ -2070,9 +2071,9 @@ shareWhatsAppBtn.addEventListener('click', () => {
     if (bestAds.length > 0) {
         message += `\nAnúncios em Destaque:\n`;
         bestAds.forEach((ad, adIndex) => {
-            const messages = ad.querySelector('p:nth-child(1)').textContent;
-            const costPerMessage = ad.querySelector('p:nth-child(2)').textContent;
-            message += `Anúncio ${adIndex + 1}:\n${messages}\n${costPerMessage}\n`;
+            const conversations = ad.querySelector('p:nth-child(1)').textContent;
+            const costPerConversation = ad.querySelector('p:nth-child(2)').textContent;
+            message += `Anúncio ${adIndex + 1}:\n${conversations}\n${costPerConversation}\n`;
         });
     }
 

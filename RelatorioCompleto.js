@@ -1959,7 +1959,7 @@ function renderReport(unitName, startDate, endDate, metrics, comparisonMetrics, 
             ${
                 monthlyReportData && reportMonthlyMetrics
                     ? `
-                      ${monthlyReportData && reportMonthlyMetrics
+              ${monthlyReportData && reportMonthlyMetrics
     ? `
         <div class="campaign-section monthly-report p-6 rounded-lg mt-6">
             <h3 class="text-2xl font-semibold mb-4">Relatório Mensal (${new Date(monthlyReportData.startDate).toLocaleDateString('pt-BR')} - ${new Date(monthlyReportData.endDate).toLocaleDateString('pt-BR')})</h3>
@@ -1974,11 +1974,11 @@ function renderReport(unitName, startDate, endDate, metrics, comparisonMetrics, 
                 </div>
                 <div class="metric-card">
                     <h4 class="text-lg font-medium">Conversas Iniciadas</h4>
-                    <p class="text-2xl font-semibold">${(reportMonthlyMetrics.conversations || 0).toLocaleString('pt-BR')}</p>
+                    <p class="text-2xl font-semibold">${reportMonthlyMetrics.leads.toLocaleString('pt-BR')}</p>
                 </div>
                 <div class="metric-card">
                     <h4 class="text-lg font-medium">Custo por Conversa</h4>
-                    <p class="text-2xl font-semibold">R$ ${((reportMonthlyMetrics.conversations || 0) > 0 ? reportMonthlyMetrics.spend / (reportMonthlyMetrics.conversations || 0) : 0).toFixed(2).replace('.', ',')}</p>
+                    <p class="text-2xl font-semibold">R$ ${(reportMonthlyMetrics.leads > 0 ? reportMonthlyMetrics.spend / reportMonthlyMetrics.leads : 0).toFixed(2).replace('.', ',')}</p>
                 </div>
             </div>
         </div>

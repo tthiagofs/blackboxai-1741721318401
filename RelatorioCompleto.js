@@ -1282,7 +1282,7 @@ async function generateReport(unitId, unitName, startDate, endDate) {
     let metrics = { spend: 0, reach: 0, conversations: 0, costPerConversation: 0 };
     let blackMetrics = null;
 
-    // Paralelizar a busca de métricas White e Black
+    // Calcular métricas White e Black (se hasBlack for true)
     if (hasBlack) {
         const [whiteMetricsResult, blackMetricsResult] = await Promise.all([
             calculateMetrics(unitId, startDate, endDate, selectedWhiteCampaigns, selectedWhiteAdSets),
@@ -1292,31 +1292,34 @@ async function generateReport(unitId, unitName, startDate, endDate) {
         blackMetrics = blackMetricsResult;
         reportMetrics = metrics;
         reportBlackMetrics = blackMetrics;
-
-
-    } if (includeMonthlyReport && monthlyReportStartDate && monthlyReportEndDate) {
-    await loadCampaigns(unitId, monthlyReportStartDate, monthlyReportEndDate);
-    if (hasBlack) {
-        monthlyReportMetrics = await calculateMetrics(
-            unitId,
-            monthlyReportStartDate,
-            monthlyReportEndDate,
-            selectedWhiteCampaigns.size > 0 ? selectedWhiteCampaigns : null,
-            selectedWhiteAdSets.size > 0 ? selectedWhiteAdSets : null
-        );
     } else {
-        monthlyReportMetrics = await calculateMetrics(
-            unitId,
-            monthlyReportStartDate,
-            monthlyReportEndDate,
-            selectedCampaigns,
-            selectedAdSets
-        );
-    }
-}else {
         const generalMetrics = await calculateMetrics(unitId, startDate, endDate, selectedCampaigns, selectedAdSets);
         metrics = generalMetrics;
         reportMetrics = metrics;
+    }
+
+    // Calcular métricas do relatório mensal (se ativado)
+    if (includeMonthlyReport && monthlyReportStartDate && monthlyReportEndDate) {
+        await loadCampaigns(unitId, monthlyReportStartDate, monthlyReportEndDate);
+        if (hasBlack) {
+            monthlyReportMetrics = await calculateMetrics(
+                unitId,
+                monthlyReportStartDate,
+                monthlyReportEndDate,
+                selectedWhiteCampaigns.size > 0 ? selectedWhiteCampaigns : null,
+                selectedWhiteAdSets.size > 0 ? selectedWhiteAdSets : null
+            );
+        } else {
+            monthlyReportMetrics = await calculateMetrics(
+                unitId,
+                monthlyReportStartDate,
+                monthlyReportEndDate,
+                selectedCampaigns,
+                selectedAdSets
+            );
+        }
+    } else {
+        monthlyReportMetrics = null;
     }
 
     let comparisonMetrics = null;
@@ -1403,7 +1406,6 @@ async function generateReport(unitId, unitName, startDate, endDate) {
 
     shareWhatsAppBtn.classList.remove('hidden');
 }
-
 
 async function calculateMetrics(unitId, startDate, endDate, campaignsSet, adSetsSet) {
     let totalSpend = 0;

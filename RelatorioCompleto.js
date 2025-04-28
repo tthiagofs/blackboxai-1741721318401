@@ -1663,6 +1663,7 @@ function calculateVariation(current, previous, metric) {
     return { percentage: Math.abs(percentage).toFixed(2), direction };
 }
 
+
 function renderReport(unitName, startDate, endDate, metrics, comparisonMetrics, blackMetrics, blackComparisonMetrics, bestAds, comparisonTotalLeads) {
     const formattedStartDate = startDate ? startDate.split('-').reverse().join('/') : 'N/A';
     const formattedEndDate = endDate ? endDate.split('-').reverse().join('/') : 'N/A';
@@ -1860,34 +1861,32 @@ function renderReport(unitName, startDate, endDate, metrics, comparisonMetrics, 
                     </div>`
                 : '<p class="text-gray-600 text-base">Nenhum anúncio com dados (leads ou investimento) encontrado para este período.</p>'
         }
-              <!-- Botão para ativar o Relatório Mensal -->
+    </div>
+`;
+
+    reportContainer.insertAdjacentHTML('beforeend', reportHTML);
+
+    // Adicionar botão "Gerar Relatório Mensal" e contêiner para o relatório mensal fora do relatório principal
+    const monthlyButtonHTML = `
         <div class="text-center mt-8">
             <button id="toggleMonthlyReportBtn" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition">
                 <i class="fas fa-calendar-alt mr-2"></i>Gerar Relatório Mensal
             </button>
         </div>
         <div id="monthlyReportSection" class="monthly-report-section hidden mt-8"></div>
-    </div>
-`;
+    `;
+    reportContainer.insertAdjacentHTML('beforeend', monthlyButtonHTML);
 
-reportContainer.insertAdjacentHTML('beforeend', reportHTML);
-
-// Adicionar botão "Gerar Relatório Mensal" e contêiner para o relatório mensal fora do relatório principal
-const monthlyButtonHTML = `
-    <div class="text-center mt-8">
-        <button id="toggleMonthlyReportBtn" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition">
-            <i class="fas fa-calendar-alt mr-2"></i>Gerar Relatório Mensal
-        </button>
-    </div>
-    <div id="monthlyReportSection" class="monthly-report-section hidden mt-8"></div>
-`;
-reportContainer.insertAdjacentHTML('beforeend', monthlyButtonHTML);
-
-// Adicionar evento ao botão de toggle do relatório mensal
-document.getElementById('toggleMonthlyReportBtn').addEventListener('click', () => {
-    toggleModal('monthlyPeriodModal', true);
-});
-
+    // Adicionar evento ao botão de toggle do relatório mensal
+    const toggleButton = document.getElementById('toggleMonthlyReportBtn');
+    if (toggleButton) {
+        toggleButton.addEventListener('click', () => {
+            toggleModal('monthlyPeriodModal', true);
+        });
+    } else {
+        console.error('Botão toggleMonthlyReportBtn não encontrado no DOM.');
+    }
+}
 
 
 async function renderMonthlyReport() {

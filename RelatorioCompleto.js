@@ -1246,6 +1246,7 @@ async function generateReport(unitId, unitName, startDate, endDate) {
     const revenue = parseFloat(document.getElementById('revenue').value) || 0;
     const performanceAnalysis = document.getElementById('performanceAnalysis')?.value || '';
 
+    // Validação dos campos obrigatórios
     if (!unitId || !startDate || !endDate) {
         alert('Preencha todos os campos obrigatórios');
         return;
@@ -1256,10 +1257,12 @@ async function generateReport(unitId, unitName, startDate, endDate) {
         return;
     }
 
+    // Carregar campanhas, se necessário
     if (!campaignsMap[unitId]) {
         await loadCampaigns(unitId, startDate, endDate);
     }
 
+    // Filtrar campanhas
     let whiteCampaigns = [];
     let blackCampaigns = [];
     let allCampaigns = Object.entries(campaignsMap[unitId] || {});
@@ -1274,15 +1277,14 @@ async function generateReport(unitId, unitName, startDate, endDate) {
     } else {
         if (selectedCampaigns.size > 0) {
             allCampaigns = allCampaigns.filter(([id]) => selectedCampaigns.has(id));
-        } else if (selectedAdSets.size > 0) {
-            allCampaigns = allCampaigns;
         }
     }
 
+    // Inicializar métricas
     let metrics = { spend: 0, reach: 0, conversations: 0, costPerConversation: 0 };
     let blackMetrics = null;
 
-    // Calcular métricas White e Black (se hasBlack for true)
+    // Calcular métricas principais (White/Black ou gerais)
     if (hasBlack) {
         const [whiteMetricsResult, blackMetricsResult] = await Promise.all([
             calculateMetrics(unitId, startDate, endDate, selectedWhiteCampaigns, selectedWhiteAdSets),
@@ -1293,12 +1295,12 @@ async function generateReport(unitId, unitName, startDate, endDate) {
         reportMetrics = metrics;
         reportBlackMetrics = blackMetrics;
     } else {
-        const generalMetrics = await calculateMetrics(unitId, startDate, endDate, selectedCampaigns, selectedAdSets);
-        metrics = generalMetrics;
+        metrics = await calculateMetrics(unitId, startDate, endDate, selectedCampaigns, selectedAdSets);
         reportMetrics = metrics;
     }
 
-    // Calcular métricas do relatório mensal (se ativado)
+    // Calcular métricas do relatório mensal, se ativado
+    monthlyReportMetrics = null; // Resetar métricas mensais
     if (includeMonthlyReport && monthlyReportStartDate && monthlyReportEndDate) {
         await loadCampaigns(unitId, monthlyReportStartDate, monthlyReportEndDate);
         if (hasBlack) {
@@ -1318,10 +1320,9 @@ async function generateReport(unitId, unitName, startDate, endDate) {
                 selectedAdSets
             );
         }
-    } else {
-        monthlyReportMetrics = null;
     }
 
+    // Calcular métricas de comparação, se necessário
     let comparisonMetrics = null;
     let blackComparisonMetrics = null;
     let comparisonTotalLeads = null;
@@ -1360,12 +1361,15 @@ async function generateReport(unitId, unitName, startDate, endDate) {
         }
     }
 
+    // Obter melhores anúncios
     const bestAds = await getBestAds(unitId, startDate, endDate);
     reportBestAds = bestAds;
 
+    // Renderizar o relatório
     reportContainer.innerHTML = '';
     renderReport(unitName, startDate, endDate, metrics, comparisonMetrics, blackMetrics, blackComparisonMetrics, bestAds, comparisonTotalLeads);
 
+    // Adicionar seção de resultados
     const reportDiv = reportContainer.querySelector('.bg-white');
     const businessResultsHTML = `
         <div class="mt-8">
@@ -1388,6 +1392,7 @@ async function generateReport(unitId, unitName, startDate, endDate) {
     `;
     reportDiv.insertAdjacentHTML('beforeend', businessResultsHTML);
 
+    // Adicionar seção de análise de desempenho, se houver
     if (performanceAnalysis.trim()) {
         const paragraphs = performanceAnalysis.split(/\n\s*\n/).filter(p => p.trim());
         const analysisHTML = `
@@ -1404,6 +1409,7 @@ async function generateReport(unitId, unitName, startDate, endDate) {
         reportDiv.insertAdjacentHTML('beforeend', analysisHTML);
     }
 
+    // Exibir botão de compartilhamento
     shareWhatsAppBtn.classList.remove('hidden');
 }
 

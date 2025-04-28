@@ -392,10 +392,33 @@ async function loadMonthlyReportData(unitId, startDate, endDate) {
         let monthlyMetrics = {
             spend: 0,
             reach: 0,
-            leads: 0
+            conversations: 0
         };
 
-        let url = `/${unitId}/insights?fields=spend,reach,actions&time_range={"since":"${startDate}","until":"${endDate}"}&access_token=${currentAccessToken}`;
+        const filtering = [];
+        if (hasBlack) {
+            const allCampaigns = [...selectedWhiteCampaigns, ...selectedBlackCampaigns];
+            const allAdSets = [...selectedWhiteAdSets, ...selectedBlackAdSets];
+            if (allCampaigns.length > 0) {
+                filtering.push({ field: 'campaign.id', operator: 'IN', value: allCampaigns });
+            }
+            if (allAdSets.length > 0) {
+                filtering.push({ field: 'adset.id', operator: 'IN', value: allAdSets });
+            }
+        } else {
+            if (selectedCampaigns.size > 0) {
+                filtering.push({ field: 'campaign.id', operator: 'IN', value: Array.from(selectedCampaigns) });
+            }
+            if (selectedAdSets.size > 0) {
+                filtering.push({ field: 'adset.id', operator: 'IN', value: Array.from(selectedAdSets) });
+            }
+        }
+
+        let url = `/${unitId}/insights?fields=spend,reach,actions{action_type,value}&time_range={"since":"${startDate}","until":"${endDate}"}&access_token=${currentAccessToken}`;
+        if (filtering.length > 0) {
+            url += `&filtering=${JSON.stringify(filtering)}`;
+        }
+
         const response = await new Promise(resolve => {
             FB.api(url, resolve);
         });
@@ -404,7 +427,24 @@ async function loadMonthlyReportData(unitId, startDate, endDate) {
             const data = response.data[0];
             monthlyMetrics.spend = parseFloat(data.spend) || 0;
             monthlyMetrics.reach = parseInt(data.reach) || 0;
-            monthlyMetrics.leads = (data.actions || []).find(action => action.action_type === 'lead')?.value || 0;
+
+            if (data.actions && Array.isArray(data.actions)) {
+                const conversationAction = data.actions.find(
+                    action => action.action_type === 'onsite_conversion.messaging_conversation_started_7d'
+                );
+                if (conversationAction && conversationAction.value) {
+                    monthlyMetrics.conversations += parseInt(conversationAction.value) || 0;
+                }
+
+                const customConversions = data.actions.filter(
+                    action => action.action_type.startsWith('offsite_conversion.')
+                );
+                customConversions.forEach(action => {
+                    if (action.value) {
+                        monthlyMetrics.conversations += parseInt(action.value) || 0;
+                    }
+                });
+            }
         } else {
             console.error('Erro ao carregar dados do relatório mensal:', response?.error);
         }
@@ -412,7 +452,7 @@ async function loadMonthlyReportData(unitId, startDate, endDate) {
         return monthlyMetrics;
     } catch (error) {
         console.error('Erro ao carregar dados do relatório mensal:', error);
-        return { spend: 0, reach: 0, leads: 0 };
+        return { spend: 0, reach: 0, conversations: 0 };
     }
 }
 
@@ -1136,7 +1176,37 @@ form.addEventListener('submit', async (e) => {
             return;
         }
 
+// Configurar o botão "Incluir Relatório Mensal" e o modal
+const monthlyReportBtn = document.getElementById('monthlyReportBtn');
+const confirmMonthlyReportBtn = document.getElementById('confirmMonthlyReport');
+const cancelMonthlyReportBtn = document.getElementById('cancelMonthlyReport');
 
+if (monthlyReportBtn) {
+    monthlyReportBtn.addEventListener('click', () => {
+        toggleModal('monthlyReportModal', true);
+    });
+}
+
+if (confirmMonthlyReportBtn) {
+    confirmMonthlyReportBtn.addEventListener('click', () => {
+        const monthlyStartDate = document.getElementById('monthlyStartDate').value;
+        const monthlyEndDate = document.getElementById('monthlyEndDate').value;
+
+        if (!monthlyStartDate || !monthlyEndDate) {
+            alert('Por favor, preencha as datas do período do relatório mensal.');
+            return;
+        }
+
+        monthlyReportData = { startDate: monthlyStartDate, endDate: monthlyEndDate };
+        toggleModal('monthlyReportModal', false);
+    });
+}
+
+if (cancelMonthlyReportBtn) {
+    cancelMonthlyReportBtn.addEventListener('click', () => {
+        toggleModal('monthlyReportModal', false);
+    });
+}
 
         // Função para verificar se dois Sets são iguais
         const areSetsEqual = (setA, setB) => {
@@ -1897,10 +1967,14 @@ function renderReport(unitName, startDate, endDate, metrics, comparisonMetrics, 
                                     <h4 class="text-lg font-medium">Alcance</h4>
                                     <p class="text-2xl font-semibold">${reportMonthlyMetrics.reach.toLocaleString('pt-BR')}</p>
                                 </div>
-                                <div class="metric-card">
-                                    <h4 class="text-lg font-medium">Leads</h4>
-                                    <p class="text-2xl font-semibold">${reportMonthlyMetrics.leads.toLocaleString('pt-BR')}</p>
-                                </div>
+                              <div class="metric-card">
+    <h4 class="text-lg font-medium">Conversas Iniciadas</h4>
+    <p class="text-2xl font-semibold">${reportMonthlyMetrics.leads.toLocaleString('pt-BR')}</p>
+</div>
+<div class="metric-card">
+    <h4 class="text-lg font-medium">Custo por Conversa</h4>
+    <p class="text-2xl font-semibold">R$ ${(reportMonthlyMetrics.leads > 0 ? reportMonthlyMetrics.spend / reportMonthlyMetrics.leads : 0).toFixed(2).replace('.', ',')}</p>
+</div>
                             </div>
                         </div>
                     `

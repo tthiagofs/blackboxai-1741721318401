@@ -29,7 +29,7 @@ const whiteFilters = document.getElementById('whiteFilters');
 const blackFilters = document.getElementById('blackFilters');
 const defaultFilters = document.getElementById('defaultFilters');
 const comparisonFilter = document.getElementById('comparisonFilter');
-// Novo elemento para o botão "Gerar Relatório Mensal"
+// Elementos do DOM para o botão de toggle do relatório mensal
 const toggleMonthlyReportBtn = document.getElementById('toggleMonthlyReportBtn');
 
 
@@ -50,6 +50,9 @@ const closeBlackAdSetsModalBtn = document.getElementById('closeBlackAdSetsModal'
 const applyBlackCampaignsBtn = document.getElementById('applyBlackCampaigns');
 const applyBlackAdSetsBtn = document.getElementById('applyBlackAdSets');
 const refreshBtn = document.getElementById('refreshBtn');
+// Modal de período mensal
+const confirmMonthlyPeriodBtn = document.getElementById('confirmMonthlyPeriod');
+const cancelMonthlyPeriodBtn = document.getElementById('cancelMonthlyPeriod');
 
 // Estado
 let selectedCampaigns = new Set();
@@ -1040,11 +1043,17 @@ if (cancelComparisonBtn) {
     cancelComparisonBtn.addEventListener('click', () => toggleModal('comparisonModal', false));
 }
 
-const confirmMonthlyPeriodBtn = document.getElementById('confirmMonthlyPeriodBtn');
+
+// Event Listener para abrir o modal de período mensal
+if (toggleMonthlyReportBtn) {
+    toggleMonthlyReportBtn.addEventListener('click', () => {
+        toggleModal('monthlyPeriodModal', true);
+    });
+}
+
+// Event Listener para confirmar o período mensal
 if (confirmMonthlyPeriodBtn) {
-    console.log('Botão Confirmar encontrado no DOM');
     confirmMonthlyPeriodBtn.addEventListener('click', async () => {
-        console.log('Botão Confirmar clicado');
         const monthlyStartDate = document.getElementById('monthlyStartDate').value;
         const monthlyEndDate = document.getElementById('monthlyEndDate').value;
 
@@ -1054,23 +1063,20 @@ if (confirmMonthlyPeriodBtn) {
         }
 
         monthlyPeriodData = { startDate: monthlyStartDate, endDate: monthlyEndDate };
-        console.log('Período mensal selecionado:', monthlyPeriodData);
         toggleModal('monthlyPeriodModal', false);
         await renderMonthlyReport();
     });
 } else {
-    console.error('Botão confirmMonthlyPeriodBtn não encontrado no DOM');
+    console.error('Botão confirmMonthlyPeriod não encontrado no DOM');
 }
 
-const cancelMonthlyPeriodBtn = document.getElementById('cancelMonthlyPeriodBtn');
+// Event Listener para cancelar o período mensal
 if (cancelMonthlyPeriodBtn) {
-    console.log('Botão Cancelar encontrado no DOM');
     cancelMonthlyPeriodBtn.addEventListener('click', () => {
-        console.log('Botão Cancelar clicado');
         toggleModal('monthlyPeriodModal', false);
     });
 } else {
-    console.error('Botão cancelMonthlyPeriodBtn não encontrado no DOM');
+    console.error('Botão cancelMonthlyPeriod não encontrado no DOM');
 }
 
 
@@ -1708,10 +1714,7 @@ function renderReport(unitName, startDate, endDate, metrics, comparisonMetrics, 
             conversations: calculateVariation(blackMetrics.conversations, blackComparisonMetrics?.conversations, 'conversations'),
             costPerConversation: calculateVariation(blackMetrics.costPerConversation, blackComparisonMetrics?.costPerConversation, 'costPerConversation')
         };
-        console.log(`Conversas White: ${metrics.conversations}, Conversas Black: ${blackMetrics.conversations}`);
         totalLeads = (parseInt(metrics.conversations) || 0) + (parseInt(blackMetrics.conversations) || 0);
-        console.log(`Total de leads calculado: ${totalLeads}`);
-
         if (comparisonTotalLeads !== null) {
             totalLeadsVariation = calculateVariation(totalLeads, comparisonTotalLeads, 'conversations');
         }
@@ -1879,6 +1882,12 @@ function renderReport(unitName, startDate, endDate, metrics, comparisonMetrics, 
 
     reportContainer.innerHTML = ''; // Limpar o contêiner antes de adicionar o novo relatório
     reportContainer.insertAdjacentHTML('beforeend', reportHTML);
+
+    // Mostrar o botão de Relatório Mensal após o relatório semanal ser gerado
+    const monthlyReportTrigger = document.getElementById('monthlyReportTrigger');
+    if (monthlyReportTrigger) {
+        monthlyReportTrigger.classList.remove('hidden');
+    }
 }
 
 async function renderMonthlyReport() {

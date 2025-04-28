@@ -29,6 +29,10 @@ const whiteFilters = document.getElementById('whiteFilters');
 const blackFilters = document.getElementById('blackFilters');
 const defaultFilters = document.getElementById('defaultFilters');
 const comparisonFilter = document.getElementById('comparisonFilter');
+// Novo elemento para o botão "Gerar Relatório Mensal"
+const toggleMonthlyReportBtn = document.getElementById('toggleMonthlyReportBtn');
+
+
 
 // Modais
 const closeCampaignsModalBtn = document.getElementById('closeCampaignsModal');
@@ -1038,7 +1042,9 @@ if (cancelComparisonBtn) {
 
 const confirmMonthlyPeriodBtn = document.getElementById('confirmMonthlyPeriodBtn');
 if (confirmMonthlyPeriodBtn) {
+    console.log('Botão Confirmar encontrado no DOM');
     confirmMonthlyPeriodBtn.addEventListener('click', async () => {
+        console.log('Botão Confirmar clicado');
         const monthlyStartDate = document.getElementById('monthlyStartDate').value;
         const monthlyEndDate = document.getElementById('monthlyEndDate').value;
 
@@ -1048,16 +1054,23 @@ if (confirmMonthlyPeriodBtn) {
         }
 
         monthlyPeriodData = { startDate: monthlyStartDate, endDate: monthlyEndDate };
+        console.log('Período mensal selecionado:', monthlyPeriodData);
         toggleModal('monthlyPeriodModal', false);
         await renderMonthlyReport();
     });
+} else {
+    console.error('Botão confirmMonthlyPeriodBtn não encontrado no DOM');
 }
 
 const cancelMonthlyPeriodBtn = document.getElementById('cancelMonthlyPeriodBtn');
 if (cancelMonthlyPeriodBtn) {
+    console.log('Botão Cancelar encontrado no DOM');
     cancelMonthlyPeriodBtn.addEventListener('click', () => {
+        console.log('Botão Cancelar clicado');
         toggleModal('monthlyPeriodModal', false);
     });
+} else {
+    console.error('Botão cancelMonthlyPeriodBtn não encontrado no DOM');
 }
 
 
@@ -1864,30 +1877,9 @@ function renderReport(unitName, startDate, endDate, metrics, comparisonMetrics, 
     </div>
 `;
 
+    reportContainer.innerHTML = ''; // Limpar o contêiner antes de adicionar o novo relatório
     reportContainer.insertAdjacentHTML('beforeend', reportHTML);
-
-    // Adicionar botão "Gerar Relatório Mensal" e contêiner para o relatório mensal fora do relatório principal
-    const monthlyButtonHTML = `
-        <div class="text-center mt-8">
-            <button id="toggleMonthlyReportBtn" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition">
-                <i class="fas fa-calendar-alt mr-2"></i>Gerar Relatório Mensal
-            </button>
-        </div>
-        <div id="monthlyReportSection" class="monthly-report-section hidden mt-8"></div>
-    `;
-    reportContainer.insertAdjacentHTML('beforeend', monthlyButtonHTML);
-
-    // Adicionar evento ao botão de toggle do relatório mensal
-    const toggleButton = document.getElementById('toggleMonthlyReportBtn');
-    if (toggleButton) {
-        toggleButton.addEventListener('click', () => {
-            toggleModal('monthlyPeriodModal', true);
-        });
-    } else {
-        console.error('Botão toggleMonthlyReportBtn não encontrado no DOM.');
-    }
 }
-
 
 async function renderMonthlyReport() {
     if (!monthlyPeriodData) return;

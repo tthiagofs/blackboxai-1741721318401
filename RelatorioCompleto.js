@@ -1245,6 +1245,7 @@ async function generateReport(unitId, unitName, startDate, endDate) {
     const salesCount = parseInt(document.getElementById('salesCount').value) || 0;
     const revenue = parseFloat(document.getElementById('revenue').value) || 0;
     const performanceAnalysis = document.getElementById('performanceAnalysis')?.value || '';
+    const includeMonthlyReport = document.getElementById('includeMonthlyReport').checked;
 
     // Validação dos campos obrigatórios
     if (!unitId || !startDate || !endDate) {
@@ -1299,26 +1300,39 @@ async function generateReport(unitId, unitName, startDate, endDate) {
         reportMetrics = metrics;
     }
 
+    // Log antes do bloco do relatório mensal
+    console.log('Antes do relatório mensal:', {
+        includeMonthlyReport,
+        monthlyReportStartDate,
+        monthlyReportEndDate
+    });
+
     // Calcular métricas do relatório mensal, se ativado
     monthlyReportMetrics = null; // Resetar métricas mensais
-    if (includeMonthlyReport && monthlyReportStartDate && monthlyReportEndDate) {
-        await loadCampaigns(unitId, monthlyReportStartDate, monthlyReportEndDate);
-        if (hasBlack) {
-            monthlyReportMetrics = await calculateMetrics(
-                unitId,
-                monthlyReportStartDate,
-                monthlyReportEndDate,
-                selectedWhiteCampaigns.size > 0 ? selectedWhiteCampaigns : null,
-                selectedWhiteAdSets.size > 0 ? selectedWhiteAdSets : null
-            );
+    if (includeMonthlyReport) {
+        const monthlyStart = document.getElementById('monthlyStartDate').value;
+        const monthlyEnd = document.getElementById('monthlyEndDate').value;
+        if (monthlyStart && monthlyEnd) {
+            await loadCampaigns(unitId, monthlyStart, monthlyEnd);
+            if (hasBlack) {
+                monthlyReportMetrics = await calculateMetrics(
+                    unitId,
+                    monthlyStart,
+                    monthlyEnd,
+                    selectedWhiteCampaigns.size > 0 ? selectedWhiteCampaigns : null,
+                    selectedWhiteAdSets.size > 0 ? selectedWhiteAdSets : null
+                );
+            } else {
+                monthlyReportMetrics = await calculateMetrics(
+                    unitId,
+                    monthlyStart,
+                    monthlyEnd,
+                    selectedCampaigns,
+                    selectedAdSets
+                );
+            }
         } else {
-            monthlyReportMetrics = await calculateMetrics(
-                unitId,
-                monthlyReportStartDate,
-                monthlyReportEndDate,
-                selectedCampaigns,
-                selectedAdSets
-            );
+            console.warn('Datas do relatório mensal não fornecidas.');
         }
     }
 
@@ -1411,56 +1425,6 @@ async function generateReport(unitId, unitName, startDate, endDate) {
 
     // Exibir botão de compartilhamento
     shareWhatsAppBtn.classList.remove('hidden');
-}
-
-async function calculateMetrics(unitId, startDate, endDate, campaignsSet, adSetsSet) {
-    let totalSpend = 0;
-    let totalConversations = 0;
-    let totalReach = 0;
-
-    const response = await new Promise((resolve) => {
-        FB.api(
-            `/${unitId}/insights`,
-            {
-                fields: 'spend,reach,actions{action_type,value}',
-                time_range: { since: startDate, until: endDate },
-                filtering: [
-                    campaignsSet.size > 0 ? { field: 'campaign.id', operator: 'IN', value: Array.from(campaignsSet) } : {},
-                    adSetsSet.size > 0 ? { field: 'adset.id', operator: 'IN', value: Array.from(adSetsSet) } : {}
-                ].filter(filter => Object.keys(filter).length > 0),
-                action_breakdowns: 'action_type',
-                access_token: currentAccessToken
-            },
-            resolve
-        );
-    });
-
-    if (response && !response.error && response.data && response.data.length > 0) {
-        response.data.forEach(data => {
-            totalSpend += parseFloat(data.spend) || 0;
-            totalReach += parseInt(data.reach) || 0;
-            if (data.actions && Array.isArray(data.actions)) {
-                const conversationAction = data.actions.find(
-                    action => action.action_type === 'onsite_conversion.messaging_conversation_started_7d'
-                );
-                if (conversationAction && conversationAction.value) {
-                    totalConversations += parseInt(conversationAction.value) || 0;
-                }
-
-                const customConversions = data.actions.filter(
-                    action => action.action_type.startsWith('offsite_conversion.')
-                );
-                customConversions.forEach(action => {
-                    if (action.value) {
-                        totalConversations += parseInt(action.value) || 0;
-                    }
-                });
-            }
-        });
-    }
-
-    const costPerConversation = totalConversations > 0 ? totalSpend / totalConversations : 0;
-    return { spend: totalSpend, conversations: totalConversations, reach: totalReach, costPerConversation };
 }
 
 

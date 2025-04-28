@@ -1247,8 +1247,11 @@ if (cancelMonthlyReportBtn) {
 monthlyReportData = { startDate, endDate }; // Você pode ajustar isso se o período do relatório mensal for diferente
 
 // Carregar dados do relatório mensal, se aplicável
-if (monthlyReportData) {
+if (monthlyReportData && monthlyReportData.startDate && monthlyReportData.endDate) {
     reportMonthlyMetrics = await loadMonthlyReportData(unitId, monthlyReportData.startDate, monthlyReportData.endDate);
+} else {
+    reportMonthlyMetrics = { spend: 0, reach: 0, conversations: 0 };
+    console.warn('Período do relatório mensal não definido. Usando valores padrão.');
 }
 
 // Verificar se os campos estão preenchidos para armazenar no cache
@@ -1956,30 +1959,32 @@ function renderReport(unitName, startDate, endDate, metrics, comparisonMetrics, 
             ${
                 monthlyReportData && reportMonthlyMetrics
                     ? `
-                        <div class="campaign-section monthly-report p-6 rounded-lg mt-6">
-                            <h3 class="text-2xl font-semibold mb-4">Relatório Mensal (${new Date(monthlyReportData.startDate).toLocaleDateString('pt-BR')} - ${new Date(monthlyReportData.endDate).toLocaleDateString('pt-BR')})</h3>
-                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                <div class="metric-card">
-                                    <h4 class="text-lg font-medium">Investimento</h4>
-                                    <p class="text-2xl font-semibold">R$ ${reportMonthlyMetrics.spend.toFixed(2).replace('.', ',')}</p>
-                                </div>
-                                <div class="metric-card">
-                                    <h4 class="text-lg font-medium">Alcance</h4>
-                                    <p class="text-2xl font-semibold">${reportMonthlyMetrics.reach.toLocaleString('pt-BR')}</p>
-                                </div>
-                              <div class="metric-card">
-    <h4 class="text-lg font-medium">Conversas Iniciadas</h4>
-    <p class="text-2xl font-semibold">${reportMonthlyMetrics.leads.toLocaleString('pt-BR')}</p>
-</div>
-<div class="metric-card">
-    <h4 class="text-lg font-medium">Custo por Conversa</h4>
-    <p class="text-2xl font-semibold">R$ ${(reportMonthlyMetrics.leads > 0 ? reportMonthlyMetrics.spend / reportMonthlyMetrics.leads : 0).toFixed(2).replace('.', ',')}</p>
-</div>
-                            </div>
-                        </div>
-                    `
-                    : ''
-            }
+                      ${monthlyReportData && reportMonthlyMetrics
+    ? `
+        <div class="campaign-section monthly-report p-6 rounded-lg mt-6">
+            <h3 class="text-2xl font-semibold mb-4">Relatório Mensal (${new Date(monthlyReportData.startDate).toLocaleDateString('pt-BR')} - ${new Date(monthlyReportData.endDate).toLocaleDateString('pt-BR')})</h3>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="metric-card">
+                    <h4 class="text-lg font-medium">Investimento</h4>
+                    <p class="text-2xl font-semibold">R$ ${reportMonthlyMetrics.spend.toFixed(2).replace('.', ',')}</p>
+                </div>
+                <div class="metric-card">
+                    <h4 class="text-lg font-medium">Alcance</h4>
+                    <p class="text-2xl font-semibold">${reportMonthlyMetrics.reach.toLocaleString('pt-BR')}</p>
+                </div>
+                <div class="metric-card">
+                    <h4 class="text-lg font-medium">Conversas Iniciadas</h4>
+                    <p class="text-2xl font-semibold">${(reportMonthlyMetrics.conversations || 0).toLocaleString('pt-BR')}</p>
+                </div>
+                <div class="metric-card">
+                    <h4 class="text-lg font-medium">Custo por Conversa</h4>
+                    <p class="text-2xl font-semibold">R$ ${((reportMonthlyMetrics.conversations || 0) > 0 ? reportMonthlyMetrics.spend / (reportMonthlyMetrics.conversations || 0) : 0).toFixed(2).replace('.', ',')}</p>
+                </div>
+            </div>
+        </div>
+    `
+    : ''
+}
         </div>
     `;
 

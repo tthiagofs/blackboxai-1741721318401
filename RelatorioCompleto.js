@@ -52,7 +52,7 @@ const closeBlackCampaignsModalBtn = document.getElementById('closeBlackCampaigns
 const closeBlackAdSetsModalBtn = document.getElementById('closeBlackAdSetsModal');
 const applyBlackCampaignsBtn = document.getElementById('applyBlackCampaigns');
 const applyBlackAdSetsBtn = document.getElementById('applyBlackAdSets');
-const refreshBtn = document.getElementById('refreshBtn');
+
 
 // Estado
 let selectedCampaigns = new Set();

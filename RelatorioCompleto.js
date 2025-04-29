@@ -1301,39 +1301,32 @@ async function generateReport(unitId, unitName, startDate, endDate) {
         reportMetrics = metrics;
     }
 
-    // Log antes do bloco do relatório mensal
-    console.log('Antes do relatório mensal:', {
-        includeMonthlyReport,
-        monthlyReportStartDate,
-        monthlyReportEndDate
-    });
+    // Calcular métricas do relatório mensal, se ativado
+    monthlyReportMetrics = null; // Resetar métricas mensais
+    if (includeMonthlyReport) {
+        const monthlyStartDate = document.getElementById('monthlyStartDate')?.value;
+        const monthlyEndDate = document.getElementById('monthlyEndDate')?.value;
 
-  // Calcular métricas do relatório mensal, se ativado
-monthlyReportMetrics = null; // Resetar métricas mensais
-if (includeMonthlyReport) {
-    const monthlyStart = document.getElementById('monthlyStartDate').value;
-    const monthlyEnd = document.getElementById('monthlyEndDate').value;
-    if (monthlyStart && monthlyEnd) {
-        await loadCampaigns(unitId, monthlyStart, monthlyEnd);
-        if (hasBlack) {
-            monthlyReportMetrics = await calculateMetrics(
-                unitId,
-                monthlyStart,
-                monthlyEnd,
-                selectedWhiteCampaigns.size > 0 ? selectedWhiteCampaigns : null,
-                selectedWhiteAdSets.size > 0 ? selectedWhiteAdSets : null
-            );
+        if (!monthlyStartDate || !monthlyEndDate) {
+            console.warn('Datas do relatório mensal não fornecidas. Relatório mensal será ignorado.');
+            alert('Por favor, preencha as datas de início e fim do relatório mensal.');
         } else {
-            monthlyReportMetrics = await calculateMetrics(
-                unitId,
-                monthlyStart,
-                monthlyEnd,
-                selectedCampaigns,
-                selectedAdSets
-            );
+            try {
+                await loadCampaigns(unitId, monthlyStartDate, monthlyEndDate);
+                monthlyReportMetrics = await calculateMetrics(
+                    unitId,
+                    monthlyStartDate,
+                    monthlyEndDate,
+                    hasBlack && selectedWhiteCampaigns.size > 0 ? selectedWhiteCampaigns : selectedCampaigns,
+                    hasBlack && selectedWhiteAdSets.size > 0 ? selectedWhiteAdSets : selectedAdSets
+                );
+            } catch (error) {
+                console.error('Erro ao calcular métricas do relatório mensal:', error);
+                alert('Erro ao gerar o relatório mensal. Verifique os dados e tente novamente.');
+                monthlyReportMetrics = null;
+            }
         }
     }
-}
 
     // Calcular métricas de comparação, se necessário
     let comparisonMetrics = null;

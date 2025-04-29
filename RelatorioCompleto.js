@@ -1166,7 +1166,7 @@ form.addEventListener('submit', async function(e) {
                 black: await calculateMetrics(unitId, startDate, endDate, selectedBlackCampaigns, selectedBlackAdSets)
             };
         }
-        reportBestAds = await loadBestAds(unitId, startDate, endDate, selectedCampaigns, selectedAdSets);
+        reportBestAds = await getBestAds(unitId, startDate, endDate); // Corrigido aqui
 
         // Renderizar relatório semanal
         renderReport(

@@ -1,6 +1,5 @@
 import { fbAuth } from './auth.js';
-import { exportToPDF } from './exportPDF.js';
-
+//teste
 // Função para obter datas do mês
 function getMonthDates(year, month) {
     const startDate = `${year}-${month}-01`;

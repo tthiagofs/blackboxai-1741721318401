@@ -1,6 +1,5 @@
 import { fbAuth } from './auth.js';
 import { exportToPDF } from './exportPDF.js';
-import { calculateMonthlyMetrics, renderMonthlyReport, formatMonthlyMetricsForWhatsApp } from './MonthlyReport.js';
 
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 

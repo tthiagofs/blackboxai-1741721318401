@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Relatório Mensal</title>
+    <script src="https://kit.fontawesome.com/your-fontawesome-kit.js" crossorigin="anonymous"></script>
+    <script src="https://connect.facebook.net/en_US/sdk.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-100">
+    <div class="container mx-auto p-6">
+        <h1 class="text-3xl font-bold text-primary mb-6">Gerar Relatório Mensal</h1>
+        <form id="form" class="bg-white rounded-lg shadow-lg p-6 mb-6">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                    <label for="unitId" class="block text-sm font-medium text-gray-700">Unidade</label>
+                    <select id="unitId" name="unitId" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                        <option value="">Escolha a unidade</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="year" class="block text-sm font-medium text-gray-700">Ano</label>
+                    <select id="year" name="year" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                        <option value="">Selecione o ano</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="month" class="block text-sm font-medium text-gray-700">Mês</label>
+                    <select id="month" name="month" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                        <option value="">Selecione o mês</option>
+                    </select>
+                </div>
+            </div>
+            <button type="submit" class="mt-4 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition">
+                Gerar Relatório
+            </button>
+        </form>
+        <div id="reportContainer" class="hidden"></div>
+        <button id="shareWhatsAppBtn" class="hidden bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition mt-4">
+            <i class="fab fa-whatsapp mr-2"></i>Compartilhar no WhatsApp
+        </button>
+    </div>
+    <script>
+        FB.init({
+            appId: 'your-app-id',
+            cookie: true,
+            xfbml: true,
+            version: 'v20.0'
+        });
+    </script>
+    <script type="module" src="RelatorioMensal.js"></script>
+</body>
+</html>

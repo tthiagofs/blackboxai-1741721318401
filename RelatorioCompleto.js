@@ -1,5 +1,6 @@
 import { fbAuth } from './auth.js';
 import { exportToPDF } from './exportPDF.js';
+// Atualizado em 28/04/2025
 
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 

@@ -1,5 +1,5 @@
 import { fbAuth } from './auth.js';
-import { getMonthDates, calculateMonthlyMetrics, renderMonthlyReport } from './RelatorioMensal.js';
+import { exportToPDF } from './exportPDF.js';
 
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -14,8 +14,6 @@ if (!currentAccessToken) {
 // Elementos do DOM
 const form = document.getElementById('form');
 const reportContainer = document.getElementById('reportContainer');
-const weeklyReportContainer = document.getElementById('weeklyReport');
-const monthlyReportContainer = document.getElementById('monthlyReport');
 const shareWhatsAppBtn = document.getElementById('shareWhatsAppBtn');
 const filterCampaignsBtn = document.getElementById('filterCampaigns');
 const filterAdSetsBtn = document.getElementById('filterAdSets');
@@ -31,11 +29,6 @@ const whiteFilters = document.getElementById('whiteFilters');
 const blackFilters = document.getElementById('blackFilters');
 const defaultFilters = document.getElementById('defaultFilters');
 const comparisonFilter = document.getElementById('comparisonFilter');
-const includeMonthlyReportCheckbox = document.getElementById('includeMonthlyReport');
-const monthlyPeriodSelectors = document.getElementById('monthlyPeriodSelectors');
-const monthlyYearSelect = document.getElementById('monthlyYear');
-const monthlyMonthSelect = document.getElementById('monthlyMonth');
-const refreshBtn = document.getElementById('refreshBtn');
 
 // Modais
 const closeCampaignsModalBtn = document.getElementById('closeCampaignsModal');
@@ -52,7 +45,7 @@ const closeBlackCampaignsModalBtn = document.getElementById('closeBlackCampaigns
 const closeBlackAdSetsModalBtn = document.getElementById('closeBlackAdSetsModal');
 const applyBlackCampaignsBtn = document.getElementById('applyBlackCampaigns');
 const applyBlackAdSetsBtn = document.getElementById('applyBlackAdSets');
-
+const refreshBtn = document.getElementById('refreshBtn');
 
 // Estado
 let selectedCampaigns = new Set();
@@ -69,7 +62,6 @@ let hasBlack = null; // null (não respondido), true (Sim), false (Não)
 let reportMetrics = null;      // Para armazenar as métricas (metrics)
 let reportBlackMetrics = null; // Para armazenar as métricas Black (blackMetrics)
 let reportBestAds = null;      // Para armazenar os melhores anúncios (bestAds)
-let reportMonthlyMetrics = null;
 let lastFormState = {
     unitId: null,
     startDate: null,
@@ -81,10 +73,7 @@ let lastFormState = {
     selectedBlackCampaigns: new Set(),
     selectedBlackAdSets: new Set(),
     comparisonData: null,
-    hasBlack: null,
-    includeMonthlyReport: false,
-    monthlyYear: null,
-    monthlyMonth: null
+    hasBlack: null
 };
 
 
@@ -117,46 +106,6 @@ if (!unitSelect) {
             unitSelect.appendChild(option);
         });
     }
-
-// Preencher seletores de ano e mês
-if (monthlyYearSelect && monthlyMonthSelect) {
-    const currentYear = new Date().getFullYear();
-    for (let y = currentYear - 5; y <= currentYear; y++) {
-        const option = document.createElement('option');
-        option.value = y;
-        option.textContent = y;
-        monthlyYearSelect.appendChild(option);
-    }
-
-    const months = [
-        { value: '01', name: 'Janeiro' },
-        { value: '02', name: 'Fevereiro' },
-        { value: '03', name: 'Março' },
-        { value: '04', name: 'Abril' },
-        { value: '05', name: 'Maio' },
-        { value: '06', name: 'Junho' },
-        { value: '07', name: 'Julho' },
-        { value: '08', name: 'Agosto' },
-        { value: '09', name: 'Setembro' },
-        { value: '10', name: 'Outubro' },
-        { value: '11', name: 'Novembro' },
-        { value: '12', name: 'Dezembro' }
-    ];
-    months.forEach(month => {
-        const option = document.createElement('option');
-        option.value = month.value;
-        option.textContent = month.name;
-        monthlyMonthSelect.appendChild(option);
-    });
-}
-
-// Controlar visibilidade dos seletores de período mensal
-if (includeMonthlyReportCheckbox && monthlyPeriodSelectors) {
-    includeMonthlyReportCheckbox.addEventListener('change', () => {
-        monthlyPeriodSelectors.classList.toggle('hidden', !includeMonthlyReportCheckbox.checked);
-    });
-}
-
 }
 
 // Função para armazenar cache
@@ -1127,72 +1076,115 @@ function calculatePreviousPeriod(startDate, endDate) {
     };
 }
 
-// Submissão do formulário
-form.addEventListener('submit', async function(e) {
+// Geração do relatório
+form.addEventListener('submit', async (e) => {
     e.preventDefault();
-    const unitId = document.getElementById('unitId').value;
-    const startDate = document.getElementById('startDate').value;
-    const endDate = document.getElementById('endDate').value;
-    const budgetsCompleted = document.getElementById('budgetsCompleted').value;
-    const salesCount = document.getElementById('salesCount').value;
-    const revenue = document.getElementById('revenue').value;
-    const performanceAnalysis = document.getElementById('performanceAnalysis').value;
-    const includeMonthlyReport = includeMonthlyReportCheckbox.checked;
-    const monthlyYear = monthlyYearSelect.value;
-    const monthlyMonth = monthlyMonthSelect.value;
-
-    if (!unitId || !startDate || !endDate) {
-        alert('Por favor, preencha todos os campos obrigatórios.');
-        return;
-    }
-
-    if (includeMonthlyReport && (!monthlyYear || !monthlyMonth)) {
-        alert('Por favor, selecione o ano e o mês para o relatório mensal.');
-        return;
-    }
-
-    const unitName = adAccountsMap[unitId] || 'Unidade Desconhecida';
-
     try {
-        // Limpar container do relatório mensal
-        monthlyReportContainer.innerHTML = '';
+        const unitId = document.getElementById('unitId').value;
+        const unitName = unitSelect.options[unitSelect.selectedIndex].text;
+        const startDate = document.getElementById('startDate').value;
+        const endDate = document.getElementById('endDate').value;
+        const performanceAnalysis = document.getElementById('performanceAnalysis')?.value || '';
+        const budgetsCompleted = parseInt(document.getElementById('budgetsCompleted').value) || 0;
+        const salesCount = parseInt(document.getElementById('salesCount').value) || 0;
+        const revenue = parseFloat(document.getElementById('revenue').value) || 0;
 
-        // Calcular métricas semanais
-        reportMetrics = await calculateMetrics(unitId, startDate, endDate, selectedCampaigns, selectedAdSets);
-        reportBlackMetrics = null;
-        if (hasBlack) {
-            reportBlackMetrics = {
-                white: await calculateMetrics(unitId, startDate, endDate, selectedWhiteCampaigns, selectedWhiteAdSets),
-                black: await calculateMetrics(unitId, startDate, endDate, selectedBlackCampaigns, selectedBlackAdSets)
-            };
+        if (!unitId || !startDate || !endDate) {
+            alert('Por favor, preencha todos os campos obrigatórios (unidade, data de início e data de fim).');
+            return;
         }
-        reportBestAds = await getBestAds(unitId, startDate, endDate); // Corrigido aqui
 
-        // Renderizar relatório semanal
-        renderReport(
-            unitName,
-            startDate,
-            endDate,
-            reportMetrics,
-            reportBlackMetrics,
-            comparisonData,
-            reportBestAds,
-            budgetsCompleted,
-            salesCount,
-            revenue,
-            performanceAnalysis
+        if (hasBlack === null) {
+            alert('Por favor, responda se a unidade possui Black antes de gerar o relatório.');
+            return;
+        }
+
+        // Função para verificar se dois Sets são iguais
+        const areSetsEqual = (setA, setB) => {
+            if (setA.size !== setB.size) return false;
+            return Array.from(setA).every(item => setB.has(item));
+        };
+
+        // Verificar se os campos principais mudaram
+        const formStateChanged = (
+            lastFormState.unitId !== unitId ||
+            lastFormState.startDate !== startDate ||
+            lastFormState.endDate !== endDate ||
+            !areSetsEqual(lastFormState.selectedCampaigns, selectedCampaigns) ||
+            !areSetsEqual(lastFormState.selectedAdSets, selectedAdSets) ||
+            !areSetsEqual(lastFormState.selectedWhiteCampaigns, selectedWhiteCampaigns) ||
+            !areSetsEqual(lastFormState.selectedWhiteAdSets, selectedWhiteAdSets) ||
+            !areSetsEqual(lastFormState.selectedBlackCampaigns, selectedBlackCampaigns) ||
+            !areSetsEqual(lastFormState.selectedBlackAdSets, selectedBlackAdSets) ||
+            lastFormState.hasBlack !== hasBlack ||
+            JSON.stringify(lastFormState.comparisonData) !== JSON.stringify(comparisonData)
         );
 
-        // Processar relatório mensal, se selecionado
-        if (includeMonthlyReport) {
-            const { startDate: monthlyStartDate, endDate: monthlyEndDate } = getMonthDates(monthlyYear, monthlyMonth);
-            reportMonthlyMetrics = await calculateMonthlyMetrics(unitId, monthlyStartDate, monthlyEndDate);
-            renderMonthlyReport(unitName, monthlyStartDate, monthlyEndDate, reportMonthlyMetrics);
+        const submitButton = form.querySelector('button[type="submit"]');
+        const originalText = submitButton.innerHTML;
+        submitButton.disabled = true;
+        submitButton.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Gerando...';
+
+        let metrics = reportMetrics;
+        let blackMetrics = reportBlackMetrics;
+        let bestAds = reportBestAds;
+        let comparisonMetrics = null;
+        let blackComparisonMetrics = null;
+        let comparisonTotalLeads = null;
+
+        // Se os dados ainda não foram carregados ou o estado do formulário mudou, buscar os dados
+        if (formStateChanged || !metrics || (hasBlack && !blackMetrics) || !bestAds) {
+            await generateReport(unitId, unitName, startDate, endDate);
         } else {
-            reportMonthlyMetrics = null;
+            // Apenas re-renderizar o relatório com os dados existentes
+            reportContainer.innerHTML = '';
+            renderReport(unitName, startDate, endDate, metrics, comparisonMetrics, blackMetrics, blackComparisonMetrics, bestAds, comparisonTotalLeads);
+
+            // Adicionar seção de Resultados
+            const reportDiv = reportContainer.querySelector('.bg-white');
+            const businessResultsHTML = `
+                <div class="mt-8">
+                    <h3 class="text-xl font-semibold text-primary mb-4">Resultados</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div class="metric-card">
+                            <h4 class="text-sm font-medium text-gray-600 mb-1">Orçamentos Realizados</h4>
+                            <p class="text-lg font-semibold text-gray-800">${budgetsCompleted.toLocaleString('pt-BR')}</p>
+                        </div>
+                        <div class="metric-card">
+                            <h4 class="text-sm font-medium text-gray-600 mb-1">Número de Vendas</h4>
+                            <p class="text-lg font-semibold text-gray-800">${salesCount.toLocaleString('pt-BR')}</p>
+                        </div>
+                        <div class="metric-card">
+                            <h4 class="text-sm font-medium text-gray-600 mb-1">Faturamento</h4>
+                            <p class="text-lg font-semibold text-gray-800">R$ ${revenue.toFixed(2).replace('.', ',')}</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+            reportDiv.insertAdjacentHTML('beforeend', businessResultsHTML);
+
+            // Adicionar seção de Análise de Desempenho e Pontos de Melhoria (se houver texto)
+            if (performanceAnalysis.trim()) {
+                const paragraphs = performanceAnalysis.split(/\n\s*\n/).filter(p => p.trim());
+                const analysisHTML = `
+                    <div class="mt-8">
+                        <h3 class="text-xl font-semibold text-primary mb-4">Análise de Desempenho e Pontos de Melhoria</h3>
+                        <ul class="list-disc list-inside space-y-2 text-gray-700">
+                            ${paragraphs.map(paragraph => {
+                                const formattedParagraph = paragraph.replace(/\n/g, '<br>');
+                                return `<li>${formattedParagraph}</li>`;
+                            }).join('')}
+                        </ul>
+                    </div>
+                `;
+                reportDiv.insertAdjacentHTML('beforeend', analysisHTML);
+            }
+
+            // Exibir o botão de compartilhamento
+            shareWhatsAppBtn.classList.remove('hidden');
         }
 
-        // Atualizar estado do formulário
+        // Atualizar o último estado do formulário
         lastFormState = {
             unitId,
             startDate,
@@ -1203,18 +1195,12 @@ form.addEventListener('submit', async function(e) {
             selectedWhiteAdSets: new Set(selectedWhiteAdSets),
             selectedBlackCampaigns: new Set(selectedBlackCampaigns),
             selectedBlackAdSets: new Set(selectedBlackAdSets),
-            comparisonData,
-            hasBlack,
-            includeMonthlyReport,
-            monthlyYear,
-            monthlyMonth
+            comparisonData: comparisonData ? { ...comparisonData } : null,
+            hasBlack
         };
 
-        // Mostrar botões
-        shareWhatsAppBtn.classList.remove('hidden');
-        backToReportSelectionBtn.classList.remove('hidden');
-        form.classList.add('hidden');
-        reportContainer.classList.remove('hidden');
+        submitButton.disabled = false;
+        submitButton.innerHTML = originalText;
     } catch (error) {
         console.error('Erro ao gerar relatório:', error);
         alert('Ocorreu um erro ao gerar o relatório. Por favor, tente novamente.');
@@ -1853,79 +1839,93 @@ function renderReport(unitName, startDate, endDate, metrics, comparisonMetrics, 
 document.addEventListener('click', (event) => {
     if (event.target.closest('#exportPDFBtn')) {
         // Verificar se o relatório foi gerado
-        if (!reportMetrics) {
-            alert('Por favor, gere o relatório antes de exportar para PDF.');
-            return;
-        }
-        exportToPDF();
+      
+if (!reportMetrics) {
+    alert('Por favor, gere o relatório antes de exportar para PDF.');
+    return;
+}
+
+        const unitId = document.getElementById('unitId').value;
+        const unitName = adAccountsMap[unitId] || 'Unidade Desconhecida';
+        const startDate = document.getElementById('startDate').value;
+        const endDate = document.getElementById('endDate').value;
+        const budgetsCompleted = parseInt(document.getElementById('budgetsCompleted').value) || 0;
+        const salesCount = parseInt(document.getElementById('salesCount').value) || 0;
+        const revenue = parseFloat(document.getElementById('revenue').value) || 0;
+        const performanceAnalysis = document.getElementById('performanceAnalysis')?.value || '';
+
+        exportToPDF(
+            unitId,
+            unitName,
+            startDate,
+            endDate,
+            reportMetrics, // Usar a variável global
+            reportBlackMetrics || { spend: 0, reach: 0, conversations: 0, costPerConversation: 0 }, // Usar a variável global
+            hasBlack,
+            budgetsCompleted,
+            salesCount,
+            revenue,
+            performanceAnalysis,
+            reportBestAds // Usar a variável global
+        );
     }
 });
 
 
+
 // Compartilhar no WhatsApp
-shareWhatsAppBtn.addEventListener('click', async function() {
-    try {
-        const { jsPDF } = window.jspdf;
-        const doc = new jsPDF({
-            orientation: 'portrait',
-            unit: 'mm',
-            format: 'a4'
+shareWhatsAppBtn.addEventListener('click', () => {
+    const unitId = document.getElementById('unitId').value;
+    const unitName = adAccountsMap[unitId] || 'Unidade Desconhecida';
+    const startDate = document.getElementById('startDate').value.split('-').reverse().join('/');
+    const endDate = document.getElementById('endDate').value.split('-').reverse().join('/');
+
+    let message = `Relatório Completo - ${unitName}\n`;
+    message += `Período Analisado: ${startDate} a ${endDate}\n\n`;
+
+    const report = reportContainer.querySelector('.bg-white');
+    if (hasBlack) {
+        message += `Campanhas White:\n`;
+        const whiteMetrics = report.querySelectorAll('.metric-card')[0].parentElement.querySelectorAll('.metric-card');
+        whiteMetrics.forEach(metric => {
+            const label = metric.querySelector('h4').textContent;
+            const value = metric.querySelector('p.text-lg').textContent;
+            message += `${label}: ${value}\n`;
         });
-        const pageWidth = doc.internal.pageSize.getWidth();
-        const pageHeight = doc.internal.pageSize.getHeight();
-        const margin = 10;
-        let yOffset = margin;
 
-        const weeklyReportElement = document.getElementById('weeklyReport');
-        const monthlyReportElement = document.getElementById('monthlyReport');
+        message += `\nCampanhas Black:\n`;
+        const blackMetrics = report.querySelectorAll('.metric-card')[4].parentElement.querySelectorAll('.metric-card');
+        blackMetrics.forEach(metric => {
+            const label = metric.querySelector('h4').textContent;
+            const value = metric.querySelector('p.text-lg').textContent;
+            message += `${label}: ${value}\n`;
+        });
 
-        async function captureElement(element, title) {
-            if (!element || element.innerHTML.trim() === '') return;
-            doc.setFontSize(14);
-            doc.text(title, margin, yOffset);
-            yOffset += 10;
-
-            const canvas = await html2canvas(element, {
-                scale: 2,
-                useCORS: true,
-                backgroundColor: '#ffffff'
-            });
-            const imgWidth = pageWidth - 2 * margin;
-            const imgHeight = (canvas.height * imgWidth) / canvas.width;
-
-            if (yOffset + imgHeight > pageHeight - margin) {
-                doc.addPage();
-                yOffset = margin;
-            }
-
-            doc.addImage(canvas.toDataURL('image/png'), 'PNG', margin, yOffset, imgWidth, imgHeight);
-            yOffset += imgHeight + 10;
-        }
-
-        await captureElement(weeklyReportElement, 'Relatório Semanal');
-        if (reportMonthlyMetrics) {
-            await captureElement(monthlyReportElement, 'Relatório Mensal');
-        }
-
-        const pdfBlob = doc.output('blob');
-        const pdfFile = new File([pdfBlob], `relatorio_completo_${new Date().toISOString().split('T')[0]}.pdf`, { type: 'application/pdf' });
-
-        if (navigator.canShare && navigator.canShare({ files: [pdfFile] })) {
-            await navigator.share({
-                files: [pdfFile],
-                title: 'Relatório Completo',
-                text: 'Confira o relatório completo gerado.'
-            });
-        } else {
-            const pdfUrl = URL.createObjectURL(pdfBlob);
-            const message = encodeURIComponent('Confira o relatório completo gerado!');
-            const whatsappUrl = `https://wa.me/?text=${message}%20${pdfUrl}`;
-            window.open(whatsappUrl, '_blank');
-        }
-    } catch (error) {
-        console.error('Erro ao compartilhar no WhatsApp:', error);
-        alert('Ocorreu um erro ao compartilhar o relatório. Por favor, tente novamente.');
+        const totalLeads = report.querySelector('p.text-lg.font-semibold span').textContent;
+        message += `\nNúmero total de leads: ${totalLeads}\n`;
+    } else {
+        message += `Campanhas:\n`;
+        const metrics = report.querySelectorAll('.metric-card');
+        metrics.forEach(metric => {
+            const label = metric.querySelector('h4').textContent;
+            const value = metric.querySelector('p.text-lg').textContent;
+            message += `${label}: ${value}\n`;
+        });
     }
+
+    const bestAds = report.querySelectorAll('.flex.items-center');
+    if (bestAds.length > 0) {
+        message += `\nAnúncios em Destaque:\n`;
+        bestAds.forEach((ad, adIndex) => {
+            const messages = ad.querySelector('p:nth-child(1)').textContent;
+            const costPerMessage = ad.querySelector('p:nth-child(2)').textContent;
+            message += `Anúncio ${adIndex + 1}:\n${messages}\n${costPerMessage}\n`;
+        });
+    }
+
+    const encodedMessage = encodeURIComponent(message);
+    const whatsappUrl = `https://api.whatsapp.com/send?text=${encodedMessage}`;
+    window.open(whatsappUrl, '_blank');
 });
 
 // Voltar para a seleção de relatórios
@@ -1965,54 +1965,3 @@ refreshBtn.addEventListener('click', () => {
     // Recarregar a página
     window.location.reload();
 });
-
-
-async function exportToPDF() {
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF({
-        orientation: 'portrait',
-        unit: 'mm',
-        format: 'a4'
-    });
-    const pageWidth = doc.internal.pageSize.getWidth();
-    const pageHeight = doc.internal.pageSize.getHeight();
-    const margin = 10;
-    let yOffset = margin;
-
-    const weeklyReportElement = document.getElementById('weeklyReport');
-    const monthlyReportElement = document.getElementById('monthlyReport');
-
-    // Função para capturar elemento como imagem
-    async function captureElement(element, title) {
-        if (!element || element.innerHTML.trim() === '') return;
-        doc.setFontSize(14);
-        doc.text(title, margin, yOffset);
-        yOffset += 10;
-
-        const canvas = await html2canvas(element, {
-            scale: 2,
-            useCORS: true,
-            backgroundColor: '#ffffff'
-        });
-        const imgWidth = pageWidth - 2 * margin;
-        const imgHeight = (canvas.height * imgWidth) / canvas.width;
-
-        if (yOffset + imgHeight > pageHeight - margin) {
-            doc.addPage();
-            yOffset = margin;
-        }
-
-        doc.addImage(canvas.toDataURL('image/png'), 'PNG', margin, yOffset, imgWidth, imgHeight);
-        yOffset += imgHeight + 10;
-    }
-
-    // Capturar relatório semanal
-    await captureElement(weeklyReportElement, 'Relatório Semanal');
-
-    // Capturar relatório mensal, se presente
-    if (reportMonthlyMetrics) {
-        await captureElement(monthlyReportElement, 'Relatório Mensal');
-    }
-
-    doc.save(`relatorio_completo_${new Date().toISOString().split('T')[0]}.pdf`);
-}

@@ -1307,34 +1307,32 @@ async function generateReport(unitId, unitName, startDate, endDate) {
         monthlyReportEndDate
     });
 
-    // Calcular métricas do relatório mensal, se ativado
-    monthlyReportMetrics = null; // Resetar métricas mensais
-    if (includeMonthlyReport) {
-        const monthlyStart = document.getElementById('monthlyStartDate').value;
-        const monthlyEnd = document.getElementById('monthlyEndDate').value;
-        if (monthlyStart && monthlyEnd) {
-            await loadCampaigns(unitId, monthlyStart, monthlyEnd);
-            if (hasBlack) {
-                monthlyReportMetrics = await calculateMetrics(
-                    unitId,
-                    monthlyStart,
-                    monthlyEnd,
-                    selectedWhiteCampaigns.size > 0 ? selectedWhiteCampaigns : null,
-                    selectedWhiteAdSets.size > 0 ? selectedWhiteAdSets : null
-                );
-            } else {
-                monthlyReportMetrics = await calculateMetrics(
-                    unitId,
-                    monthlyStart,
-                    monthlyEnd,
-                    selectedCampaigns,
-                    selectedAdSets
-                );
-            }
+  // Calcular métricas do relatório mensal, se ativado
+monthlyReportMetrics = null; // Resetar métricas mensais
+if (includeMonthlyReport) {
+    const monthlyStart = document.getElementById('monthlyStartDate').value;
+    const monthlyEnd = document.getElementById('monthlyEndDate').value;
+    if (monthlyStart && monthlyEnd) {
+        await loadCampaigns(unitId, monthlyStart, monthlyEnd);
+        if (hasBlack) {
+            monthlyReportMetrics = await calculateMetrics(
+                unitId,
+                monthlyStart,
+                monthlyEnd,
+                selectedWhiteCampaigns.size > 0 ? selectedWhiteCampaigns : null,
+                selectedWhiteAdSets.size > 0 ? selectedWhiteAdSets : null
+            );
         } else {
-            console.warn('Datas do relatório mensal não fornecidas.');
+            monthlyReportMetrics = await calculateMetrics(
+                unitId,
+                monthlyStart,
+                monthlyEnd,
+                selectedCampaigns,
+                selectedAdSets
+            );
         }
     }
+}
 
     // Calcular métricas de comparação, se necessário
     let comparisonMetrics = null;

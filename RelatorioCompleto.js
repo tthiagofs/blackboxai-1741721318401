@@ -1135,10 +1135,9 @@ form.addEventListener('submit', async (e) => {
             !areSetsEqual(lastFormState.selectedBlackCampaigns, selectedBlackCampaigns) ||
             !areSetsEqual(lastFormState.selectedBlackAdSets, selectedBlackAdSets) ||
             lastFormState.hasBlack !== hasBlack ||
-            JSON.stringify(lastFormState.comparisonData) !== JSON.stringify(comparisonData)
+            JSON.stringify(lastFormState.comparisonData) !== JSON.stringify(comparisonData), // Vírgula adicionada
             lastFormState.includeMonthly !== includeMonthly ||
             JSON.stringify(lastFormState.monthlyPeriodData) !== JSON.stringify(monthlyPeriodData)
-
         );
 
         const submitButton = form.querySelector('button[type="submit"]');
@@ -1211,15 +1210,15 @@ form.addEventListener('submit', async (e) => {
             startDate,
             endDate,
             selectedCampaigns: new Set(selectedCampaigns),
-            selectedAdSets: new Set(selectedAdSets),
+            selectedAdSets: new Set(selectedCampaigns),
             selectedWhiteCampaigns: new Set(selectedWhiteCampaigns),
             selectedWhiteAdSets: new Set(selectedWhiteAdSets),
             selectedBlackCampaigns: new Set(selectedBlackCampaigns),
             selectedBlackAdSets: new Set(selectedBlackAdSets),
             comparisonData: comparisonData ? { ...comparisonData } : null,
-            hasBlack
+            hasBlack, // Vírgula adicionada
             includeMonthly,
-monthlyPeriodData: monthlyPeriodData ? { ...monthlyPeriodData } : null
+            monthlyPeriodData: monthlyPeriodData ? { ...monthlyPeriodData } : null
         };
 
         submitButton.disabled = false;

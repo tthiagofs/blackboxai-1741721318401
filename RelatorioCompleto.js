@@ -139,7 +139,15 @@ function disableButtons() {
     filterCampaignsBtn.disabled = true;
     filterAdSetsBtn.disabled = true;
     comparePeriodsBtn.disabled = true;
-    form.querySelector('button[type="submit"]').disabled = true;
+
+    // Verificar se o botão de submit existe antes de desabilitá-lo
+    const submitButton = form.querySelector('button[type="submit"]');
+    if (submitButton) {
+        submitButton.disabled = true;
+        submitButton.classList.add('opacity-50');
+    } else {
+        console.warn('Botão de submit não encontrado no formulário.');
+    }
 
     filterWhiteCampaignsBtn.disabled = true;
     filterWhiteAdSetsBtn.disabled = true;
@@ -149,7 +157,6 @@ function disableButtons() {
     filterCampaignsBtn.classList.add('opacity-50');
     filterAdSetsBtn.classList.add('opacity-50');
     comparePeriodsBtn.classList.add('opacity-50');
-    form.querySelector('button[type="submit"]').classList.add('opacity-50');
 
     filterWhiteCampaignsBtn.classList.add('opacity-50');
     filterWhiteAdSetsBtn.classList.add('opacity-50');
@@ -159,30 +166,42 @@ function disableButtons() {
 
 // Habilitar botões após a resposta
 function enableButtons() {
+    const submitButton = form.querySelector('button[type="submit"]');
+
     if (hasBlack) {
         filterWhiteCampaignsBtn.disabled = false;
         filterWhiteAdSetsBtn.disabled = false;
         filterBlackCampaignsBtn.disabled = false;
         filterBlackAdSetsBtn.disabled = false;
         comparePeriodsBtn.disabled = false;
-        form.querySelector('button[type="submit"]').disabled = false;
+
+        if (submitButton) {
+            submitButton.disabled = false;
+            submitButton.classList.remove('opacity-50');
+        } else {
+            console.warn('Botão de submit não encontrado no formulário ao habilitar botões.');
+        }
 
         filterWhiteCampaignsBtn.classList.remove('opacity-50');
         filterWhiteAdSetsBtn.classList.remove('opacity-50');
         filterBlackCampaignsBtn.classList.remove('opacity-50');
         filterBlackAdSetsBtn.classList.remove('opacity-50');
         comparePeriodsBtn.classList.remove('opacity-50');
-        form.querySelector('button[type="submit"]').classList.remove('opacity-50');
     } else {
         filterCampaignsBtn.disabled = false;
         filterAdSetsBtn.disabled = false;
         comparePeriodsBtn.disabled = false;
-        form.querySelector('button[type="submit"]').disabled = false;
+
+        if (submitButton) {
+            submitButton.disabled = false;
+            submitButton.classList.remove('opacity-50');
+        } else {
+            console.warn('Botão de submit não encontrado no formulário ao habilitar botões.');
+        }
 
         filterCampaignsBtn.classList.remove('opacity-50');
         filterAdSetsBtn.classList.remove('opacity-50');
         comparePeriodsBtn.classList.remove('opacity-50');
-        form.querySelector('button[type="submit"]').classList.remove('opacity-50');
     }
 }
 

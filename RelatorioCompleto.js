@@ -1380,6 +1380,7 @@ async function calculateMetrics(unitId, startDate, endDate, campaignsSet, adSets
             totalSpend += parseFloat(data.spend) || 0;
             totalReach += parseInt(data.reach) || 0;
             if (data.actions && Array.isArray(data.actions)) {
+                // Contabilizar conversas iniciadas
                 const conversationAction = data.actions.find(
                     action => action.action_type === 'onsite_conversion.messaging_conversation_started_7d'
                 );
@@ -1387,10 +1388,21 @@ async function calculateMetrics(unitId, startDate, endDate, campaignsSet, adSets
                     totalConversations += parseInt(conversationAction.value) || 0;
                 }
 
+                // Contabilizar conversões personalizadas
                 const customConversions = data.actions.filter(
                     action => action.action_type.startsWith('offsite_conversion.')
                 );
                 customConversions.forEach(action => {
+                    if (action.value) {
+                        totalConversations += parseInt(action.value) || 0;
+                    }
+                });
+
+                // Contabilizar cadastros do Facebook (leadgen ou offsite_conversion.fb_pixel_lead)
+                const leadActions = data.actions.filter(
+                    action => action.action_type === 'leadgen' || action.action_type === 'offsite_conversion.fb_pixel_lead'
+                );
+                leadActions.forEach(action => {
                     if (action.value) {
                         totalConversations += parseInt(action.value) || 0;
                     }
@@ -1423,6 +1435,7 @@ async function calculateTotalLeadsForAccount(unitId, startDate, endDate) {
     if (response && !response.error && response.data && response.data.length > 0) {
         response.data.forEach(data => {
             if (data.actions && Array.isArray(data.actions)) {
+                // Contabilizar conversas iniciadas
                 const conversationAction = data.actions.find(
                     action => action.action_type === 'onsite_conversion.messaging_conversation_started_7d'
                 );
@@ -1430,10 +1443,21 @@ async function calculateTotalLeadsForAccount(unitId, startDate, endDate) {
                     totalConversations += parseInt(conversationAction.value) || 0;
                 }
 
+                // Contabilizar conversões personalizadas
                 const customConversions = data.actions.filter(
                     action => action.action_type.startsWith('offsite_conversion.')
                 );
                 customConversions.forEach(action => {
+                    if (action.value) {
+                        totalConversations += parseInt(action.value) || 0;
+                    }
+                });
+
+                // Contabilizar cadastros do Facebook (leadgen ou offsite_conversion.fb_pixel_lead)
+                const leadActions = data.actions.filter(
+                    action => action.action_type === 'leadgen' || action.action_type === 'offsite_conversion.fb_pixel_lead'
+                );
+                leadActions.forEach(action => {
                     if (action.value) {
                         totalConversations += parseInt(action.value) || 0;
                     }
@@ -1446,27 +1470,22 @@ async function calculateTotalLeadsForAccount(unitId, startDate, endDate) {
 }
 
 async function getBestAds(unitId, startDate, endDate) {
-    const adsWithActions = []; // Anúncios com mensagens/conversões
-    const adsWithoutActions = []; // Anúncios sem mensagens/conversões, mas com gasto
+    const adsWithActions = []; // Anúncios com mensagens/conversões/cadastros
+    const adsWithoutActions = []; // Anúncios sem mensagens/conversões/cadastros, mas com gasto
 
     // Determinar as entidades (campanhas, ad sets ou conta) para buscar os anúncios
     const entitiesToFetch = [];
     if (hasBlack && (selectedWhiteAdSets.size > 0 || selectedBlackAdSets.size > 0)) {
-        // Se tem Black e há ad sets White ou Black selecionados
         const adSetIds = [...Array.from(selectedWhiteAdSets), ...Array.from(selectedBlackAdSets)];
         entitiesToFetch.push(...adSetIds.map(id => ({ type: 'adset', id })));
     } else if (hasBlack && (selectedWhiteCampaigns.size > 0 || selectedBlackCampaigns.size > 0)) {
-        // Se tem Black e há campanhas White ou Black selecionadas
         const campaignIds = [...Array.from(selectedWhiteCampaigns), ...Array.from(selectedBlackCampaigns)];
         entitiesToFetch.push(...campaignIds.map(id => ({ type: 'campaign', id })));
     } else if (selectedAdSets.size > 0) {
-        // Se há ad sets selecionados
         entitiesToFetch.push(...Array.from(selectedAdSets).map(id => ({ type: 'adset', id })));
     } else if (selectedCampaigns.size > 0) {
-        // Se há campanhas selecionadas
         entitiesToFetch.push(...Array.from(selectedCampaigns).map(id => ({ type: 'campaign', id })));
     } else {
-        // Se não há filtros, buscar todos os anúncios da conta
         entitiesToFetch.push({ type: 'account', id: unitId });
     }
 
@@ -1531,8 +1550,9 @@ async function getBestAds(unitId, startDate, endDate) {
             const insights = insightsResponse.data[0];
             console.log(`Insights para o anúncio ${ad.id}:`, insights);
 
-            // Calcular leads (conversas)
+            // Calcular leads (conversas, conversões e cadastros)
             if (insights.actions) {
+                // Contabilizar conversas iniciadas
                 const conversationAction = insights.actions.find(
                     action => action.action_type === 'onsite_conversion.messaging_conversation_started_7d'
                 );
@@ -1540,10 +1560,21 @@ async function getBestAds(unitId, startDate, endDate) {
                     totalActions += parseInt(conversationAction.value) || 0;
                 }
 
+                // Contabilizar conversões personalizadas
                 const customConversions = insights.actions.filter(
                     action => action.action_type.startsWith('offsite_conversion.')
                 );
                 customConversions.forEach(action => {
+                    if (action.value) {
+                        totalActions += parseInt(action.value) || 0;
+                    }
+                });
+
+                // Contabilizar cadastros do Facebook (leadgen ou offsite_conversion.fb_pixel_lead)
+                const leadActions = insights.actions.filter(
+                    action => action.action_type === 'leadgen' || action.action_type === 'offsite_conversion.fb_pixel_lead'
+                );
+                leadActions.forEach(action => {
                     if (action.value) {
                         totalActions += parseInt(action.value) || 0;
                     }
@@ -1579,6 +1610,41 @@ async function getBestAds(unitId, startDate, endDate) {
             adsWithoutActions.push(adData);
         }
     }
+
+    // Ordenar e selecionar os melhores anúncios
+    adsWithActions.sort((a, b) => b.messages - a.messages);
+    adsWithoutActions.sort((a, b) => b.spend - a.spend);
+
+    const bestAds = [];
+    bestAds.push(...adsWithActions.slice(0, 2));
+    if (bestAds.length < 2 && adsWithoutActions.length > 0) {
+        const remainingSlots = 2 - bestAds.length;
+        bestAds.push(...adsWithoutActions.slice(0, remainingSlots));
+    }
+
+    if (adsWithActions.length === 0 && adsWithoutActions.length === 1) {
+        bestAds.length = 0;
+        bestAds.push(...adsWithoutActions);
+    } else if (adsWithActions.length === 1 && adsWithoutActions.length === 0) {
+        bestAds.length = 0;
+        bestAds.push(...adsWithActions);
+    }
+
+    console.log(`Melhores anúncios selecionados:`, bestAds);
+
+    // Buscar imagens dos criativos
+    const imagePromises = bestAds.map(async (ad) => {
+        if (ad.creativeId) {
+            const creativeData = await getCreativeData(ad.creativeId);
+            ad.imageUrl = creativeData.imageUrl;
+        }
+        return ad;
+    });
+
+    await Promise.all(imagePromises);
+
+    return bestAds;
+}
 
     // Ordenar e selecionar os melhores anúncios
     adsWithActions.sort((a, b) => b.messages - a.messages);

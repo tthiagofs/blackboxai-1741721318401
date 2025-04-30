@@ -1646,41 +1646,6 @@ async function getBestAds(unitId, startDate, endDate) {
     return bestAds;
 }
 
-    // Ordenar e selecionar os melhores anúncios
-    adsWithActions.sort((a, b) => b.messages - a.messages);
-    adsWithoutActions.sort((a, b) => b.spend - a.spend);
-
-    const bestAds = [];
-    bestAds.push(...adsWithActions.slice(0, 2));
-    if (bestAds.length < 2 && adsWithoutActions.length > 0) {
-        const remainingSlots = 2 - bestAds.length;
-        bestAds.push(...adsWithoutActions.slice(0, remainingSlots));
-    }
-
-    if (adsWithActions.length === 0 && adsWithoutActions.length === 1) {
-        bestAds.length = 0;
-        bestAds.push(...adsWithoutActions);
-    } else if (adsWithActions.length === 1 && adsWithoutActions.length === 0) {
-        bestAds.length = 0;
-        bestAds.push(...adsWithActions);
-    }
-
-    console.log(`Melhores anúncios selecionados:`, bestAds);
-
-    // Buscar imagens dos criativos
-    const imagePromises = bestAds.map(async (ad) => {
-        if (ad.creativeId) {
-            const creativeData = await getCreativeData(ad.creativeId);
-            ad.imageUrl = creativeData.imageUrl;
-        }
-        return ad;
-    });
-
-    await Promise.all(imagePromises);
-
-    return bestAds;
-}
-
 
 function calculateVariation(current, previous, metric) {
     if (!previous || previous === 0) return { percentage: 0, direction: 'neutral' };

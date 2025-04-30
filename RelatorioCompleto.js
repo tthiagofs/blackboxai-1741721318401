@@ -1398,15 +1398,15 @@ async function calculateMetrics(unitId, startDate, endDate, campaignsSet, adSets
                     }
                 });
 
-                // Contabilizar cadastros do Facebook (leadgen ou offsite_conversion.fb_pixel_lead)
-                const leadActions = data.actions.filter(
-                    action => action.action_type === 'leadgen' || action.action_type === 'offsite_conversion.fb_pixel_lead'
-                );
-                leadActions.forEach(action => {
-                    if (action.value) {
-                        totalConversations += parseInt(action.value) || 0;
-                    }
-                });
+             // Contabilizar cadastros do Facebook (usando 'lead' para Formulários Instantâneos)
+const leadActions = insights.actions.filter(
+    action => action.action_type === 'lead'
+);
+leadActions.forEach(action => {
+    if (action.value) {
+        totalActions += parseInt(action.value) || 0;
+    }
+});
             }
         });
     }
@@ -1453,9 +1453,9 @@ async function calculateTotalLeadsForAccount(unitId, startDate, endDate) {
                     }
                 });
 
-                // Contabilizar cadastros do Facebook (leadgen ou offsite_conversion.fb_pixel_lead)
+                // Contabilizar cadastros do Facebook (usando 'lead' para Formulários Instantâneos)
                 const leadActions = data.actions.filter(
-                    action => action.action_type === 'leadgen' || action.action_type === 'offsite_conversion.fb_pixel_lead'
+                    action => action.action_type === 'lead'
                 );
                 leadActions.forEach(action => {
                     if (action.value) {
@@ -1570,9 +1570,9 @@ async function getBestAds(unitId, startDate, endDate) {
                     }
                 });
 
-                // Contabilizar cadastros do Facebook (leadgen ou offsite_conversion.fb_pixel_lead)
-                const leadActions = insights.actions.filter(
-                    action => action.action_type === 'leadgen' || action.action_type === 'offsite_conversion.fb_pixel_lead'
+                // Contabilizar cadastros do Facebook (usando 'lead' para Formulários Instantâneos)
+                const leadActions = data.actions.filter(
+                    action => action.action_type === 'lead'
                 );
                 leadActions.forEach(action => {
                     if (action.value) {

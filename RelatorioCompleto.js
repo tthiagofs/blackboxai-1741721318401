@@ -75,6 +75,9 @@ let lastFormState = {
     comparisonData: null,
     hasBlack: null
 };
+let includeMonthly = null; // null (não respondido), true (Sim), false (Não)
+let monthlyPeriodData = null; // Para armazenar as datas do período mensal
+let reportMonthlyMetrics = null; // Para armazenar as métricas mensais
 
 
 // Mapas
@@ -266,6 +269,21 @@ hasBlackNoBtn.addEventListener('click', () => {
     comparisonFilter.classList.remove('hidden');
     enableButtons();
 });
+
+// Evento para o botão "Sim" do relatório mensal
+includeMonthlyYesBtn.addEventListener('click', () => {
+    includeMonthly = true;
+    monthlyPeriod.classList.remove('hidden'); // Mostra os campos de período
+});
+
+// Evento para o botão "Não" do relatório mensal
+includeMonthlyNoBtn.addEventListener('click', () => {
+    includeMonthly = false;
+    monthlyPeriod.classList.add('hidden'); // Esconde os campos de período
+    monthlyPeriodData = null; // Limpa as datas do período mensal
+});
+
+
 
 // Carregar dados quando o formulário é preenchido
 form.addEventListener('input', async function(e) {
@@ -1118,6 +1136,9 @@ form.addEventListener('submit', async (e) => {
             !areSetsEqual(lastFormState.selectedBlackAdSets, selectedBlackAdSets) ||
             lastFormState.hasBlack !== hasBlack ||
             JSON.stringify(lastFormState.comparisonData) !== JSON.stringify(comparisonData)
+            lastFormState.includeMonthly !== includeMonthly ||
+            JSON.stringify(lastFormState.monthlyPeriodData) !== JSON.stringify(monthlyPeriodData)
+
         );
 
         const submitButton = form.querySelector('button[type="submit"]');
@@ -1197,6 +1218,8 @@ form.addEventListener('submit', async (e) => {
             selectedBlackAdSets: new Set(selectedBlackAdSets),
             comparisonData: comparisonData ? { ...comparisonData } : null,
             hasBlack
+            includeMonthly,
+monthlyPeriodData: monthlyPeriodData ? { ...monthlyPeriodData } : null
         };
 
         submitButton.disabled = false;
@@ -1271,6 +1294,46 @@ async function generateReport(unitId, unitName, startDate, endDate) {
     let blackComparisonMetrics = null;
     let comparisonTotalLeads = null;
 
+
+// Calcular métricas mensais, se solicitado
+if (includeMonthly === true) {
+    const monthlyStartDate = document.getElementById('monthlyStartDate').value;
+    const monthlyEndDate = document.getElementById('monthlyEndDate').value;
+
+    if (!monthlyStartDate || !monthlyEndDate) {
+        alert('Por favor, preencha as datas do período mensal.');
+        return;
+    }
+
+    monthlyPeriodData = { startDate: monthlyStartDate, endDate: monthlyEndDate };
+
+    // Carregar campanhas para o período mensal
+    await loadCampaigns(unitId, monthlyStartDate, monthlyEndDate);
+
+    // Calcular métricas mensais (usando as mesmas campanhas/ad sets selecionados)
+    if (hasBlack) {
+        const [monthlyWhiteMetrics, monthlyBlackMetrics] = await Promise.all([
+            calculateMetrics(unitId, monthlyStartDate, monthlyEndDate, selectedWhiteCampaigns, selectedWhiteAdSets),
+            calculateMetrics(unitId, monthlyStartDate, monthlyEndDate, selectedBlackCampaigns, selectedBlackAdSets)
+        ]);
+        // Combinar métricas White e Black para o relatório mensal
+        reportMonthlyMetrics = {
+            spend: (monthlyWhiteMetrics.spend || 0) + (monthlyBlackMetrics.spend || 0),
+            reach: (monthlyWhiteMetrics.reach || 0) + (monthlyBlackMetrics.reach || 0),
+            conversations: (monthlyWhiteMetrics.conversations || 0) + (monthlyBlackMetrics.conversations || 0),
+            costPerConversation: 0
+        };
+        if (reportMonthlyMetrics.conversations > 0) {
+            reportMonthlyMetrics.costPerConversation = reportMonthlyMetrics.spend / reportMonthlyMetrics.conversations;
+        }
+    } else {
+        reportMonthlyMetrics = await calculateMetrics(unitId, monthlyStartDate, monthlyEndDate, selectedCampaigns, selectedAdSets);
+    }
+} else {
+    reportMonthlyMetrics = null; // Limpar métricas mensais se não for solicitado
+}
+
+    
     if (comparisonData) {
         const compareStartDate = comparisonData.startDate;
         const compareEndDate = comparisonData.endDate;
@@ -1836,6 +1899,40 @@ function renderReport(unitName, startDate, endDate, metrics, comparisonMetrics, 
                             </div>
                         </div>`
             }
+
+
+
+            ${
+                reportMonthlyMetrics && monthlyPeriodData
+                    ? `
+                        <div class="campaign-section monthly-report text-white rounded-lg p-4 mb-6">
+                            <h3 class="text-xl font-semibold uppercase mb-3">Relatório Mensal (${monthlyPeriodData.startDate.split('-').reverse().join('/')} a ${monthlyPeriodData.endDate.split('-').reverse().join('/')})</h3>
+                            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                                <div class="metric-card">
+                                    <h4 class="text-sm font-medium text-gray-200 mb-1">Investimento</h4>
+                                    <p class="text-lg font-semibold text-white">R$ ${reportMonthlyMetrics.spend.toFixed(2).replace('.', ',')}</p>
+                                </div>
+                                <div class="metric-card">
+                                    <h4 class="text-sm font-medium text-gray-200 mb-1">Alcance</h4>
+                                    <p class="text-lg font-semibold text-white">${reportMonthlyMetrics.reach}</p>
+                                </div>
+                                <div class="metric-card">
+                                    <h4 class="text-sm font-medium text-gray-200 mb-1">Conversas Iniciadas</h4>
+                                    <p class="text-lg font-semibold text-white">${reportMonthlyMetrics.conversations}</p>
+                                </div>
+                                <div class="metric-card">
+                                    <h4 class="text-sm font-medium text-gray-200 mb-1">Custo por Conversa</h4>
+                                    <p class="text-lg font-semibold text-white">R$ ${reportMonthlyMetrics.costPerConversation.toFixed(2).replace('.', ',')}</p>
+                                </div>
+                            </div>
+                        </div>`
+                    : ''
+            }
+
+
+
+
+
             ${
                 bestAds.length > 0
                     ? `
@@ -1978,7 +2075,11 @@ refreshBtn.addEventListener('click', () => {
     reportMetrics = null;      // Limpar métricas
     reportBlackMetrics = null; // Limpar métricas Black
     reportBestAds = null;      // Limpar melhores anúncios
+    includeMonthly = null;
+    monthlyPeriodData = null;
+    reportMonthlyMetrics = null;
 
+    
     // Limpar o formulário
     form.reset();
     reportContainer.innerHTML = '';

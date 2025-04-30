@@ -1858,7 +1858,7 @@ function renderReport(unitName, startDate, endDate, metrics, comparisonMetrics, 
                         </div>`
                     : `
                         <div class="bg-blue-900 text-white rounded-lg p-4 mb-6">
-                            <h3 class="text-xl font-semibold uppercase mb-3">Campanhas White</h3>
+                            <h3 class="text-xl font-semibold uppercase mb-3">Campanhas</h3>
                             <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
                                 <div class="metric-card">
                                     <h4 class="text-sm font-medium text-gray-200 mb-1">Investimento</h4>
@@ -1920,6 +1920,29 @@ function renderReport(unitName, startDate, endDate, metrics, comparisonMetrics, 
             }
 
             ${
+                bestAds.length > 0
+                    ? `
+                        <h3 class="text-xl font-semibold text-primary mb-3">Anúncios em Destaque</h3>
+                        <div class="space-y-4">
+                            ${bestAds
+                                .map(
+                                    ad => `
+                                        <div class="flex items-center bg-white border border-gray-200 rounded-lg p-3">
+                                            <img src="${ad.imageUrl}" alt="Anúncio" class="w-24 h-24 object-cover rounded-md mr-4">
+                                            <div>
+                                                <p class="text-gray-700 text-base"><strong>Leads:</strong> ${ad.messages}</p>
+                                                <p class="text-gray-700 text-base"><strong>Investimento:</strong> R$ ${ad.spend.toFixed(2).replace('.', ',')}</p>
+                                                <p class="text-gray-700 text-base"><strong>Custo por Lead:</strong> R$ ${ad.costPerMessage.replace('.', ',')}</p>
+                                            </div>
+                                        </div>
+                                    `
+                                )
+                                .join('')}
+                        </div>`
+                    : '<p class="text-gray-600 text-base">Nenhum anúncio com dados (leads ou investimento) encontrado para este período.</p>'
+            }
+
+            ${
                 reportMonthlyMetrics && monthlyPeriodData
                     ? `
                         <div class="campaign-section monthly-report text-white rounded-lg p-4 mb-6">
@@ -1944,29 +1967,6 @@ function renderReport(unitName, startDate, endDate, metrics, comparisonMetrics, 
                             </div>
                         </div>`
                     : ''
-            }
-
-            ${
-                bestAds.length > 0
-                    ? `
-                        <h3 class="text-xl font-semibold text-primary mb-3">Anúncios em Destaque</h3>
-                        <div class="space-y-4">
-                            ${bestAds
-                                .map(
-                                    ad => `
-                                        <div class="flex items-center bg-white border border-gray-200 rounded-lg p-3">
-                                            <img src="${ad.imageUrl}" alt="Anúncio" class="w-24 h-24 object-cover rounded-md mr-4">
-                                            <div>
-                                                <p class="text-gray-700 text-base"><strong>Leads:</strong> ${ad.messages}</p>
-                                                <p class="text-gray-700 text-base"><strong>Investimento:</strong> R$ ${ad.spend.toFixed(2).replace('.', ',')}</p>
-                                                <p class="text-gray-700 text-base"><strong>Custo por Lead:</strong> R$ ${ad.costPerMessage.replace('.', ',')}</p>
-                                            </div>
-                                        </div>
-                                    `
-                                )
-                                .join('')}
-                        </div>`
-                    : '<p class="text-gray-600 text-base">Nenhum anúncio com dados (leads ou investimento) encontrado para este período.</p>'
             }
         </div>
     `;

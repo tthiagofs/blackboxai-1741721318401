@@ -1571,7 +1571,7 @@ async function getBestAds(unitId, startDate, endDate) {
                 });
 
                 // Contabilizar cadastros do Facebook (usando 'lead' para Formulários Instantâneos)
-                const leadActions = data.actions.filter(
+                const leadActions = insights.actions.filter(
                     action => action.action_type === 'lead'
                 );
                 leadActions.forEach(action => {

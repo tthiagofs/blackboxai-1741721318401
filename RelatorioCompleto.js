@@ -1858,7 +1858,7 @@ function renderReport(unitName, startDate, endDate, metrics, comparisonMetrics, 
                         </div>`
                     : `
                         <div class="bg-blue-900 text-white rounded-lg p-4 mb-6">
-                            <h3 class="text-xl font-semibold uppercase mb-3">Campanhas</h3>
+                            <h3 class="text-xl font-semibold uppercase mb-3">Campanhas White</h3>
                             <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
                                 <div class="metric-card">
                                     <h4 class="text-sm font-medium text-gray-200 mb-1">Investimento</h4>

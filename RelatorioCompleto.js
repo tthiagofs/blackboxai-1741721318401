@@ -1792,10 +1792,10 @@ function renderReport(unitName, startDate, endDate, metrics, comparisonMetrics, 
                 <i class="fas fa-calendar-alt mr-2"></i>Período Analisado: ${formattedStartDate} a ${formattedEndDate}
             </p>
             ${comparisonPeriod}
+            <h3 class="text-xl font-semibold text-primary mb-4">Relatório Semanal</h3>
             ${
                 hasBlack
                     ? `
-                        <h3 class="text-xl font-semibold text-primary mb-4">Relatório Semanal</h3>
                         <div class="campaign-section white-report text-white rounded-lg p-4 mb-6">
                             <h3 class="text-xl font-semibold uppercase mb-3">Campanhas White</h3>
                             <div class="grid grid-cols-1 md:grid-cols-4 gap-4">

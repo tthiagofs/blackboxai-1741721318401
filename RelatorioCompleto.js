@@ -1398,15 +1398,15 @@ async function calculateMetrics(unitId, startDate, endDate, campaignsSet, adSets
                     }
                 });
 
-             // Contabilizar cadastros do Facebook (usando 'lead' para Formulários Instantâneos)
-const leadActions = insights.actions.filter(
-    action => action.action_type === 'lead'
-);
-leadActions.forEach(action => {
-    if (action.value) {
-        totalActions += parseInt(action.value) || 0;
-    }
-});
+                // Contabilizar cadastros do Facebook (usando 'lead' para Formulários Instantâneos)
+                const leadActions = data.actions.filter(
+                    action => action.action_type === 'lead'
+                );
+                leadActions.forEach(action => {
+                    if (action.value) {
+                        totalConversations += parseInt(action.value) || 0;
+                    }
+                });
             }
         });
     }

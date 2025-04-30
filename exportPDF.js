@@ -1,65 +1,86 @@
-const { jsPDF } = window.jspdf;
+export async function exportToPDF(
+    unitId,
+    unitName,
+    startDate,
+    endDate,
+    metrics,
+    blackMetrics,
+    hasBlack,
+    budgetsCompleted,
+    salesCount,
+    revenue,
+    performanceAnalysis,
+    bestAds
+) {
+    // Acessar jsPDF do escopo global
+    const { jsPDF } = window.jspdf;
 
-async function exportToPDF() {
-    const reportContainer = window.currentReport?.container;
-    if (!reportContainer) {
-        alert('Nenhum relatório disponível para exportar.');
+    // Converter as datas para o formato dd/mm/aaaa
+    const formattedStartDate = startDate.split('-').reverse().join('/');
+    const formattedEndDate = endDate.split('-').reverse().join('/');
+
+    // Selecionar o elemento do relatório no DOM
+    const reportElement = document.querySelector('#reportContainer .bg-white');
+    if (!reportElement) {
+        alert('Não foi possível encontrar o relatório para exportar. Por favor, gere o relatório primeiro.');
         return;
     }
 
-    try {
-        const canvas = await html2canvas(reportContainer, {
-            scale: 2,
-            useCORS: true,
-            logging: false,
-            scrollX: 0,
-            scrollY: 0,
-            windowWidth: reportContainer.scrollWidth,
-            windowHeight: reportContainer.scrollHeight
-        });
-
-        const imgData = canvas.toDataURL('image/png');
-        const pdf = new jsPDF({
-            orientation: 'portrait',
-            unit: 'mm',
-            format: 'a4'
-        });
-
-        const imgWidth = 190;
-        const pageHeight = 295;
-        const imgHeight = canvas.height * imgWidth / canvas.width;
-        let heightLeft = imgHeight;
-        let position = 10;
-
-        pdf.addImage(imgData, 'PNG', 10, position, imgWidth, imgHeight);
-        heightLeft -= pageHeight;
-
-        while (heightLeft >= 0) {
-            position = heightLeft - imgHeight + 10;
-            pdf.addPage();
-            pdf.addImage(imgData, 'PNG', 10, position, imgWidth, imgHeight);
-            heightLeft -= pageHeight;
-        }
-
-        const startDate = window.currentReport.startDate;
-        const endDate = window.currentReport.endDate;
-        const includeMonthly = window.currentReport.includeMonthly;
-        const monthlyMonth = window.currentReport.monthlyMonth;
-        const monthlyYear = window.currentReport.monthlyYear;
-
-        let fileName = `Relatorio_${startDate}_a_${endDate}.pdf`;
-        if (includeMonthly && monthlyMonth && monthlyYear) {
-            const monthName = {
-                '01': 'Jan', '02': 'Fev', '03': 'Mar', '04': 'Abr',
-                '05': 'Mai', '06': 'Jun', '07': 'Jul', '08': 'Ago',
-                '09': 'Set', '10': 'Out', '11': 'Nov', '12': 'Dez'
-            }[monthlyMonth];
-            fileName = `Relatorio_Completo_e_Mensal_${monthName}_${monthlyYear}.pdf`;
-        }
-
-        pdf.save(fileName);
-    } catch (error) {
-        console.error('Erro ao exportar PDF:', error);
-        alert('Erro ao gerar o PDF. Tente novamente.');
+    // Esconder o botão "Exportar para PDF" durante a captura
+    const exportButton = reportElement.querySelector('#exportPDFBtn');
+    if (exportButton) {
+        exportButton.style.display = 'none';
     }
+
+    // Capturar o relatório como imagem usando html2canvas
+    const canvas = await html2canvas(reportElement, {
+        scale: 2, // Aumentar a resolução para melhor qualidade
+        useCORS: true, // Permitir carregar imagens externas (como as dos anúncios)
+        logging: true, // Para depuração, pode desativar depois
+    });
+
+    // Restaurar o botão "Exportar para PDF"
+    if (exportButton) {
+        exportButton.style.display = 'block';
+    }
+
+    // Obter a imagem como data URL
+    const imgData = canvas.toDataURL('image/png');
+
+    // Dimensões do canvas
+    const imgWidth = canvas.width;
+    const imgHeight = canvas.height;
+
+    // Dimensões da página A4 em mm (210mm x 297mm)
+    const pdfWidth = 210;
+    const pdfHeight = 297;
+
+    // Converter dimensões de pixels para mm (1 pixel = 0.0353 mm em 72 DPI)
+    const imgWidthInMm = imgWidth * 0.0353;
+    const imgHeightInMm = imgHeight * 0.0353;
+
+    // Calcular a proporção para ajustar a imagem à largura da página A4
+    const ratio = pdfWidth / imgWidthInMm;
+    const scaledWidth = imgWidthInMm * ratio;
+    const scaledHeight = imgHeightInMm * ratio;
+
+    // Ajustar o posicionamento
+    const xOffset = 0; // Alinhar à esquerda (0 mm de margem à esquerda)
+    const yOffset = 10; // Começar a 10 mm do topo da página (margem superior mínima)
+
+    // Criar o PDF
+    const doc = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4',
+    });
+
+    // Adicionar a imagem ao PDF
+    doc.addImage(imgData, 'PNG', xOffset, yOffset, scaledWidth, scaledHeight);
+
+    // Gerar o nome do arquivo
+    const fileName = `Relatorio_CA - ${unitName}_${formattedStartDate}_a_${formattedEndDate}.pdf`;
+
+    // Baixar o PDF
+    doc.save(fileName);
 }

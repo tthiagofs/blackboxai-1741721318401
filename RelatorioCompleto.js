@@ -1592,7 +1592,13 @@ async function getBestAds(unitId, startDate, endDate) {
             });
 
             if (adResponse && !adResponse.error) {
-                adsList.push(...adResponse.data);
+                // Adicionar a informação da entidade (campaign ou adset) para cada anúncio
+                const adsWithEntity = adResponse.data.map(ad => ({
+                    ...ad,
+                    entityType: entity.type,
+                    entityId: entity.id
+                }));
+                adsList.push(...adsWithEntity);
                 entityUrl = adResponse.paging && adResponse.paging.next ? adResponse.paging.next : null;
             } else {
                 console.error(`Erro ao carregar anúncios para ${entity.type} ${entity.id}:`, adResponse?.error);
@@ -1606,6 +1612,38 @@ async function getBestAds(unitId, startDate, endDate) {
     if (adsList.length === 0) {
         console.log('Nenhum anúncio encontrado para o período ou filtros selecionados.');
     }
+
+    // Função para determinar se o anúncio é White ou Black
+    const determineAdType = (ad) => {
+        if (!hasBlack) {
+            return 'White'; // Se não tem Black, todos os anúncios são White
+        }
+
+        const { entityType, entityId } = ad;
+
+        if (entityType === 'adset') {
+            if (selectedWhiteAdSets.size > 0 && selectedWhiteAdSets.has(entityId)) {
+                return 'White';
+            }
+            if (selectedBlackAdSets.size > 0 && selectedBlackAdSets.has(entityId)) {
+                return 'Black';
+            }
+        } else if (entityType === 'campaign') {
+            if (selectedWhiteCampaigns.size > 0 && selectedWhiteCampaigns.has(entityId)) {
+                return 'White';
+            }
+            if (selectedBlackCampaigns.size > 0 && selectedBlackCampaigns.has(entityId)) {
+                return 'Black';
+            }
+        }
+
+        // Fallback: se não estiver em nenhum filtro específico, verificar o nome da campanha
+        const campaignName = campaignsMap[unitId]?.[entityId]?.name || '';
+        if (campaignName.toLowerCase().includes('black')) {
+            return 'Black';
+        }
+        return 'White'; // Padrão
+    };
 
     // Processar os anúncios
     for (const ad of adsList) {
@@ -1676,13 +1714,17 @@ async function getBestAds(unitId, startDate, endDate) {
 
         console.log(`Anúncio ${ad.id} - Leads: ${totalActions}, Investimento: ${spend}, Custo por Lead: ${costPerAction}`);
 
+        // Determinar o tipo do anúncio (White ou Black)
+        const adType = determineAdType(ad);
+
         // Adicionar o anúncio à lista apropriada
         const adData = {
             creativeId: ad.creative?.id,
             imageUrl: imageUrl,
             messages: totalActions,
             spend: spend,
-            costPerMessage: costPerAction
+            costPerMessage: costPerAction,
+            adType: adType // Novo campo adicionado
         };
 
         if (totalActions > 0) {
@@ -1927,12 +1969,15 @@ function renderReport(unitName, startDate, endDate, metrics, comparisonMetrics, 
                             ${bestAds
                                 .map(
                                     ad => `
-                                        <div class="flex items-center bg-white border border-gray-200 rounded-lg p-3">
-                                            <img src="${ad.imageUrl}" alt="Anúncio" class="w-24 h-24 object-cover rounded-md mr-4">
-                                            <div>
-                                                <p class="text-gray-700 text-base"><strong>Leads:</strong> ${ad.messages}</p>
-                                                <p class="text-gray-700 text-base"><strong>Investimento:</strong> R$ ${ad.spend.toFixed(2).replace('.', ',')}</p>
-                                                <p class="text-gray-700 text-base"><strong>Custo por Lead:</strong> R$ ${ad.costPerMessage.replace('.', ',')}</p>
+                                        <div>
+                                            <p class="text-sm font-semibold text-gray-600 mb-2">${ad.adType}</p>
+                                            <div class="flex items-center bg-white border border-gray-200 rounded-lg p-3">
+                                                <img src="${ad.imageUrl}" alt="Anúncio" class="w-24 h-24 object-cover rounded-md mr-4">
+                                                <div>
+                                                    <p class="text-gray-700 text-base"><strong>Leads:</strong> ${ad.messages}</p>
+                                                    <p class="text-gray-700 text-base"><strong>Investimento:</strong> R$ ${ad.spend.toFixed(2).replace('.', ',')}</p>
+                                                    <p class="text-gray-700 text-base"><strong>Custo por Lead:</strong> R$ ${ad.costPerMessage.replace('.', ',')}</p>
+                                                </div>
                                             </div>
                                         </div>
                                     `

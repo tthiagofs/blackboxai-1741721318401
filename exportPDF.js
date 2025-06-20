@@ -26,12 +26,8 @@ export async function exportToPDF(
         return;
     }
 
-    // Clonar o elemento para manipulação temporária
-    const tempReportElement = reportElement.cloneNode(true);
-    document.body.appendChild(tempReportElement);
-
     // Pré-processar o texto da análise de desempenho para garantir espaços
-    const analysisSection = tempReportElement.querySelector('.mt-8:last-of-type ul');
+    const analysisSection = reportElement.querySelector('.mt-8:last-of-type ul');
     if (analysisSection && performanceAnalysis.trim()) {
         const paragraphs = performanceAnalysis.split(/\n\s*\n/).filter(p => p.trim());
         let formattedText = paragraphs.map(paragraph => {
@@ -44,33 +40,20 @@ export async function exportToPDF(
         analysisSection.innerHTML = `<li>${formattedText}</li>`;
     }
 
-    // Ajustar estilos para garantir captura correta
-    tempReportElement.style.width = '210mm';
-    tempReportElement.style.height = 'auto';
-    tempReportElement.style.position = 'absolute';
-    tempReportElement.style.top = '0';
-    tempReportElement.style.left = '0';
-    tempReportElement.style.overflow = 'hidden';
-
     // Esconder o botão "Exportar para PDF" durante a captura
-    const exportButton = tempReportElement.querySelector('#exportPDFBtn');
+    const exportButton = reportElement.querySelector('#exportPDFBtn');
     if (exportButton) {
         exportButton.style.display = 'none';
     }
 
     // Capturar o relatório como imagem usando html2canvas
-    const canvas = await html2canvas(tempReportElement, {
-        scale: 2,
-        useCORS: true,
-        logging: true,
-        windowWidth: 595, // Largura aproximada de A4 em pixels (210mm * 2.8346 pixels/mm)
-        windowHeight: document.documentElement.scrollHeight,
+    const canvas = await html2canvas(reportElement, {
+        scale: 2, // Aumentar a resolução para melhor qualidade
+        useCORS: true, // Permitir carregar imagens externas (como as dos anúncios)
+        logging: true, // Para depuração, pode desativar depois
     });
 
-    // Remover o elemento temporário do DOM
-    document.body.removeChild(tempReportElement);
-
-    // Restaurar o botão "Exportar para PDF" no elemento original
+    // Restaurar o botão "Exportar para PDF"
     if (exportButton) {
         exportButton.style.display = 'block';
     }
@@ -86,18 +69,18 @@ export async function exportToPDF(
     const pdfWidth = 210;
     const pdfHeight = 297;
 
-    // Converter dimensões de pixels para mm (1 pixel = 0.3528 mm em 72 DPI com escala 2)
-    const imgWidthInMm = imgWidth / 2.8346;
-    const imgHeightInMm = imgHeight / 2.8346;
+    // Converter dimensões de pixels para mm (1 pixel = 0.0353 mm em 72 DPI)
+    const imgWidthInMm = imgWidth * 0.0353;
+    const imgHeightInMm = imgHeight * 0.0353;
 
     // Calcular a proporção para ajustar a imagem à largura da página A4
     const ratio = pdfWidth / imgWidthInMm;
-    const scaledWidth = pdfWidth;
-    const scaledHeight = Math.min(imgHeightInMm * ratio, pdfHeight);
+    const scaledWidth = imgWidthInMm * ratio;
+    const scaledHeight = imgHeightInMm * ratio;
 
     // Ajustar o posicionamento
-    const xOffset = 0;
-    const yOffset = 10;
+    const xOffset = 0; // Alinhar à esquerda (0 mm de margem à esquerda)
+    const yOffset = 10; // Começar a 10 mm do topo da página (margem superior mínima)
 
     // Criar o PDF
     const doc = new jsPDF({

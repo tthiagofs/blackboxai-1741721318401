@@ -26,6 +26,21 @@ export async function exportToPDF(
         return;
     }
 
+    // Pré-processar o texto da análise de desempenho para garantir espaços
+    const analysisSection = reportElement.querySelector('.mt-8:last-of-type ul');
+    if (analysisSection && performanceAnalysis.trim()) {
+        const paragraphs = performanceAnalysis.split(/\n\s*\n/).filter(p => p.trim());
+        let formattedText = paragraphs.map(paragraph => {
+            return paragraph
+                .replace(/\s+/g, ' ') // Substituir múltiplos espaços por um único espaço
+                .replace(/([a-zA-Z])\s*([a-zA-Z])/g, '$1 $2') // Garantir espaço entre letras consecutivas
+                .replace(/([.,!?])\s*([a-zA-Z])/g, '$1 $2') // Garantir espaço após pontuação
+                .replace(/\n/g, '<br>') // Converter quebras de linha em <br>
+                .trim();
+        }).join('</li><li>');
+        analysisSection.innerHTML = `<li>${formattedText}</li>`;
+    }
+
     // Esconder o botão "Exportar para PDF" durante a captura
     const exportButton = reportElement.querySelector('#exportPDFBtn');
     if (exportButton) {

@@ -26,52 +26,20 @@ export async function exportToPDF(
         return;
     }
 
-    // Clonar o elemento para manipulação temporária
-    const tempReportElement = reportElement.cloneNode(true);
-    document.body.appendChild(tempReportElement);
-
-    // Pré-processar o texto da análise de desempenho para garantir espaços
-    const analysisSection = tempReportElement.querySelector('.mt-8:last-of-type ul');
-    if (analysisSection && performanceAnalysis.trim()) {
-        const paragraphs = performanceAnalysis.split(/\n\s*\n/).filter(p => p.trim());
-        let formattedText = paragraphs.map(paragraph => {
-            return paragraph
-                .replace(/\s+/g, ' ') // Substituir múltiplos espaços por um único espaço
-                .replace(/([a-zA-Z])\s*([a-zA-Z])/g, '$1 $2') // Garantir espaço entre letras consecutivas
-                .replace(/\n/g, '<br>') // Converter quebras de linha em <br>
-                .trim();
-        }).join('</li><li>');
-        analysisSection.innerHTML = `<li>${formattedText}</li>`;
-    }
-
-    // Ajustar estilos para garantir captura correta
-    tempReportElement.style.width = '210mm';
-    tempReportElement.style.height = 'auto';
-    tempReportElement.style.position = 'absolute';
-    tempReportElement.style.top = '0';
-    tempReportElement.style.left = '0';
-    tempReportElement.style.overflow = 'hidden';
-
     // Esconder o botão "Exportar para PDF" durante a captura
-    const exportButton = tempReportElement.querySelector('#exportPDFBtn');
+    const exportButton = reportElement.querySelector('#exportPDFBtn');
     if (exportButton) {
         exportButton.style.display = 'none';
     }
 
-    // Aguardar breve atualização do DOM
-    await new Promise(resolve => setTimeout(resolve, 100));
-
     // Capturar o relatório como imagem usando html2canvas
-    const canvas = await html2canvas(tempReportElement, {
-        scale: 2,
-        useCORS: true,
-        logging: true,
+    const canvas = await html2canvas(reportElement, {
+        scale: 2, // Aumentar a resolução para melhor qualidade
+        useCORS: true, // Permitir carregar imagens externas (como as dos anúncios)
+        logging: true, // Para depuração, pode desativar depois
     });
 
-    // Remover o elemento temporário do DOM
-    document.body.removeChild(tempReportElement);
-
-    // Restaurar o botão "Exportar para PDF" no elemento original
+    // Restaurar o botão "Exportar para PDF"
     if (exportButton) {
         exportButton.style.display = 'block';
     }
@@ -97,8 +65,8 @@ export async function exportToPDF(
     const scaledHeight = imgHeightInMm * ratio;
 
     // Ajustar o posicionamento
-    const xOffset = 0;
-    const yOffset = 10;
+    const xOffset = 0; // Alinhar à esquerda (0 mm de margem à esquerda)
+    const yOffset = 10; // Começar a 10 mm do topo da página (margem superior mínima)
 
     // Criar o PDF
     const doc = new jsPDF({

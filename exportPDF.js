@@ -26,20 +26,34 @@ export async function exportToPDF(
         return;
     }
 
+    // Clonar o elemento para manipulação temporária
+    const tempReportElement = reportElement.cloneNode(true);
+    
+    // Pré-processar o texto da análise de desempenho para garantir espaços
+    const analysisSection = tempReportElement.querySelector('.mt-8:last-of-type ul');
+    if (analysisSection && performanceAnalysis.trim()) {
+        const paragraphs = performanceAnalysis.split(/\n\s*\n/).filter(p => p.trim());
+        let formattedText = paragraphs.map(paragraph => {
+            // Substituir quebras de linha por <br> e garantir espaços entre palavras
+            return paragraph.replace(/\s+/g, ' ').replace(/\n/g, '<br>').trim();
+        }).join('</li><li>');
+        analysisSection.innerHTML = `<li>${formattedText}</li>`;
+    }
+
     // Esconder o botão "Exportar para PDF" durante a captura
-    const exportButton = reportElement.querySelector('#exportPDFBtn');
+    const exportButton = tempReportElement.querySelector('#exportPDFBtn');
     if (exportButton) {
         exportButton.style.display = 'none';
     }
 
     // Capturar o relatório como imagem usando html2canvas
-    const canvas = await html2canvas(reportElement, {
+    const canvas = await html2canvas(tempReportElement, {
         scale: 2, // Aumentar a resolução para melhor qualidade
         useCORS: true, // Permitir carregar imagens externas (como as dos anúncios)
         logging: true, // Para depuração, pode desativar depois
     });
 
-    // Restaurar o botão "Exportar para PDF"
+    // Restaurar o botão "Exportar para PDF" no elemento original, se necessário
     if (exportButton) {
         exportButton.style.display = 'block';
     }

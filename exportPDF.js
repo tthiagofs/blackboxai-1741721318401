@@ -26,19 +26,27 @@ export async function exportToPDF(
         return;
     }
 
-    // Clonar o elemento para manipulação temporária
+    // Clonar o elemento e adicionar ao corpo temporariamente
     const tempReportElement = reportElement.cloneNode(true);
-    
+    document.body.appendChild(tempReportElement);
+
     // Pré-processar o texto da análise de desempenho para garantir espaços
     const analysisSection = tempReportElement.querySelector('.mt-8:last-of-type ul');
     if (analysisSection && performanceAnalysis.trim()) {
         const paragraphs = performanceAnalysis.split(/\n\s*\n/).filter(p => p.trim());
         let formattedText = paragraphs.map(paragraph => {
-            // Substituir quebras de linha por <br> e garantir espaços entre palavras
             return paragraph.replace(/\s+/g, ' ').replace(/\n/g, '<br>').trim();
         }).join('</li><li>');
         analysisSection.innerHTML = `<li>${formattedText}</li>`;
     }
+
+    // Remover scroll e estilos que possam interferir
+    tempReportElement.style.position = 'absolute';
+    tempReportElement.style.top = '0';
+    tempReportElement.style.left = '0';
+    tempReportElement.style.overflow = 'hidden';
+    tempReportElement.style.width = '100%';
+    tempReportElement.style.height = 'auto';
 
     // Esconder o botão "Exportar para PDF" durante a captura
     const exportButton = tempReportElement.querySelector('#exportPDFBtn');
@@ -48,15 +56,15 @@ export async function exportToPDF(
 
     // Capturar o relatório como imagem usando html2canvas
     const canvas = await html2canvas(tempReportElement, {
-        scale: 2, // Aumentar a resolução para melhor qualidade
-        useCORS: true, // Permitir carregar imagens externas (como as dos anúncios)
-        logging: true, // Para depuração, pode desativar depois
+        scale: 2,
+        useCORS: true,
+        logging: true,
+        windowWidth: document.documentElement.scrollWidth,
+        windowHeight: document.documentElement.scrollHeight,
     });
 
-    // Restaurar o botão "Exportar para PDF" no elemento original, se necessário
-    if (exportButton) {
-        exportButton.style.display = 'block';
-    }
+    // Remover o elemento temporário do DOM
+    document.body.removeChild(tempReportElement);
 
     // Obter a imagem como data URL
     const imgData = canvas.toDataURL('image/png');
@@ -79,8 +87,8 @@ export async function exportToPDF(
     const scaledHeight = imgHeightInMm * ratio;
 
     // Ajustar o posicionamento
-    const xOffset = 0; // Alinhar à esquerda (0 mm de margem à esquerda)
-    const yOffset = 10; // Começar a 10 mm do topo da página (margem superior mínima)
+    const xOffset = 0;
+    const yOffset = 10;
 
     // Criar o PDF
     const doc = new jsPDF({

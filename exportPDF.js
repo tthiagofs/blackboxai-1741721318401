@@ -45,8 +45,10 @@ export async function exportToPDF(
     tempReportElement.style.top = '0';
     tempReportElement.style.left = '0';
     tempReportElement.style.overflow = 'hidden';
-    tempReportElement.style.width = '100%';
+    tempReportElement.style.width = '210mm';
     tempReportElement.style.height = 'auto';
+    tempReportElement.style.padding = '0';
+    tempReportElement.style.margin = '0';
 
     // Esconder o botão "Exportar para PDF" durante a captura
     const exportButton = tempReportElement.querySelector('#exportPDFBtn');
@@ -59,7 +61,7 @@ export async function exportToPDF(
         scale: 2,
         useCORS: true,
         logging: true,
-        windowWidth: document.documentElement.scrollWidth,
+        windowWidth: 595, // Largura aproximada de A4 em pixels (210mm * 2.8346 pixels/mm)
         windowHeight: document.documentElement.scrollHeight,
     });
 
@@ -77,28 +79,40 @@ export async function exportToPDF(
     const pdfWidth = 210;
     const pdfHeight = 297;
 
-    // Converter dimensões de pixels para mm (1 pixel = 0.0353 mm em 72 DPI)
-    const imgWidthInMm = imgWidth * 0.0353;
-    const imgHeightInMm = imgHeight * 0.0353;
+    // Converter dimensões de pixels para mm (1 pixel = 0.3528 mm em 72 DPI)
+    const imgWidthInMm = imgWidth / 2.8346; // Ajuste para escala 2
+    const imgHeightInMm = imgHeight / 2.8346;
 
     // Calcular a proporção para ajustar a imagem à largura da página A4
     const ratio = pdfWidth / imgWidthInMm;
-    const scaledWidth = imgWidthInMm * ratio;
-    const scaledHeight = imgHeightInMm * ratio;
+    const scaledWidth = pdfWidth;
+    const scaledHeight = Math.min(imgHeightInMm * ratio, pdfHeight);
 
-    // Ajustar o posicionamento
+    // Ajustar o posicionamento e adicionar quebras de página se necessário
     const xOffset = 0;
-    const yOffset = 10;
-
-    // Criar o PDF
+    let yOffset = 10;
     const doc = new jsPDF({
         orientation: 'portrait',
         unit: 'mm',
         format: 'a4',
     });
 
-    // Adicionar a imagem ao PDF
-    doc.addImage(imgData, 'PNG', xOffset, yOffset, scaledWidth, scaledHeight);
+    // Adicionar a imagem ao PDF com quebras de página
+    let remainingHeight = scaledHeight;
+    let sourceY = 0;
+
+    while (remainingHeight > 0) {
+        const heightToAdd = Math.min(remainingHeight, pdfHeight - yOffset);
+        if (heightToAdd > 0) {
+            doc.addImage(imgData, 'PNG', xOffset, yOffset, scaledWidth, heightToAdd, '', 'FAST', sourceY / 2);
+        }
+        remainingHeight -= heightToAdd;
+        sourceY += heightToAdd * 2.8346; // Ajuste para escala 2
+        if (remainingHeight > 0) {
+            doc.addPage();
+            yOffset = 10;
+        }
+    }
 
     // Gerar o nome do arquivo
     const fileName = `Relatorio_CA - ${unitName}_${formattedStartDate}_a_${formattedEndDate}.pdf`;

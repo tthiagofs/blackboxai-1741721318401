@@ -109,12 +109,15 @@ export class FacebookInsightsService {
         console.log('Todos os caches foram limpos');
     }
 
-    // API calls with pagination
+    // API calls with pagination and rate limiting
     async fetchWithPagination(url, fields = []) {
         let allData = [];
         let currentUrl = url;
 
         while (currentUrl) {
+            // Rate limiting - delay entre requisições
+            await this._delay(300);
+            
             const response = await new Promise((resolve) => {
                 FB.api(currentUrl, resolve);
             });
@@ -123,11 +126,27 @@ export class FacebookInsightsService {
                 allData = allData.concat(response.data || []);
                 currentUrl = response.paging && response.paging.next ? response.paging.next : null;
             } else {
+                if (response?.error?.message?.includes('User request limit reached')) {
+                    console.warn('Rate limit atingido, aguardando 5 segundos...');
+                    await this._delay(5000); // Aguardar 5 segundos
+                    continue; // Tentar novamente
+                }
+                if (response?.error?.message?.includes('Application request limit reached')) {
+                    console.warn('Limite de aplicação atingido, aguardando 10 segundos...');
+                    await this._delay(10000); // Aguardar 10 segundos
+                    continue; // Tentar novamente
+                }
+                console.error('Erro na API do Facebook:', response?.error);
                 throw new Error(response?.error?.message || 'Erro na API do Facebook');
             }
         }
 
         return allData;
+    }
+
+    // Helper para delay
+    _delay(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
     }
 
     // Load campaigns with insights

@@ -108,26 +108,102 @@ if (!unitSelect) {
     }
 }
 
-// Função para armazenar cache
+// Função para armazenar cache - OTIMIZADA
 const CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 horas em milissegundos
+const MAX_CACHE_SIZE = 50; // Limitar tamanho do cache
 
 function getCachedData(key) {
-    const cached = localStorage.getItem(key);
-    if (!cached) return null;
-    const { data, timestamp } = JSON.parse(cached);
-    if (Date.now() - timestamp > CACHE_DURATION) {
+    try {
+        const cached = localStorage.getItem(key);
+        if (!cached) return null;
+        const { data, timestamp } = JSON.parse(cached);
+        if (Date.now() - timestamp > CACHE_DURATION) {
+            localStorage.removeItem(key);
+            return null;
+        }
+        return data;
+    } catch (error) {
+        console.error('Erro ao ler cache:', error);
         localStorage.removeItem(key);
         return null;
     }
-    return data;
 }
 
 function setCachedData(key, data) {
-    const cacheEntry = {
-        data,
-        timestamp: Date.now()
-    };
-    localStorage.setItem(key, JSON.stringify(cacheEntry));
+    try {
+        const cacheEntry = {
+            data,
+            timestamp: Date.now()
+        };
+        localStorage.setItem(key, JSON.stringify(cacheEntry));
+        
+        // Limpar cache antigo se necessário
+        cleanupCache();
+    } catch (error) {
+        console.error('Erro ao salvar cache:', error);
+        // Se o localStorage estiver cheio, limpar cache antigo
+        if (error.name === 'QuotaExceededError') {
+            clearOldCache();
+            try {
+                localStorage.setItem(key, JSON.stringify(cacheEntry));
+            } catch (retryError) {
+                console.error('Falha ao salvar cache após limpeza:', retryError);
+            }
+        }
+    }
+}
+
+function cleanupCache() {
+    const keys = Object.keys(localStorage);
+    const cacheKeys = keys.filter(key => key.startsWith('campaigns_') || key.startsWith('adsets_') || key.startsWith('ads_') || key.startsWith('best_ads_'));
+    
+    if (cacheKeys.length > MAX_CACHE_SIZE) {
+        // Ordenar por timestamp e remover os mais antigos
+        const cacheEntries = cacheKeys.map(key => {
+            try {
+                const cached = localStorage.getItem(key);
+                const { timestamp } = JSON.parse(cached);
+                return { key, timestamp };
+            } catch {
+                return { key, timestamp: 0 };
+            }
+        }).sort((a, b) => a.timestamp - b.timestamp);
+        
+        // Remover 25% dos caches mais antigos
+        const toRemove = Math.floor(cacheEntries.length * 0.25);
+        for (let i = 0; i < toRemove; i++) {
+            localStorage.removeItem(cacheEntries[i].key);
+        }
+    }
+}
+
+function clearOldCache() {
+    const keys = Object.keys(localStorage);
+    const cacheKeys = keys.filter(key => key.startsWith('campaigns_') || key.startsWith('adsets_') || key.startsWith('ads_') || key.startsWith('best_ads_'));
+    
+    cacheKeys.forEach(key => {
+        try {
+            const cached = localStorage.getItem(key);
+            const { timestamp } = JSON.parse(cached);
+            if (Date.now() - timestamp > CACHE_DURATION) {
+                localStorage.removeItem(key);
+            }
+        } catch {
+            localStorage.removeItem(key);
+        }
+    });
+}
+
+// Função para limpar todos os caches
+function clearAllCaches() {
+    creativeCache.clear();
+    insightsCache.clear();
+    
+    const keys = Object.keys(localStorage);
+    const cacheKeys = keys.filter(key => key.startsWith('campaigns_') || key.startsWith('adsets_') || key.startsWith('ads_') || key.startsWith('best_ads_'));
+    cacheKeys.forEach(key => localStorage.removeItem(key));
+    
+    console.log('Todos os caches foram limpos');
 }
 
 
@@ -281,99 +357,44 @@ form.addEventListener('input', async function(e) {
     }
 });
 
-// Funções para carregar dados do Facebook
+// Funções para carregar dados do Facebook - OTIMIZADAS
 async function loadAds(unitId, startDate, endDate, filteredCampaigns = null, filteredAdSets = null) {
     try {
+        const cacheKey = `ads_${unitId}_${startDate}_${endDate}_${Array.from(filteredCampaigns || []).join(',')}_${Array.from(filteredAdSets || []).join(',')}`;
+        const cachedAds = getCachedData(cacheKey);
+        if (cachedAds) {
+            return cachedAds;
+        }
+
         let adsMap = {};
+        const batchSize = 50; // Tamanho do batch para otimizar requests
 
         if (filteredAdSets && filteredAdSets.size > 0) {
             const adSetIds = Array.from(filteredAdSets);
-            for (const adSetId of adSetIds) {
-                let url = `/${adSetId}/ads?fields=id,creative&access_token=${currentAccessToken}&limit=50`;
-                while (url) {
-                    const adResponse = await new Promise((resolve) => {
-                        FB.api(url, resolve);
-                    });
-                    if (adResponse && !adResponse.error) {
-                        const adIds = adResponse.data.map(ad => ad.id);
-                        const insightPromises = adIds.map(adId => getAdInsights(adId, startDate, endDate));
-                        const creativePromises = adResponse.data.map(ad => getCreativeData(ad.creative.id));
-                        const [insights, creatives] = await Promise.all([
-                            Promise.all(insightPromises),
-                            Promise.all(creativePromises)
-                        ]);
-                        adIds.forEach((adId, index) => {
-                            adsMap[adId] = {
-                                insights: insights[index],
-                                creative: creatives[index]
-                            };
-                        });
-                        url = adResponse.paging && adResponse.paging.next ? adResponse.paging.next : null;
-                    } else {
-                        console.error(`Erro ao carregar anúncios do ad set ${adSetId}:`, adResponse?.error);
-                        url = null;
-                    }
-                    await delay(500);
-                }
-            }
+            // Processar ad sets em paralelo
+            const adSetPromises = adSetIds.map(adSetId => loadAdsFromAdSet(adSetId, startDate, endDate));
+            const adSetResults = await Promise.all(adSetPromises);
+            
+            // Consolidar resultados
+            adSetResults.forEach(adSetAds => {
+                Object.assign(adsMap, adSetAds);
+            });
         } else if (filteredCampaigns && filteredCampaigns.size > 0) {
             const campaignIds = Array.from(filteredCampaigns);
-            for (const campaignId of campaignIds) {
-                let url = `/${campaignId}/ads?fields=id,creative&access_token=${currentAccessToken}&limit=50`;
-                while (url) {
-                    const adResponse = await new Promise((resolve) => {
-                        FB.api(url, resolve);
-                    });
-                    if (adResponse && !adResponse.error) {
-                        const adIds = adResponse.data.map(ad => ad.id);
-                        const insightPromises = adIds.map(adId => getAdInsights(adId, startDate, endDate));
-                        const creativePromises = adResponse.data.map(ad => getCreativeData(ad.creative.id));
-                        const [insights, creatives] = await Promise.all([
-                            Promise.all(insightPromises),
-                            Promise.all(creativePromises)
-                        ]);
-                        adIds.forEach((adId, index) => {
-                            adsMap[adId] = {
-                                insights: insights[index],
-                                creative: creatives[index]
-                            };
-                        });
-                        url = adResponse.paging && adResponse.paging.next ? adResponse.paging.next : null;
-                    } else {
-                        console.error(`Erro ao carregar anúncios da campanha ${campaignId}:`, adResponse?.error);
-                        url = null;
-                    }
-                    await delay(500);
-                }
-            }
+            // Processar campanhas em paralelo
+            const campaignPromises = campaignIds.map(campaignId => loadAdsFromCampaign(campaignId, startDate, endDate));
+            const campaignResults = await Promise.all(campaignPromises);
+            
+            // Consolidar resultados
+            campaignResults.forEach(campaignAds => {
+                Object.assign(adsMap, campaignAds);
+            });
         } else {
-            let url = `/${unitId}/ads?fields=id,creative&access_token=${currentAccessToken}&limit=50`;
-            while (url) {
-                const adResponse = await new Promise(resolve => {
-                    FB.api(url, resolve);
-                });
-                if (adResponse && !adResponse.error) {
-                    const adIds = adResponse.data.map(ad => ad.id);
-                    const insightPromises = adIds.map(adId => getAdInsights(adId, startDate, endDate));
-                    const creativePromises = adResponse.data.map(ad => getCreativeData(ad.creative.id));
-                    const [insights, creatives] = await Promise.all([
-                        Promise.all(insightPromises),
-                        Promise.all(creativePromises)
-                    ]);
-                    adIds.forEach((adId, index) => {
-                        adsMap[adId] = {
-                            insights: insights[index],
-                            creative: creatives[index]
-                        };
-                    });
-                    url = adResponse.paging && adResponse.paging.next ? adResponse.paging.next : null;
-                } else {
-                    console.error(`Erro ao carregar anúncios da conta ${unitId}:`, adResponse?.error);
-                    url = null;
-                }
-                await delay(500);
-            }
+            adsMap = await loadAdsFromAccount(unitId, startDate, endDate);
         }
+
+        // Salvar no cache
+        setCachedData(cacheKey, adsMap);
         return adsMap;
     } catch (error) {
         console.error('Erro ao carregar anúncios:', error);
@@ -381,7 +402,136 @@ async function loadAds(unitId, startDate, endDate, filteredCampaigns = null, fil
     }
 }
 
+// Função auxiliar para carregar anúncios de um ad set
+async function loadAdsFromAdSet(adSetId, startDate, endDate) {
+    const adsMap = {};
+    let url = `/${adSetId}/ads?fields=id,creative&access_token=${currentAccessToken}&limit=50`;
+    
+    while (url) {
+        const adResponse = await new Promise((resolve) => {
+            FB.api(url, resolve);
+        });
+        
+        if (adResponse && !adResponse.error) {
+            const ads = adResponse.data;
+            if (ads.length > 0) {
+                // Buscar insights em batch
+                const insightPromises = ads.map(ad => getAdInsights(ad.id, startDate, endDate));
+                const creativePromises = ads.map(ad => getCreativeData(ad.creative.id));
+                
+                const [insights, creatives] = await Promise.all([
+                    Promise.all(insightPromises),
+                    Promise.all(creativePromises)
+                ]);
+                
+                ads.forEach((ad, index) => {
+                    adsMap[ad.id] = {
+                        insights: insights[index],
+                        creative: creatives[index]
+                    };
+                });
+            }
+            url = adResponse.paging && adResponse.paging.next ? adResponse.paging.next : null;
+        } else {
+            console.error(`Erro ao carregar anúncios do ad set ${adSetId}:`, adResponse?.error);
+            url = null;
+        }
+        // Reduzir delay para 200ms
+        await delay(200);
+    }
+    
+    return adsMap;
+}
+
+// Função auxiliar para carregar anúncios de uma campanha
+async function loadAdsFromCampaign(campaignId, startDate, endDate) {
+    const adsMap = {};
+    let url = `/${campaignId}/ads?fields=id,creative&access_token=${currentAccessToken}&limit=50`;
+    
+    while (url) {
+        const adResponse = await new Promise((resolve) => {
+            FB.api(url, resolve);
+        });
+        
+        if (adResponse && !adResponse.error) {
+            const ads = adResponse.data;
+            if (ads.length > 0) {
+                // Buscar insights em batch
+                const insightPromises = ads.map(ad => getAdInsights(ad.id, startDate, endDate));
+                const creativePromises = ads.map(ad => getCreativeData(ad.creative.id));
+                
+                const [insights, creatives] = await Promise.all([
+                    Promise.all(insightPromises),
+                    Promise.all(creativePromises)
+                ]);
+                
+                ads.forEach((ad, index) => {
+                    adsMap[ad.id] = {
+                        insights: insights[index],
+                        creative: creatives[index]
+                    };
+                });
+            }
+            url = adResponse.paging && adResponse.paging.next ? adResponse.paging.next : null;
+        } else {
+            console.error(`Erro ao carregar anúncios da campanha ${campaignId}:`, adResponse?.error);
+            url = null;
+        }
+        await delay(200);
+    }
+    
+    return adsMap;
+}
+
+// Função auxiliar para carregar anúncios da conta
+async function loadAdsFromAccount(unitId, startDate, endDate) {
+    const adsMap = {};
+    let url = `/${unitId}/ads?fields=id,creative&access_token=${currentAccessToken}&limit=50`;
+    
+    while (url) {
+        const adResponse = await new Promise(resolve => {
+            FB.api(url, resolve);
+        });
+        
+        if (adResponse && !adResponse.error) {
+            const ads = adResponse.data;
+            if (ads.length > 0) {
+                // Buscar insights em batch
+                const insightPromises = ads.map(ad => getAdInsights(ad.id, startDate, endDate));
+                const creativePromises = ads.map(ad => getCreativeData(ad.creative.id));
+                
+                const [insights, creatives] = await Promise.all([
+                    Promise.all(insightPromises),
+                    Promise.all(creativePromises)
+                ]);
+                
+                ads.forEach((ad, index) => {
+                    adsMap[ad.id] = {
+                        insights: insights[index],
+                        creative: creatives[index]
+                    };
+                });
+            }
+            url = adResponse.paging && adResponse.paging.next ? adResponse.paging.next : null;
+        } else {
+            console.error(`Erro ao carregar anúncios da conta ${unitId}:`, adResponse?.error);
+            url = null;
+        }
+        await delay(200);
+    }
+    
+    return adsMap;
+}
+
+// Cache para dados de criativos
+const creativeCache = new Map();
+
 async function getCreativeData(creativeId) {
+    // Verificar cache primeiro
+    if (creativeCache.has(creativeId)) {
+        return creativeCache.get(creativeId);
+    }
+
     return new Promise((resolve) => {
         FB.api(
             `/${creativeId}`,
@@ -390,18 +540,27 @@ async function getCreativeData(creativeId) {
                 if (response && !response.error) {
                     let imageUrl = 'https://dummyimage.com/600x600/ccc/fff';
 
-                    if (response.image_hash) {
-                        const imageResponse = await new Promise((imageResolve) => {
-                            FB.api(
-                                `/adimages`,
-                                { hashes: [response.image_hash], fields: 'url', access_token: currentAccessToken },
-                                imageResolve
-                            );
-                        });
-                        if (imageResponse && !imageResponse.error && imageResponse.data && imageResponse.data.length > 0) {
-                            imageUrl = imageResponse.data[0].url;
+                    // Priorizar thumbnail_url primeiro (mais rápido)
+                    if (response.thumbnail_url) {
+                        imageUrl = response.thumbnail_url;
+                    } else if (response.image_hash) {
+                        try {
+                            const imageResponse = await new Promise((imageResolve) => {
+                                FB.api(
+                                    `/adimages`,
+                                    { hashes: [response.image_hash], fields: 'url', access_token: currentAccessToken },
+                                    imageResolve
+                                );
+                            });
+                            if (imageResponse && !imageResponse.error && imageResponse.data && imageResponse.data.length > 0) {
+                                imageUrl = imageResponse.data[0].url;
+                            }
+                        } catch (error) {
+                            console.error('Erro ao buscar imagem por hash:', error);
                         }
                     }
+                    
+                    // Só buscar em object_story_spec se ainda não encontrou uma imagem válida
                     if (imageUrl.includes('dummyimage') && response.object_story_spec) {
                         const { photo_data, video_data, link_data } = response.object_story_spec;
                         if (photo_data && photo_data.images && photo_data.images.length > 0) {
@@ -414,6 +573,8 @@ async function getCreativeData(creativeId) {
                             imageUrl = link_data.picture;
                         }
                     }
+                    
+                    // Só buscar effective_object_story_id como último recurso
                     if (imageUrl.includes('dummyimage') && response.effective_object_story_id) {
                         try {
                             const storyResponse = await new Promise((storyResolve) => {
@@ -430,14 +591,16 @@ async function getCreativeData(creativeId) {
                             console.error('Erro ao buscar full_picture:', error);
                         }
                     }
-                    if (imageUrl.includes('dummyimage') && response.thumbnail_url) {
-                        imageUrl = response.thumbnail_url;
-                    }
 
-                    resolve({ imageUrl: imageUrl });
+                    const result = { imageUrl: imageUrl };
+                    // Salvar no cache
+                    creativeCache.set(creativeId, result);
+                    resolve(result);
                 } else {
                     console.error(`Erro ao carregar criativo ${creativeId}:`, response.error);
-                    resolve({ imageUrl: 'https://dummyimage.com/600x600/ccc/fff' });
+                    const result = { imageUrl: 'https://dummyimage.com/600x600/ccc/fff' };
+                    creativeCache.set(creativeId, result);
+                    resolve(result);
                 }
             }
         );
@@ -463,6 +626,7 @@ async function loadCampaigns(unitId, startDate, endDate) {
         let allCampaigns = [];
         let url = `/${unitId}/campaigns?fields=id,name&access_token=${currentAccessToken}&limit=50`;
 
+        // Carregar todas as campanhas
         while (url) {
             const response = await new Promise((resolve) => {
                 FB.api(url, resolve);
@@ -475,49 +639,61 @@ async function loadCampaigns(unitId, startDate, endDate) {
                 console.error(`Erro ao carregar campanhas para a unidade ${unitId}:`, response?.error);
                 url = null;
             }
-            await delay(200);
+            await delay(100); // Reduzir delay
         }
 
-        const batchRequests = allCampaigns.map(campaign => ({
-            method: 'GET',
-            relative_url: `${campaign.id}/insights?fields=spend,actions,reach&time_range={"since":"${startDate}","until":"${endDate}"}&level=campaign&access_token=${currentAccessToken}`
-        }));
+        // Otimizar batch requests - processar em lotes menores para melhor performance
+        const batchSize = 25; // Reduzir tamanho do batch para evitar timeouts
+        const insights = new Array(allCampaigns.length).fill(null);
+        
+        // Processar insights em lotes paralelos
+        const batchPromises = [];
+        for (let i = 0; i < allCampaigns.length; i += batchSize) {
+            const batch = allCampaigns.slice(i, i + batchSize);
+            const batchRequests = batch.map(campaign => ({
+                method: 'GET',
+                relative_url: `${campaign.id}/insights?fields=spend,actions,reach&time_range={"since":"${startDate}","until":"${endDate}"}&level=campaign&access_token=${currentAccessToken}`
+            }));
 
-        const batchSize = 50;
-        const insights = [];
-        for (let i = 0; i < batchRequests.length; i += batchSize) {
-            const batch = batchRequests.slice(i, i + batchSize);
-            const batchResponse = await new Promise((resolve) => {
+            const batchPromise = new Promise((resolve) => {
                 FB.api('/', 'POST', {
-                    batch: batch,
+                    batch: batchRequests,
                     access_token: currentAccessToken
-                }, resolve);
+                }, (batchResponse) => {
+                    batchResponse.forEach((resp, index) => {
+                        const globalIndex = i + index;
+                        if (resp.code === 200) {
+                            const data = JSON.parse(resp.body);
+                            if (data.data && data.data.length > 0) {
+                                insights[globalIndex] = data.data[0];
+                            } else {
+                                insights[globalIndex] = { spend: '0', actions: [], reach: '0' };
+                            }
+                        } else {
+                            console.error(`Erro ao buscar insights para campanha ${batch[index].id}:`, resp);
+                            insights[globalIndex] = { spend: '0', actions: [], reach: '0' };
+                        }
+                    });
+                    resolve();
+                });
             });
-
-            batchResponse.forEach((resp, index) => {
-                if (resp.code === 200) {
-                    const data = JSON.parse(resp.body);
-                    if (data.data && data.data.length > 0) {
-                        insights[i + index] = data.data[0];
-                    } else {
-                        insights[i + index] = { spend: '0', actions: [], reach: '0' };
-                    }
-                } else {
-                    console.error(`Erro ao buscar insights para campanha ${allCampaigns[i + index].id}:`, resp);
-                    insights[i + index] = { spend: '0', actions: [], reach: '0' };
-                }
-            });
-            await delay(200);
+            
+            batchPromises.push(batchPromise);
         }
 
+        // Aguardar todos os batches em paralelo
+        await Promise.all(batchPromises);
+
+        // Processar resultados
         allCampaigns.forEach((campaign, index) => {
-            const spend = insights[index].spend ? parseFloat(insights[index].spend) : 0;
+            const insight = insights[index] || { spend: '0', actions: [], reach: '0' };
+            const spend = insight.spend ? parseFloat(insight.spend) : 0;
             campaignsMap[unitId][campaign.id] = {
                 name: campaign.name.toLowerCase(),
                 insights: { 
                     spend,
-                    reach: insights[index].reach || 0,
-                    actions: insights[index].actions || []
+                    reach: insight.reach || 0,
+                    actions: insight.actions || []
                 }
             };
         });
@@ -539,10 +715,24 @@ async function loadCampaigns(unitId, startDate, endDate) {
 
 async function loadAdSets(unitId, startDate, endDate) {
     try {
+        const cacheKey = `adsets_${unitId}_${startDate}_${endDate}`;
+        const cachedAdSets = getCachedData(cacheKey);
+        if (cachedAdSets) {
+            adSetsMap[unitId] = cachedAdSets;
+            if (hasBlack) {
+                renderWhiteAdSetOptions();
+                renderBlackAdSetOptions();
+            } else {
+                renderAdSetOptions();
+            }
+            return;
+        }
+
         adSetsMap[unitId] = {};
         let allAdSets = [];
         let url = `/${unitId}/adsets?fields=id,name&access_token=${currentAccessToken}&limit=50`;
 
+        // Carregar todos os ad sets
         while (url) {
             const response = await new Promise((resolve) => {
                 FB.api(url, resolve);
@@ -555,26 +745,67 @@ async function loadAdSets(unitId, startDate, endDate) {
                 console.error(`Erro ao carregar ad sets para a unidade ${unitId}:`, response?.error);
                 url = null;
             }
-            await delay(500);
+            await delay(100); // Reduzir delay
         }
 
-        const adSetIds = allAdSets.map(set => set.id);
-        const insights = await Promise.all(
-            adSetIds.map(id => getAdSetInsights(id, startDate, endDate))
-        );
+        // Otimizar busca de insights usando batch requests
+        const batchSize = 25;
+        const insights = new Array(allAdSets.length).fill(null);
+        
+        // Processar insights em lotes paralelos
+        const batchPromises = [];
+        for (let i = 0; i < allAdSets.length; i += batchSize) {
+            const batch = allAdSets.slice(i, i + batchSize);
+            const batchRequests = batch.map(adSet => ({
+                method: 'GET',
+                relative_url: `${adSet.id}/insights?fields=spend,actions,reach&time_range={"since":"${startDate}","until":"${endDate}"}&access_token=${currentAccessToken}`
+            }));
 
-        adSetIds.forEach((id, index) => {
-            const adSet = allAdSets.find(s => s.id === id);
-            const spend = insights[index].spend ? parseFloat(insights[index].spend) : 0;
-            adSetsMap[unitId][id] = {
+            const batchPromise = new Promise((resolve) => {
+                FB.api('/', 'POST', {
+                    batch: batchRequests,
+                    access_token: currentAccessToken
+                }, (batchResponse) => {
+                    batchResponse.forEach((resp, index) => {
+                        const globalIndex = i + index;
+                        if (resp.code === 200) {
+                            const data = JSON.parse(resp.body);
+                            if (data.data && data.data.length > 0) {
+                                insights[globalIndex] = data.data[0];
+                            } else {
+                                insights[globalIndex] = { spend: '0', actions: [], reach: '0' };
+                            }
+                        } else {
+                            console.error(`Erro ao buscar insights para ad set ${batch[index].id}:`, resp);
+                            insights[globalIndex] = { spend: '0', actions: [], reach: '0' };
+                        }
+                    });
+                    resolve();
+                });
+            });
+            
+            batchPromises.push(batchPromise);
+        }
+
+        // Aguardar todos os batches em paralelo
+        await Promise.all(batchPromises);
+
+        // Processar resultados
+        allAdSets.forEach((adSet, index) => {
+            const insight = insights[index] || { spend: '0', actions: [], reach: '0' };
+            const spend = insight.spend ? parseFloat(insight.spend) : 0;
+            adSetsMap[unitId][adSet.id] = {
                 name: adSet.name.toLowerCase(),
                 insights: {
                     spend,
-                    reach: insights[index].reach || 0,
-                    actions: insights[index].actions || []
+                    reach: insight.reach || 0,
+                    actions: insight.actions || []
                 }
             };
         });
+
+        // Salvar no cache
+        setCachedData(cacheKey, adSetsMap[unitId]);
 
         if (hasBlack) {
             renderWhiteAdSetOptions();
@@ -587,9 +818,18 @@ async function loadAdSets(unitId, startDate, endDate) {
     }
 }
 
-// Funções para obter insights
+// Cache para insights
+const insightsCache = new Map();
+
+// Funções para obter insights - OTIMIZADAS
 async function getCampaignInsights(campaignId, startDate, endDate) {
-    await delay(200);
+    const cacheKey = `campaign_insights_${campaignId}_${startDate}_${endDate}`;
+    if (insightsCache.has(cacheKey)) {
+        return insightsCache.get(cacheKey);
+    }
+
+    // Reduzir delay para 50ms
+    await delay(50);
     return new Promise((resolve) => {
         FB.api(
             `/${campaignId}/insights`,
@@ -601,11 +841,13 @@ async function getCampaignInsights(campaignId, startDate, endDate) {
             },
             (response) => {
                 if (response && !response.error && response.data && response.data.length > 0) {
-                    console.log(`Insights para campanha ${campaignId}:`, response.data[0]);
-                    resolve(response.data[0]);
+                    const result = response.data[0];
+                    insightsCache.set(cacheKey, result);
+                    resolve(result);
                 } else {
-                    console.error(`Erro ao buscar insights para campanha ${campaignId}:`, response?.error);
-                    resolve({ spend: '0', actions: [], reach: '0' });
+                    const result = { spend: '0', actions: [], reach: '0' };
+                    insightsCache.set(cacheKey, result);
+                    resolve(result);
                 }
             }
         );
@@ -613,7 +855,12 @@ async function getCampaignInsights(campaignId, startDate, endDate) {
 }
 
 async function getAdSetInsights(adSetId, startDate, endDate) {
-    await delay(200);
+    const cacheKey = `adset_insights_${adSetId}_${startDate}_${endDate}`;
+    if (insightsCache.has(cacheKey)) {
+        return insightsCache.get(cacheKey);
+    }
+
+    await delay(50);
     return new Promise((resolve) => {
         FB.api(
             `/${adSetId}/insights`,
@@ -624,9 +871,13 @@ async function getAdSetInsights(adSetId, startDate, endDate) {
             },
             (response) => {
                 if (response && !response.error && response.data && response.data.length > 0) {
-                    resolve(response.data[0]);
+                    const result = response.data[0];
+                    insightsCache.set(cacheKey, result);
+                    resolve(result);
                 } else {
-                    resolve({ spend: '0', actions: [], reach: '0' });
+                    const result = { spend: '0', actions: [], reach: '0' };
+                    insightsCache.set(cacheKey, result);
+                    resolve(result);
                 }
             }
         );
@@ -634,7 +885,12 @@ async function getAdSetInsights(adSetId, startDate, endDate) {
 }
 
 async function getAdInsights(adId, startDate, endDate) {
-    await delay(200);
+    const cacheKey = `ad_insights_${adId}_${startDate}_${endDate}`;
+    if (insightsCache.has(cacheKey)) {
+        return insightsCache.get(cacheKey);
+    }
+
+    await delay(50);
     return new Promise((resolve) => {
         FB.api(
             `/${adId}/insights`,
@@ -645,16 +901,20 @@ async function getAdInsights(adId, startDate, endDate) {
             },
             (response) => {
                 if (response && !response.error && response.data && response.data.length > 0) {
-                    resolve(response.data[0]);
+                    const result = response.data[0];
+                    insightsCache.set(cacheKey, result);
+                    resolve(result);
                 } else {
-                    resolve({ spend: '0', actions: [], reach: '0' });
+                    const result = { spend: '0', actions: [], reach: '0' };
+                    insightsCache.set(cacheKey, result);
+                    resolve(result);
                 }
             }
         );
     });
 }
 
-// Funções de renderização
+// Funções de renderização - OTIMIZADAS
 function renderCampaignOptions() {
     const unitId = document.getElementById('unitId').value;
     const container = document.getElementById('campaignsList');
@@ -666,22 +926,30 @@ function renderCampaignOptions() {
         }))
         .sort((a, b) => b.spend - a.spend);
 
-    container.innerHTML = '';
-
+    // Usar DocumentFragment para melhor performance
+    const fragment = document.createDocumentFragment();
+    
     campaigns.forEach(campaign => {
         const option = document.createElement('div');
         option.className = `filter-option ${selectedCampaigns.has(campaign.id) ? 'selected' : ''}`;
         option.dataset.id = campaign.id;
+        
+        // Usar template string mais eficiente
+        const isSelected = selectedCampaigns.has(campaign.id);
+        const spendClass = campaign.spend > 0 ? 'text-green-600' : 'text-gray-500';
+        const spendFormatted = campaign.spend.toFixed(2).replace('.', ',');
+        
         option.innerHTML = `
             <div class="flex justify-between items-center">
                 <span>${campaign.name}</span>
-                <span class="text-sm ${campaign.spend > 0 ? 'text-green-600' : 'text-gray-500'}">
-                    R$ ${campaign.spend.toFixed(2).replace('.', ',')}
+                <span class="text-sm ${spendClass}">
+                    R$ ${spendFormatted}
                 </span>
             </div>
         `;
 
-        if (selectedCampaigns.has(campaign.id)) {
+        // Aplicar estilos baseados na seleção
+        if (isSelected) {
             option.style.background = '#2563eb';
             option.style.color = '#ffffff';
         } else {
@@ -689,8 +957,10 @@ function renderCampaignOptions() {
             option.style.color = '';
         }
 
+        // Usar event delegation para melhor performance
         option.addEventListener('click', () => {
-            if (selectedCampaigns.has(campaign.id)) {
+            const isCurrentlySelected = selectedCampaigns.has(campaign.id);
+            if (isCurrentlySelected) {
                 selectedCampaigns.delete(campaign.id);
                 option.classList.remove('selected');
                 option.style.background = '#ffffff';
@@ -704,8 +974,12 @@ function renderCampaignOptions() {
             updateFilterButtons();
         });
 
-        container.appendChild(option);
+        fragment.appendChild(option);
     });
+
+    // Limpar container e adicionar fragment de uma vez
+    container.innerHTML = '';
+    container.appendChild(fragment);
 }
 
 function renderAdSetOptions() {
@@ -1470,6 +1744,12 @@ async function calculateTotalLeadsForAccount(unitId, startDate, endDate) {
 }
 
 async function getBestAds(unitId, startDate, endDate) {
+    const cacheKey = `best_ads_${unitId}_${startDate}_${endDate}_${Array.from(selectedCampaigns).join(',')}_${Array.from(selectedAdSets).join(',')}_${Array.from(selectedWhiteCampaigns).join(',')}_${Array.from(selectedBlackCampaigns).join(',')}`;
+    const cachedBestAds = getCachedData(cacheKey);
+    if (cachedBestAds) {
+        return cachedBestAds;
+    }
+
     const adsWithActions = []; // Anúncios com mensagens/conversões/cadastros
     const adsWithoutActions = []; // Anúncios sem mensagens/conversões/cadastros, mas com gasto
 
@@ -1491,11 +1771,11 @@ async function getBestAds(unitId, startDate, endDate) {
 
     console.log(`Entidades para buscar anúncios:`, entitiesToFetch);
 
-    // Buscar todos os anúncios das entidades
-    const adsList = [];
-    for (const entity of entitiesToFetch) {
+    // Buscar todos os anúncios das entidades em paralelo
+    const adsListPromises = entitiesToFetch.map(async (entity) => {
+        const adsList = [];
         let entityUrl = entity.type === 'account' ? `/${entity.id}/ads` : `/${entity.id}/ads`;
-        console.log(`Buscando anúncios com URL: ${entityUrl}`);
+        
         while (entityUrl) {
             const adResponse = await new Promise((resolve) => {
                 FB.api(
@@ -1517,98 +1797,110 @@ async function getBestAds(unitId, startDate, endDate) {
                 console.error(`Erro ao carregar anúncios para ${entity.type} ${entity.id}:`, adResponse?.error);
                 entityUrl = null;
             }
-            await delay(500);
+            await delay(200); // Reduzir delay
         }
-    }
+        return adsList;
+    });
+
+    const adsListArrays = await Promise.all(adsListPromises);
+    const adsList = adsListArrays.flat();
 
     console.log(`Total de anúncios encontrados: ${adsList.length}`);
     if (adsList.length === 0) {
         console.log('Nenhum anúncio encontrado para o período ou filtros selecionados.');
+        return [];
     }
 
-    // Processar os anúncios
-    for (const ad of adsList) {
-        let totalActions = 0;
-        let spend = 0;
-        let costPerAction = 0;
-        let imageUrl = 'https://dummyimage.com/150x150/ccc/fff';
+    // Processar anúncios em lotes para melhor performance
+    const batchSize = 10;
+    const adBatches = [];
+    for (let i = 0; i < adsList.length; i += batchSize) {
+        adBatches.push(adsList.slice(i, i + batchSize));
+    }
 
-        // Buscar insights do anúncio
-        const insightsResponse = await new Promise((resolve) => {
-            FB.api(
-                `/${ad.id}/insights`,
-                {
-                    fields: 'actions,spend,reach',
-                    time_range: { since: startDate, until: endDate },
-                    access_token: currentAccessToken
-                },
-                resolve
-            );
-        });
+    for (const batch of adBatches) {
+        // Processar batch em paralelo
+        const batchPromises = batch.map(async (ad) => {
+            let totalActions = 0;
+            let spend = 0;
+            let costPerAction = 0;
 
-        if (insightsResponse && !insightsResponse.error && insightsResponse.data && insightsResponse.data.length > 0) {
-            const insights = insightsResponse.data[0];
-            console.log(`Insights para o anúncio ${ad.id}:`, insights);
-
-            // Calcular leads (conversas, conversões e cadastros)
-            if (insights.actions) {
-                // Contabilizar conversas iniciadas
-                const conversationAction = insights.actions.find(
-                    action => action.action_type === 'onsite_conversion.messaging_conversation_started_7d'
+            // Buscar insights do anúncio
+            const insightsResponse = await new Promise((resolve) => {
+                FB.api(
+                    `/${ad.id}/insights`,
+                    {
+                        fields: 'actions,spend,reach',
+                        time_range: { since: startDate, until: endDate },
+                        access_token: currentAccessToken
+                    },
+                    resolve
                 );
-                if (conversationAction && conversationAction.value) {
-                    totalActions += parseInt(conversationAction.value) || 0;
+            });
+
+            if (insightsResponse && !insightsResponse.error && insightsResponse.data && insightsResponse.data.length > 0) {
+                const insights = insightsResponse.data[0];
+
+                // Calcular leads (conversas, conversões e cadastros)
+                if (insights.actions) {
+                    // Contabilizar conversas iniciadas
+                    const conversationAction = insights.actions.find(
+                        action => action.action_type === 'onsite_conversion.messaging_conversation_started_7d'
+                    );
+                    if (conversationAction && conversationAction.value) {
+                        totalActions += parseInt(conversationAction.value) || 0;
+                    }
+
+                    // Contabilizar conversões personalizadas
+                    const customConversions = insights.actions.filter(
+                        action => action.action_type.startsWith('offsite_conversion.')
+                    );
+                    customConversions.forEach(action => {
+                        if (action.value) {
+                            totalActions += parseInt(action.value) || 0;
+                        }
+                    });
+
+                    // Contabilizar cadastros do Facebook (usando 'lead' para Formulários Instantâneos)
+                    const leadActions = insights.actions.filter(
+                        action => action.action_type === 'lead'
+                    );
+                    leadActions.forEach(action => {
+                        if (action.value) {
+                            totalActions += parseInt(action.value) || 0;
+                        }
+                    });
                 }
 
-                // Contabilizar conversões personalizadas
-                const customConversions = insights.actions.filter(
-                    action => action.action_type.startsWith('offsite_conversion.')
-                );
-                customConversions.forEach(action => {
-                    if (action.value) {
-                        totalActions += parseInt(action.value) || 0;
-                    }
-                });
+                // Calcular investimento
+                spend = insights.spend ? parseFloat(insights.spend) : 0;
 
-                // Contabilizar cadastros do Facebook (usando 'lead' para Formulários Instantâneos)
-                const leadActions = insights.actions.filter(
-                    action => action.action_type === 'lead'
-                );
-                leadActions.forEach(action => {
-                    if (action.value) {
-                        totalActions += parseInt(action.value) || 0;
-                    }
-                });
+                // Calcular custo por lead
+                costPerAction = totalActions > 0 ? (spend / totalActions).toFixed(2) : '0.00';
             }
 
-            // Calcular investimento
-            spend = insights.spend ? parseFloat(insights.spend) : 0;
+            // Adicionar o anúncio à lista apropriada
+            const adData = {
+                creativeId: ad.creative?.id,
+                imageUrl: 'https://dummyimage.com/150x150/ccc/fff',
+                messages: totalActions,
+                spend: spend,
+                costPerMessage: costPerAction
+            };
 
-            // Calcular custo por lead
-            costPerAction = totalActions > 0 ? (spend / totalActions).toFixed(2) : '0.00';
-        } else {
-            console.log(`Nenhum insight encontrado para o anúncio ${ad.id}`);
-            if (insightsResponse?.error) {
-                console.error(`Erro ao buscar insights do anúncio ${ad.id}:`, insightsResponse.error);
+            return { adData, totalActions, spend };
+        });
+
+        const batchResults = await Promise.all(batchPromises);
+        
+        // Processar resultados do batch
+        batchResults.forEach(({ adData, totalActions, spend }) => {
+            if (totalActions > 0) {
+                adsWithActions.push(adData);
+            } else if (spend > 0) {
+                adsWithoutActions.push(adData);
             }
-        }
-
-        console.log(`Anúncio ${ad.id} - Leads: ${totalActions}, Investimento: ${spend}, Custo por Lead: ${costPerAction}`);
-
-        // Adicionar o anúncio à lista apropriada
-        const adData = {
-            creativeId: ad.creative?.id,
-            imageUrl: imageUrl,
-            messages: totalActions,
-            spend: spend,
-            costPerMessage: costPerAction
-        };
-
-        if (totalActions > 0) {
-            adsWithActions.push(adData);
-        } else if (spend > 0) {
-            adsWithoutActions.push(adData);
-        }
+        });
     }
 
     // Ordenar e selecionar os melhores anúncios
@@ -1632,16 +1924,21 @@ async function getBestAds(unitId, startDate, endDate) {
 
     console.log(`Melhores anúncios selecionados:`, bestAds);
 
-    // Buscar imagens dos criativos
-    const imagePromises = bestAds.map(async (ad) => {
-        if (ad.creativeId) {
-            const creativeData = await getCreativeData(ad.creativeId);
-            ad.imageUrl = creativeData.imageUrl;
-        }
-        return ad;
-    });
+    // Buscar imagens dos criativos em paralelo
+    if (bestAds.length > 0) {
+        const imagePromises = bestAds.map(async (ad) => {
+            if (ad.creativeId) {
+                const creativeData = await getCreativeData(ad.creativeId);
+                ad.imageUrl = creativeData.imageUrl;
+            }
+            return ad;
+        });
 
-    await Promise.all(imagePromises);
+        await Promise.all(imagePromises);
+    }
+
+    // Salvar no cache
+    setCachedData(cacheKey, bestAds);
 
     return bestAds;
 }
@@ -1964,7 +2261,7 @@ backToReportSelectionBtn.addEventListener('click', () => {
     window.location.href = 'index.html?appLoggedIn=true';
 });
 
-// Limpar seleções e recarregar a página
+// Limpar seleções e recarregar a página - OTIMIZADO
 refreshBtn.addEventListener('click', () => {
     // Limpar todas as seleções
     selectedCampaigns.clear();
@@ -1978,6 +2275,9 @@ refreshBtn.addEventListener('click', () => {
     reportMetrics = null;      // Limpar métricas
     reportBlackMetrics = null; // Limpar métricas Black
     reportBestAds = null;      // Limpar melhores anúncios
+
+    // Limpar caches para liberar memória
+    clearAllCaches();
 
     // Limpar o formulário
     form.reset();
@@ -1996,3 +2296,23 @@ refreshBtn.addEventListener('click', () => {
     // Recarregar a página
     window.location.reload();
 });
+
+// Adicionar botão para limpar cache (opcional)
+function addClearCacheButton() {
+    const clearCacheBtn = document.createElement('button');
+    clearCacheBtn.id = 'clearCacheBtn';
+    clearCacheBtn.className = 'bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition ml-2';
+    clearCacheBtn.innerHTML = '<i class="fas fa-trash mr-2"></i>Limpar Cache';
+    clearCacheBtn.addEventListener('click', () => {
+        clearAllCaches();
+        alert('Cache limpo com sucesso!');
+    });
+    
+    // Adicionar o botão próximo ao botão de refresh
+    if (refreshBtn && refreshBtn.parentNode) {
+        refreshBtn.parentNode.appendChild(clearCacheBtn);
+    }
+}
+
+// Inicializar botão de limpar cache
+addClearCacheButton();

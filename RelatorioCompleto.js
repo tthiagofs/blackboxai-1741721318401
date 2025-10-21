@@ -37,8 +37,6 @@ const defaultFilters = document.getElementById('defaultFilters');
 const comparisonFilter = document.getElementById('comparisonFilter');
 
 // Elementos Google Ads
-const googleLoginBtn = document.getElementById('googleLoginBtn');
-const googleAccountSelector = document.getElementById('googleAccountSelector');
 const googleAdsAccountSelect = document.getElementById('googleAdsAccountId');
 
 // Modais
@@ -121,13 +119,11 @@ if (!unitSelect) {
 async function initializeGoogleAds() {
     if (googleAuth.isAuthenticated()) {
         console.log('✅ Google Ads já autenticado');
-        googleLoginBtn.classList.add('hidden');
-        googleAccountSelector.classList.remove('hidden');
         await loadGoogleAdsAccounts();
     } else {
         console.log('⚠️ Google Ads não autenticado');
-        googleLoginBtn.classList.remove('hidden');
-        googleAccountSelector.classList.add('hidden');
+        googleAdsAccountSelect.innerHTML = '<option value="">Faça login com Google primeiro</option>';
+        googleAdsAccountSelect.disabled = true;
     }
 }
 
@@ -162,8 +158,8 @@ async function loadGoogleAdsAccounts() {
         // Se erro de autenticação, solicitar login novamente
         if (error.message.includes('autenticado')) {
             googleAuth.clearToken();
-            googleLoginBtn.classList.remove('hidden');
-            googleAccountSelector.classList.add('hidden');
+            googleAdsAccountSelect.innerHTML = '<option value="">Faça login com Google primeiro</option>';
+            googleAdsAccountSelect.disabled = true;
         }
     }
 }
@@ -179,32 +175,6 @@ function renderGoogleAccounts(accounts) {
         googleAdsAccountSelect.appendChild(option);
     });
 }
-
-// Evento de login do Google
-googleLoginBtn.addEventListener('click', async () => {
-    try {
-        googleLoginBtn.disabled = true;
-        googleLoginBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Conectando...';
-        
-        await googleAuth.login();
-        
-        console.log('✅ Login Google bem-sucedido!');
-        
-        // Esconder botão de login e mostrar seletor
-        googleLoginBtn.classList.add('hidden');
-        googleAccountSelector.classList.remove('hidden');
-        
-        // Carregar contas
-        await loadGoogleAdsAccounts();
-        
-    } catch (error) {
-        console.error('❌ Erro no login Google:', error);
-        alert('Erro ao fazer login com Google. Tente novamente.');
-        
-        googleLoginBtn.disabled = false;
-        googleLoginBtn.innerHTML = '<i class="fab fa-google mr-2"></i>Conectar Google Ads';
-    }
-});
 
 // Inicializar Google Ads ao carregar a página
 initializeGoogleAds();

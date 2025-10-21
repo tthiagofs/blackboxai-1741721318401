@@ -1,6 +1,7 @@
-import { appAuth, fbAuth } from './auth.js';
-import { formatDateISOToBR, encodeWhatsAppText, formatCurrencyBRL } from './utils/format.js';
-import { debounce, setSelectedStyles } from './utils/dom.js';
+import { appAuth, fbAuth } from './auth.js?v=2.5';
+import { formatDateISOToBR, encodeWhatsAppText, formatCurrencyBRL } from './utils/format.js?v=2.5';
+import { debounce, setSelectedStyles } from './utils/dom.js?v=2.5';
+import { googleAuth } from './authGoogle.js?v=2.5';
 
 const appLoginScreen = document.getElementById('appLoginScreen');
 const reportSelectionScreen = document.getElementById('reportSelectionScreen');
@@ -11,6 +12,10 @@ const appLoginError = document.getElementById('appLoginError');
 const simpleReportBtn = document.getElementById('simpleReportBtn');
 const completeReportBtn = document.getElementById('completeReportBtn');
 const loginBtn = document.getElementById('loginBtn');
+const googleLoginBtn = document.getElementById('googleLoginBtn');
+const continueToReportBtn = document.getElementById('continueToReportBtn');
+const fbLoginStatus = document.getElementById('fbLoginStatus');
+const googleLoginStatus = document.getElementById('googleLoginStatus');
 const form = document.getElementById('form');
 const reportContainer = document.getElementById('reportContainer');
 const shareWhatsAppBtn = document.getElementById('shareWhatsAppBtn');
@@ -21,6 +26,9 @@ const closeAdSetsModalBtn = document.getElementById('closeAdSetsModal');
 const applyCampaignsBtn = document.getElementById('applyCampaigns');
 const applyAdSetsBtn = document.getElementById('applyAdSets');
 const backToReportSelectionBtn = document.getElementById('backToReportSelectionBtn');
+
+// Inicializar Google Auth
+googleAuth.initialize().catch(err => console.error('Erro ao inicializar Google Auth:', err));
 
 // Mapa para armazenar os nomes das contas, IDs dos ad sets e campanhas
 const adAccountsMap = {};
@@ -133,6 +141,19 @@ completeReportBtn.addEventListener('click', async () => {
     }
 });
 
+// Variáveis de estado de login
+let fbLoggedIn = false;
+let googleLoggedIn = false;
+
+// Função para verificar e mostrar botão "Continuar"
+function checkLoginStatus() {
+    if (fbLoggedIn || googleLoggedIn) {
+        continueToReportBtn.classList.remove('hidden');
+    } else {
+        continueToReportBtn.classList.add('hidden');
+    }
+}
+
 // Login com Facebook
 async function handleFacebookLogin() {
     const loginError = document.getElementById('loginError');
@@ -161,18 +182,19 @@ async function handleFacebookLogin() {
                 throw new Error('Permissões necessárias não foram concedidas');
             }
 
-            if (simpleReportBtn.classList.contains('active')) {
-                showScreen(mainContent);
-                await loadAdAccounts();
-            } else {
-                window.location.href = 'RelatorioCompleto.html';
-            }
+            // Marcar como logado
+            fbLoggedIn = true;
+            fbLoginStatus.classList.remove('hidden');
+            loginBtn.classList.add('hidden');
+            checkLoginStatus();
+            
+            console.log('✅ Facebook conectado com sucesso!');
         } else {
             throw new Error('Login não autorizado');
         }
     } catch (error) {
         console.error('Erro detalhado:', error);
-        loginError.textContent = `Erro no login: ${error.message}`;
+        loginError.textContent = `Erro no login Facebook: ${error.message}`;
         loginError.style.display = 'block';
         
         // Limpar tokens em caso de erro
@@ -181,6 +203,33 @@ async function handleFacebookLogin() {
     } finally {
         loginBtn.disabled = false;
         loginBtn.innerHTML = '<i class="fab fa-facebook-f mr-2"></i>Continuar com Facebook';
+    }
+}
+
+// Login com Google
+async function handleGoogleLogin() {
+    const loginError = document.getElementById('loginError');
+    loginError.style.display = 'none';
+    googleLoginBtn.disabled = true;
+    googleLoginBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Conectando...';
+
+    try {
+        await googleAuth.login();
+        
+        // Marcar como logado
+        googleLoggedIn = true;
+        googleLoginStatus.classList.remove('hidden');
+        googleLoginBtn.classList.add('hidden');
+        checkLoginStatus();
+        
+        console.log('✅ Google conectado com sucesso!');
+    } catch (error) {
+        console.error('Erro no login Google:', error);
+        loginError.textContent = `Erro no login Google: ${error.message}`;
+        loginError.style.display = 'block';
+    } finally {
+        googleLoginBtn.disabled = false;
+        googleLoginBtn.innerHTML = '<i class="fab fa-google mr-2"></i>Continuar com Google';
     }
 }
 
@@ -627,6 +676,15 @@ shareWhatsAppBtn.addEventListener('click', () => {
 loginBtn.addEventListener('click', (event) => {
     event.preventDefault();
     handleFacebookLogin();
+});
+
+googleLoginBtn.addEventListener('click', (event) => {
+    event.preventDefault();
+    handleGoogleLogin();
+});
+
+continueToReportBtn.addEventListener('click', () => {
+    showScreen(reportSelectionScreen);
 });
 
 // Listener do botão Voltar é configurado em showScreen(mainContent)

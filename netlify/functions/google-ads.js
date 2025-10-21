@@ -31,18 +31,31 @@ exports.handler = async (event, context) => {
   try {
     const { action, customerId, startDate, endDate, refreshToken } = JSON.parse(event.body || '{}');
 
-    if (!customerId || !refreshToken) {
+    if (!customerId) {
       return {
         statusCode: 400,
         headers,
-        body: JSON.stringify({ error: 'customerId e refreshToken são obrigatórios' }),
+        body: JSON.stringify({ error: 'customerId é obrigatório' }),
+      };
+    }
+
+    // Usar refreshToken do request ou da variável de ambiente
+    const finalRefreshToken = refreshToken || process.env.GOOGLE_ADS_REFRESH_TOKEN;
+
+    if (!finalRefreshToken) {
+      return {
+        statusCode: 400,
+        headers,
+        body: JSON.stringify({ 
+          error: 'Refresh token não configurado. Configure a variável GOOGLE_ADS_REFRESH_TOKEN no Netlify.' 
+        }),
       };
     }
 
     const client = getClient();
     const customer = client.Customer({
       customer_id: customerId,
-      refresh_token: refreshToken,
+      refresh_token: finalRefreshToken,
     });
 
     switch (action) {

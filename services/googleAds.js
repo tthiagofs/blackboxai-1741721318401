@@ -1,25 +1,32 @@
 // Serviço para Google Ads via Netlify Functions
 export class GoogleAdsService {
-    constructor(customerId, refreshToken) {
+    constructor(customerId, refreshToken = null) {
         this.customerId = customerId;
+        // O refreshToken agora é opcional, pois o backend pode usar a variável de ambiente
         this.refreshToken = refreshToken;
-        // URL da Netlify Function (será configurada depois)
+        // URL da Netlify Function
         this.apiUrl = '/.netlify/functions/google-ads';
     }
 
     async _call(action, params = {}) {
         try {
+            const body = {
+                action,
+                customerId: this.customerId,
+                ...params,
+            };
+            
+            // Só envia refreshToken se foi fornecido explicitamente
+            if (this.refreshToken) {
+                body.refreshToken = this.refreshToken;
+            }
+
             const response = await fetch(this.apiUrl, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({
-                    action,
-                    customerId: this.customerId,
-                    refreshToken: this.refreshToken,
-                    ...params,
-                }),
+                body: JSON.stringify(body),
             });
 
             if (!response.ok) {

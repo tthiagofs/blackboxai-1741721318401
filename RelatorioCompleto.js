@@ -14,8 +14,9 @@ const currentAccessToken = fbAuth.getAccessToken();
 const insightsService = currentAccessToken ? new FacebookInsightsService(currentAccessToken) : null;
 const googleAccountManager = new GoogleAdsAccountManager();
 
-// Carregar refresh token do Google (será configurado nas variáveis de ambiente do Netlify)
-const googleRefreshToken = localStorage.getItem('google_ads_refresh_token') || null;
+// O refresh token do Google está configurado no backend (Netlify Function)
+// Não precisamos mais passá-lo do frontend
+const googleRefreshToken = true; // Flag para indicar que o token está configurado no backend
 
 // Elementos do DOM
 const form = document.getElementById('form');
@@ -802,17 +803,16 @@ async function generateCompleteReport() {
             console.log(`🌐 Processando Google Ads: ${googleAccountName}`);
 
             try {
-                const googleService = new GoogleAdsService(googleAccountId, googleRefreshToken);
+                // Não passamos mais o refreshToken, o backend vai usar a variável de ambiente
+                const googleService = new GoogleAdsService(googleAccountId, null);
                 const googleInsights = await googleService.getAccountInsights(startDate, endDate);
                 googleMetrics = googleService.calculateMetrics(googleInsights);
                 
                 console.log(`✓ Métricas Google Ads carregadas`, googleMetrics);
             } catch (error) {
                 console.error('Erro ao carregar Google Ads:', error);
-                alert('Erro ao carregar dados do Google Ads. Verifique suas credenciais.');
+                alert('Erro ao carregar dados do Google Ads. Verifique se o Refresh Token está configurado no Netlify.');
             }
-        } else if (googleAccountId && !googleRefreshToken) {
-            alert('Refresh token do Google Ads não configurado. Configure nas variáveis de ambiente do Netlify.');
         }
 
         // Combinar métricas ou usar apenas uma plataforma

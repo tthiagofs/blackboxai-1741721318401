@@ -7,14 +7,17 @@ export class FacebookInsightsService {
         this.isProcessing = false;
     }
 
-    // API calls com controle de rate limit minimalista
-    async fetchWithPagination(url, fields = []) {
+    // API calls com controle de rate limit otimizado
+    async fetchWithPagination(url, fields = [], isHighPriority = false) {
         let allData = [];
         let currentUrl = url;
         let retryCount = 0;
-        const MAX_RETRIES = 1; // Apenas 1 retry
+        const MAX_RETRIES = isHighPriority ? 2 : 1; // Mais retries para requisições importantes
 
         while (currentUrl) {
+            // Pequeno delay para evitar sobrecarga
+            if (allData.length > 0) await this._delay(100);
+            
             const response = await new Promise((resolve) => {
                 FB.api(currentUrl, resolve);
             });
@@ -31,13 +34,14 @@ export class FacebookInsightsService {
                     response?.error?.code === 613) {
                     
                     if (retryCount >= MAX_RETRIES) {
-                        console.warn('⚠️ Rate limit - pulando requisição');
+                        console.warn('⚠️ Rate limit - usando dados parciais');
                         break;
                     }
                     
                     retryCount++;
-                    console.warn(`⏳ Rate limit - aguardando 2s...`);
-                    await this._delay(2000); // Apenas 2 segundos
+                    const waitTime = isHighPriority ? 3000 : 2000;
+                    console.warn(`⏳ Rate limit - aguardando ${waitTime/1000}s... (${retryCount}/${MAX_RETRIES})`);
+                    await this._delay(waitTime);
                     continue;
                 }
                 
@@ -56,8 +60,9 @@ export class FacebookInsightsService {
 
     // Carregar campanhas (SEM CACHE)
     async loadCampaigns(unitId, startDate, endDate) {
+        const timerId = `⏱️ Campanhas - ${unitId}`;
         try {
-            console.time('⏱️ Tempo de carregamento - Campanhas');
+            console.time(timerId);
             
             const url = `/${unitId}/campaigns?fields=id,name&access_token=${this.accessToken}`;
             const campaigns = await this.fetchWithPagination(url);
@@ -77,13 +82,13 @@ export class FacebookInsightsService {
                         impressions: insights[index].impressions || 0,
                         clicks: insights[index].clicks || 0,
                         conversions: insights[index].conversions || 0,
-                        reach: insights[index].impressions || 0, // usando impressions como fallback
-                        actions: []
+                        reach: insights[index].impressions || 0,
+                        actions: insights[index].actions || []
                     }
                 };
             });
 
-            console.timeEnd('⏱️ Tempo de carregamento - Campanhas');
+            console.timeEnd(timerId);
             return result;
         } catch (error) {
             console.error('Erro ao carregar campanhas:', error);
@@ -93,8 +98,9 @@ export class FacebookInsightsService {
 
     // Carregar conjuntos de anúncios (SEM CACHE)
     async loadAdSets(unitId, startDate, endDate) {
+        const timerId = `⏱️ Ad Sets - ${unitId}`;
         try {
-            console.time('⏱️ Tempo de carregamento - Ad Sets');
+            console.time(timerId);
             
             const url = `/${unitId}/adsets?fields=id,name&access_token=${this.accessToken}`;
             const adSets = await this.fetchWithPagination(url);
@@ -115,12 +121,12 @@ export class FacebookInsightsService {
                         clicks: insights[index].clicks || 0,
                         conversions: insights[index].conversions || 0,
                         reach: insights[index].impressions || 0,
-                        actions: []
+                        actions: insights[index].actions || []
                     }
                 };
             });
 
-            console.timeEnd('⏱️ Tempo de carregamento - Ad Sets');
+            console.timeEnd(timerId);
             return result;
         } catch (error) {
             console.error('Erro ao carregar ad sets:', error);
@@ -134,7 +140,7 @@ export class FacebookInsightsService {
         const data = await this.fetchWithPagination(url);
         
         if (data.length === 0) {
-            return { spend: 0, impressions: 0, clicks: 0, conversions: 0 };
+            return { spend: 0, impressions: 0, clicks: 0, conversions: 0, actions: [] };
         }
 
         const insights = data[0];
@@ -147,7 +153,8 @@ export class FacebookInsightsService {
             spend: insights.spend || 0,
             impressions: insights.impressions || 0,
             clicks: insights.clicks || 0,
-            conversions: parseInt(conversions)
+            conversions: parseInt(conversions),
+            actions: insights.actions || []
         };
     }
 
@@ -157,7 +164,7 @@ export class FacebookInsightsService {
         const data = await this.fetchWithPagination(url);
         
         if (data.length === 0) {
-            return { spend: 0, impressions: 0, clicks: 0, conversions: 0 };
+            return { spend: 0, impressions: 0, clicks: 0, conversions: 0, actions: [] };
         }
 
         const insights = data[0];
@@ -170,7 +177,8 @@ export class FacebookInsightsService {
             spend: insights.spend || 0,
             impressions: insights.impressions || 0,
             clicks: insights.clicks || 0,
-            conversions: parseInt(conversions)
+            conversions: parseInt(conversions),
+            actions: insights.actions || []
         };
     }
 
@@ -334,21 +342,35 @@ export class FacebookInsightsService {
         try {
             console.time('⏱️ Tempo - Melhores Anúncios');
             
+            // Aguardar um pouco antes de buscar anúncios para evitar rate limit
+            await this._delay(1000);
+            
             const url = `/${unitId}/ads?fields=id,name&access_token=${this.accessToken}`;
-            const ads = await this.fetchWithPagination(url);
+            const ads = await this.fetchWithPagination(url, [], true); // HIGH PRIORITY
             
             if (ads.length === 0) {
                 console.timeEnd('⏱️ Tempo - Melhores Anúncios');
                 return [];
             }
 
-            // PARALELIZAÇÃO MÁXIMA
-            const [insights, creatives] = await Promise.all([
-                Promise.all(ads.map(ad => this.getAdInsights(ad.id, startDate, endDate))),
-                Promise.all(ads.map(ad => this.getCreativeData(ad.id)))
-            ]);
+            // Pegar apenas os primeiros 10 anúncios para evitar rate limit
+            const topAds = ads.slice(0, 10);
+            
+            // Processar insights e creativos em lotes pequenos
+            const insights = [];
+            const creatives = [];
+            
+            for (const ad of topAds) {
+                await this._delay(200); // Delay entre requisições
+                const [insightData, creativeData] = await Promise.all([
+                    this.getAdInsights(ad.id, startDate, endDate),
+                    this.getCreativeData(ad.id)
+                ]);
+                insights.push(insightData);
+                creatives.push(creativeData);
+            }
 
-            const adsWithData = ads.map((ad, index) => ({
+            const adsWithData = topAds.map((ad, index) => ({
                 id: ad.id,
                 name: ad.name,
                 ...insights[index],
@@ -356,7 +378,7 @@ export class FacebookInsightsService {
             }));
 
             const sorted = adsWithData
-                .filter(ad => ad.impressions > 0)
+                .filter(ad => ad.impressions > 0 || ad.spend > 0)
                 .sort((a, b) => b.conversions - a.conversions || b.clicks - a.clicks);
 
             console.timeEnd('⏱️ Tempo - Melhores Anúncios');

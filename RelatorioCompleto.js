@@ -535,6 +535,7 @@ function updateFilterButtons() {
 
 // Variável para rastrear a última unidade selecionada
 let lastSelectedUnitId = null;
+let isLoadingData = false; // Flag para evitar carregamentos simultâneos
 
 // Limpar dados quando trocar de conta
 document.getElementById('unitId').addEventListener('change', function() {
@@ -570,25 +571,49 @@ document.getElementById('unitId').addEventListener('change', function() {
         
         // Desabilitar botões
         disableButtons();
+        
+        // Limpar campos manuais
+        document.getElementById('budgetsCompleted').value = '';
+        document.getElementById('salesCount').value = '';
+        document.getElementById('revenue').value = '';
+        document.getElementById('performanceAnalysis').value = '';
     }
     
     lastSelectedUnitId = newUnitId;
 });
 
 // Carregar dados ao preencher o formulário (com debounce)
-const onFormInput = debounce(async function() {
+const onFormInput = debounce(async function(e) {
+    // Não carregar se já está carregando ou se o evento foi disparado pelo submit
+    if (isLoadingData) {
+        console.log('Carregamento já em andamento, ignorando...');
+        return;
+    }
+    
     const unitId = document.getElementById('unitId').value;
     const startDate = document.getElementById('startDate').value;
     const endDate = document.getElementById('endDate').value;
 
     if (unitId && startDate && endDate) {
-        await Promise.all([
-            loadCampaigns(unitId, startDate, endDate),
-            loadAdSets(unitId, startDate, endDate)
-        ]);
+        isLoadingData = true;
+        try {
+            await Promise.all([
+                loadCampaigns(unitId, startDate, endDate),
+                loadAdSets(unitId, startDate, endDate)
+            ]);
+        } finally {
+            isLoadingData = false;
+        }
     }
-}, 350);
-form.addEventListener('input', onFormInput);
+}, 1000); // Aumentado para 1 segundo
+
+// Remover o event listener de input do form para evitar chamadas duplicadas
+// form.addEventListener('input', onFormInput);
+
+// Adicionar listeners apenas nos campos específicos
+document.getElementById('unitId').addEventListener('change', onFormInput);
+document.getElementById('startDate').addEventListener('change', onFormInput);
+document.getElementById('endDate').addEventListener('change', onFormInput);
 
 // Função para gerar o relatório completo
 async function generateCompleteReport() {
@@ -1147,6 +1172,8 @@ refreshBtn.addEventListener('click', () => {
     reportMetrics = null;
     reportBlackMetrics = null;
     reportBestAds = null;
+    lastSelectedUnitId = null;
+    isLoadingData = false;
 
     // Limpar caches para liberar memória
     insightsService.clearAllCaches();
@@ -1155,6 +1182,12 @@ refreshBtn.addEventListener('click', () => {
     form.reset();
     reportContainer.innerHTML = '';
     shareWhatsAppBtn.classList.add('hidden');
+    
+    // Limpar campos manuais
+    document.getElementById('budgetsCompleted').value = '';
+    document.getElementById('salesCount').value = '';
+    document.getElementById('revenue').value = '';
+    document.getElementById('performanceAnalysis').value = '';
 
     // Limpar os filtros visuais
     whiteFilters.classList.add('hidden');

@@ -114,11 +114,11 @@ export class FacebookInsightsService {
         let allData = [];
         let currentUrl = url;
         let retryCount = 0;
-        const MAX_RETRIES = 3;
+        const MAX_RETRIES = 2; // Reduzido para 2 tentativas
 
         while (currentUrl) {
-            // Rate limiting - delay entre requisições (aumentado para 500ms)
-            await this._delay(500);
+            // Rate limiting - delay entre requisições
+            await this._delay(700); // Aumentado para 700ms
             
             const response = await new Promise((resolve) => {
                 FB.api(currentUrl, resolve);
@@ -130,16 +130,20 @@ export class FacebookInsightsService {
                 retryCount = 0; // Reset retry count on success
             } else {
                 if (response?.error?.message?.includes('User request limit reached') || 
-                    response?.error?.message?.includes('Application request limit reached')) {
+                    response?.error?.message?.includes('Application request limit reached') ||
+                    response?.error?.code === 17 || // Rate limit error code
+                    response?.error?.code === 4 || // Too many calls
+                    response?.error?.code === 613) { // Rate limit exceeded
                     
                     if (retryCount >= MAX_RETRIES) {
-                        console.error('Número máximo de tentativas atingido. Pulando esta requisição.');
-                        break; // Sair do loop em vez de continuar indefinidamente
+                        console.warn('⚠️ Rate limit persistente. Usando dados do cache quando disponível.');
+                        break; // Sair do loop
                     }
                     
                     retryCount++;
-                    const waitTime = Math.min(5000 * Math.pow(2, retryCount - 1), 30000); // Exponential backoff, max 30s
-                    console.warn(`Rate limit atingido. Tentativa ${retryCount}/${MAX_RETRIES}. Aguardando ${waitTime/1000}s...`);
+                    // Backoff mais agressivo: 3s, 6s
+                    const waitTime = 3000 * retryCount;
+                    console.warn(`⏳ Rate limit atingido. Tentativa ${retryCount}/${MAX_RETRIES}. Aguardando ${waitTime/1000}s...`);
                     await this._delay(waitTime);
                     continue; // Tentar novamente
                 }
@@ -170,7 +174,7 @@ export class FacebookInsightsService {
             const campaignIds = campaigns.map(camp => camp.id);
             
             // Processar em lotes para evitar rate limit
-            const BATCH_SIZE = 5; // Reduzido de Promise.all para 5 por vez
+            const BATCH_SIZE = 3; // Reduzido para 3 por vez para ser mais conservador
             const insights = [];
             
             for (let i = 0; i < campaignIds.length; i += BATCH_SIZE) {
@@ -182,7 +186,7 @@ export class FacebookInsightsService {
                 
                 // Delay entre lotes
                 if (i + BATCH_SIZE < campaignIds.length) {
-                    await this._delay(1000); // 1 segundo entre lotes
+                    await this._delay(1500); // 1.5 segundos entre lotes
                 }
             }
 
@@ -221,7 +225,7 @@ export class FacebookInsightsService {
             const adSetIds = adSets.map(set => set.id);
             
             // Processar em lotes para evitar rate limit
-            const BATCH_SIZE = 5;
+            const BATCH_SIZE = 3; // Reduzido para 3 por vez
             const insights = [];
             
             for (let i = 0; i < adSetIds.length; i += BATCH_SIZE) {
@@ -233,7 +237,7 @@ export class FacebookInsightsService {
                 
                 // Delay entre lotes
                 if (i + BATCH_SIZE < adSetIds.length) {
-                    await this._delay(1000); // 1 segundo entre lotes
+                    await this._delay(1500); // 1.5 segundos entre lotes
                 }
             }
 

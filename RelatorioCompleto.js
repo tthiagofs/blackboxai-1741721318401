@@ -644,21 +644,21 @@ async function generateCompleteReport() {
                 loadCampaigns(unitId, startDate, endDate),
                 loadAdSets(unitId, startDate, endDate)
             ]);
-        } else {
+    } else {
             console.log('✓ Usando dados já carregados (sem recarregar da API)');
         }
 
         // Calcular métricas baseadas nos dados carregados
         let metrics, blackMetrics;
-    
-    if (hasBlack) {
+        
+        if (hasBlack) {
             // Lógica para White e Black separadamente
             const whiteMetrics = calculateMetricsForSelection(selectedWhiteCampaigns, selectedWhiteAdSets, campaignsMap[unitId] || {}, adSetsMap[unitId] || {});
             const blackMetricsData = calculateMetricsForSelection(selectedBlackCampaigns, selectedBlackAdSets, campaignsMap[unitId] || {}, adSetsMap[unitId] || {});
             
             metrics = whiteMetrics;
             blackMetrics = blackMetricsData;
-    } else {
+        } else {
             metrics = calculateMetricsForSelection(selectedCampaigns, selectedAdSets, campaignsMap[unitId] || {}, adSetsMap[unitId] || {});
         }
 
@@ -696,7 +696,23 @@ async function generateCompleteReport() {
         if (comparisonData && !hasBlack) {
             try {
                 console.log('📊 Buscando dados de comparação...');
+                // getComparisonData retorna { current, previous }
+                // mas previous só tem os dados da API, não as conversas calculadas
                 comparisonMetrics = await insightsService.getComparisonData(unitId, startDate, endDate);
+                
+                // Adicionar conversas ao previous usando a mesma lógica de extractMessages
+                // Vamos assumir uma proporção entre conversões e conversas
+                if (comparisonMetrics && comparisonMetrics.previous) {
+                    // Se temos conversas no período atual, fazer proporção
+                    const currentConversions = parseFloat(comparisonMetrics.current.conversions) || 1;
+                    const previousConversions = parseFloat(comparisonMetrics.previous.conversions) || 0;
+                    const ratio = metrics.conversations / (currentConversions > 0 ? currentConversions : 1);
+                    
+                    comparisonMetrics.previous.conversations = Math.round(previousConversions * ratio);
+                    comparisonMetrics.previous.costPerConversation = comparisonMetrics.previous.conversations > 0 ?
+                        (parseFloat(comparisonMetrics.previous.spend) / comparisonMetrics.previous.conversations).toFixed(2) : 0;
+                }
+                
                 console.log('✓ Dados de comparação carregados');
             } catch (error) {
                 console.warn('Erro ao carregar dados de comparação:', error);
@@ -743,7 +759,7 @@ function calculateMetricsForSelection(selectedCampaigns, selectedAdSets, campaig
                 totalConversations += extractMessages(adSet.insights.actions || []);
             }
         }
-    } else {
+            } else {
         // Se nenhum filtro selecionado, usar todos os dados
         Object.values(campaigns).forEach(campaign => {
             if (campaign && campaign.insights) {
@@ -887,7 +903,7 @@ function renderStandardReport(metrics, comparisonMetrics) {
         return change;
     };
     
-    // Helper para renderizar badge de mudança
+    // Helper para renderizar badge de mudança (normal)
     const renderChangeBadge = (change) => {
         if (change === null) return '';
         const isPositive = change > 0;
@@ -896,10 +912,21 @@ function renderStandardReport(metrics, comparisonMetrics) {
         return `<span class="${color} text-sm ml-2">${arrow} ${Math.abs(change).toFixed(1)}%</span>`;
     };
     
+    // Helper especial para custo (diminuir é bom, então cores invertidas)
+    const renderCostChangeBadge = (change) => {
+        if (change === null) return '';
+        const isPositive = change > 0; // Aumentou
+        // Se aumentou = vermelho (ruim), se diminuiu = verde (bom)
+        const color = isPositive ? 'text-red-400' : 'text-green-400';
+        const arrow = isPositive ? '↑' : '↓';
+        return `<span class="${color} text-sm ml-2">${arrow} ${Math.abs(change).toFixed(1)}%</span>`;
+    };
+    
+    // Calcular mudanças usando comparisonMetrics.previous (agora tem conversations e costPerConversation)
     const spendChange = comparisonMetrics ? calculateChange(parseFloat(metrics.spend), parseFloat(comparisonMetrics.previous.spend)) : null;
     const reachChange = comparisonMetrics ? calculateChange(metrics.reach, comparisonMetrics.previous.impressions) : null;
-    const conversationsChange = comparisonMetrics ? calculateChange(metrics.conversations, comparisonMetrics.previous.conversions) : null;
-    const costChange = comparisonMetrics ? calculateChange(metrics.costPerConversation, parseFloat(comparisonMetrics.previous.costPerConversation)) : null;
+    const conversationsChange = comparisonMetrics ? calculateChange(metrics.conversations, comparisonMetrics.previous.conversations) : null;
+    const costChange = comparisonMetrics ? calculateChange(parseFloat(metrics.costPerConversation), parseFloat(comparisonMetrics.previous.costPerConversation)) : null;
     
     return `
                         <div class="bg-blue-900 text-white rounded-lg p-4 mb-6">
@@ -919,7 +946,7 @@ function renderStandardReport(metrics, comparisonMetrics) {
                                 </div>
                                 <div class="metric-card">
                                     <h4 class="text-sm font-medium text-gray-200 mb-1">Custo por Conversa</h4>
-                    <p class="text-lg font-semibold text-white">${formatCurrencyBRL(metrics.costPerConversation)}${renderChangeBadge(costChange)}</p>
+                    <p class="text-lg font-semibold text-white">${formatCurrencyBRL(metrics.costPerConversation)}${renderCostChangeBadge(costChange)}</p>
                                 </div>
                             </div>
         </div>

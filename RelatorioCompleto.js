@@ -1,21 +1,21 @@
-import { fbAuth } from './auth.js?v=2.2';
-import { exportToPDF } from './exportPDF.js?v=2.2';
-import { formatDateISOToBR, formatCurrencyBRL, encodeWhatsAppText } from './utils/format.js?v=2.2';
-import { setSelectedStyles, debounce } from './utils/dom.js?v=2.2';
-import { FacebookInsightsService } from './services/facebookInsights.js?v=2.2';
+import { fbAuth } from './auth.js?v=2.3';
+import { exportToPDF } from './exportPDF.js?v=2.3';
+import { formatDateISOToBR, formatCurrencyBRL, encodeWhatsAppText } from './utils/format.js?v=2.3';
+import { setSelectedStyles, debounce } from './utils/dom.js?v=2.3';
+import { FacebookInsightsService } from './services/facebookInsights.js?v=2.3';
+import { GoogleAdsService, GoogleAdsAccountManager } from './services/googleAds.js?v=2.3';
 
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
-// Verificar autenticação
+// Verificar autenticação Facebook (não obrigatório, pois pode gerar só Google Ads)
 const currentAccessToken = fbAuth.getAccessToken();
-if (!currentAccessToken) {
-    alert('Você precisa fazer login com o Facebook primeiro. Redirecionando para a página inicial.');
-    window.location.replace('index.html');
-    throw new Error('Token de acesso não encontrado');
-}
 
-// Inicializar serviço de insights
-const insightsService = new FacebookInsightsService(currentAccessToken);
+// Inicializar serviços
+const insightsService = currentAccessToken ? new FacebookInsightsService(currentAccessToken) : null;
+const googleAccountManager = new GoogleAdsAccountManager();
+
+// Carregar refresh token do Google (será configurado nas variáveis de ambiente do Netlify)
+const googleRefreshToken = localStorage.getItem('google_ads_refresh_token') || null;
 
 // Elementos do DOM
 const form = document.getElementById('form');
@@ -35,6 +35,16 @@ const whiteFilters = document.getElementById('whiteFilters');
 const blackFilters = document.getElementById('blackFilters');
 const defaultFilters = document.getElementById('defaultFilters');
 const comparisonFilter = document.getElementById('comparisonFilter');
+
+// Elementos Google Ads
+const googleAdsAccountSelect = document.getElementById('googleAdsAccountId');
+const addGoogleAccountBtn = document.getElementById('addGoogleAccountBtn');
+const removeGoogleAccountBtn = document.getElementById('removeGoogleAccountBtn');
+const addGoogleAccountModal = document.getElementById('addGoogleAccountModal');
+const confirmAddGoogleAccountBtn = document.getElementById('confirmAddGoogleAccount');
+const cancelAddGoogleAccountBtn = document.getElementById('cancelAddGoogleAccount');
+const googleCustomerIdInput = document.getElementById('googleCustomerId');
+const googleAccountNameInput = document.getElementById('googleAccountName');
 
 // Modais
 const closeCampaignsModalBtn = document.getElementById('closeCampaignsModal');
@@ -87,7 +97,7 @@ const adAccountsMap = fbAuth.getAdAccounts();
 let adSetsMap = {};
 let campaignsMap = {};
 
-// Preencher select de unidades
+// Preencher select de unidades Meta
 const unitSelect = document.getElementById('unitId');
 if (!unitSelect) {
     console.error('Elemento unitId não encontrado no DOM.');
@@ -99,10 +109,9 @@ if (!unitSelect) {
             .sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'))
         : [];
 
-    unitSelect.innerHTML = '<option value="">Escolha a unidade</option>';
+    unitSelect.innerHTML = '<option value="">Nenhuma conta selecionada</option>';
     if (sortedAccounts.length === 0) {
-        console.warn('Nenhuma conta de anúncios encontrada em adAccountsMap.');
-        unitSelect.innerHTML += '<option value="">Nenhuma conta disponível</option>';
+        console.warn('Nenhuma conta de anúncios Meta encontrada.');
     } else {
         sortedAccounts.forEach(account => {
             const option = document.createElement('option');
@@ -112,6 +121,85 @@ if (!unitSelect) {
         });
     }
 }
+
+// Preencher select de contas Google Ads
+function loadGoogleAdsAccounts() {
+    const accounts = googleAccountManager.loadAccounts();
+    googleAdsAccountSelect.innerHTML = '<option value="">Nenhuma conta selecionada</option>';
+    
+    accounts.forEach(account => {
+        const option = document.createElement('option');
+        option.value = account.customerId;
+        option.textContent = account.name;
+        googleAdsAccountSelect.appendChild(option);
+    });
+}
+
+// Carregar contas Google Ads ao iniciar
+loadGoogleAdsAccounts();
+
+// Função para abrir modal de adicionar conta Google
+addGoogleAccountBtn.addEventListener('click', () => {
+    addGoogleAccountModal.classList.remove('hidden');
+    googleCustomerIdInput.value = '';
+    googleAccountNameInput.value = '';
+});
+
+// Função para cancelar adição de conta
+cancelAddGoogleAccountBtn.addEventListener('click', () => {
+    addGoogleAccountModal.classList.add('hidden');
+});
+
+// Função para confirmar adição de conta
+confirmAddGoogleAccountBtn.addEventListener('click', () => {
+    const customerId = googleCustomerIdInput.value.trim();
+    const name = googleAccountNameInput.value.trim();
+
+    if (!customerId || !name) {
+        alert('Por favor, preencha todos os campos.');
+        return;
+    }
+
+    // Validar formato do Customer ID (XXX-XXX-XXXX)
+    const customerIdRegex = /^\d{3}-\d{3}-\d{4}$/;
+    if (!customerIdRegex.test(customerId)) {
+        alert('Customer ID deve estar no formato XXX-XXX-XXXX (ex: 123-456-7890)');
+        return;
+    }
+
+    try {
+        googleAccountManager.addAccount(customerId, name);
+        loadGoogleAdsAccounts();
+        addGoogleAccountModal.classList.add('hidden');
+        alert(`Conta "${name}" adicionada com sucesso!`);
+        
+        // Selecionar a conta recém-adicionada
+        googleAdsAccountSelect.value = customerId;
+    } catch (error) {
+        alert(error.message);
+    }
+});
+
+// Função para remover conta Google Ads
+removeGoogleAccountBtn.addEventListener('click', () => {
+    const customerId = googleAdsAccountSelect.value;
+    
+    if (!customerId) {
+        alert('Por favor, selecione uma conta para remover.');
+        return;
+    }
+
+    const confirmation = confirm(`Deseja realmente remover esta conta?`);
+    if (!confirmation) return;
+
+    try {
+        googleAccountManager.removeAccount(customerId);
+        loadGoogleAdsAccounts();
+        alert('Conta removida com sucesso!');
+    } catch (error) {
+        alert('Erro ao remover conta: ' + error.message);
+    }
+});
 
 // Desabilitar botões até que a pergunta "A unidade possui Black?" seja respondida
 function disableButtons() {
@@ -623,7 +711,7 @@ async function generateCompleteReport() {
     console.time('⏱️ GERAÇÃO COMPLETA DO RELATÓRIO');
     
     const unitId = document.getElementById('unitId').value;
-    const unitName = adAccountsMap[unitId] || 'Unidade Desconhecida';
+    const googleAccountId = googleAdsAccountSelect.value;
     const startDate = document.getElementById('startDate').value;
     const endDate = document.getElementById('endDate').value;
     const budgetsCompleted = parseInt(document.getElementById('budgetsCompleted').value) || 0;
@@ -631,73 +719,136 @@ async function generateCompleteReport() {
     const revenue = parseFloat(document.getElementById('revenue').value) || 0;
     const performanceAnalysis = document.getElementById('performanceAnalysis')?.value || '';
 
-    if (!unitId || !startDate || !endDate) {
-        alert('Preencha todos os campos obrigatórios');
+    // Validar se pelo menos uma plataforma foi selecionada
+    if (!unitId && !googleAccountId) {
+        alert('Selecione pelo menos uma conta (Meta ou Google Ads)');
+        return;
+    }
+
+    if (!startDate || !endDate) {
+        alert('Preencha as datas de início e fim');
         return;
     }
 
     try {
-        // Carregar campanhas e ad sets APENAS se não foram carregados ainda
-        if (!campaignsMap[unitId] || !adSetsMap[unitId]) {
-            console.log('📥 Carregando dados da API...');
-            await Promise.all([
-                loadCampaigns(unitId, startDate, endDate),
-                loadAdSets(unitId, startDate, endDate)
-            ]);
-    } else {
-            console.log('✓ Usando dados já carregados (sem recarregar da API)');
-        }
-
-        // Calcular métricas baseadas nos dados carregados
-        let metrics, blackMetrics;
-        
-        if (hasBlack) {
-            // Lógica para White e Black separadamente
-            const whiteMetrics = calculateMetricsForSelection(selectedWhiteCampaigns, selectedWhiteAdSets, campaignsMap[unitId] || {}, adSetsMap[unitId] || {});
-            const blackMetricsData = calculateMetricsForSelection(selectedBlackCampaigns, selectedBlackAdSets, campaignsMap[unitId] || {}, adSetsMap[unitId] || {});
-            
-            metrics = whiteMetrics;
-            blackMetrics = blackMetricsData;
-        } else {
-            metrics = calculateMetricsForSelection(selectedCampaigns, selectedAdSets, campaignsMap[unitId] || {}, adSetsMap[unitId] || {});
-        }
-
-        // Buscar melhores anúncios (agora são 2 em vez de 3)
+        let metaMetrics = null;
+        let googleMetrics = null;
+        let metaBlackMetrics = null;
         let bestAds = [];
-        try {
-            const rawBestAds = await insightsService.getBestPerformingAds(unitId, startDate, endDate, 2);
-            
-            // Transformar dados para o formato esperado pela renderização
-            bestAds = rawBestAds.map(ad => {
-                // As mensagens já vêm corretas do serviço
-                const costPerMessage = ad.messages > 0 ? ad.spend / ad.messages : 0;
+
+        // ========== PROCESSAR META ADS ==========
+        if (unitId && insightsService) {
+            const unitName = adAccountsMap[unitId] || 'Unidade Desconhecida';
+            console.log(`📱 Processando Meta Ads: ${unitName}`);
+
+            // Carregar campanhas e ad sets APENAS se não foram carregados ainda
+            if (!campaignsMap[unitId] || !adSetsMap[unitId]) {
+                console.log('📥 Carregando dados da API Meta...');
+                await Promise.all([
+                    loadCampaigns(unitId, startDate, endDate),
+                    loadAdSets(unitId, startDate, endDate)
+                ]);
+            } else {
+                console.log('✓ Usando dados Meta já carregados');
+            }
+
+            // Calcular métricas Meta baseadas nos dados carregados
+            if (hasBlack) {
+                // Lógica para White e Black separadamente
+                const whiteMetrics = calculateMetricsForSelection(selectedWhiteCampaigns, selectedWhiteAdSets, campaignsMap[unitId] || {}, adSetsMap[unitId] || {});
+                const blackMetricsData = calculateMetricsForSelection(selectedBlackCampaigns, selectedBlackAdSets, campaignsMap[unitId] || {}, adSetsMap[unitId] || {});
                 
-                return {
-                    id: ad.id,
-                    name: ad.name,
-                    imageUrl: ad.imageUrl,
-                    spend: ad.spend,
-                    impressions: ad.impressions,
-                    clicks: ad.clicks,
-                    conversions: ad.conversions,
-                    messages: ad.messages, // Já vem correto do serviço
-                    costPerMessage: costPerMessage
-                };
-            });
-            
-            console.log(`✓ ${bestAds.length} melhores anúncios carregados`);
-        } catch (error) {
-            console.warn('Erro ao carregar melhores anúncios:', error);
-            bestAds = []; // Continuar sem os melhores anúncios
+                metaMetrics = whiteMetrics;
+                metaBlackMetrics = blackMetricsData;
+            } else {
+                metaMetrics = calculateMetricsForSelection(selectedCampaigns, selectedAdSets, campaignsMap[unitId] || {}, adSetsMap[unitId] || {});
+            }
+
+            // Buscar melhores anúncios da Meta
+            try {
+                const rawBestAds = await insightsService.getBestPerformingAds(unitId, startDate, endDate, 2);
+                
+                // Transformar dados para o formato esperado pela renderização
+                bestAds = rawBestAds.map(ad => {
+                    // As mensagens já vêm corretas do serviço
+                    const costPerMessage = ad.messages > 0 ? ad.spend / ad.messages : 0;
+                    
+                    return {
+                        id: ad.id,
+                        name: ad.name,
+                        imageUrl: ad.imageUrl,
+                        spend: ad.spend,
+                        impressions: ad.impressions,
+                        clicks: ad.clicks,
+                        conversions: ad.conversions,
+                        messages: ad.messages, // Já vem correto do serviço
+                        costPerMessage: costPerMessage,
+                        platform: 'meta'
+                    };
+                });
+                
+                console.log(`✓ ${bestAds.length} melhores anúncios Meta carregados`);
+            } catch (error) {
+                console.warn('Erro ao carregar melhores anúncios Meta:', error);
+            }
         }
 
-        // Buscar dados de comparação se solicitado
-        let comparisonMetrics = null;
-        if (comparisonData && !hasBlack) {
+        // ========== PROCESSAR GOOGLE ADS ==========
+        if (googleAccountId && googleRefreshToken) {
+            const accounts = googleAccountManager.loadAccounts();
+            const googleAccount = accounts.find(acc => acc.customerId === googleAccountId);
+            const googleAccountName = googleAccount ? googleAccount.name : googleAccountId;
+
+            console.log(`🌐 Processando Google Ads: ${googleAccountName}`);
+
             try {
-                console.log('📊 Buscando dados de comparação...');
-                // getComparisonData retorna { current, previous }
-                // Agora calculateMetrics já inclui conversations e costPerConversation!
+                const googleService = new GoogleAdsService(googleAccountId, googleRefreshToken);
+                const googleInsights = await googleService.getAccountInsights(startDate, endDate);
+                googleMetrics = googleService.calculateMetrics(googleInsights);
+                
+                console.log(`✓ Métricas Google Ads carregadas`, googleMetrics);
+            } catch (error) {
+                console.error('Erro ao carregar Google Ads:', error);
+                alert('Erro ao carregar dados do Google Ads. Verifique suas credenciais.');
+            }
+        } else if (googleAccountId && !googleRefreshToken) {
+            alert('Refresh token do Google Ads não configurado. Configure nas variáveis de ambiente do Netlify.');
+        }
+
+        // Combinar métricas ou usar apenas uma plataforma
+        let metrics, blackMetrics;
+        let accountName = 'Relatório';
+        
+        if (metaMetrics && googleMetrics) {
+            // Combinar métricas das duas plataformas
+            const totalSpend = parseFloat(metaMetrics.spend) + parseFloat(googleMetrics.spend);
+            const totalConversations = metaMetrics.conversations + googleMetrics.conversations;
+            
+            metrics = {
+                spend: totalSpend.toFixed(2),
+                reach: metaMetrics.reach + googleMetrics.reach,
+                conversations: totalConversations,
+                costPerConversation: totalConversations > 0 ? (totalSpend / totalConversations).toFixed(2) : '0.00'
+            };
+            blackMetrics = metaBlackMetrics; // Black só existe no Meta
+            accountName = 'Meta + Google Ads';
+        } else if (metaMetrics) {
+            metrics = metaMetrics;
+            blackMetrics = metaBlackMetrics;
+            accountName = adAccountsMap[unitId] || 'Meta Ads';
+        } else if (googleMetrics) {
+            metrics = googleMetrics;
+            blackMetrics = null;
+            const accounts = googleAccountManager.loadAccounts();
+            const googleAccount = accounts.find(acc => acc.customerId === googleAccountId);
+            accountName = googleAccount ? googleAccount.name : 'Google Ads';
+        }
+
+        // Buscar dados de comparação se solicitado (apenas para Meta por enquanto)
+        let comparisonMetrics = null;
+        if (comparisonData && !hasBlack && unitId && insightsService) {
+            try {
+                console.log('📊 Buscando dados de comparação Meta...');
                 comparisonMetrics = await insightsService.getComparisonData(unitId, startDate, endDate);
                 
                 console.log('✓ Dados de comparação carregados', {
@@ -708,10 +859,6 @@ async function generateCompleteReport() {
                     previous: {
                         conversations: comparisonMetrics.previous.conversations,
                         costPerConversation: comparisonMetrics.previous.costPerConversation
-                    },
-                    metricsAtual: {
-                        conversations: metrics.conversations,
-                        costPerConversation: metrics.costPerConversation
                     }
                 });
             } catch (error) {
@@ -722,10 +869,10 @@ async function generateCompleteReport() {
         // Armazenar métricas globalmente
         reportMetrics = metrics;
         reportBlackMetrics = blackMetrics;
-    reportBestAds = bestAds;
+        reportBestAds = bestAds;
 
         // Renderizar relatório
-        renderCompleteReport(unitName, startDate, endDate, metrics, blackMetrics, bestAds, comparisonMetrics, budgetsCompleted, salesCount, revenue, performanceAnalysis);
+        renderCompleteReport(accountName, startDate, endDate, metrics, blackMetrics, bestAds, comparisonMetrics, budgetsCompleted, salesCount, revenue, performanceAnalysis);
         
         console.timeEnd('⏱️ GERAÇÃO COMPLETA DO RELATÓRIO');
 

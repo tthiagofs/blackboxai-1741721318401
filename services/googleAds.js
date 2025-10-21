@@ -102,3 +102,61 @@ export class GoogleAdsService {
     }
 }
 
+// Gerenciador de Contas Google Ads (armazenamento local)
+export class GoogleAdsAccountManager {
+    constructor() {
+        this.storageKey = 'googleAdsAccounts';
+    }
+
+    // Salvar contas no localStorage
+    saveAccounts(accounts) {
+        try {
+            localStorage.setItem(this.storageKey, JSON.stringify(accounts));
+        } catch (error) {
+            console.error('Erro ao salvar contas Google Ads:', error);
+        }
+    }
+
+    // Carregar contas do localStorage
+    loadAccounts() {
+        try {
+            const data = localStorage.getItem(this.storageKey);
+            return data ? JSON.parse(data) : [];
+        } catch (error) {
+            console.error('Erro ao carregar contas Google Ads:', error);
+            return [];
+        }
+    }
+
+    // Adicionar nova conta
+    addAccount(customerId, name) {
+        const accounts = this.loadAccounts();
+        // Verificar se a conta já existe
+        const exists = accounts.some(acc => acc.customerId === customerId);
+        if (exists) {
+            throw new Error('Esta conta já está cadastrada');
+        }
+        accounts.push({ customerId, name });
+        this.saveAccounts(accounts);
+        return accounts;
+    }
+
+    // Remover conta
+    removeAccount(customerId) {
+        let accounts = this.loadAccounts();
+        accounts = accounts.filter(acc => acc.customerId !== customerId);
+        this.saveAccounts(accounts);
+        return accounts;
+    }
+
+    // Atualizar nome da conta
+    updateAccountName(customerId, newName) {
+        const accounts = this.loadAccounts();
+        const account = accounts.find(acc => acc.customerId === customerId);
+        if (account) {
+            account.name = newName;
+            this.saveAccounts(accounts);
+        }
+        return accounts;
+    }
+}

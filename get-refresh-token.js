@@ -26,13 +26,16 @@ async function main() {
 
     console.log('\n📋 PASSO 3: Autorizar o aplicativo\n');
     
-    const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=urn:ietf:wg:oauth:2.0:oob&response_type=code&scope=https://www.googleapis.com/auth/adwords&access_type=offline&prompt=consent`;
+    const redirectUri = 'http://localhost:8888/.netlify/functions/google-ads-callback';
+    const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=https://www.googleapis.com/auth/adwords&access_type=offline&prompt=consent`;
     
     console.log('Abra este link no seu navegador:\n');
     console.log(authUrl);
     console.log('\n');
+    console.log('⚠️  IMPORTANTE: Após autorizar, você será redirecionado para uma página que não vai carregar.');
+    console.log('    Isso é NORMAL! Copie o CÓDIGO que aparece na URL depois de "code=".\n');
 
-    const authCode = await ask('4. Cole o código de autorização que apareceu na página: ');
+    const authCode = await ask('4. Cole o código de autorização (da URL): ');
 
     console.log('\n⏳ Obtendo refresh token...\n');
 
@@ -42,7 +45,7 @@ async function main() {
         client_secret: clientSecret,
         code: authCode,
         grant_type: 'authorization_code',
-        redirect_uri: 'urn:ietf:wg:oauth:2.0:oob'
+        redirect_uri: redirectUri
     });
 
     const options = {

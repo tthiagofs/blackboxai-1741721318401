@@ -1,4 +1,6 @@
 import { appAuth, fbAuth } from './auth.js';
+import { formatDateISOToBR, encodeWhatsAppText, formatCurrencyBRL } from './utils/format.js';
+import { debounce, setSelectedStyles } from './utils/dom.js';
 
 const appLoginScreen = document.getElementById('appLoginScreen');
 const reportSelectionScreen = document.getElementById('reportSelectionScreen');
@@ -372,26 +374,18 @@ function renderCampaignOptions() {
             </div>
         `;
 
-        // Aplicar estilo inicial diretamente
-        if (selectedCampaigns.has(campaign.id)) {
-            option.style.background = '#2563eb';
-            option.style.color = '#ffffff';
-        } else {
-            option.style.background = '#ffffff';
-            option.style.color = '';
-        }
+        // Aplicar estilo usando classes
+        setSelectedStyles(option, selectedCampaigns.has(campaign.id));
 
         option.addEventListener('click', () => {
             if (selectedCampaigns.has(campaign.id)) {
                 selectedCampaigns.delete(campaign.id);
                 option.classList.remove('selected');
-                option.style.background = '#ffffff';
-                option.style.color = '';
+                setSelectedStyles(option, false);
             } else {
                 selectedCampaigns.add(campaign.id);
                 option.classList.add('selected');
-                option.style.background = '#2563eb';
-                option.style.color = '#ffffff';
+                setSelectedStyles(option, true);
             }
             updateFilterButtons();
         });
@@ -426,26 +420,18 @@ function renderAdSetOptions() {
             </div>
         `;
 
-        // Aplicar estilo inicial diretamente
-        if (selectedAdSets.has(adSet.id)) {
-            option.style.background = '#2563eb';
-            option.style.color = '#ffffff';
-        } else {
-            option.style.background = '#ffffff';
-            option.style.color = '';
-        }
+        // Aplicar estilo usando classes
+        setSelectedStyles(option, selectedAdSets.has(adSet.id));
 
         option.addEventListener('click', () => {
             if (selectedAdSets.has(adSet.id)) {
                 selectedAdSets.delete(adSet.id);
                 option.classList.remove('selected');
-                option.style.background = '#ffffff';
-                option.style.color = '';
+                setSelectedStyles(option, false);
             } else {
                 selectedAdSets.add(adSet.id);
                 option.classList.add('selected');
-                option.style.background = '#2563eb';
-                option.style.color = '#ffffff';
+                setSelectedStyles(option, true);
             }
             updateFilterButtons();
         });
@@ -482,8 +468,8 @@ function toggleModal(modalId, show) {
     }
 }
 
-// Carregar dados ao preencher o formulário
-form.addEventListener('input', async function(e) {
+// Carregar dados ao preencher o formulário (com debounce)
+const onFormInput = debounce(async function() {
     const unitId = document.getElementById('unitId').value;
     const startDate = document.getElementById('startDate').value;
     const endDate = document.getElementById('endDate').value;
@@ -494,7 +480,8 @@ form.addEventListener('input', async function(e) {
             loadAdSets(unitId, startDate, endDate)
         ]);
     }
-});
+}, 350);
+form.addEventListener('input', onFormInput);
 
 // Função para gerar o relatório simplificado
 async function generateReport() {
@@ -567,9 +554,9 @@ async function generateReport() {
         }
     }
 
-    const costPerConversation = totalConversations > 0 ? (totalSpend / totalConversations).toFixed(2) : '0';
-    const formattedStartDate = startDate.split('-').reverse().join('/');
-    const formattedEndDate = endDate.split('-').reverse().join('/');
+    const costPerConversation = totalConversations > 0 ? (totalSpend / totalConversations) : 0;
+    const formattedStartDate = formatDateISOToBR(startDate);
+    const formattedEndDate = formatDateISOToBR(endDate);
 
     reportContainer.innerHTML = `
         <div class="report-container">
@@ -588,11 +575,11 @@ async function generateReport() {
                 </div>
                 <div class="metric-card cost">
                     <div class="metric-label">Custo por Mensagem</div>
-                    <div class="metric-value">R$ ${costPerConversation.replace('.', ',')}</div>
+                    <div class="metric-value">${formatCurrencyBRL(costPerConversation)}</div>
                 </div>
                 <div class="metric-card investment">
                     <div class="metric-label">Investimento Total</div>
-                    <div class="metric-value">R$ ${totalSpend.toFixed(2).replace('.', ',')}</div>
+                    <div class="metric-value">${formatCurrencyBRL(totalSpend)}</div>
                 </div>
             </div>
         </div>
@@ -633,7 +620,7 @@ if (applyAdSetsBtn) {
 // Compartilhar no WhatsApp
 shareWhatsAppBtn.addEventListener('click', () => {
     const reportText = reportContainer.innerText;
-    const encodedText = encodeURIComponent(reportText);
+    const encodedText = encodeWhatsAppText(reportText);
     window.open(`https://api.whatsapp.com/send?text=${encodedText}`, '_blank');
 });
 
@@ -642,12 +629,7 @@ loginBtn.addEventListener('click', (event) => {
     handleFacebookLogin();
 });
 
-// Voltar para a seleção de relatório
-backToReportSelectionBtn.addEventListener('click', (e) => {
-    e.preventDefault();
-    console.log('Botão Voltar clicado - Redirecionando para seleção de relatório');
-    window.location.href = 'index.html?screen=reportSelection';
-});
+// Listener do botão Voltar é configurado em showScreen(mainContent)
 
 // Verificar autenticação e decidir a tela inicial
 const storedToken = localStorage.getItem('fbAccessToken');

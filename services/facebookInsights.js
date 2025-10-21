@@ -337,54 +337,79 @@ export class FacebookInsightsService {
         };
     }
 
-    // Melhores anúncios
+    // Melhores anúncios - OTIMIZADO para evitar rate limit
     async getBestPerformingAds(unitId, startDate, endDate, limit = 3) {
         try {
             console.time('⏱️ Tempo - Melhores Anúncios');
             
-            // Aguardar um pouco antes de buscar anúncios para evitar rate limit
-            await this._delay(1000);
+            // Aguardar para evitar rate limit após carregar campanhas/adsets
+            await this._delay(2000);
             
-            const url = `/${unitId}/ads?fields=id,name&access_token=${this.accessToken}`;
-            const ads = await this.fetchWithPagination(url, [], true); // HIGH PRIORITY
+            // ESTRATÉGIA OTIMIZADA: Buscar insights diretamente do account
+            // Isso retorna anúncios JÁ COM dados, evitando múltiplas requisições
+            const url = `/${unitId}/insights?level=ad&fields=ad_id,ad_name,spend,impressions,clicks,ctr,cpc,cpm,actions&time_range={'since':'${startDate}','until':'${endDate}'}&limit=50&access_token=${this.accessToken}`;
             
-            if (ads.length === 0) {
+            let adsData = [];
+            try {
+                adsData = await this.fetchWithPagination(url, [], true);
+            } catch (error) {
+                console.warn('⚠️ Não foi possível buscar insights de anúncios:', error.message);
+                console.timeEnd('⏱️ Tempo - Melhores Anúncios');
+                return [];
+            }
+            
+            if (adsData.length === 0) {
+                console.log('ℹ️ Nenhum anúncio com dados encontrado');
                 console.timeEnd('⏱️ Tempo - Melhores Anúncios');
                 return [];
             }
 
-            // Pegar apenas os primeiros 10 anúncios para evitar rate limit
-            const topAds = ads.slice(0, 10);
-            
-            // Processar insights e creativos em lotes pequenos
-            const insights = [];
-            const creatives = [];
-            
-            for (const ad of topAds) {
-                await this._delay(200); // Delay entre requisições
-                const [insightData, creativeData] = await Promise.all([
-                    this.getAdInsights(ad.id, startDate, endDate),
-                    this.getCreativeData(ad.id)
-                ]);
-                insights.push(insightData);
-                creatives.push(creativeData);
-            }
+            // Processar dados dos anúncios
+            const adsWithMetrics = adsData.map(ad => {
+                const conversions = ad.actions?.find(action => 
+                    action.action_type === 'offsite_conversion.fb_pixel_purchase' || 
+                    action.action_type === 'omni_purchase'
+                )?.value || 0;
 
-            const adsWithData = topAds.map((ad, index) => ({
-                id: ad.id,
-                name: ad.name,
-                ...insights[index],
-                imageUrl: creatives[index].imageUrl
-            }));
+                return {
+                    id: ad.ad_id,
+                    name: ad.ad_name || 'Sem nome',
+                    spend: parseFloat(ad.spend || 0),
+                    impressions: parseInt(ad.impressions || 0),
+                    clicks: parseInt(ad.clicks || 0),
+                    ctr: parseFloat(ad.ctr || 0),
+                    cpc: parseFloat(ad.cpc || 0),
+                    cpm: parseFloat(ad.cpm || 0),
+                    conversions: parseInt(conversions),
+                    imageUrl: 'https://via.placeholder.com/300x200?text=Anúncio' // Placeholder inicial
+                };
+            });
 
-            const sorted = adsWithData
+            // Ordenar por conversões e depois por cliques
+            const sorted = adsWithMetrics
                 .filter(ad => ad.impressions > 0 || ad.spend > 0)
                 .sort((a, b) => b.conversions - a.conversions || b.clicks - a.clicks);
 
+            // Pegar os top N anúncios
+            const topAds = sorted.slice(0, limit);
+
+            // Buscar creativos apenas para os top anúncios (em sequência para evitar rate limit)
+            for (let i = 0; i < topAds.length; i++) {
+                await this._delay(300); // Delay entre cada busca de creative
+                try {
+                    const creativeData = await this.getCreativeData(topAds[i].id);
+                    topAds[i].imageUrl = creativeData.imageUrl;
+                } catch (error) {
+                    console.warn(`⚠️ Erro ao buscar creative do anúncio ${topAds[i].id}:`, error.message);
+                    // Mantém o placeholder
+                }
+            }
+
             console.timeEnd('⏱️ Tempo - Melhores Anúncios');
-            return sorted.slice(0, limit);
+            return topAds;
         } catch (error) {
             console.error('Erro ao buscar melhores anúncios:', error);
+            console.timeEnd('⏱️ Tempo - Melhores Anúncios');
             return [];
         }
     }

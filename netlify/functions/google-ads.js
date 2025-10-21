@@ -57,17 +57,23 @@ async function listAccounts(accessToken, headers) {
     }
 
     // Usar a API REST do Google Ads para listar contas
-    // https://developers.google.com/google-ads/api/rest/reference/rest/v17/customers/listAccessibleCustomers
-    const response = await fetch(
-      'https://googleads.googleapis.com/v17/customers:listAccessibleCustomers',
-      {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${accessToken}`,
-          'developer-token': process.env.GOOGLE_ADS_DEVELOPER_TOKEN,
-        },
-      }
-    );
+    // URL correta baseada na documentação oficial
+    // A API do Google Ads usa gRPC, mas também tem um endpoint REST
+    // IMPORTANTE: O endpoint não tem /v17/ antes de customers
+    const url = 'https://googleads.googleapis.com/v17/customers:listAccessibleCustomers';
+    
+    console.log(`📍 URL da requisição: ${url}`);
+    console.log(`🔑 Developer Token: ${process.env.GOOGLE_ADS_DEVELOPER_TOKEN ? 'Presente' : 'AUSENTE'}`);
+    console.log(`🎫 Access Token: ${accessToken ? 'Presente' : 'AUSENTE'}`);
+    
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'developer-token': process.env.GOOGLE_ADS_DEVELOPER_TOKEN,
+        'login-customer-id': process.env.GOOGLE_ADS_MANAGER_CUSTOMER_ID || '',
+      },
+    });
 
     if (!response.ok) {
       const errorText = await response.text();

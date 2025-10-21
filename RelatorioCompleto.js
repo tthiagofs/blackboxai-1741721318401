@@ -582,30 +582,32 @@ document.getElementById('unitId').addEventListener('change', function() {
     lastSelectedUnitId = newUnitId;
 });
 
-// Carregar dados ao preencher o formulário (com debounce)
+// Carregar dados ao preencher o formulário (com debounce otimizado)
 const onFormInput = debounce(async function(e) {
-    // Não carregar se já está carregando ou se o evento foi disparado pelo submit
+    // Não carregar se já está carregando
     if (isLoadingData) {
-        console.log('Carregamento já em andamento, ignorando...');
-        return;
-    }
-    
+        console.log('⏳ Carregamento em andamento...');
+            return;
+        }
+
     const unitId = document.getElementById('unitId').value;
     const startDate = document.getElementById('startDate').value;
     const endDate = document.getElementById('endDate').value;
 
     if (unitId && startDate && endDate) {
         isLoadingData = true;
+        console.time('⏱️ TEMPO TOTAL DE CARREGAMENTO');
         try {
             await Promise.all([
                 loadCampaigns(unitId, startDate, endDate),
                 loadAdSets(unitId, startDate, endDate)
             ]);
         } finally {
+            console.timeEnd('⏱️ TEMPO TOTAL DE CARREGAMENTO');
             isLoadingData = false;
         }
     }
-}, 1000); // Aumentado para 1 segundo
+}, 300); // Reduzido para 300ms
 
 // Remover o event listener de input do form para evitar chamadas duplicadas
 // form.addEventListener('input', onFormInput);
@@ -617,10 +619,12 @@ document.getElementById('endDate').addEventListener('change', onFormInput);
 
 // Função para gerar o relatório completo
 async function generateCompleteReport() {
-        const unitId = document.getElementById('unitId').value;
+    console.time('⏱️ GERAÇÃO COMPLETA DO RELATÓRIO');
+    
+    const unitId = document.getElementById('unitId').value;
     const unitName = adAccountsMap[unitId] || 'Unidade Desconhecida';
-        const startDate = document.getElementById('startDate').value;
-        const endDate = document.getElementById('endDate').value;
+    const startDate = document.getElementById('startDate').value;
+    const endDate = document.getElementById('endDate').value;
     const budgetsCompleted = parseInt(document.getElementById('budgetsCompleted').value) || 0;
     const salesCount = parseInt(document.getElementById('salesCount').value) || 0;
     const revenue = parseFloat(document.getElementById('revenue').value) || 0;
@@ -668,10 +672,13 @@ async function generateCompleteReport() {
 
         // Renderizar relatório
         renderCompleteReport(unitName, startDate, endDate, metrics, blackMetrics, bestAds, null, budgetsCompleted, salesCount, revenue, performanceAnalysis);
+        
+        console.timeEnd('⏱️ GERAÇÃO COMPLETA DO RELATÓRIO');
 
     } catch (error) {
         console.error('Erro ao gerar relatório:', error);
         alert('Erro ao gerar relatório. Tente novamente.');
+        console.timeEnd('⏱️ GERAÇÃO COMPLETA DO RELATÓRIO');
     }
 }
 
@@ -1175,9 +1182,6 @@ refreshBtn.addEventListener('click', () => {
     lastSelectedUnitId = null;
     isLoadingData = false;
 
-    // Limpar caches para liberar memória
-    insightsService.clearAllCaches();
-
     // Limpar o formulário
     form.reset();
     reportContainer.innerHTML = '';
@@ -1202,22 +1206,5 @@ refreshBtn.addEventListener('click', () => {
     window.location.reload();
 });
 
-// Adicionar botão para limpar cache
-function addClearCacheButton() {
-    const clearCacheBtn = document.createElement('button');
-    clearCacheBtn.id = 'clearCacheBtn';
-    clearCacheBtn.className = 'bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition ml-2';
-    clearCacheBtn.innerHTML = '<i class="fas fa-trash mr-2"></i>Limpar Cache';
-    clearCacheBtn.addEventListener('click', () => {
-        insightsService.clearAllCaches();
-        alert('Cache limpo com sucesso!');
-    });
-    
-    if (refreshBtn && refreshBtn.parentNode) {
-        refreshBtn.parentNode.appendChild(clearCacheBtn);
-    }
-}
-
-// Inicializar botão de limpar cache
-addClearCacheButton();
+// Botão de limpar cache removido - cache desabilitado para melhor performance
 

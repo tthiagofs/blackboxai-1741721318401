@@ -112,7 +112,7 @@ appLoginForm.addEventListener('submit', async (e) => {
     if (appAuth.validateAppLogin(username, password)) {
         appLoginError.style.display = 'none';
         localStorage.setItem('appLoggedIn', 'true');  // Armazena que o login foi bem-sucedido
-        showScreen(reportSelectionScreen);
+        showScreen(loginScreen);  // Vai direto para login Meta/Google
         usernameInput.value = '';
         passwordInput.value = '';
     } else {
@@ -126,19 +126,17 @@ appLoginForm.addEventListener('submit', async (e) => {
 // Seleção de relatório simplificado
 simpleReportBtn.addEventListener('click', async () => {
     simpleReportBtn.classList.add('active');
-    const isLoggedIn = await validateFacebookLogin();
-    if (isLoggedIn) {
-        showScreen(mainContent);
+    // Já está logado, apenas carrega contas e vai para tela
+    showScreen(mainContent);
+    if (fbLoggedIn) {
         await loadAdAccounts();
     }
 });
 
 // Seleção de relatório completo
 completeReportBtn.addEventListener('click', async () => {
-    const isLoggedIn = await validateFacebookLogin();
-    if (isLoggedIn) {
-        window.location.href = 'RelatorioCompleto.html';
-    }
+    // Já está logado, vai direto para a tela de relatório
+    window.location.href = 'RelatorioCompleto.html';
 });
 
 // Variáveis de estado de login
@@ -690,38 +688,37 @@ continueToReportBtn.addEventListener('click', () => {
 // Listener do botão Voltar é configurado em showScreen(mainContent)
 
 // Verificar autenticação e decidir a tela inicial
-const storedToken = localStorage.getItem('fbAccessToken');
 const appLoggedIn = localStorage.getItem('appLoggedIn') === 'true';
-const urlParams = new URLSearchParams(window.location.search);
-const targetScreen = urlParams.get('screen');
-const appLoggedInParam = urlParams.get('appLoggedIn') === 'true';
 
 console.log('Checando estado inicial...');
-console.log('appLoggedIn (do localStorage):', appLoggedIn);
-console.log('appLoggedInParam (da URL):', appLoggedInParam);
-console.log('storedToken (tem token do Facebook?):', storedToken ? 'Sim' : 'Não');
-console.log('targetScreen (tela pedida):', targetScreen);
+console.log('appLoggedIn:', appLoggedIn);
 
-if (targetScreen === 'reportSelection' && (appLoggedIn || appLoggedInParam)) {
-    console.log('Indo direto para a tela de seleção de relatórios!');
-    showScreen(reportSelectionScreen);
-} else if (storedToken) {
-    console.log('Tem token do Facebook, verificando login...');
-    currentAccessToken = storedToken;
-    validateFacebookLogin().then(isLoggedIn => {
-        console.log('Resultado da validação do Facebook:', isLoggedIn);
-        if (isLoggedIn && (appLoggedIn || appLoggedInParam)) {
-            console.log('Facebook OK e logado no app, indo para seleção de relatórios');
-            showScreen(reportSelectionScreen);
-        } else if (isLoggedIn) {
-            console.log('Apenas Facebook logado, indo para tela de login do Facebook');
-            showScreen(loginScreen);
-        } else {
-            console.log('Facebook não validado, indo para tela de login do app');
-            showScreen(appLoginScreen);
+// Verificar se já está logado nas plataformas
+const storedFbToken = localStorage.getItem('fbAccessToken');
+const storedGoogleToken = localStorage.getItem('google_ads_access_token');
+
+if (appLoggedIn) {
+    if (storedFbToken || storedGoogleToken) {
+        // Já logado no app E em alguma plataforma → vai para seleção de relatórios
+        console.log('✅ Já logado no app e nas plataformas');
+        
+        // Restaurar estado de login
+        if (storedFbToken) {
+            currentAccessToken = storedFbToken;
+            fbLoggedIn = true;
         }
-    });
+        if (storedGoogleToken) {
+            googleLoggedIn = true;
+        }
+        
+        showScreen(reportSelectionScreen);
+    } else {
+        // Logado no app mas não nas plataformas → vai para login de plataformas
+        console.log('⚠️ Logado no app, mas não nas plataformas');
+        showScreen(loginScreen);
+    }
 } else {
-    console.log('Sem token do Facebook, indo para tela de login do app');
+    // Não logado no app → vai para login do app
+    console.log('⚠️ Não logado no app');
     showScreen(appLoginScreen);
 }

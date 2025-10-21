@@ -146,6 +146,8 @@ class GoogleAuthService {
         }
 
         try {
+            console.log('🔍 Buscando contas Google Ads via Netlify Function...');
+            
             // Chamar a Netlify Function para listar contas
             const response = await fetch('/.netlify/functions/google-ads', {
                 method: 'POST',
@@ -158,12 +160,14 @@ class GoogleAuthService {
                 }),
             });
 
+            const data = await response.json();
+            
             if (!response.ok) {
-                const error = await response.json();
-                throw new Error(error.error || 'Erro ao buscar contas');
+                console.error('❌ Erro na resposta:', data);
+                throw new Error(data.error || 'Erro ao buscar contas');
             }
 
-            const data = await response.json();
+            console.log('✅ Contas recebidas:', data.accounts);
             
             // Salvar contas no localStorage
             if (data.accounts && data.accounts.length > 0) {
@@ -172,7 +176,7 @@ class GoogleAuthService {
             
             return data.accounts || [];
         } catch (error) {
-            console.error('Erro ao buscar contas Google Ads:', error);
+            console.error('❌ Erro ao buscar contas Google Ads:', error);
             throw error;
         }
     }

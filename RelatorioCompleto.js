@@ -1,10 +1,10 @@
-import { fbAuth } from './auth.js?v=2.4';
-import { exportToPDF } from './exportPDF.js?v=2.4';
-import { formatDateISOToBR, formatCurrencyBRL, encodeWhatsAppText } from './utils/format.js?v=2.4';
-import { setSelectedStyles, debounce } from './utils/dom.js?v=2.4';
-import { FacebookInsightsService } from './services/facebookInsights.js?v=2.4';
-import { GoogleAdsService } from './services/googleAds.js?v=2.4';
-import { googleAuth } from './authGoogle.js?v=2.4';
+import { fbAuth } from './auth.js?v=2.6';
+import { exportToPDF } from './exportPDF.js?v=2.6';
+import { formatDateISOToBR, formatCurrencyBRL, encodeWhatsAppText } from './utils/format.js?v=2.6';
+import { setSelectedStyles, debounce } from './utils/dom.js?v=2.6';
+import { FacebookInsightsService } from './services/facebookInsights.js?v=2.6';
+import { GoogleAdsService } from './services/googleAds.js?v=2.6';
+import { googleAuth } from './authGoogle.js?v=2.6';
 
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 

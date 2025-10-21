@@ -10,6 +10,13 @@ class GoogleAuthService {
 
     // Inicializar Google Identity Services
     async initialize() {
+        // Sempre tentar carregar token salvo primeiro
+        const savedToken = this.loadToken();
+        if (savedToken) {
+            this.accessToken = savedToken;
+            console.log('✅ Token Google restaurado do localStorage');
+        }
+        
         if (this.isInitialized) return;
 
         return new Promise((resolve, reject) => {
@@ -40,13 +47,6 @@ class GoogleAuthService {
                 });
                 
                 this.isInitialized = true;
-                
-                // Tentar carregar token salvo
-                const savedToken = this.loadToken();
-                if (savedToken) {
-                    this.accessToken = savedToken;
-                    console.log('✅ Token Google carregado do storage');
-                }
                 
                 resolve();
             };

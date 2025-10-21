@@ -69,10 +69,17 @@ export class FacebookInsightsService {
 
             const result = {};
             campaigns.forEach((camp, index) => {
-                const spend = insights[index].spend ? parseFloat(insights[index].spend) : 0;
                 result[camp.id] = {
                     name: camp.name,
-                    spend: spend
+                    spend: insights[index].spend ? parseFloat(insights[index].spend) : 0,
+                    insights: {
+                        spend: insights[index].spend ? parseFloat(insights[index].spend) : 0,
+                        impressions: insights[index].impressions || 0,
+                        clicks: insights[index].clicks || 0,
+                        conversions: insights[index].conversions || 0,
+                        reach: insights[index].impressions || 0, // usando impressions como fallback
+                        actions: []
+                    }
                 };
             });
 
@@ -99,10 +106,17 @@ export class FacebookInsightsService {
 
             const result = {};
             adSets.forEach((set, index) => {
-                const spend = insights[index].spend ? parseFloat(insights[index].spend) : 0;
                 result[set.id] = {
                     name: set.name,
-                    spend: spend
+                    spend: insights[index].spend ? parseFloat(insights[index].spend) : 0,
+                    insights: {
+                        spend: insights[index].spend ? parseFloat(insights[index].spend) : 0,
+                        impressions: insights[index].impressions || 0,
+                        clicks: insights[index].clicks || 0,
+                        conversions: insights[index].conversions || 0,
+                        reach: insights[index].impressions || 0,
+                        actions: []
+                    }
                 };
             });
 

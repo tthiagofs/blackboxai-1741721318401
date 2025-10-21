@@ -250,7 +250,7 @@ function renderCampaignOptions() {
         .map(([id, data]) => ({
             id,
             name: data.name,
-            spend: data.insights.spend
+            spend: data.spend || 0
         }))
         .sort((a, b) => b.spend - a.spend);
 
@@ -305,7 +305,7 @@ function renderAdSetOptions() {
         .map(([id, data]) => ({
             id,
             name: data.name,
-            spend: data.insights.spend
+            spend: data.spend || 0
         }))
         .sort((a, b) => b.spend - a.spend);
 
@@ -351,7 +351,7 @@ function renderWhiteCampaignOptions() {
         .map(([id, data]) => ({
             id,
             name: data.name,
-            spend: data.insights.spend
+            spend: data.spend || 0
         }))
         .sort((a, b) => b.spend - a.spend);
 
@@ -396,7 +396,7 @@ function renderWhiteAdSetOptions() {
         .map(([id, data]) => ({
             id,
             name: data.name,
-            spend: data.insights.spend
+            spend: data.spend || 0
         }))
         .sort((a, b) => b.spend - a.spend);
 
@@ -441,7 +441,7 @@ function renderBlackCampaignOptions() {
         .map(([id, data]) => ({
             id,
             name: data.name,
-            spend: data.insights.spend
+            spend: data.spend || 0
         }))
         .sort((a, b) => b.spend - a.spend);
 
@@ -486,7 +486,7 @@ function renderBlackAdSetOptions() {
         .map(([id, data]) => ({
             id,
             name: data.name,
-            spend: data.insights.spend
+            spend: data.spend || 0
         }))
         .sort((a, b) => b.spend - a.spend);
 

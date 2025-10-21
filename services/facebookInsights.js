@@ -372,6 +372,11 @@ export class FacebookInsightsService {
                     action.action_type === 'offsite_conversion.fb_pixel_purchase' || 
                     action.action_type === 'omni_purchase'
                 )?.value || 0;
+                
+                // Buscar mensagens (leads)
+                const messages = ad.actions?.find(action => 
+                    action.action_type === 'onsite_conversion.messaging_conversation_started_7d'
+                )?.value || 0;
 
                 return {
                     id: ad.ad_id,
@@ -383,14 +388,15 @@ export class FacebookInsightsService {
                     cpc: parseFloat(ad.cpc || 0),
                     cpm: parseFloat(ad.cpm || 0),
                     conversions: parseInt(conversions),
+                    messages: parseInt(messages),
                     imageUrl: 'https://via.placeholder.com/300x200?text=Anúncio' // Placeholder inicial
                 };
             });
 
-            // Ordenar por conversões e depois por cliquess
+            // Ordenar por mensagens (leads), depois por conversões, depois por cliques
             const sorted = adsWithMetrics
                 .filter(ad => ad.impressions > 0 || ad.spend > 0)
-                .sort((a, b) => b.conversions - a.conversions || b.clicks - a.clicks);
+                .sort((a, b) => b.messages - a.messages || b.conversions - a.conversions || b.clicks - a.clicks);
 
             // Pegar os top N anúncios
             const topAds = sorted.slice(0, limit);

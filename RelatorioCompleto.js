@@ -567,7 +567,8 @@ document.getElementById('unitId').addEventListener('change', function() {
         whiteFilters.classList.add('hidden');
         blackFilters.classList.add('hidden');
         defaultFilters.classList.add('hidden');
-        comparisonFilter.classList.add('hidden');
+        // Manter comparisonFilter visível
+        // comparisonFilter.classList.add('hidden');
         
         // Desabilitar botões
         disableButtons();
@@ -636,11 +637,16 @@ async function generateCompleteReport() {
     }
 
     try {
-        // Carregar campanhas e ad sets primeiro
-        await Promise.all([
-            loadCampaigns(unitId, startDate, endDate),
-            loadAdSets(unitId, startDate, endDate)
-        ]);
+        // Carregar campanhas e ad sets APENAS se não foram carregados ainda
+        if (!campaignsMap[unitId] || !adSetsMap[unitId]) {
+            console.log('📥 Carregando dados da API...');
+            await Promise.all([
+                loadCampaigns(unitId, startDate, endDate),
+                loadAdSets(unitId, startDate, endDate)
+            ]);
+        } else {
+            console.log('✓ Usando dados já carregados (sem recarregar da API)');
+        }
 
         // Calcular métricas baseadas nos dados carregados
         let metrics, blackMetrics;
@@ -656,16 +662,15 @@ async function generateCompleteReport() {
             metrics = calculateMetricsForSelection(selectedCampaigns, selectedAdSets, campaignsMap[unitId] || {}, adSetsMap[unitId] || {});
         }
 
-        // Buscar melhores anúncios
+        // Buscar melhores anúncios (agora são 2 em vez de 3)
         let bestAds = [];
         try {
-            const rawBestAds = await insightsService.getBestPerformingAds(unitId, startDate, endDate, 3);
+            const rawBestAds = await insightsService.getBestPerformingAds(unitId, startDate, endDate, 2);
             
             // Transformar dados para o formato esperado pela renderização
             bestAds = rawBestAds.map(ad => {
-                // Calcular mensagens a partir de conversions ou clicks
-                const messages = ad.conversions > 0 ? ad.conversions : ad.clicks;
-                const costPerMessage = messages > 0 ? ad.spend / messages : 0;
+                // As mensagens já vêm corretas do serviço
+                const costPerMessage = ad.messages > 0 ? ad.spend / ad.messages : 0;
                 
                 return {
                     id: ad.id,
@@ -675,7 +680,7 @@ async function generateCompleteReport() {
                     impressions: ad.impressions,
                     clicks: ad.clicks,
                     conversions: ad.conversions,
-                    messages: messages,
+                    messages: ad.messages, // Já vem correto do serviço
                     costPerMessage: costPerMessage
                 };
             });
@@ -686,13 +691,25 @@ async function generateCompleteReport() {
             bestAds = []; // Continuar sem os melhores anúncios
         }
 
+        // Buscar dados de comparação se solicitado
+        let comparisonMetrics = null;
+        if (comparisonData && !hasBlack) {
+            try {
+                console.log('📊 Buscando dados de comparação...');
+                comparisonMetrics = await insightsService.getComparisonData(unitId, startDate, endDate);
+                console.log('✓ Dados de comparação carregados');
+            } catch (error) {
+                console.warn('Erro ao carregar dados de comparação:', error);
+            }
+        }
+
         // Armazenar métricas globalmente
         reportMetrics = metrics;
         reportBlackMetrics = blackMetrics;
     reportBestAds = bestAds;
 
         // Renderizar relatório
-        renderCompleteReport(unitName, startDate, endDate, metrics, blackMetrics, bestAds, null, budgetsCompleted, salesCount, revenue, performanceAnalysis);
+        renderCompleteReport(unitName, startDate, endDate, metrics, blackMetrics, bestAds, comparisonMetrics, budgetsCompleted, salesCount, revenue, performanceAnalysis);
         
         console.timeEnd('⏱️ GERAÇÃO COMPLETA DO RELATÓRIO');
 
@@ -863,25 +880,46 @@ function renderBlackWhiteReport(metrics, blackMetrics) {
 }
 
 function renderStandardReport(metrics, comparisonMetrics) {
+    // Helper para calcular variação percentual
+    const calculateChange = (current, previous) => {
+        if (!previous || previous === 0) return null;
+        const change = ((current - previous) / previous) * 100;
+        return change;
+    };
+    
+    // Helper para renderizar badge de mudança
+    const renderChangeBadge = (change) => {
+        if (change === null) return '';
+        const isPositive = change > 0;
+        const color = isPositive ? 'text-green-400' : 'text-red-400';
+        const arrow = isPositive ? '↑' : '↓';
+        return `<span class="${color} text-sm ml-2">${arrow} ${Math.abs(change).toFixed(1)}%</span>`;
+    };
+    
+    const spendChange = comparisonMetrics ? calculateChange(parseFloat(metrics.spend), parseFloat(comparisonMetrics.previous.spend)) : null;
+    const reachChange = comparisonMetrics ? calculateChange(metrics.reach, comparisonMetrics.previous.impressions) : null;
+    const conversationsChange = comparisonMetrics ? calculateChange(metrics.conversations, comparisonMetrics.previous.conversions) : null;
+    const costChange = comparisonMetrics ? calculateChange(metrics.costPerConversation, parseFloat(comparisonMetrics.previous.costPerConversation)) : null;
+    
     return `
                         <div class="bg-blue-900 text-white rounded-lg p-4 mb-6">
-                            <h3 class="text-xl font-semibold uppercase mb-3">Campanhas</h3>
+                            <h3 class="text-xl font-semibold uppercase mb-3">Campanhas${comparisonMetrics ? ' - Com Comparação' : ''}</h3>
                             <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
                                 <div class="metric-card">
                                     <h4 class="text-sm font-medium text-gray-200 mb-1">Investimento</h4>
-                    <p class="text-lg font-semibold text-white">${formatCurrencyBRL(metrics.spend)}</p>
+                    <p class="text-lg font-semibold text-white">${formatCurrencyBRL(metrics.spend)}${renderChangeBadge(spendChange)}</p>
                                 </div>
                                 <div class="metric-card">
                                     <h4 class="text-sm font-medium text-gray-200 mb-1">Alcance</h4>
-                                    <p class="text-lg font-semibold text-white">${metrics.reach}</p>
+                                    <p class="text-lg font-semibold text-white">${metrics.reach}${renderChangeBadge(reachChange)}</p>
                                 </div>
                                 <div class="metric-card">
                                     <h4 class="text-sm font-medium text-gray-200 mb-1">Conversas Iniciadas</h4>
-                                    <p class="text-lg font-semibold text-white">${metrics.conversations}</p>
+                                    <p class="text-lg font-semibold text-white">${metrics.conversations}${renderChangeBadge(conversationsChange)}</p>
                                 </div>
                                 <div class="metric-card">
                                     <h4 class="text-sm font-medium text-gray-200 mb-1">Custo por Conversa</h4>
-                    <p class="text-lg font-semibold text-white">${formatCurrencyBRL(metrics.costPerConversation)}</p>
+                    <p class="text-lg font-semibold text-white">${formatCurrencyBRL(metrics.costPerConversation)}${renderChangeBadge(costChange)}</p>
                                 </div>
                             </div>
         </div>

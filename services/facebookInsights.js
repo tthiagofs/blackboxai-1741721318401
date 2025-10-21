@@ -359,10 +359,12 @@ export class FacebookInsightsService {
             }
             
             if (adsData.length === 0) {
-                console.log('ℹ️ Nenhum anúncio com dados encontrado');
+                console.log('ℹ️ Nenhum anúncio com dados encontrado no período');
                 console.timeEnd('⏱️ Tempo - Melhores Anúncios');
                 return [];
             }
+            
+            console.log(`📊 ${adsData.length} anúncios encontrados, processando...`);
 
             // Processar dados dos anúncios
             const adsWithMetrics = adsData.map(ad => {
@@ -392,6 +394,8 @@ export class FacebookInsightsService {
 
             // Pegar os top N anúncios
             const topAds = sorted.slice(0, limit);
+            
+            console.log(`🏆 Top ${topAds.length} anúncios selecionados`);
 
             // Buscar creativos apenas para os top anúncios (em sequência para evitar rate limit)
             for (let i = 0; i < topAds.length; i++) {
@@ -405,6 +409,7 @@ export class FacebookInsightsService {
                 }
             }
 
+            console.log(`✅ Retornando ${topAds.length} anúncios com dados completos`);
             console.timeEnd('⏱️ Tempo - Melhores Anúncios');
             return topAds;
         } catch (error) {

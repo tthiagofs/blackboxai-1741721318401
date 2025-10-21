@@ -659,7 +659,28 @@ async function generateCompleteReport() {
         // Buscar melhores anúncios
         let bestAds = [];
         try {
-            bestAds = await insightsService.getBestPerformingAds(unitId, startDate, endDate, selectedCampaigns, selectedAdSets);
+            const rawBestAds = await insightsService.getBestPerformingAds(unitId, startDate, endDate, 3);
+            
+            // Transformar dados para o formato esperado pela renderização
+            bestAds = rawBestAds.map(ad => {
+                // Calcular mensagens a partir de conversions ou clicks
+                const messages = ad.conversions > 0 ? ad.conversions : ad.clicks;
+                const costPerMessage = messages > 0 ? ad.spend / messages : 0;
+                
+                return {
+                    id: ad.id,
+                    name: ad.name,
+                    imageUrl: ad.imageUrl,
+                    spend: ad.spend,
+                    impressions: ad.impressions,
+                    clicks: ad.clicks,
+                    conversions: ad.conversions,
+                    messages: messages,
+                    costPerMessage: costPerMessage
+                };
+            });
+            
+            console.log(`✓ ${bestAds.length} melhores anúncios carregados`);
         } catch (error) {
             console.warn('Erro ao carregar melhores anúncios:', error);
             bestAds = []; // Continuar sem os melhores anúncios

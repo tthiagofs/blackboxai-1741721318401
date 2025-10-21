@@ -1,9 +1,10 @@
-import { fbAuth } from './auth.js?v=2.3';
-import { exportToPDF } from './exportPDF.js?v=2.3';
-import { formatDateISOToBR, formatCurrencyBRL, encodeWhatsAppText } from './utils/format.js?v=2.3';
-import { setSelectedStyles, debounce } from './utils/dom.js?v=2.3';
-import { FacebookInsightsService } from './services/facebookInsights.js?v=2.3';
-import { GoogleAdsService, GoogleAdsAccountManager } from './services/googleAds.js?v=2.3';
+import { fbAuth } from './auth.js?v=2.4';
+import { exportToPDF } from './exportPDF.js?v=2.4';
+import { formatDateISOToBR, formatCurrencyBRL, encodeWhatsAppText } from './utils/format.js?v=2.4';
+import { setSelectedStyles, debounce } from './utils/dom.js?v=2.4';
+import { FacebookInsightsService } from './services/facebookInsights.js?v=2.4';
+import { GoogleAdsService } from './services/googleAds.js?v=2.4';
+import { googleAuth } from './authGoogle.js?v=2.4';
 
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -12,11 +13,9 @@ const currentAccessToken = fbAuth.getAccessToken();
 
 // Inicializar serviços
 const insightsService = currentAccessToken ? new FacebookInsightsService(currentAccessToken) : null;
-const googleAccountManager = new GoogleAdsAccountManager();
 
-// O refresh token do Google está configurado no backend (Netlify Function)
-// Não precisamos mais passá-lo do frontend
-const googleRefreshToken = true; // Flag para indicar que o token está configurado no backend
+// Inicializar Google Auth
+googleAuth.initialize().catch(err => console.error('Erro ao inicializar Google Auth:', err));
 
 // Elementos do DOM
 const form = document.getElementById('form');
@@ -38,14 +37,9 @@ const defaultFilters = document.getElementById('defaultFilters');
 const comparisonFilter = document.getElementById('comparisonFilter');
 
 // Elementos Google Ads
+const googleLoginBtn = document.getElementById('googleLoginBtn');
+const googleAccountSelector = document.getElementById('googleAccountSelector');
 const googleAdsAccountSelect = document.getElementById('googleAdsAccountId');
-const addGoogleAccountBtn = document.getElementById('addGoogleAccountBtn');
-const removeGoogleAccountBtn = document.getElementById('removeGoogleAccountBtn');
-const addGoogleAccountModal = document.getElementById('addGoogleAccountModal');
-const confirmAddGoogleAccountBtn = document.getElementById('confirmAddGoogleAccount');
-const cancelAddGoogleAccountBtn = document.getElementById('cancelAddGoogleAccount');
-const googleCustomerIdInput = document.getElementById('googleCustomerId');
-const googleAccountNameInput = document.getElementById('googleAccountName');
 
 // Modais
 const closeCampaignsModalBtn = document.getElementById('closeCampaignsModal');
@@ -123,9 +117,59 @@ if (!unitSelect) {
     }
 }
 
+// Verificar se Google Ads já está autenticado e carregar contas
+async function initializeGoogleAds() {
+    if (googleAuth.isAuthenticated()) {
+        console.log('✅ Google Ads já autenticado');
+        googleLoginBtn.classList.add('hidden');
+        googleAccountSelector.classList.remove('hidden');
+        await loadGoogleAdsAccounts();
+    } else {
+        console.log('⚠️ Google Ads não autenticado');
+        googleLoginBtn.classList.remove('hidden');
+        googleAccountSelector.classList.add('hidden');
+    }
+}
+
 // Preencher select de contas Google Ads
-function loadGoogleAdsAccounts() {
-    const accounts = googleAccountManager.loadAccounts();
+async function loadGoogleAdsAccounts() {
+    try {
+        googleAdsAccountSelect.innerHTML = '<option value="">Carregando contas...</option>';
+        googleAdsAccountSelect.disabled = true;
+
+        // Primeiro tentar carregar contas salvas
+        const storedAccounts = googleAuth.getStoredAccounts();
+        
+        if (storedAccounts.length > 0) {
+            renderGoogleAccounts(storedAccounts);
+        }
+
+        // Buscar contas atualizadas da API
+        const accounts = await googleAuth.fetchAccessibleAccounts();
+        
+        if (accounts && accounts.length > 0) {
+            renderGoogleAccounts(accounts);
+        } else if (storedAccounts.length === 0) {
+            googleAdsAccountSelect.innerHTML = '<option value="">Nenhuma conta encontrada</option>';
+        }
+
+        googleAdsAccountSelect.disabled = false;
+    } catch (error) {
+        console.error('Erro ao carregar contas Google Ads:', error);
+        googleAdsAccountSelect.innerHTML = '<option value="">Erro ao carregar contas</option>';
+        googleAdsAccountSelect.disabled = false;
+        
+        // Se erro de autenticação, solicitar login novamente
+        if (error.message.includes('autenticado')) {
+            googleAuth.clearToken();
+            googleLoginBtn.classList.remove('hidden');
+            googleAccountSelector.classList.add('hidden');
+        }
+    }
+}
+
+// Renderizar contas no select
+function renderGoogleAccounts(accounts) {
     googleAdsAccountSelect.innerHTML = '<option value="">Nenhuma conta selecionada</option>';
     
     accounts.forEach(account => {
@@ -136,71 +180,34 @@ function loadGoogleAdsAccounts() {
     });
 }
 
-// Carregar contas Google Ads ao iniciar
-loadGoogleAdsAccounts();
-
-// Função para abrir modal de adicionar conta Google
-addGoogleAccountBtn.addEventListener('click', () => {
-    addGoogleAccountModal.classList.remove('hidden');
-    googleCustomerIdInput.value = '';
-    googleAccountNameInput.value = '';
-});
-
-// Função para cancelar adição de conta
-cancelAddGoogleAccountBtn.addEventListener('click', () => {
-    addGoogleAccountModal.classList.add('hidden');
-});
-
-// Função para confirmar adição de conta
-confirmAddGoogleAccountBtn.addEventListener('click', () => {
-    const customerId = googleCustomerIdInput.value.trim();
-    const name = googleAccountNameInput.value.trim();
-
-    if (!customerId || !name) {
-        alert('Por favor, preencha todos os campos.');
-        return;
-    }
-
-    // Validar formato do Customer ID (XXX-XXX-XXXX)
-    const customerIdRegex = /^\d{3}-\d{3}-\d{4}$/;
-    if (!customerIdRegex.test(customerId)) {
-        alert('Customer ID deve estar no formato XXX-XXX-XXXX (ex: 123-456-7890)');
-        return;
-    }
-
+// Evento de login do Google
+googleLoginBtn.addEventListener('click', async () => {
     try {
-        googleAccountManager.addAccount(customerId, name);
-        loadGoogleAdsAccounts();
-        addGoogleAccountModal.classList.add('hidden');
-        alert(`Conta "${name}" adicionada com sucesso!`);
+        googleLoginBtn.disabled = true;
+        googleLoginBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Conectando...';
         
-        // Selecionar a conta recém-adicionada
-        googleAdsAccountSelect.value = customerId;
+        await googleAuth.login();
+        
+        console.log('✅ Login Google bem-sucedido!');
+        
+        // Esconder botão de login e mostrar seletor
+        googleLoginBtn.classList.add('hidden');
+        googleAccountSelector.classList.remove('hidden');
+        
+        // Carregar contas
+        await loadGoogleAdsAccounts();
+        
     } catch (error) {
-        alert(error.message);
+        console.error('❌ Erro no login Google:', error);
+        alert('Erro ao fazer login com Google. Tente novamente.');
+        
+        googleLoginBtn.disabled = false;
+        googleLoginBtn.innerHTML = '<i class="fab fa-google mr-2"></i>Conectar Google Ads';
     }
 });
 
-// Função para remover conta Google Ads
-removeGoogleAccountBtn.addEventListener('click', () => {
-    const customerId = googleAdsAccountSelect.value;
-    
-    if (!customerId) {
-        alert('Por favor, selecione uma conta para remover.');
-        return;
-    }
-
-    const confirmation = confirm(`Deseja realmente remover esta conta?`);
-    if (!confirmation) return;
-
-    try {
-        googleAccountManager.removeAccount(customerId);
-        loadGoogleAdsAccounts();
-        alert('Conta removida com sucesso!');
-    } catch (error) {
-        alert('Erro ao remover conta: ' + error.message);
-    }
-});
+// Inicializar Google Ads ao carregar a página
+initializeGoogleAds();
 
 // Desabilitar botões até que a pergunta "A unidade possui Black?" seja respondida
 function disableButtons() {
@@ -749,19 +756,19 @@ async function generateCompleteReport() {
                     loadCampaigns(unitId, startDate, endDate),
                     loadAdSets(unitId, startDate, endDate)
                 ]);
-            } else {
+    } else {
                 console.log('✓ Usando dados Meta já carregados');
             }
 
             // Calcular métricas Meta baseadas nos dados carregados
-            if (hasBlack) {
+    if (hasBlack) {
                 // Lógica para White e Black separadamente
                 const whiteMetrics = calculateMetricsForSelection(selectedWhiteCampaigns, selectedWhiteAdSets, campaignsMap[unitId] || {}, adSetsMap[unitId] || {});
                 const blackMetricsData = calculateMetricsForSelection(selectedBlackCampaigns, selectedBlackAdSets, campaignsMap[unitId] || {}, adSetsMap[unitId] || {});
                 
                 metaMetrics = whiteMetrics;
                 metaBlackMetrics = blackMetricsData;
-            } else {
+    } else {
                 metaMetrics = calculateMetricsForSelection(selectedCampaigns, selectedAdSets, campaignsMap[unitId] || {}, adSetsMap[unitId] || {});
             }
 
@@ -795,24 +802,27 @@ async function generateCompleteReport() {
         }
 
         // ========== PROCESSAR GOOGLE ADS ==========
-        if (googleAccountId && googleRefreshToken) {
-            const accounts = googleAccountManager.loadAccounts();
+        if (googleAccountId && googleAuth.isAuthenticated()) {
+            const accounts = googleAuth.getStoredAccounts();
             const googleAccount = accounts.find(acc => acc.customerId === googleAccountId);
             const googleAccountName = googleAccount ? googleAccount.name : googleAccountId;
 
             console.log(`🌐 Processando Google Ads: ${googleAccountName}`);
 
             try {
-                // Não passamos mais o refreshToken, o backend vai usar a variável de ambiente
-                const googleService = new GoogleAdsService(googleAccountId, null);
+                // Usar o accessToken do Google Auth
+                const accessToken = googleAuth.getAccessToken();
+                const googleService = new GoogleAdsService(googleAccountId, accessToken);
                 const googleInsights = await googleService.getAccountInsights(startDate, endDate);
                 googleMetrics = googleService.calculateMetrics(googleInsights);
                 
                 console.log(`✓ Métricas Google Ads carregadas`, googleMetrics);
             } catch (error) {
                 console.error('Erro ao carregar Google Ads:', error);
-                alert('Erro ao carregar dados do Google Ads. Verifique se o Refresh Token está configurado no Netlify.');
+                alert('Erro ao carregar dados do Google Ads. Verifique sua autenticação.');
             }
+        } else if (googleAccountId && !googleAuth.isAuthenticated()) {
+            alert('Faça login com Google Ads para gerar o relatório.');
         }
 
         // Combinar métricas ou usar apenas uma plataforma

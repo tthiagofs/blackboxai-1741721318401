@@ -1,19 +1,5 @@
-// Netlify Function para Google Ads API
-const { GoogleAdsApi } = require('google-ads-api');
-
-// Inicializar cliente Google Ads
-let client;
-
-function getClient() {
-  if (!client) {
-    client = new GoogleAdsApi({
-      client_id: process.env.GOOGLE_ADS_CLIENT_ID,
-      client_secret: process.env.GOOGLE_ADS_CLIENT_SECRET,
-      developer_token: process.env.GOOGLE_ADS_DEVELOPER_TOKEN,
-    });
-  }
-  return client;
-}
+// Netlify Function para Google Ads API (usando REST API diretamente)
+const fetch = require('node-fetch');
 
 exports.handler = async (event, context) => {
   // CORS headers
@@ -29,44 +15,19 @@ exports.handler = async (event, context) => {
   }
 
   try {
-    const { action, customerId, startDate, endDate, refreshToken } = JSON.parse(event.body || '{}');
+    const { action, customerId, startDate, endDate, accessToken } = JSON.parse(event.body || '{}');
 
-    if (!customerId) {
-      return {
-        statusCode: 400,
-        headers,
-        body: JSON.stringify({ error: 'customerId é obrigatório' }),
-      };
-    }
-
-    // Usar refreshToken do request ou da variável de ambiente
-    const finalRefreshToken = refreshToken || process.env.GOOGLE_ADS_REFRESH_TOKEN;
-
-    if (!finalRefreshToken) {
-      return {
-        statusCode: 400,
-        headers,
-        body: JSON.stringify({ 
-          error: 'Refresh token não configurado. Configure a variável GOOGLE_ADS_REFRESH_TOKEN no Netlify.' 
-        }),
-      };
-    }
-
-    const client = getClient();
-    const customer = client.Customer({
-      customer_id: customerId,
-      refresh_token: finalRefreshToken,
-    });
+    console.log('📥 Ação recebida:', action);
 
     switch (action) {
-      case 'getCampaigns':
-        return await getCampaigns(customer, startDate, endDate, headers);
+      case 'listAccounts':
+        return await listAccounts(accessToken, headers);
       
       case 'getAccountInsights':
-        return await getAccountInsights(customer, startDate, endDate, headers);
+        return await getAccountInsights(customerId, startDate, endDate, accessToken, headers);
       
       case 'getComparison':
-        return await getComparison(customer, startDate, endDate, headers);
+        return await getComparison(customerId, startDate, endDate, accessToken, headers);
       
       default:
         return {
@@ -76,7 +37,7 @@ exports.handler = async (event, context) => {
         };
     }
   } catch (error) {
-    console.error('Erro na função:', error);
+    console.error('❌ Erro na função:', error);
     return {
       statusCode: 500,
       headers,
@@ -88,61 +49,137 @@ exports.handler = async (event, context) => {
   }
 };
 
-// Buscar campanhas com métricas
-async function getCampaigns(customer, startDate, endDate, headers) {
+// Listar contas Google Ads acessíveis
+async function listAccounts(accessToken, headers) {
   try {
-    const query = `
-      SELECT 
-        campaign.id,
-        campaign.name,
-        metrics.impressions,
-        metrics.clicks,
-        metrics.conversions,
-        metrics.cost_micros
-      FROM campaign
-      WHERE segments.date BETWEEN '${startDate}' AND '${endDate}'
-        AND campaign.status = 'ENABLED'
-    `;
+    if (!accessToken) {
+      throw new Error('Access token é obrigatório para listar contas');
+    }
 
-    const campaigns = await customer.query(query);
-    
-    // Agrupar por campanha e somar métricas
-    const campaignsMap = {};
-    
-    campaigns.forEach(row => {
-      const id = row.campaign.id.toString();
-      if (!campaignsMap[id]) {
-        campaignsMap[id] = {
-          id,
-          name: row.campaign.name,
-          impressions: 0,
-          clicks: 0,
-          conversions: 0,
-          cost: 0,
-        };
+    // Usar a API REST do Google Ads para listar contas
+    // https://developers.google.com/google-ads/api/rest/reference/rest/v17/customers/listAccessibleCustomers
+    const response = await fetch(
+      'https://googleads.googleapis.com/v17/customers:listAccessibleCustomers',
+      {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'developer-token': process.env.GOOGLE_ADS_DEVELOPER_TOKEN,
+        },
       }
-      
-      campaignsMap[id].impressions += row.metrics.impressions || 0;
-      campaignsMap[id].clicks += row.metrics.clicks || 0;
-      campaignsMap[id].conversions += row.metrics.conversions || 0;
-      campaignsMap[id].cost += (row.metrics.cost_micros || 0) / 1000000; // Converter de micros para reais
+    );
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Erro ao listar contas:', errorText);
+      throw new Error(`Erro na API do Google Ads: ${response.status} - ${errorText}`);
+    }
+
+    const data = await response.json();
+    console.log('✅ Contas encontradas:', data);
+
+    // resourceNames vem como: "customers/1234567890"
+    const customerIds = (data.resourceNames || []).map(name => {
+      const parts = name.split('/');
+      return parts[parts.length - 1];
     });
+
+    // Buscar informações detalhadas de cada conta
+    const accountsDetails = await Promise.all(
+      customerIds.map(async (customerId) => {
+        try {
+          return await getAccountInfo(customerId, accessToken);
+        } catch (error) {
+          console.warn(`Erro ao buscar info da conta ${customerId}:`, error.message);
+          return {
+            customerId,
+            name: `Conta ${customerId}`,
+            error: error.message
+          };
+        }
+      })
+    );
 
     return {
       statusCode: 200,
       headers,
-      body: JSON.stringify({ campaigns: Object.values(campaignsMap) }),
+      body: JSON.stringify({ 
+        accounts: accountsDetails.filter(acc => !acc.error)
+      }),
     };
   } catch (error) {
-    throw new Error(`Erro ao buscar campanhas: ${error.message}`);
+    console.error('❌ Erro ao listar contas:', error);
+    throw error;
+  }
+}
+
+// Buscar informações de uma conta específica
+async function getAccountInfo(customerId, accessToken) {
+  try {
+    const query = `
+      SELECT
+        customer.id,
+        customer.descriptive_name,
+        customer.currency_code
+      FROM customer
+      LIMIT 1
+    `;
+
+    const response = await fetch(
+      `https://googleads.googleapis.com/v17/customers/${customerId}/googleAds:searchStream`,
+      {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'developer-token': process.env.GOOGLE_ADS_DEVELOPER_TOKEN,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ query }),
+      }
+    );
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`${response.status} - ${errorText}`);
+    }
+
+    const data = await response.json();
+    
+    if (data && data.length > 0 && data[0].results && data[0].results.length > 0) {
+      const customer = data[0].results[0].customer;
+      return {
+        customerId: customerId,
+        name: customer.descriptiveName || `Conta ${customerId}`,
+        currency: customer.currencyCode || 'BRL',
+      };
+    }
+
+    return {
+      customerId,
+      name: `Conta ${customerId}`,
+      currency: 'BRL',
+    };
+  } catch (error) {
+    throw error;
   }
 }
 
 // Buscar insights da conta
-async function getAccountInsights(customer, startDate, endDate, headers) {
+async function getAccountInsights(customerId, startDate, endDate, accessToken, headers) {
   try {
+    if (!customerId || !startDate || !endDate) {
+      throw new Error('customerId, startDate e endDate são obrigatórios');
+    }
+
+    // Usar access token do parâmetro ou variável de ambiente
+    const finalAccessToken = accessToken;
+
+    if (!finalAccessToken) {
+      throw new Error('Access token não fornecido');
+    }
+
     const query = `
-      SELECT 
+      SELECT
         metrics.impressions,
         metrics.clicks,
         metrics.conversions,
@@ -151,19 +188,52 @@ async function getAccountInsights(customer, startDate, endDate, headers) {
       WHERE segments.date BETWEEN '${startDate}' AND '${endDate}'
     `;
 
-    const results = await customer.query(query);
-    
+    console.log('🔍 Query:', query);
+
+    const response = await fetch(
+      `https://googleads.googleapis.com/v17/customers/${customerId}/googleAds:searchStream`,
+      {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${finalAccessToken}`,
+          'developer-token': process.env.GOOGLE_ADS_DEVELOPER_TOKEN,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ query }),
+      }
+    );
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('❌ Erro na API:', errorText);
+      throw new Error(`Erro na API do Google Ads: ${response.status} - ${errorText}`);
+    }
+
+    const data = await response.json();
+    console.log('✅ Dados recebidos:', JSON.stringify(data).substring(0, 500));
+
     let totalImpressions = 0;
     let totalClicks = 0;
     let totalConversions = 0;
-    let totalCost = 0;
-    
-    results.forEach(row => {
-      totalImpressions += row.metrics.impressions || 0;
-      totalClicks += row.metrics.clicks || 0;
-      totalConversions += row.metrics.conversions || 0;
-      totalCost += (row.metrics.cost_micros || 0) / 1000000;
-    });
+    let totalCostMicros = 0;
+
+    // Processar resultados
+    if (data && Array.isArray(data)) {
+      data.forEach(batch => {
+        if (batch.results) {
+          batch.results.forEach(row => {
+            if (row.metrics) {
+              totalImpressions += parseInt(row.metrics.impressions || 0);
+              totalClicks += parseInt(row.metrics.clicks || 0);
+              totalConversions += parseFloat(row.metrics.conversions || 0);
+              totalCostMicros += parseInt(row.metrics.costMicros || 0);
+            }
+          });
+        }
+      });
+    }
+
+    const totalCost = totalCostMicros / 1000000; // Converter de micros para reais
 
     const insights = {
       impressions: totalImpressions,
@@ -173,18 +243,21 @@ async function getAccountInsights(customer, startDate, endDate, headers) {
       costPerConversion: totalConversions > 0 ? totalCost / totalConversions : 0,
     };
 
+    console.log('📊 Insights processados:', insights);
+
     return {
       statusCode: 200,
       headers,
       body: JSON.stringify({ insights }),
     };
   } catch (error) {
-    throw new Error(`Erro ao buscar insights: ${error.message}`);
+    console.error('❌ Erro ao buscar insights:', error);
+    throw error;
   }
 }
 
 // Buscar dados de comparação
-async function getComparison(customer, startDate, endDate, headers) {
+async function getComparison(customerId, startDate, endDate, accessToken, headers) {
   try {
     // Calcular período anterior
     const start = new Date(startDate);
@@ -201,8 +274,8 @@ async function getComparison(customer, startDate, endDate, headers) {
 
     // Buscar dados dos dois períodos
     const [currentData, previousData] = await Promise.all([
-      getAccountInsights(customer, startDate, endDate, headers),
-      getAccountInsights(customer, previousStartDate, previousEndDate, headers),
+      getAccountInsights(customerId, startDate, endDate, accessToken, headers),
+      getAccountInsights(customerId, previousStartDate, previousEndDate, accessToken, headers),
     ]);
 
     const current = JSON.parse(currentData.body).insights;
@@ -217,7 +290,7 @@ async function getComparison(customer, startDate, endDate, headers) {
       }),
     };
   } catch (error) {
-    throw new Error(`Erro ao buscar comparação: ${error.message}`);
+    console.error('❌ Erro ao buscar comparação:', error);
+    throw error;
   }
 }
-

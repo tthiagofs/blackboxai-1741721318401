@@ -203,6 +203,11 @@ button:hover {
     color: #dc3545;
 }
 
+#shareWhatsAppBtn {
+    display: none;
+    margin-top: 20px;
+    width: 100%;
+}
 
 /* Estilos responsivos */
 @media (max-width: 600px) {

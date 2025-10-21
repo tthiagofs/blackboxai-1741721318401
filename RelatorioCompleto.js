@@ -14,6 +14,7 @@ if (!currentAccessToken) {
 // Elementos do DOM
 const form = document.getElementById('form');
 const reportContainer = document.getElementById('reportContainer');
+const shareWhatsAppBtn = document.getElementById('shareWhatsAppBtn');
 const filterCampaignsBtn = document.getElementById('filterCampaigns');
 const filterAdSetsBtn = document.getElementById('filterAdSets');
 const comparePeriodsBtn = document.getElementById('comparePeriods');
@@ -1179,7 +1180,8 @@ form.addEventListener('submit', async (e) => {
                 reportDiv.insertAdjacentHTML('beforeend', analysisHTML);
             }
 
-        
+            // Exibir o botão de compartilhamento
+            shareWhatsAppBtn.classList.remove('hidden');
         }
 
         // Atualizar o último estado do formulário
@@ -1347,6 +1349,7 @@ async function generateReport(unitId, unitName, startDate, endDate) {
         reportDiv.insertAdjacentHTML('beforeend', analysisHTML);
     }
 
+    shareWhatsAppBtn.classList.remove('hidden');
 }
 
 
@@ -1901,6 +1904,61 @@ if (!reportMetrics) {
 
 
 
+// Compartilhar no WhatsApp
+shareWhatsAppBtn.addEventListener('click', () => {
+    const unitId = document.getElementById('unitId').value;
+    const unitName = adAccountsMap[unitId] || 'Unidade Desconhecida';
+    const startDate = document.getElementById('startDate').value.split('-').reverse().join('/');
+    const endDate = document.getElementById('endDate').value.split('-').reverse().join('/');
+
+    let message = `Relatório Completo - ${unitName}\n`;
+    message += `Período Analisado: ${startDate} a ${endDate}\n\n`;
+
+    const report = reportContainer.querySelector('.bg-white');
+    if (hasBlack) {
+        message += `Campanhas White:\n`;
+        const whiteMetrics = report.querySelectorAll('.metric-card')[0].parentElement.querySelectorAll('.metric-card');
+        whiteMetrics.forEach(metric => {
+            const label = metric.querySelector('h4').textContent;
+            const value = metric.querySelector('p.text-lg').textContent;
+            message += `${label}: ${value}\n`;
+        });
+
+        message += `\nCampanhas Black:\n`;
+        const blackMetrics = report.querySelectorAll('.metric-card')[4].parentElement.querySelectorAll('.metric-card');
+        blackMetrics.forEach(metric => {
+            const label = metric.querySelector('h4').textContent;
+            const value = metric.querySelector('p.text-lg').textContent;
+            message += `${label}: ${value}\n`;
+        });
+
+        const totalLeads = report.querySelector('p.text-lg.font-semibold span').textContent;
+        message += `\nNúmero total de leads: ${totalLeads}\n`;
+    } else {
+        message += `Campanhas:\n`;
+        const metrics = report.querySelectorAll('.metric-card');
+        metrics.forEach(metric => {
+            const label = metric.querySelector('h4').textContent;
+            const value = metric.querySelector('p.text-lg').textContent;
+            message += `${label}: ${value}\n`;
+        });
+    }
+
+    const bestAds = report.querySelectorAll('.flex.items-center');
+    if (bestAds.length > 0) {
+        message += `\nAnúncios em Destaque:\n`;
+        bestAds.forEach((ad, adIndex) => {
+            const messages = ad.querySelector('p:nth-child(1)').textContent;
+            const costPerMessage = ad.querySelector('p:nth-child(2)').textContent;
+            message += `Anúncio ${adIndex + 1}:\n${messages}\n${costPerMessage}\n`;
+        });
+    }
+
+    const encodedMessage = encodeURIComponent(message);
+    const whatsappUrl = `https://api.whatsapp.com/send?text=${encodedMessage}`;
+    window.open(whatsappUrl, '_blank');
+});
+
 // Voltar para a seleção de relatórios
 backToReportSelectionBtn.addEventListener('click', () => {
     window.location.href = 'index.html?appLoggedIn=true';
@@ -1924,6 +1982,7 @@ refreshBtn.addEventListener('click', () => {
     // Limpar o formulário
     form.reset();
     reportContainer.innerHTML = '';
+    shareWhatsAppBtn.classList.add('hidden');
 
     // Limpar os filtros visuais
     whiteFilters.classList.add('hidden');

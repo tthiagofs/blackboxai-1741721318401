@@ -97,7 +97,7 @@ export async function exportToPDF(
     doc.addImage(imgData, 'PNG', xOffset, yOffset, scaledWidth, scaledHeight);
 
     // Gerar o nome do arquivo
-    const fileName = `Relatorio_CA - ${unitName}_${formattedStartDate}_a_${formattedEndDate}.pdf`;
+    const fileName = `${unitName}.pdf`;
 
     // Baixar o PDF
     doc.save(fileName);

@@ -492,4 +492,174 @@ export class FacebookInsightsService {
             return null;
         }
     }
+
+    // Get best performing ads
+    async getBestPerformingAds(unitId, startDate, endDate, selectedCampaigns = new Set(), selectedAdSets = new Set()) {
+        const cacheKey = `best_ads_${unitId}_${startDate}_${endDate}_${Array.from(selectedCampaigns).join(',')}_${Array.from(selectedAdSets).join(',')}`;
+        const cached = this.getCachedData(cacheKey);
+        if (cached) return cached;
+
+        try {
+            const adsWithActions = []; // Anúncios com mensagens/conversões/cadastros
+            const adsWithoutActions = []; // Anúncios sem mensagens/conversões/cadastros, mas com gasto
+
+            // Determinar as entidades (campanhas, ad sets ou conta) para buscar os anúncios
+            const entitiesToFetch = [];
+            if (selectedAdSets.size > 0) {
+                entitiesToFetch.push(...Array.from(selectedAdSets).map(id => ({ type: 'adset', id })));
+            } else if (selectedCampaigns.size > 0) {
+                entitiesToFetch.push(...Array.from(selectedCampaigns).map(id => ({ type: 'campaign', id })));
+            } else {
+                entitiesToFetch.push({ type: 'account', id: unitId });
+            }
+
+            // Buscar todos os anúncios das entidades em paralelo
+            const adsListPromises = entitiesToFetch.map(async (entity) => {
+                const adsList = [];
+                let entityUrl = entity.type === 'account' ? `/${entity.id}/ads` : `/${entity.id}/ads`;
+                
+                while (entityUrl) {
+                    const adResponse = await new Promise((resolve) => {
+                        FB.api(
+                            entityUrl,
+                            {
+                                fields: 'id,name,creative',
+                                time_range: { since: startDate, until: endDate },
+                                access_token: this.accessToken,
+                                limit: 50
+                            },
+                            resolve
+                        );
+                    });
+
+                    if (adResponse && !adResponse.error) {
+                        adsList.push(...adResponse.data);
+                        entityUrl = adResponse.paging && adResponse.paging.next ? adResponse.paging.next : null;
+                    } else {
+                        console.error(`Erro ao carregar anúncios para ${entity.type} ${entity.id}:`, adResponse?.error);
+                        entityUrl = null;
+                    }
+                    await this._delay(200);
+                }
+                return adsList;
+            });
+
+            const adsListArrays = await Promise.all(adsListPromises);
+            const adsList = adsListArrays.flat();
+
+            if (adsList.length === 0) {
+                return [];
+            }
+
+            // Processar anúncios em lotes para melhor performance
+            const batchSize = 10;
+            const adBatches = [];
+            for (let i = 0; i < adsList.length; i += batchSize) {
+                adBatches.push(adsList.slice(i, i + batchSize));
+            }
+
+            for (const batch of adBatches) {
+                const batchPromises = batch.map(async (ad) => {
+                    let totalActions = 0;
+                    let spend = 0;
+
+                    // Buscar insights do anúncio
+                    const insights = await this.getAdInsights(ad.id, startDate, endDate);
+                    if (insights) {
+                        totalActions = this.extractMessages(insights.actions || []);
+                        spend = insights.spend ? parseFloat(insights.spend) : 0;
+                    }
+
+                    // Adicionar o anúncio à lista apropriada
+                    const adData = {
+                        creativeId: ad.creative?.id,
+                        imageUrl: 'https://dummyimage.com/150x150/ccc/fff',
+                        messages: totalActions,
+                        spend: spend,
+                        costPerMessage: totalActions > 0 ? (spend / totalActions).toFixed(2) : '0.00'
+                    };
+
+                    return { adData, totalActions, spend };
+                });
+
+                const batchResults = await Promise.all(batchPromises);
+                
+                batchResults.forEach(({ adData, totalActions, spend }) => {
+                    if (totalActions > 0) {
+                        adsWithActions.push(adData);
+                    } else if (spend > 0) {
+                        adsWithoutActions.push(adData);
+                    }
+                });
+            }
+
+            // Ordenar e selecionar os melhores anúncios
+            adsWithActions.sort((a, b) => b.messages - a.messages);
+            adsWithoutActions.sort((a, b) => b.spend - a.spend);
+
+            const bestAds = [];
+            bestAds.push(...adsWithActions.slice(0, 2));
+            if (bestAds.length < 2 && adsWithoutActions.length > 0) {
+                const remainingSlots = 2 - bestAds.length;
+                bestAds.push(...adsWithoutActions.slice(0, remainingSlots));
+            }
+
+            // Buscar imagens dos criativos em paralelo
+            if (bestAds.length > 0) {
+                const imagePromises = bestAds.map(async (ad) => {
+                    if (ad.creativeId) {
+                        const creativeData = await this.getCreativeData(ad.creativeId);
+                        ad.imageUrl = creativeData.imageUrl;
+                    }
+                    return ad;
+                });
+
+                await Promise.all(imagePromises);
+            }
+
+            this.setCachedData(cacheKey, bestAds);
+            return bestAds;
+
+        } catch (error) {
+            console.error('Erro ao carregar melhores anúncios:', error);
+            return [];
+        }
+    }
+
+    // Extract messages from actions
+    extractMessages(actions) {
+        let totalMessages = 0;
+        
+        if (actions && Array.isArray(actions)) {
+            // Contabilizar conversas iniciadas
+            const conversationAction = actions.find(
+                action => action.action_type === 'onsite_conversion.messaging_conversation_started_7d'
+            );
+            if (conversationAction && conversationAction.value) {
+                totalMessages += parseInt(conversationAction.value) || 0;
+            }
+
+            // Contabilizar conversões personalizadas
+            const customConversions = actions.filter(
+                action => action.action_type.startsWith('offsite_conversion.')
+            );
+            customConversions.forEach(action => {
+                if (action.value) {
+                    totalMessages += parseInt(action.value) || 0;
+                }
+            });
+
+            // Contabilizar cadastros do Facebook
+            const leadActions = actions.filter(
+                action => action.action_type === 'lead'
+            );
+            leadActions.forEach(action => {
+                if (action.value) {
+                    totalMessages += parseInt(action.value) || 0;
+                }
+            });
+        }
+        
+        return totalMessages;
+    }
 }

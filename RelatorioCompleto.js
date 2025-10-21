@@ -586,7 +586,13 @@ async function generateCompleteReport() {
         }
 
         // Buscar melhores anúncios
-        const bestAds = await insightsService.getBestPerformingAds(unitId, startDate, endDate, selectedCampaigns, selectedAdSets);
+        let bestAds = [];
+        try {
+            bestAds = await insightsService.getBestPerformingAds(unitId, startDate, endDate, selectedCampaigns, selectedAdSets);
+        } catch (error) {
+            console.warn('Erro ao carregar melhores anúncios:', error);
+            bestAds = []; // Continuar sem os melhores anúncios
+        }
 
         // Armazenar métricas globalmente
         reportMetrics = metrics;

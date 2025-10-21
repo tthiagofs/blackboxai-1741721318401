@@ -1,8 +1,8 @@
-import { fbAuth } from './auth.js?v=2.1';
-import { exportToPDF } from './exportPDF.js?v=2.1';
-import { formatDateISOToBR, formatCurrencyBRL, encodeWhatsAppText } from './utils/format.js?v=2.1';
-import { setSelectedStyles, debounce } from './utils/dom.js?v=2.1';
-import { FacebookInsightsService } from './services/facebookInsights.js?v=2.1';
+import { fbAuth } from './auth.js?v=2.2';
+import { exportToPDF } from './exportPDF.js?v=2.2';
+import { formatDateISOToBR, formatCurrencyBRL, encodeWhatsAppText } from './utils/format.js?v=2.2';
+import { setSelectedStyles, debounce } from './utils/dom.js?v=2.2';
+import { FacebookInsightsService } from './services/facebookInsights.js?v=2.2';
 
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -697,27 +697,22 @@ async function generateCompleteReport() {
             try {
                 console.log('📊 Buscando dados de comparação...');
                 // getComparisonData retorna { current, previous }
-                // mas previous só tem os dados da API, não as conversas calculadas
+                // Agora calculateMetrics já inclui conversations e costPerConversation!
                 comparisonMetrics = await insightsService.getComparisonData(unitId, startDate, endDate);
                 
-                // Adicionar conversas ao previous usando a mesma lógica de extractMessages
-                // Vamos assumir uma proporção entre conversões e conversas
-                if (comparisonMetrics && comparisonMetrics.previous) {
-                    // Se temos conversas no período atual, fazer proporção
-                    const currentConversions = parseFloat(comparisonMetrics.current.conversions) || 1;
-                    const previousConversions = parseFloat(comparisonMetrics.previous.conversions) || 0;
-                    const ratio = metrics.conversations / (currentConversions > 0 ? currentConversions : 1);
-                    
-                    comparisonMetrics.previous.conversations = Math.round(previousConversions * ratio);
-                    comparisonMetrics.previous.costPerConversation = comparisonMetrics.previous.conversations > 0 ?
-                        (parseFloat(comparisonMetrics.previous.spend) / comparisonMetrics.previous.conversations).toFixed(2) : 0;
-                }
-                
                 console.log('✓ Dados de comparação carregados', {
-                    currentConversations: metrics.conversations,
-                    previousConversations: comparisonMetrics.previous.conversations,
-                    currentCost: metrics.costPerConversation,
-                    previousCost: comparisonMetrics.previous.costPerConversation
+                    current: {
+                        conversations: comparisonMetrics.current.conversations,
+                        costPerConversation: comparisonMetrics.current.costPerConversation
+                    },
+                    previous: {
+                        conversations: comparisonMetrics.previous.conversations,
+                        costPerConversation: comparisonMetrics.previous.costPerConversation
+                    },
+                    metricsAtual: {
+                        conversations: metrics.conversations,
+                        costPerConversation: metrics.costPerConversation
+                    }
                 });
             } catch (error) {
                 console.warn('Erro ao carregar dados de comparação:', error);

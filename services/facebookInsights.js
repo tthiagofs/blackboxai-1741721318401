@@ -268,7 +268,7 @@ export class FacebookInsightsService {
         const data = await this.fetchWithPagination(url);
         
         if (data.length === 0) {
-            return { spend: 0, impressions: 0, clicks: 0, conversions: 0 };
+            return { spend: 0, impressions: 0, clicks: 0, conversions: 0, actions: [] };
         }
 
         const insights = data[0];
@@ -281,7 +281,8 @@ export class FacebookInsightsService {
             spend: parseFloat(insights.spend || 0),
             impressions: parseInt(insights.impressions || 0),
             clicks: parseInt(insights.clicks || 0),
-            conversions: parseInt(conversions)
+            conversions: parseInt(conversions),
+            actions: insights.actions || [] // Incluir actions para poder extrair mensagens
         };
     }
 
@@ -291,18 +292,27 @@ export class FacebookInsightsService {
         const impressions = parseInt(insights.impressions || 0);
         const clicks = parseInt(insights.clicks || 0);
         const conversions = parseInt(insights.conversions || 0);
+        
+        // Extrair mensagens (conversas) das actions
+        const messages = insights.actions?.find(action => 
+            action.action_type === 'onsite_conversion.messaging_conversation_started_7d'
+        )?.value || 0;
+        const conversations = parseInt(messages);
 
         const ctr = impressions > 0 ? ((clicks / impressions) * 100).toFixed(2) : 0;
         const cpc = clicks > 0 ? (spend / clicks).toFixed(2) : 0;
         const cpm = impressions > 0 ? ((spend / impressions) * 1000).toFixed(2) : 0;
         const costPerConversion = conversions > 0 ? (spend / conversions).toFixed(2) : 0;
         const conversionRate = clicks > 0 ? ((conversions / clicks) * 100).toFixed(2) : 0;
+        const costPerConversation = conversations > 0 ? (spend / conversations).toFixed(2) : 0;
 
         return {
             spend: spend.toFixed(2),
             impressions,
             clicks,
             conversions,
+            conversations,
+            costPerConversation,
             ctr,
             cpc,
             cpm,

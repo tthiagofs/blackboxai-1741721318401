@@ -1,8 +1,8 @@
-import { fbAuth } from './auth.js?v=2.0';
-import { exportToPDF } from './exportPDF.js?v=2.0';
-import { formatDateISOToBR, formatCurrencyBRL, encodeWhatsAppText } from './utils/format.js?v=2.0';
-import { setSelectedStyles, debounce } from './utils/dom.js?v=2.0';
-import { FacebookInsightsService } from './services/facebookInsights.js?v=2.0';
+import { fbAuth } from './auth.js?v=2.1';
+import { exportToPDF } from './exportPDF.js?v=2.1';
+import { formatDateISOToBR, formatCurrencyBRL, encodeWhatsAppText } from './utils/format.js?v=2.1';
+import { setSelectedStyles, debounce } from './utils/dom.js?v=2.1';
+import { FacebookInsightsService } from './services/facebookInsights.js?v=2.1';
 
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -713,7 +713,12 @@ async function generateCompleteReport() {
                         (parseFloat(comparisonMetrics.previous.spend) / comparisonMetrics.previous.conversations).toFixed(2) : 0;
                 }
                 
-                console.log('✓ Dados de comparação carregados');
+                console.log('✓ Dados de comparação carregados', {
+                    currentConversations: metrics.conversations,
+                    previousConversations: comparisonMetrics.previous.conversations,
+                    currentCost: metrics.costPerConversation,
+                    previousCost: comparisonMetrics.previous.costPerConversation
+                });
             } catch (error) {
                 console.warn('Erro ao carregar dados de comparação:', error);
             }
@@ -1025,6 +1030,33 @@ function renderPerformanceAnalysis(performanceAnalysis) {
 }
 
 // Event listeners
+
+// Botão "Últimos 7 Dias"
+const last7DaysBtn = document.getElementById('last7DaysBtn');
+if (last7DaysBtn) {
+    last7DaysBtn.addEventListener('click', () => {
+        const today = new Date();
+        const yesterday = new Date(today);
+        yesterday.setDate(yesterday.getDate() - 1); // Ontem
+        
+        const sevenDaysAgo = new Date(yesterday);
+        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6); // 7 dias atrás (incluindo ontem = 7 dias)
+        
+        // Formatar datas para YYYY-MM-DD
+        const formatDate = (date) => {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        };
+        
+        document.getElementById('startDate').value = formatDate(sevenDaysAgo);
+        document.getElementById('endDate').value = formatDate(yesterday);
+        
+        console.log(`📅 Últimos 7 dias selecionados: ${formatDate(sevenDaysAgo)} a ${formatDate(yesterday)}`);
+    });
+}
+
 form.addEventListener('submit', async (e) => {
     e.preventDefault();
     

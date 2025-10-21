@@ -379,15 +379,71 @@ export class FacebookInsightsService {
             FB.api(
                 `/${creativeId}`,
                 {
-                    fields: ['thumbnail_url', 'body', 'title', 'image_url'],
+                    fields: 'object_story_spec,thumbnail_url,effective_object_story_id,image_hash',
                     access_token: this.accessToken
                 },
-                (response) => {
+                async (response) => {
                     if (response && !response.error) {
-                        this.creativeCache.set(creativeId, response);
-                        resolve(response);
+                        let imageUrl = 'https://dummyimage.com/600x600/ccc/fff';
+
+                        // Priorizar thumbnail_url primeiro (mais rápido)
+                        if (response.thumbnail_url) {
+                            imageUrl = response.thumbnail_url;
+                        } else if (response.image_hash) {
+                            try {
+                                const imageResponse = await new Promise((imageResolve) => {
+                                    FB.api(
+                                        `/adimages`,
+                                        { hashes: [response.image_hash], fields: 'url', access_token: this.accessToken },
+                                        imageResolve
+                                    );
+                                });
+                                if (imageResponse && !imageResponse.error && imageResponse.data && imageResponse.data.length > 0) {
+                                    imageUrl = imageResponse.data[0].url;
+                                }
+                            } catch (error) {
+                                console.error('Erro ao buscar imagem por hash:', error);
+                            }
+                        }
+                        
+                        // Só buscar em object_story_spec se ainda não encontrou uma imagem válida
+                        if (imageUrl.includes('dummyimage') && response.object_story_spec) {
+                            const { photo_data, video_data, link_data } = response.object_story_spec;
+                            if (photo_data && photo_data.images && photo_data.images.length > 0) {
+                                const largestImage = photo_data.images.reduce((prev, current) => 
+                                    (prev.width > current.width) ? prev : current, photo_data.images[0]);
+                                imageUrl = largestImage.original_url || largestImage.url || photo_data.url;
+                            } else if (video_data && video_data.picture) {
+                                imageUrl = video_data.picture;
+                            } else if (link_data && link_data.picture) {
+                                imageUrl = link_data.picture;
+                            }
+                        }
+                        
+                        // Só buscar effective_object_story_id como último recurso
+                        if (imageUrl.includes('dummyimage') && response.effective_object_story_id) {
+                            try {
+                                const storyResponse = await new Promise((storyResolve) => {
+                                    FB.api(
+                                        `/${response.effective_object_story_id}`,
+                                        { fields: 'full_picture', access_token: this.accessToken },
+                                        storyResolve
+                                    );
+                                });
+                                if (storyResponse && !storyResponse.error && storyResponse.full_picture) {
+                                    imageUrl = storyResponse.full_picture;
+                                }
+                            } catch (error) {
+                                console.error('Erro ao buscar full_picture:', error);
+                            }
+                        }
+
+                        const result = { imageUrl: imageUrl };
+                        this.creativeCache.set(creativeId, result);
+                        resolve(result);
                     } else {
-                        const result = { thumbnail_url: '', body: '', title: '', image_url: '' };
+                        console.error(`Erro ao carregar criativo ${creativeId}:`, response.error);
+                        const result = { imageUrl: 'https://dummyimage.com/600x600/ccc/fff' };
                         this.creativeCache.set(creativeId, result);
                         resolve(result);
                     }

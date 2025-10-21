@@ -600,7 +600,7 @@ async function generateCompleteReport() {
     reportBestAds = bestAds;
 
         // Renderizar relatório
-        renderCompleteReport(unitName, startDate, endDate, metrics, blackMetrics, bestAds, null);
+        renderCompleteReport(unitName, startDate, endDate, metrics, blackMetrics, bestAds, null, budgetsCompleted, salesCount, revenue, performanceAnalysis);
 
     } catch (error) {
         console.error('Erro ao gerar relatório:', error);
@@ -689,7 +689,7 @@ function extractMessages(actions) {
     return totalMessages;
 }
 
-function renderCompleteReport(unitName, startDate, endDate, metrics, blackMetrics, bestAds, comparisonMetrics) {
+function renderCompleteReport(unitName, startDate, endDate, metrics, blackMetrics, bestAds, comparisonMetrics, budgetsCompleted = 0, salesCount = 0, revenue = 0, performanceAnalysis = '') {
     const formattedStartDate = formatDateISOToBR(startDate);
     const formattedEndDate = formatDateISOToBR(endDate);
     
@@ -707,9 +707,15 @@ function renderCompleteReport(unitName, startDate, endDate, metrics, blackMetric
             ${hasBlack ? renderBlackWhiteReport(metrics, blackMetrics) : renderStandardReport(metrics, comparisonMetrics)}
             
             ${renderBestAds(bestAds)}
+            
+            ${renderBusinessResults(budgetsCompleted, salesCount, revenue)}
+            
+            ${renderPerformanceAnalysis(performanceAnalysis)}
         </div>
     `;
 
+    // Limpar relatório anterior antes de adicionar o novo
+    reportContainer.innerHTML = '';
     reportContainer.insertAdjacentHTML('beforeend', reportHTML);
     shareWhatsAppBtn.classList.remove('hidden');
 }
@@ -797,7 +803,7 @@ function renderBestAds(bestAds) {
                         <div class="space-y-4">
             ${bestAds.map(ad => `
                                         <div class="flex items-center bg-white border border-gray-200 rounded-lg p-3">
-                                            <img src="${ad.imageUrl}" alt="Anúncio" class="w-24 h-24 object-cover rounded-md mr-4">
+                    <img src="${ad.imageUrl}" alt="Anúncio" class="w-24 h-24 object-cover rounded-md mr-4" onerror="this.src='https://dummyimage.com/150x150/ccc/fff'">
                                             <div>
                                                 <p class="text-gray-700 text-base"><strong>Leads:</strong> ${ad.messages}</p>
                         <p class="text-gray-700 text-base"><strong>Investimento:</strong> ${formatCurrencyBRL(ad.spend)}</p>
@@ -805,6 +811,55 @@ function renderBestAds(bestAds) {
                                             </div>
                                         </div>
             `).join('')}
+        </div>
+    `;
+}
+
+function renderBusinessResults(budgetsCompleted, salesCount, revenue) {
+    if (budgetsCompleted === 0 && salesCount === 0 && revenue === 0) {
+        return '';
+    }
+
+    return `
+        <div class="mt-8">
+            <h3 class="text-xl font-semibold text-primary mb-4">Resultados</h3>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="metric-card">
+                    <h4 class="text-sm font-medium text-gray-600 mb-1">Orçamentos Realizados</h4>
+                    <p class="text-lg font-semibold text-gray-800">${budgetsCompleted.toLocaleString('pt-BR')}</p>
+                </div>
+                <div class="metric-card">
+                    <h4 class="text-sm font-medium text-gray-600 mb-1">Número de Vendas</h4>
+                    <p class="text-lg font-semibold text-gray-800">${salesCount.toLocaleString('pt-BR')}</p>
+                </div>
+                <div class="metric-card">
+                    <h4 class="text-sm font-medium text-gray-600 mb-1">Faturamento</h4>
+                    <p class="text-lg font-semibold text-gray-800">${formatCurrencyBRL(revenue)}</p>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+function renderPerformanceAnalysis(performanceAnalysis) {
+    if (!performanceAnalysis || performanceAnalysis.trim() === '') {
+        return '';
+    }
+
+    const paragraphs = performanceAnalysis.split(/\n\s*\n/).filter(p => p.trim());
+    if (paragraphs.length === 0) {
+        return '';
+    }
+
+    return `
+        <div class="mt-8">
+            <h3 class="text-xl font-semibold text-primary mb-4">Análise de Desempenho e Pontos de Melhoria</h3>
+            <ul class="list-disc list-inside space-y-2 text-gray-700">
+                ${paragraphs.map(paragraph => {
+                    const formattedParagraph = paragraph.replace(/\n/g, '<br>');
+                    return `<li>${formattedParagraph}</li>`;
+                }).join('')}
+            </ul>
         </div>
     `;
 }

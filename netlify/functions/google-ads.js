@@ -56,33 +56,33 @@ async function listAccounts(accessToken, headers) {
       throw new Error('Access token é obrigatório para listar contas');
     }
 
-    // Usar a API REST do Google Ads para listar contas
-    // URL correta baseada na documentação oficial
-    // A API do Google Ads usa gRPC, mas também tem um endpoint REST
-    // IMPORTANTE: O endpoint não tem /v17/ antes de customers
+    console.log('🔍 Listando contas acessíveis via Google Ads API...');
+    console.log(`🔑 Developer Token: ${process.env.GOOGLE_ADS_DEVELOPER_TOKEN ? 'Presente' : 'AUSENTE'}`);
+    console.log(`🎫 Access Token: ${accessToken ? 'Presente (primeiros 20 chars): ' + accessToken.substring(0, 20) + '...' : 'AUSENTE'}`);
+    
+    // CORREÇÃO: O método HTTP deve ser POST, não GET!
+    // URL: https://googleads.googleapis.com/v17/customers:listAccessibleCustomers
     const url = 'https://googleads.googleapis.com/v17/customers:listAccessibleCustomers';
     
-    console.log(`📍 URL da requisição: ${url}`);
-    console.log(`🔑 Developer Token: ${process.env.GOOGLE_ADS_DEVELOPER_TOKEN ? 'Presente' : 'AUSENTE'}`);
-    console.log(`🎫 Access Token: ${accessToken ? 'Presente' : 'AUSENTE'}`);
-    
     const response = await fetch(url, {
-      method: 'GET',
+      method: 'POST',  // <-- MUDADO DE GET PARA POST
       headers: {
         'Authorization': `Bearer ${accessToken}`,
         'developer-token': process.env.GOOGLE_ADS_DEVELOPER_TOKEN,
-        'login-customer-id': process.env.GOOGLE_ADS_MANAGER_CUSTOMER_ID || '',
+        'Content-Type': 'application/json',
       },
+      body: JSON.stringify({}),  // Corpo vazio para POST
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('Erro ao listar contas:', errorText);
+      console.error('❌ Erro na API do Google Ads - Status:', response.status);
+      console.error('❌ Erro na API do Google Ads - Response:', errorText);
       throw new Error(`Erro na API do Google Ads: ${response.status} - ${errorText}`);
     }
 
     const data = await response.json();
-    console.log('✅ Contas encontradas:', data);
+    console.log('✅ Resposta da API:', data);
 
     // resourceNames vem como: "customers/1234567890"
     const customerIds = (data.resourceNames || []).map(name => {
@@ -90,13 +90,15 @@ async function listAccounts(accessToken, headers) {
       return parts[parts.length - 1];
     });
 
+    console.log(`📋 Customer IDs encontrados: ${customerIds.join(', ')}`);
+
     // Buscar informações detalhadas de cada conta
     const accountsDetails = await Promise.all(
       customerIds.map(async (customerId) => {
         try {
           return await getAccountInfo(customerId, accessToken);
         } catch (error) {
-          console.warn(`Erro ao buscar info da conta ${customerId}:`, error.message);
+          console.warn(`⚠️ Erro ao buscar info da conta ${customerId}:`, error.message);
           return {
             customerId,
             name: `Conta ${customerId}`,
@@ -106,15 +108,18 @@ async function listAccounts(accessToken, headers) {
       })
     );
 
+    const validAccounts = accountsDetails.filter(acc => !acc.error);
+    console.log(`✅ ${validAccounts.length} contas válidas encontradas`);
+
     return {
       statusCode: 200,
       headers,
       body: JSON.stringify({ 
-        accounts: accountsDetails.filter(acc => !acc.error)
+        accounts: validAccounts
       }),
     };
   } catch (error) {
-    console.error('❌ Erro ao listar contas:', error);
+    console.error('❌ Erro ao listar contas:', error.message);
     throw error;
   }
 }

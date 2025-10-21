@@ -26,32 +26,35 @@ export async function exportToPDF(
         return;
     }
 
-    // Pré-processar o texto da análise de desempenho para garantir espaços
-    const analysisSection = reportElement.querySelector('.mt-8:last-of-type ul');
-    if (analysisSection && performanceAnalysis.trim()) {
-        const paragraphs = performanceAnalysis.split(/\n\s*\n/).filter(p => p.trim());
-        let formattedText = paragraphs.map(paragraph => {
-            return paragraph
-                .replace(/\s+/g, ' ') // Substituir múltiplos espaços por um único espaço
-                .replace(/([a-zA-Z])\s*([a-zA-Z])/g, '$1 $2') // Garantir espaço entre letras consecutivas
-                .replace(/([.,!?])\s*([a-zA-Z])/g, '$1 $2') // Garantir espaço após pontuação
-                .replace(/\n/g, '<br>') // Converter quebras de linha em <br>
-                .trim();
-        }).join('</li><li>');
-        analysisSection.innerHTML = `<li>${formattedText}</li>`;
-    }
-
     // Esconder o botão "Exportar para PDF" durante a captura
     const exportButton = reportElement.querySelector('#exportPDFBtn');
     if (exportButton) {
         exportButton.style.display = 'none';
     }
 
+    // Ajustar o layout para exibir métricas lado a lado como no site
+    const campaignSections = reportElement.querySelectorAll('.campaign-section');
+    campaignSections.forEach(section => {
+        const metricCards = section.querySelectorAll('.metric-card');
+        const gridContainer = document.createElement('div');
+        gridContainer.className = 'grid grid-cols-1 md:grid-cols-4 gap-4';
+        metricCards.forEach(card => gridContainer.appendChild(card));
+        section.innerHTML = '';
+        section.appendChild(gridContainer);
+    });
+
     // Capturar o relatório como imagem usando html2canvas
     const canvas = await html2canvas(reportElement, {
         scale: 2, // Aumentar a resolução para melhor qualidade
         useCORS: true, // Permitir carregar imagens externas (como as dos anúncios)
         logging: true, // Para depuração, pode desativar depois
+    });
+
+    // Restaurar o layout original após a captura
+    campaignSections.forEach(section => {
+        const metricCards = section.querySelectorAll('.metric-card');
+        section.innerHTML = '';
+        metricCards.forEach(card => section.appendChild(card));
     });
 
     // Restaurar o botão "Exportar para PDF"

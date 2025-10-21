@@ -387,7 +387,7 @@ export class FacebookInsightsService {
                 };
             });
 
-            // Ordenar por conversões e depois por cliques
+            // Ordenar por conversões e depois por cliquess
             const sorted = adsWithMetrics
                 .filter(ad => ad.impressions > 0 || ad.spend > 0)
                 .sort((a, b) => b.conversions - a.conversions || b.clicks - a.clicks);

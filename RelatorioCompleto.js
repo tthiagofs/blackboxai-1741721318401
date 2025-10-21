@@ -1,8 +1,8 @@
-import { fbAuth } from './auth.js';
-import { exportToPDF } from './exportPDF.js';
-import { formatDateISOToBR, formatCurrencyBRL, encodeWhatsAppText } from './utils/format.js';
-import { setSelectedStyles, debounce } from './utils/dom.js';
-import { FacebookInsightsService } from './services/facebookInsights.js';
+import { fbAuth } from './auth.js?v=2.0';
+import { exportToPDF } from './exportPDF.js?v=2.0';
+import { formatDateISOToBR, formatCurrencyBRL, encodeWhatsAppText } from './utils/format.js?v=2.0';
+import { setSelectedStyles, debounce } from './utils/dom.js?v=2.0';
+import { FacebookInsightsService } from './services/facebookInsights.js?v=2.0';
 
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 

@@ -533,6 +533,48 @@ function updateFilterButtons() {
     filterAdSetsBtn.classList.toggle('opacity-50', filterAdSetsBtn.disabled);
 }
 
+// Variável para rastrear a última unidade selecionada
+let lastSelectedUnitId = null;
+
+// Limpar dados quando trocar de conta
+document.getElementById('unitId').addEventListener('change', function() {
+    const newUnitId = this.value;
+    
+    if (lastSelectedUnitId && lastSelectedUnitId !== newUnitId) {
+        console.log('Mudança de conta detectada. Limpando dados...');
+        
+        // Limpar seleções
+        selectedCampaigns.clear();
+        selectedAdSets.clear();
+        selectedWhiteCampaigns.clear();
+        selectedWhiteAdSets.clear();
+        selectedBlackCampaigns.clear();
+        selectedBlackAdSets.clear();
+        
+        // Limpar relatório
+        reportContainer.innerHTML = '';
+        shareWhatsAppBtn.classList.add('hidden');
+        
+        // Limpar mapas de campanhas e ad sets
+        campaignsMap = {};
+        adSetsMap = {};
+        
+        // Reset hasBlack
+        hasBlack = null;
+        
+        // Resetar filtros
+        whiteFilters.classList.add('hidden');
+        blackFilters.classList.add('hidden');
+        defaultFilters.classList.add('hidden');
+        comparisonFilter.classList.add('hidden');
+        
+        // Desabilitar botões
+        disableButtons();
+    }
+    
+    lastSelectedUnitId = newUnitId;
+});
+
 // Carregar dados ao preencher o formulário (com debounce)
 const onFormInput = debounce(async function() {
     const unitId = document.getElementById('unitId').value;

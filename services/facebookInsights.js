@@ -113,10 +113,12 @@ export class FacebookInsightsService {
     async fetchWithPagination(url, fields = []) {
         let allData = [];
         let currentUrl = url;
+        let retryCount = 0;
+        const MAX_RETRIES = 3;
 
         while (currentUrl) {
-            // Rate limiting - delay entre requisições
-            await this._delay(300);
+            // Rate limiting - delay entre requisições (aumentado para 500ms)
+            await this._delay(500);
             
             const response = await new Promise((resolve) => {
                 FB.api(currentUrl, resolve);
@@ -125,17 +127,23 @@ export class FacebookInsightsService {
             if (response && !response.error) {
                 allData = allData.concat(response.data || []);
                 currentUrl = response.paging && response.paging.next ? response.paging.next : null;
+                retryCount = 0; // Reset retry count on success
             } else {
-                if (response?.error?.message?.includes('User request limit reached')) {
-                    console.warn('Rate limit atingido, aguardando 5 segundos...');
-                    await this._delay(5000); // Aguardar 5 segundos
+                if (response?.error?.message?.includes('User request limit reached') || 
+                    response?.error?.message?.includes('Application request limit reached')) {
+                    
+                    if (retryCount >= MAX_RETRIES) {
+                        console.error('Número máximo de tentativas atingido. Pulando esta requisição.');
+                        break; // Sair do loop em vez de continuar indefinidamente
+                    }
+                    
+                    retryCount++;
+                    const waitTime = Math.min(5000 * Math.pow(2, retryCount - 1), 30000); // Exponential backoff, max 30s
+                    console.warn(`Rate limit atingido. Tentativa ${retryCount}/${MAX_RETRIES}. Aguardando ${waitTime/1000}s...`);
+                    await this._delay(waitTime);
                     continue; // Tentar novamente
                 }
-                if (response?.error?.message?.includes('Application request limit reached')) {
-                    console.warn('Limite de aplicação atingido, aguardando 10 segundos...');
-                    await this._delay(10000); // Aguardar 10 segundos
-                    continue; // Tentar novamente
-                }
+                
                 console.error('Erro na API do Facebook:', response?.error);
                 throw new Error(response?.error?.message || 'Erro na API do Facebook');
             }
@@ -160,9 +168,23 @@ export class FacebookInsightsService {
             const campaigns = await this.fetchWithPagination(url);
             
             const campaignIds = campaigns.map(camp => camp.id);
-            const insights = await Promise.all(
-                campaignIds.map(id => this.getCampaignInsights(id, startDate, endDate))
-            );
+            
+            // Processar em lotes para evitar rate limit
+            const BATCH_SIZE = 5; // Reduzido de Promise.all para 5 por vez
+            const insights = [];
+            
+            for (let i = 0; i < campaignIds.length; i += BATCH_SIZE) {
+                const batch = campaignIds.slice(i, i + BATCH_SIZE);
+                const batchInsights = await Promise.all(
+                    batch.map(id => this.getCampaignInsights(id, startDate, endDate))
+                );
+                insights.push(...batchInsights);
+                
+                // Delay entre lotes
+                if (i + BATCH_SIZE < campaignIds.length) {
+                    await this._delay(1000); // 1 segundo entre lotes
+                }
+            }
 
             const result = {};
             campaignIds.forEach((id, index) => {
@@ -197,9 +219,23 @@ export class FacebookInsightsService {
             const adSets = await this.fetchWithPagination(url);
             
             const adSetIds = adSets.map(set => set.id);
-            const insights = await Promise.all(
-                adSetIds.map(id => this.getAdSetInsights(id, startDate, endDate))
-            );
+            
+            // Processar em lotes para evitar rate limit
+            const BATCH_SIZE = 5;
+            const insights = [];
+            
+            for (let i = 0; i < adSetIds.length; i += BATCH_SIZE) {
+                const batch = adSetIds.slice(i, i + BATCH_SIZE);
+                const batchInsights = await Promise.all(
+                    batch.map(id => this.getAdSetInsights(id, startDate, endDate))
+                );
+                insights.push(...batchInsights);
+                
+                // Delay entre lotes
+                if (i + BATCH_SIZE < adSetIds.length) {
+                    await this._delay(1000); // 1 segundo entre lotes
+                }
+            }
 
             const result = {};
             adSetIds.forEach((id, index) => {

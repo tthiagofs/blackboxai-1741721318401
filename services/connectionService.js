@@ -208,11 +208,13 @@ class ConnectionService {
         return {
             meta: {
                 connected: this.connections.meta.connected || !!fbToken,
+                token: this.connections.meta.accessToken || fbToken, // ← ADICIONADO!
                 accountsCount: Object.keys(this.connections.meta.adAccounts || {}).length,
                 lastUpdate: this.connections.meta.lastUpdate
             },
             google: {
                 connected: this.connections.google.connected || !!googleToken,
+                token: this.connections.google.accessToken || googleToken, // ← ADICIONADO!
                 accountsCount: (this.connections.google.adAccounts || []).length,
                 lastUpdate: this.connections.google.lastUpdate
             }

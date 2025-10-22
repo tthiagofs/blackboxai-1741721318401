@@ -8,7 +8,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
-<body class="bg-gray-50 min-h-screen font-sans">
+<body class="bg-white min-h-screen font-sans m-0 p-0">
     <!-- Proteção de Auth -->
     <script type="module">
         import { auth } from './config/firebase.js';
@@ -30,7 +30,7 @@
     </script>
 
     <!-- Container Principal -->
-    <div class="flex min-h-screen">
+    <div class="flex min-h-screen w-full">
         <!-- Sidebar -->
         <aside id="sidebar" class="w-56 bg-white flex flex-col border-r border-gray-200">
             <!-- Logo -->
@@ -72,7 +72,7 @@
         </aside>
 
         <!-- Conteúdo Principal -->
-        <main class="flex-1 p-10 bg-white">
+        <main class="flex-1 p-10 bg-gray-50">
             <!-- Header -->
             <div class="mb-8">
                 <h2 class="text-2xl font-bold text-gray-900 mb-2">Conexões</h2>

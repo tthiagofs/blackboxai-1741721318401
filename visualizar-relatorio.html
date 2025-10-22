@@ -81,12 +81,8 @@
             // Carregar conexões salvas
             await connectionService.initialize();
             
-            // Inicializar Facebook SDK (se ainda não foi)
-            if (typeof FB === 'undefined') {
-                await initializeFacebookSDK();
-            } else {
-                console.log('✅ Facebook SDK já estava carregado');
-            }
+            // Inicializar Facebook SDK (sempre chamar init, mesmo se já carregado)
+            await initializeFacebookSDK();
             
             // Carregar e regenerar relatório
             await loadAndRegenerateReport();
@@ -95,7 +91,9 @@
         // Inicializar Facebook SDK
         function initializeFacebookSDK() {
             return new Promise((resolve) => {
-                window.fbAsyncInit = function() {
+                // Se o FB já existe, apenas inicializar
+                if (typeof FB !== 'undefined') {
+                    console.log('📱 Facebook SDK já carregado, inicializando...');
                     FB.init({
                         appId: '8664931536960419',
                         cookie: true,
@@ -104,7 +102,19 @@
                     });
                     console.log('✅ Facebook SDK inicializado');
                     resolve();
-                };
+                } else {
+                    // Caso não exista, aguardar o carregamento
+                    window.fbAsyncInit = function() {
+                        FB.init({
+                            appId: '8664931536960419',
+                            cookie: true,
+                            xfbml: true,
+                            version: 'v18.0'
+                        });
+                        console.log('✅ Facebook SDK inicializado (async)');
+                        resolve();
+                    };
+                }
             });
         }
 

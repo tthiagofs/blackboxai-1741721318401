@@ -1,7 +1,7 @@
-import { appAuth, fbAuth } from './auth.js?v=2.7';
-import { formatDateISOToBR, encodeWhatsAppText, formatCurrencyBRL } from './utils/format.js?v=2.7';
-import { debounce, setSelectedStyles } from './utils/dom.js?v=2.7';
-import { googleAuth } from './authGoogle.js?v=2.7';
+import { appAuth, fbAuth } from './auth.js?v=2.8';
+import { formatDateISOToBR, encodeWhatsAppText, formatCurrencyBRL } from './utils/format.js?v=2.8';
+import { debounce, setSelectedStyles } from './utils/dom.js?v=2.8';
+import { googleAuth } from './authGoogle.js?v=2.8';
 
 const appLoginScreen = document.getElementById('appLoginScreen');
 const reportSelectionScreen = document.getElementById('reportSelectionScreen');
@@ -144,15 +144,6 @@ completeReportBtn.addEventListener('click', async () => {
 // Variáveis de estado de login
 let fbLoggedIn = false;
 let googleLoggedIn = false;
-
-// Função para verificar e mostrar botão "Continuar"
-function checkLoginStatus() {
-    if (fbLoggedIn || googleLoggedIn) {
-        continueToReportBtn.classList.remove('hidden');
-    } else {
-        continueToReportBtn.classList.add('hidden');
-    }
-}
 
 // Login com Facebook
 async function handleFacebookLogin() {

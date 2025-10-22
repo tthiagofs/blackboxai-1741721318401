@@ -259,22 +259,31 @@
                 };
 
                 // Renderizar relatório completo
+                console.log('📊 Dados regenerados, renderizando...');
+                console.log('- Metrics:', metrics);
+                console.log('- Best Ads:', bestAds?.length);
                 renderCompleteReport();
                 
             } catch (error) {
                 console.error('❌ Erro ao regenerar métricas:', error);
+                console.error('Detalhes do erro:', error.message, error.stack);
                 throw error;
             }
         }
 
         // Renderizar relatório completo
         function renderCompleteReport() {
+            console.log('🎨 [renderCompleteReport] Iniciando renderização...');
             const loadingSection = document.getElementById('loadingSection');
             const reportContainer = document.getElementById('reportContainer');
 
+            console.log('🎨 [renderCompleteReport] Elementos DOM obtidos');
+            
             // Ocultar loading
             loadingSection.classList.add('hidden');
             reportContainer.classList.remove('hidden');
+            
+            console.log('🎨 [renderCompleteReport] Loading ocultado, container exibido');
 
             const { metrics, blackMetrics, bestAds, comparisonMetrics } = generatedMetrics;
             const { manualData } = reportData;

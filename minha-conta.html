@@ -8,7 +8,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
-<body class="bg-gray-50 min-h-screen">
+<body class="bg-white min-h-screen font-sans">
     <!-- Proteção de Auth -->
     <script type="module">
         import { auth } from './config/firebase.js';
@@ -29,168 +29,170 @@
         });
     </script>
 
-    <!-- Header -->
-    <header class="bg-white shadow-sm border-b border-gray-200">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-            <div class="flex items-center justify-between">
-                <div class="flex items-center space-x-4">
-                    <a href="/dashboard.html" class="text-gray-600 hover:text-gray-900 transition-colors">
-                        <i class="fas fa-arrow-left text-xl"></i>
-                    </a>
-                    <div>
-                        <h1 class="text-2xl font-bold text-gray-900">Minha Conta</h1>
-                        <p class="text-sm text-gray-600">Gerencie suas informações pessoais</p>
-                    </div>
-                </div>
-                <div class="flex items-center space-x-3">
-                    <div id="userAvatar" class="w-10 h-10 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-full flex items-center justify-center text-white font-bold">
-                        U
-                    </div>
-                </div>
-            </div>
-        </div>
-    </header>
-
-    <!-- Main Content -->
-    <main class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <!-- Success/Error Messages -->
-        <div id="successMessage" class="hidden mb-6 bg-green-50 border border-green-200 rounded-lg p-4">
-            <div class="flex items-center">
-                <i class="fas fa-check-circle text-green-600 mr-3"></i>
-                <p class="text-green-800 font-medium">Informações atualizadas com sucesso!</p>
-            </div>
-        </div>
-
-        <div id="errorMessage" class="hidden mb-6 bg-red-50 border border-red-200 rounded-lg p-4">
-            <div class="flex items-center">
-                <i class="fas fa-exclamation-circle text-red-600 mr-3"></i>
-                <p class="text-red-800 font-medium" id="errorText"></p>
-            </div>
-        </div>
-
-        <!-- Profile Card -->
-        <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden mb-6">
-            <div class="bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-4">
-                <h2 class="text-xl font-bold text-white flex items-center">
-                    <i class="fas fa-user mr-3"></i>
-                    Informações do Perfil
-                </h2>
-            </div>
-            
-            <form id="profileForm" class="p-6 space-y-6">
-                <!-- Nome -->
-                <div>
-                    <label for="name" class="block text-sm font-semibold text-gray-700 mb-2">
-                        <i class="fas fa-user-circle text-blue-600 mr-2"></i>
-                        Nome Completo
-                    </label>
-                    <input 
-                        type="text" 
-                        id="name" 
-                        name="name"
-                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                        placeholder="Digite seu nome completo"
-                        required
-                    >
-                </div>
-
-                <!-- Email -->
-                <div>
-                    <label for="email" class="block text-sm font-semibold text-gray-700 mb-2">
-                        <i class="fas fa-envelope text-blue-600 mr-2"></i>
-                        Email
-                    </label>
-                    <input 
-                        type="email" 
-                        id="email" 
-                        name="email"
-                        class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50 cursor-not-allowed"
-                        disabled
-                    >
-                    <p class="text-xs text-gray-500 mt-1">O email não pode ser alterado</p>
-                </div>
-
-                <!-- Role (apenas visualização) -->
-                <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-2">
-                        <i class="fas fa-shield-alt text-blue-600 mr-2"></i>
-                        Tipo de Conta
-                    </label>
-                    <div id="roleDisplay" class="px-4 py-3 bg-blue-50 border border-blue-200 rounded-lg">
-                        <span class="text-blue-800 font-medium">Carregando...</span>
-                    </div>
-                </div>
-
-                <!-- Data de Criação -->
-                <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-2">
-                        <i class="fas fa-calendar-alt text-blue-600 mr-2"></i>
-                        Membro desde
-                    </label>
-                    <div id="createdAtDisplay" class="px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg">
-                        <span class="text-gray-700">Carregando...</span>
-                    </div>
-                </div>
-
-                <!-- Botões -->
-                <div class="flex items-center justify-end space-x-4 pt-4 border-t border-gray-200">
-                    <button 
-                        type="button"
-                        onclick="window.location.href='/dashboard.html'"
-                        class="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-all"
-                    >
-                        <i class="fas fa-times mr-2"></i>
-                        Cancelar
-                    </button>
-                    <button 
-                        type="submit"
-                        id="saveBtn"
-                        class="px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all"
-                    >
-                        <i class="fas fa-save mr-2"></i>
-                        Salvar Alterações
-                    </button>
-                </div>
-            </form>
-        </div>
-
-        <!-- Security Card -->
-        <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-            <div class="bg-gradient-to-r from-red-600 to-pink-600 px-6 py-4">
-                <h2 class="text-xl font-bold text-white flex items-center">
-                    <i class="fas fa-lock mr-3"></i>
-                    Segurança
-                </h2>
-            </div>
-            
+    <!-- Container Principal -->
+    <div class="flex min-h-screen">
+        <!-- Sidebar -->
+        <aside id="sidebar" class="w-56 bg-gray-100 flex flex-col border-r border-gray-200">
+            <!-- Logo -->
             <div class="p-6">
-                <!-- Alterar Senha -->
-                <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-all">
+                <h1 class="text-xl font-bold text-gray-800">Relatórios</h1>
+            </div>
+
+            <!-- Menu de Navegação -->
+            <nav class="flex-1 px-3">
+                <a href="/dashboard.html" class="flex items-center px-3 py-2.5 mb-1 text-gray-700 hover:bg-gray-200 rounded-lg transition-all">
+                    <i class="fas fa-home mr-3 text-sm"></i>
+                    <span class="text-sm">Tela Inicial</span>
+                </a>
+                
+                <a href="/conexoes.html" class="flex items-center px-3 py-2.5 mb-1 text-gray-700 hover:bg-gray-200 rounded-lg transition-all">
+                    <i class="fas fa-plug mr-3 text-sm"></i>
+                    <span class="text-sm">Conexões</span>
+                </a>
+                
+                <a href="/minha-conta.html" class="flex items-center px-3 py-2.5 mb-1 bg-blue-50 text-blue-600 rounded-lg transition-all">
+                    <i class="fas fa-user mr-3 text-sm"></i>
+                    <span class="text-sm">Minha Conta</span>
+                </a>
+                
+                <!-- Link Admin (apenas para admins) -->
+                <a href="/usuarios.html" id="adminLink" class="hidden flex items-center px-3 py-2.5 mb-1 text-gray-700 hover:bg-gray-200 rounded-lg transition-all">
+                    <i class="fas fa-users mr-3 text-sm"></i>
+                    <span class="text-sm">Usuários</span>
+                </a>
+            </nav>
+
+            <!-- Botão Sair -->
+            <div class="p-3">
+                <button id="logoutBtn" class="w-full flex items-center px-3 py-2.5 text-red-600 hover:bg-red-50 rounded-lg transition-all">
+                    <i class="fas fa-sign-out-alt mr-3 text-sm"></i>
+                    <span class="text-sm">Log out</span>
+                </button>
+            </div>
+        </aside>
+
+        <!-- Conteúdo Principal -->
+        <main class="flex-1 p-10">
+            <!-- Header -->
+            <div class="mb-8">
+                <h2 class="text-3xl font-bold text-gray-900 mb-2">Minha Conta</h2>
+                <p class="text-gray-600">Gerencie suas informações pessoais e configurações</p>
+            </div>
+
+            <!-- Success/Error Messages -->
+            <div id="successMessage" class="hidden mb-6 bg-green-50 border border-green-200 rounded-lg p-4">
+                <div class="flex items-center">
+                    <i class="fas fa-check-circle text-green-600 mr-3"></i>
+                    <p class="text-green-800 font-medium">Informações atualizadas com sucesso!</p>
+                </div>
+            </div>
+
+            <div id="errorMessage" class="hidden mb-6 bg-red-50 border border-red-200 rounded-lg p-4">
+                <div class="flex items-center">
+                    <i class="fas fa-exclamation-circle text-red-600 mr-3"></i>
+                    <p class="text-red-800 font-medium" id="errorText"></p>
+                </div>
+            </div>
+
+            <!-- Profile Card -->
+            <div class="bg-white border border-gray-200 rounded-lg overflow-hidden mb-6">
+                <div class="bg-white px-6 py-4 border-b border-gray-200">
+                    <h3 class="text-lg font-bold text-gray-900">Informações do Perfil</h3>
+                </div>
+                
+                <form id="profileForm" class="p-6 space-y-5">
+                    <!-- Nome -->
                     <div>
-                        <h3 class="font-semibold text-gray-900">Alterar Senha</h3>
-                        <p class="text-sm text-gray-600">Atualize sua senha de acesso</p>
+                        <label for="name" class="block text-sm font-semibold text-gray-700 mb-2">
+                            Nome Completo
+                        </label>
+                        <input 
+                            type="text" 
+                            id="name" 
+                            name="name"
+                            class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-sm"
+                            placeholder="Digite seu nome completo"
+                            required
+                        >
                     </div>
+
+                    <!-- Email -->
+                    <div>
+                        <label for="email" class="block text-sm font-semibold text-gray-700 mb-2">
+                            Email
+                        </label>
+                        <input 
+                            type="email" 
+                            id="email" 
+                            name="email"
+                            class="w-full px-4 py-2.5 border border-gray-300 rounded-lg bg-gray-50 cursor-not-allowed text-sm"
+                            disabled
+                        >
+                    </div>
+
+                    <!-- Role (apenas visualização) -->
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">
+                            Tipo de Conta
+                        </label>
+                        <div id="roleDisplay" class="px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg">
+                            <span class="text-gray-700 text-sm">Carregando...</span>
+                        </div>
+                    </div>
+
+                    <!-- Data de Criação -->
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">
+                            Membro desde
+                        </label>
+                        <div id="createdAtDisplay" class="px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg">
+                            <span class="text-gray-700 text-sm">Carregando...</span>
+                        </div>
+                    </div>
+
+                    <!-- Botões -->
+                    <div class="flex items-center justify-start gap-3 pt-4">
+                        <button 
+                            type="submit"
+                            id="saveBtn"
+                            class="px-5 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all text-sm font-medium"
+                        >
+                            <i class="fas fa-save mr-2"></i>
+                            Salvar Alterações
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Security Card -->
+            <div class="bg-white border border-gray-200 rounded-lg overflow-hidden">
+                <div class="bg-white px-6 py-4 border-b border-gray-200">
+                    <h3 class="text-lg font-bold text-gray-900">Segurança</h3>
+                </div>
+                
+                <div class="p-6">
+                    <p class="text-sm text-gray-600 mb-4">Mantenha sua conta segura alterando sua senha regularmente.</p>
+                    <!-- Alterar Senha -->
                     <button 
                         id="changePasswordBtn"
-                        class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-all"
+                        class="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-all text-sm font-medium"
                     >
-                        <i class="fas fa-key mr-2"></i>
-                        Alterar
+                        <i class="fas fa-lock mr-2"></i>
+                        Alterar Senha
                     </button>
                 </div>
             </div>
-        </div>
-    </main>
+        </main>
+    </div>
 
     <!-- Modal Alterar Senha -->
     <div id="passwordModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
         <div class="bg-white rounded-xl shadow-2xl max-w-md w-full">
-            <div class="bg-gradient-to-r from-red-600 to-pink-600 px-6 py-4 flex items-center justify-between">
-                <h3 class="text-xl font-bold text-white">
-                    <i class="fas fa-key mr-2"></i>
+            <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+                <h3 class="text-xl font-bold text-gray-900">
                     Alterar Senha
                 </h3>
-                <button id="closePasswordModal" class="text-white hover:text-gray-200">
+                <button id="closePasswordModal" class="text-gray-500 hover:text-gray-700">
                     <i class="fas fa-times text-xl"></i>
                 </button>
             </div>
@@ -204,7 +206,7 @@
                         <input 
                             type="password" 
                             id="currentPassword" 
-                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                            class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
                             required
                         >
                         <button 
@@ -225,7 +227,7 @@
                         <input 
                             type="password" 
                             id="newPassword" 
-                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                            class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
                             minlength="6"
                             required
                         >
@@ -248,7 +250,7 @@
                         <input 
                             type="password" 
                             id="confirmPassword" 
-                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                            class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
                             minlength="6"
                             required
                         >
@@ -266,14 +268,14 @@
                     <button 
                         type="button"
                         id="cancelPasswordBtn"
-                        class="flex-1 px-4 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+                        class="flex-1 px-4 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 text-sm font-medium"
                     >
                         Cancelar
                     </button>
                     <button 
                         type="submit"
                         id="savePasswordBtn"
-                        class="flex-1 px-4 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700"
+                        class="flex-1 px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium"
                     >
                         Alterar Senha
                     </button>
@@ -293,11 +295,12 @@
         const emailInput = document.getElementById('email');
         const roleDisplay = document.getElementById('roleDisplay');
         const createdAtDisplay = document.getElementById('createdAtDisplay');
-        const userAvatar = document.getElementById('userAvatar');
         const saveBtn = document.getElementById('saveBtn');
         const successMessage = document.getElementById('successMessage');
         const errorMessage = document.getElementById('errorMessage');
         const errorText = document.getElementById('errorText');
+        const logoutBtn = document.getElementById('logoutBtn');
+        const adminLink = document.getElementById('adminLink');
 
         // Modal senha
         const passwordModal = document.getElementById('passwordModal');
@@ -330,6 +333,14 @@
             });
         });
 
+        // Logout
+        logoutBtn.addEventListener('click', async () => {
+            if (confirm('Tem certeza que deseja sair?')) {
+                await authService.logout();
+                window.location.href = '/login.html';
+            }
+        });
+
         // Carregar dados do usuário
         onAuthStateChanged(auth, async (user) => {
             if (!user) return;
@@ -344,31 +355,24 @@
                     nameInput.value = userData.name || '';
                     emailInput.value = user.email || '';
                     
-                    // Avatar com inicial
-                    const initial = userData.name ? userData.name.charAt(0).toUpperCase() : 'U';
-                    userAvatar.textContent = initial;
+                    // Mostrar link admin se for admin
+                    if (userData.role === 'admin') {
+                        adminLink.classList.remove('hidden');
+                    }
                     
                     // Role
                     const roleText = userData.role === 'admin' ? 'Administrador' : 'Usuário';
-                    const roleClass = userData.role === 'admin' ? 'bg-purple-50 border-purple-200' : 'bg-blue-50 border-blue-200';
-                    const textClass = userData.role === 'admin' ? 'text-purple-800' : 'text-blue-800';
-                    roleDisplay.className = `px-4 py-3 ${roleClass} border rounded-lg`;
-                    roleDisplay.innerHTML = `
-                        <span class="${textClass} font-medium">
-                            <i class="fas fa-${userData.role === 'admin' ? 'crown' : 'user'} mr-2"></i>
-                            ${roleText}
-                        </span>
-                    `;
+                    roleDisplay.innerHTML = `<span class="text-gray-700 text-sm">${roleText}</span>`;
                     
                     // Data de criação
                     if (userData.createdAt) {
                         const date = new Date(userData.createdAt);
                         const formatted = date.toLocaleDateString('pt-BR', { 
                             day: '2-digit', 
-                            month: 'long', 
+                            month: '2-digit', 
                             year: 'numeric' 
                         });
-                        createdAtDisplay.innerHTML = `<span class="text-gray-700">${formatted}</span>`;
+                        createdAtDisplay.innerHTML = `<span class="text-gray-700 text-sm">${formatted}</span>`;
                     }
                 }
             } catch (error) {
@@ -394,10 +398,6 @@
                 });
 
                 showSuccess();
-                
-                // Atualizar avatar
-                const initial = nameInput.value.charAt(0).toUpperCase();
-                userAvatar.textContent = initial;
 
             } catch (error) {
                 console.error('Erro ao salvar:', error);
@@ -497,4 +497,3 @@
     </script>
 </body>
 </html>
-

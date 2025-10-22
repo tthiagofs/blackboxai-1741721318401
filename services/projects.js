@@ -62,21 +62,31 @@ export class ProjectsService {
                 throw new Error('Usuário não autenticado');
             }
 
+            // Versão simplificada SEM índice (temporária até o índice ficar pronto)
             const q = query(
                 collection(db, this.collectionName),
-                where('userId', '==', user.uid),
-                where('isActive', '==', true),
-                orderBy('createdAt', 'desc')
+                where('userId', '==', user.uid)
             );
 
             const querySnapshot = await getDocs(q);
             const projects = [];
 
             querySnapshot.forEach((doc) => {
-                projects.push({
-                    id: doc.id,
-                    ...doc.data()
-                });
+                const data = doc.data();
+                // Filtrar manualmente por isActive e ordenar
+                if (data.isActive === true) {
+                    projects.push({
+                        id: doc.id,
+                        ...data
+                    });
+                }
+            });
+
+            // Ordenar manualmente por createdAt (mais recentes primeiro)
+            projects.sort((a, b) => {
+                const dateA = a.createdAt?.toDate ? a.createdAt.toDate() : new Date(a.createdAt);
+                const dateB = b.createdAt?.toDate ? b.createdAt.toDate() : new Date(b.createdAt);
+                return dateB - dateA;
             });
 
             console.log(`✅ ${projects.length} projeto(s) encontrado(s)`);

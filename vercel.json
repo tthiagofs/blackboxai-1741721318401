@@ -1,4 +1,6 @@
 {
+  "buildCommand": "echo 'Build completed'",
+  "outputDirectory": ".",
   "functions": {
     "api/**/*.js": {
       "memory": 1024,

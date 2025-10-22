@@ -541,24 +541,81 @@ button:disabled, .btn:disabled {
     }
 }
 
-/* ===== IMPRESSÃO ===== */
+/* ===== IMPRESSÃO (PDF Export) ===== */
 @media print {
+    * {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+        color-adjust: exact !important;
+    }
+    
     body {
-        background: white;
-        color: black;
+        background: #ffffff !important;
+        color: #111827 !important;
     }
     
-    .modal {
-        display: none;
+    /* Garantir cores exatas - Azul e Branco */
+    .bg-blue-600 {
+        background-color: #2563eb !important;
     }
     
-    .btn, button {
-        display: none;
+    .bg-gray-800 {
+        background-color: #1f2937 !important;
+    }
+    
+    .bg-white {
+        background-color: #ffffff !important;
+    }
+    
+    .bg-blue-50 {
+        background-color: #eff6ff !important;
+    }
+    
+    /* Cores de texto */
+    .text-white {
+    color: #ffffff !important;
+    }
+    
+    .text-blue-600 {
+        color: #2563eb !important;
+    }
+    
+    .text-gray-900, .text-gray-800, .text-gray-700 {
+        color: #111827 !important;
+    }
+    
+    /* Bordas */
+    .border-blue-200 {
+        border-color: #bfdbfe !important;
+        border-width: 2px !important;
+    }
+    
+    .border-gray-300 {
+        border-color: #d1d5db !important;
+    }
+    
+    /* REMOVER ícones do Font Awesome */
+    .fas, .far, .fab, i[class*="fa-"] {
+        display: none !important;
+    }
+    
+    /* Esconder elementos desnecessários */
+    .modal, .btn, button, .no-print {
+        display: none !important;
     }
     
     .report-container {
-        background: white;
-        color: black;
-        box-shadow: none;
+        background: #ffffff !important;
+        color: #111827 !important;
+        box-shadow: none !important;
+    }
+    
+    /* Preservar sombras e bordas */
+    .shadow-lg, .shadow-md {
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1) !important;
+    }
+    
+    .rounded-lg {
+        border-radius: 8px !important;
     }
 }

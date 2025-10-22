@@ -599,11 +599,28 @@ ul.list-disc li br {
         // Variável global para armazenar dados do relatório gerado
         window.currentReportData = null;
         
+        // Função para resetar o botão de salvar (ao gerar novo relatório)
+        window.resetSaveButton = () => {
+            console.log('🔄 Resetando botão de salvar relatório...');
+            const saveBtn = document.getElementById('saveReportBtn');
+            if (saveBtn) {
+                saveBtn.style.display = 'none';
+                saveBtn.disabled = false;
+                saveBtn.className = 'flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold py-4 px-6 rounded-xl transition duration-300 transform hover:scale-[1.02] shadow-lg flex items-center justify-center';
+                saveBtn.innerHTML = '<i class="fas fa-save mr-3 text-xl"></i><span class="text-lg">Salvar Relatório</span>';
+                console.log('✅ Botão resetado');
+            }
+        };
+        
         // Função para mostrar botão de salvar (será chamada após gerar o relatório)
         window.showSaveButton = () => {
             console.log('🔘 Mostrando botão de salvar relatório...');
             const saveBtn = document.getElementById('saveReportBtn');
             if (saveBtn) {
+                // Resetar o botão antes de mostrar
+                saveBtn.disabled = false;
+                saveBtn.className = 'flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold py-4 px-6 rounded-xl transition duration-300 transform hover:scale-[1.02] shadow-lg flex items-center justify-center';
+                saveBtn.innerHTML = '<i class="fas fa-save mr-3 text-xl"></i><span class="text-lg">Salvar Relatório</span>';
                 saveBtn.style.display = 'flex';
                 console.log('✅ Botão de salvar exibido');
             } else {
@@ -635,9 +652,15 @@ ul.list-disc li br {
                     const result = await reportsService.saveReport(projectId, window.currentReportData);
                     
                     if (result.success) {
+                        // Mudar botão para indicar sucesso (verde)
+                        saveReportBtn.disabled = false;
+                        saveReportBtn.className = 'flex-1 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white font-bold py-4 px-6 rounded-xl transition duration-300 transform hover:scale-[1.02] shadow-lg flex items-center justify-center';
+                        saveReportBtn.innerHTML = '<i class="fas fa-check mr-3 text-xl"></i><span class="text-lg">Relatório Salvo!</span>';
+                        
+                        // Mostrar mensagem de sucesso
                         alert('✅ Relatório salvo com sucesso!');
-                        // Redirecionar para a página do projeto
-                        window.location.href = `/projeto.html?id=${projectId}`;
+                        
+                        // NÃO redirecionar - usuário pode gerar outro relatório
                     } else {
                         alert('❌ Erro ao salvar relatório: ' + result.error);
                         saveReportBtn.disabled = false;

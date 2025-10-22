@@ -688,25 +688,30 @@ document.getElementById('endDate').addEventListener('change', onFormInput);
 async function generateCompleteReport() {
     console.time('⏱️ GERAÇÃO COMPLETA DO RELATÓRIO');
     
-    const unitId = document.getElementById('unitId').value;
+    // Resetar botão de salvar ao iniciar nova geração
+    if (typeof window.resetSaveButton === 'function') {
+        window.resetSaveButton();
+    }
+    
+        const unitId = document.getElementById('unitId').value;
     const googleAccountId = googleAdsAccountSelect.value;
-    const startDate = document.getElementById('startDate').value;
-    const endDate = document.getElementById('endDate').value;
-    const budgetsCompleted = parseInt(document.getElementById('budgetsCompleted').value) || 0;
-    const salesCount = parseInt(document.getElementById('salesCount').value) || 0;
-    const revenue = parseFloat(document.getElementById('revenue').value) || 0;
+        const startDate = document.getElementById('startDate').value;
+        const endDate = document.getElementById('endDate').value;
+        const budgetsCompleted = parseInt(document.getElementById('budgetsCompleted').value) || 0;
+        const salesCount = parseInt(document.getElementById('salesCount').value) || 0;
+        const revenue = parseFloat(document.getElementById('revenue').value) || 0;
     const performanceAnalysis = document.getElementById('performanceAnalysis')?.value || '';
 
     // Validar se pelo menos uma plataforma foi selecionada
     if (!unitId && !googleAccountId) {
         alert('Selecione pelo menos uma conta (Meta ou Google Ads)');
-        return;
-    }
+            return;
+        }
 
     if (!startDate || !endDate) {
         alert('Preencha as datas de início e fim');
-        return;
-    }
+            return;
+        }
 
     try {
         let metaMetrics = null;
@@ -726,7 +731,7 @@ async function generateCompleteReport() {
                     loadCampaigns(unitId, startDate, endDate),
                     loadAdSets(unitId, startDate, endDate)
                 ]);
-    } else {
+        } else {
                 console.log('✓ Usando dados Meta já carregados');
             }
 
@@ -766,7 +771,7 @@ async function generateCompleteReport() {
                 });
                 
                 console.log(`✓ ${bestAds.length} melhores anúncios Meta carregados`);
-            } catch (error) {
+    } catch (error) {
                 console.warn('Erro ao carregar melhores anúncios Meta:', error);
             }
         }
@@ -825,7 +830,7 @@ async function generateCompleteReport() {
         }
 
         // Buscar dados de comparação se solicitado (apenas para Meta por enquanto)
-        let comparisonMetrics = null;
+    let comparisonMetrics = null;
         if (comparisonData && !hasBlack && unitId && insightsService) {
             try {
                 console.log('📊 Buscando dados de comparação Meta...');
@@ -849,7 +854,7 @@ async function generateCompleteReport() {
         // Armazenar métricas globalmente
         reportMetrics = metrics;
         reportBlackMetrics = blackMetrics;
-        reportBestAds = bestAds;
+    reportBestAds = bestAds;
 
         // Renderizar relatório
         renderCompleteReport(accountName, startDate, endDate, metrics, blackMetrics, bestAds, comparisonMetrics, budgetsCompleted, salesCount, revenue, performanceAnalysis);
@@ -920,34 +925,34 @@ function extractMessages(actions) {
     let totalMessages = 0;
     
     if (actions && Array.isArray(actions)) {
-                    // Contabilizar conversas iniciadas
+                // Contabilizar conversas iniciadas
         const conversationAction = actions.find(
-                        action => action.action_type === 'onsite_conversion.messaging_conversation_started_7d'
-                    );
-                    if (conversationAction && conversationAction.value) {
+                    action => action.action_type === 'onsite_conversion.messaging_conversation_started_7d'
+                );
+                if (conversationAction && conversationAction.value) {
             totalMessages += parseInt(conversationAction.value) || 0;
-                    }
+                }
 
-                    // Contabilizar conversões personalizadas
+                // Contabilizar conversões personalizadas
         const customConversions = actions.filter(
-                        action => action.action_type.startsWith('offsite_conversion.')
-                    );
-                    customConversions.forEach(action => {
-                        if (action.value) {
+                    action => action.action_type.startsWith('offsite_conversion.')
+                );
+                customConversions.forEach(action => {
+                    if (action.value) {
                 totalMessages += parseInt(action.value) || 0;
-                        }
-                    });
+                    }
+                });
 
         // Contabilizar cadastros do Facebook
         const leadActions = actions.filter(
-                        action => action.action_type === 'lead'
-                    );
-                    leadActions.forEach(action => {
-                        if (action.value) {
+                    action => action.action_type === 'lead'
+                );
+                leadActions.forEach(action => {
+                    if (action.value) {
                 totalMessages += parseInt(action.value) || 0;
-                        }
-                    });
-                }
+            }
+        });
+    }
 
     return totalMessages;
 }

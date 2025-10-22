@@ -1,10 +1,10 @@
-// Serviço para Google Ads via Netlify Functions
+// Serviço para Google Ads via Vercel Serverless Functions
 export class GoogleAdsService {
     constructor(customerId, accessToken = null) {
         this.customerId = customerId;
         this.accessToken = accessToken;
-        // URL da Netlify Function
-        this.apiUrl = '/.netlify/functions/google-ads';
+        // URL da Vercel Function (funciona com ambos os caminhos graças ao vercel.json)
+        this.apiUrl = '/api/google-ads';
     }
 
     async _call(action, params = {}) {

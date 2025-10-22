@@ -1,16 +1,14 @@
 {
-  "name": "blackbox-ads-reporter",
+  "name": "insightflow-reporter",
   "version": "1.0.0",
-  "description": "Relatórios de Meta Ads e Google Ads",
-  "private": true,
+  "description": "Plataforma de relatórios de Meta Ads e Google Ads",
+  "main": "index.html",
   "scripts": {
-    "dev": "netlify dev"
+    "dev": "vercel dev",
+    "build": "echo 'Build completed'",
+    "deploy": "vercel --prod"
   },
-  "dependencies": {
-    "google-ads-api": "^17.0.0"
-  },
-  "devDependencies": {
-    "netlify-cli": "^17.0.0"
-  }
+  "keywords": ["meta-ads", "google-ads", "reports", "analytics"],
+  "author": "Thiago",
+  "license": "MIT"
 }
-

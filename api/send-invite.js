@@ -1,7 +1,7 @@
 // Vercel Serverless Function para enviar convites por email usando SendGrid
-const sgMail = require('@sendgrid/mail');
+import sgMail from '@sendgrid/mail';
 
-module.exports = async (req, res) => {
+export default async function handler(req, res) {
   // CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -159,5 +159,5 @@ Se você não esperava receber este email, pode ignorá-lo com segurança.
       details: error.message 
     });
   }
-};
+}
 

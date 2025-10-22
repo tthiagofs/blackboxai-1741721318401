@@ -236,16 +236,16 @@ ul.list-disc li br {
                 <div id="blackQuestion" class="mb-4">
                     <p class="text-sm font-medium text-gray-700 mb-3">A unidade possui Black?</p>
                     <div class="flex gap-3">
-                        <button type="button" id="hasBlackYesBtn"
+                    <button type="button" id="hasBlackYesBtn"
                             class="flex-1 bg-gray-100 hover:bg-blue-600 text-gray-800 hover:text-white font-semibold py-3 px-4 rounded-lg transition duration-300 transform hover:scale-[1.02] border-2 border-gray-300">
-                            Sim
-                        </button>
-                        <button type="button" id="hasBlackNoBtn"
+                        Sim
+                    </button>
+                    <button type="button" id="hasBlackNoBtn"
                             class="flex-1 bg-gray-100 hover:bg-blue-600 text-gray-800 hover:text-white font-semibold py-3 px-4 rounded-lg transition duration-300 transform hover:scale-[1.02] border-2 border-gray-300">
-                            Não
-                        </button>
-                    </div>
+                        Não
+                    </button>
                 </div>
+            </div>
 
                 <!-- Filtros padrão (sem White/Black) -->
                 <div id="defaultFilters" class="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -306,24 +306,24 @@ ul.list-disc li br {
             <div class="bg-white rounded-2xl shadow-md p-6 border border-gray-100">
                 <h3 class="text-lg font-semibold text-gray-800 mb-4">Métricas do Período</h3>
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div>
+                <div>
                         <label for="budgetsCompleted" class="block text-sm font-medium text-gray-700 mb-2">
                             <i class="fas fa-clipboard-check mr-2 text-blue-600"></i>Orçamento (R$)
-                        </label>
+                    </label>
                         <input type="number" id="budgetsCompleted" min="0" step="1" placeholder="0.00"
                             class="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition">
-                    </div>
-                    <div>
+                </div>
+                <div>
                         <label for="salesCount" class="block text-sm font-medium text-gray-700 mb-2">
                             <i class="fas fa-shopping-cart mr-2 text-green-600"></i>Número de Vendas
-                        </label>
+                    </label>
                         <input type="number" id="salesCount" min="0" step="1" placeholder="0"
                             class="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition">
-                    </div>
-                    <div>
+                </div>
+                <div>
                         <label for="revenue" class="block text-sm font-medium text-gray-700 mb-2">
                             <i class="fas fa-money-bill-wave mr-2 text-emerald-600"></i>Faturamento (R$)
-                        </label>
+                    </label>
                         <input type="number" id="revenue" min="0" step="0.01" placeholder="0.00"
                             class="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition">
                     </div>
@@ -349,11 +349,20 @@ ul.list-disc li br {
 
             <!-- Botão Gerar Relatório -->
             <div class="flex gap-4">
-                <button type="submit"
+            <button type="submit"
                     class="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-bold py-4 px-6 rounded-xl transition duration-300 transform hover:scale-[1.02] shadow-lg flex items-center justify-center">
                     <i class="fas fa-chart-bar mr-3 text-xl"></i>
                     <span class="text-lg">Gerar Relatório</span>
                 </button>
+            </div>
+
+            <!-- Botão Salvar Relatório (aparece após gerar) -->
+            <div id="saveReportSection" class="hidden flex gap-4 mt-4">
+                <button type="button" id="saveReportBtn"
+                    class="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold py-4 px-6 rounded-xl transition duration-300 transform hover:scale-[1.02] shadow-lg flex items-center justify-center">
+                    <i class="fas fa-save mr-3 text-xl"></i>
+                    <span class="text-lg">Salvar Relatório</span>
+            </button>
             </div>
         </form>
 
@@ -367,22 +376,22 @@ ul.list-disc li br {
             </div>
 
             <!-- Container do Relatório Gerado -->
-            <div id="reportContainer" class="mt-8 space-y-8"></div>
+        <div id="reportContainer" class="mt-8 space-y-8"></div>
 
             <!-- Botões de Ação -->
             <div class="flex flex-wrap gap-3 mt-6">
-                <button id="backToReportSelectionBtn"
+            <button id="backToReportSelectionBtn"
                     class="flex-1 min-w-[200px] bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold py-3 px-6 rounded-lg transition duration-300 flex items-center justify-center">
-                    <i class="fas fa-arrow-left mr-2"></i>Voltar
-                </button>
-                <button id="refreshBtn"
+                <i class="fas fa-arrow-left mr-2"></i>Voltar
+            </button>
+            <button id="refreshBtn"
                     class="flex-1 min-w-[200px] bg-blue-100 hover:bg-blue-200 text-blue-700 font-semibold py-3 px-6 rounded-lg transition duration-300 flex items-center justify-center">
                     <i class="fas fa-sync-alt mr-2"></i>Atualizar
-                </button>
-                <button id="shareWhatsAppBtn"
+            </button>
+            <button id="shareWhatsAppBtn"
                     class="hidden flex-1 min-w-[200px] bg-[#25D366] hover:bg-[#20c058] text-white font-semibold py-3 px-6 rounded-lg transition duration-300 flex items-center justify-center">
-                    <i class="fab fa-whatsapp mr-2"></i>Compartilhar no WhatsApp
-                </button>
+                <i class="fab fa-whatsapp mr-2"></i>Compartilhar no WhatsApp
+            </button>
             </div>
         </div>
         </div>
@@ -509,7 +518,7 @@ ul.list-disc li br {
                 <!-- Período personalizado -->
                 <label class="block cursor-pointer">
                     <div class="flex items-center p-4 border-2 border-gray-200 rounded-xl hover:border-blue-500 transition">
-                        <input type="radio" name="comparisonOption" value="custom" checked
+                    <input type="radio" name="comparisonOption" value="custom" checked
                             class="w-5 h-5 text-blue-600 focus:ring-2 focus:ring-blue-500">
                         <span class="ml-3 font-semibold text-gray-800">Período personalizado</span>
                     </div>
@@ -530,7 +539,7 @@ ul.list-disc li br {
                 <!-- Mesmo período anterior -->
                 <label class="block cursor-pointer">
                     <div class="flex items-center p-4 border-2 border-gray-200 rounded-xl hover:border-blue-500 transition">
-                        <input type="radio" name="comparisonOption" value="previous"
+                    <input type="radio" name="comparisonOption" value="previous"
                             class="w-5 h-5 text-blue-600 focus:ring-2 focus:ring-blue-500">
                         <span class="ml-3 font-semibold text-gray-800">Mesmo período anterior</span>
                     </div>
@@ -539,7 +548,7 @@ ul.list-disc li br {
                 <!-- Sem comparação -->
                 <label class="block cursor-pointer">
                     <div class="flex items-center p-4 border-2 border-gray-200 rounded-xl hover:border-blue-500 transition">
-                        <input type="radio" name="comparisonOption" value="none"
+                    <input type="radio" name="comparisonOption" value="none"
                             class="w-5 h-5 text-blue-600 focus:ring-2 focus:ring-blue-500">
                         <span class="ml-3 font-semibold text-gray-800">Sem comparação</span>
                     </div>
@@ -584,5 +593,62 @@ ul.list-disc li br {
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script async defer crossorigin="anonymous" src="https://connect.facebook.net/en_US/sdk.js"></script>
     <script type="module" src="RelatorioCompleto.js?v=3.2"></script>
+    
+    <!-- Script para Salvar Relatório -->
+    <script type="module">
+        import { reportsService } from './services/reportsService.js?v=1.0';
+        
+        // Variável global para armazenar dados do relatório gerado
+        window.currentReportData = null;
+        
+        // Função para mostrar botão de salvar (será chamada após gerar o relatório)
+        window.showSaveButton = () => {
+            const saveSection = document.getElementById('saveReportSection');
+            if (saveSection) {
+                saveSection.classList.remove('hidden');
+            }
+        };
+        
+        // Botão Salvar Relatório
+        const saveReportBtn = document.getElementById('saveReportBtn');
+        if (saveReportBtn) {
+            saveReportBtn.addEventListener('click', async () => {
+                const projectId = localStorage.getItem('currentProject');
+                
+                if (!projectId) {
+                    alert('Erro: Nenhum projeto selecionado');
+                    return;
+                }
+
+                if (!window.currentReportData) {
+                    alert('Erro: Nenhum relatório foi gerado ainda');
+                    return;
+                }
+
+                // Desabilitar botão durante salvamento
+                saveReportBtn.disabled = true;
+                saveReportBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-3 text-xl"></i><span class="text-lg">Salvando...</span>';
+
+                try {
+                    const result = await reportsService.saveReport(projectId, window.currentReportData);
+                    
+                    if (result.success) {
+                        alert('✅ Relatório salvo com sucesso!');
+                        // Redirecionar para a página do projeto
+                        window.location.href = `/projeto.html?id=${projectId}`;
+                    } else {
+                        alert('❌ Erro ao salvar relatório: ' + result.error);
+                        saveReportBtn.disabled = false;
+                        saveReportBtn.innerHTML = '<i class="fas fa-save mr-3 text-xl"></i><span class="text-lg">Salvar Relatório</span>';
+                    }
+                } catch (error) {
+                    console.error('Erro ao salvar relatório:', error);
+                    alert('❌ Erro ao salvar relatório. Tente novamente.');
+                    saveReportBtn.disabled = false;
+                    saveReportBtn.innerHTML = '<i class="fas fa-save mr-3 text-xl"></i><span class="text-lg">Salvar Relatório</span>';
+                }
+            });
+        }
+    </script>
 <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'93075eeb8ba96b9d',t:'MTc0NDY3NzQwOC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script><script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'930c0ec9980abce6',t:'MTc0NDcyNjU1NS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script><script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'930e06e76bdd8027',t:'MTc0NDc0NzIwMy4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>

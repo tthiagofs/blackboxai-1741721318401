@@ -329,13 +329,11 @@
             return card;
         }
 
-        // Abrir projeto (futuro)
+        // Abrir projeto
         window.openProject = (projectId) => {
             console.log('Abrindo projeto:', projectId);
             localStorage.setItem('currentProject', projectId);
-            // Futuramente: window.location.href = `/projeto.html?id=${projectId}`;
-            // Por enquanto, vai direto para relatório completo
-            window.location.href = '/RelatorioCompleto.html';
+            window.location.href = `/projeto.html?id=${projectId}`;
         };
 
         // Deletar projeto

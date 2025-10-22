@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Projeto - Insightflow</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-white min-h-screen font-sans m-0 p-0">
+    <!-- Proteção de Auth -->
+    <script type="module">
+        import { auth } from './config/firebase.js';
+        import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+        
+        onAuthStateChanged(auth, (user) => {
+            if (!user) {
+                window.location.href = '/login.html';
+                return;
+            }
+        });
+    </script>
+
+    <!-- Container Principal -->
+    <div class="flex min-h-screen w-full">
+        <!-- Sidebar -->
+        <aside id="sidebar" class="w-56 bg-white flex flex-col border-r border-gray-200">
+            <!-- Logo -->
+            <div class="p-6">
+                <h1 class="text-xl font-bold text-gray-800">Relatórios</h1>
+            </div>
+
+            <!-- Menu de Navegação -->
+            <nav class="flex-1 px-3">
+                <a href="/dashboard.html" class="flex items-center px-3 py-2.5 mb-1 border-l-4 border-blue-600 bg-blue-50 text-blue-600 transition-all">
+                    <i class="fas fa-home mr-3 text-sm"></i>
+                    <span class="text-sm">Tela Inicial</span>
+                </a>
+                
+                <a href="/conexoes.html" class="flex items-center px-3 py-2.5 mb-1 border-l-4 border-transparent text-gray-700 hover:bg-gray-50 transition-all">
+                    <i class="fas fa-plug mr-3 text-sm"></i>
+                    <span class="text-sm">Conexões</span>
+                </a>
+                
+                <a href="/minha-conta.html" class="flex items-center px-3 py-2.5 mb-1 border-l-4 border-transparent text-gray-700 hover:bg-gray-50 transition-all">
+                    <i class="fas fa-user mr-3 text-sm"></i>
+                    <span class="text-sm">Minha Conta</span>
+                </a>
+                
+                <!-- Link Admin (apenas para admins) -->
+                <a href="/usuarios.html" id="adminLink" class="hidden flex items-center px-3 py-2.5 mb-1 border-l-4 border-transparent text-gray-700 hover:bg-gray-50 transition-all">
+                    <i class="fas fa-users mr-3 text-sm"></i>
+                    <span class="text-sm">Usuários</span>
+                </a>
+            </nav>
+
+            <!-- Botão Sair -->
+            <div class="p-3">
+                <button id="logoutBtn" class="w-full flex items-center px-3 py-2.5 text-red-600 hover:bg-red-50 rounded-lg transition-all">
+                    <i class="fas fa-sign-out-alt mr-3 text-sm"></i>
+                    <span class="text-sm">Log out</span>
+                </button>
+            </div>
+        </aside>
+
+        <!-- Conteúdo Principal -->
+        <main class="flex-1 p-10 bg-gray-50">
+            <!-- Header com botão voltar -->
+            <div class="mb-8 flex items-center justify-between">
+                <div class="flex items-center">
+                    <button onclick="window.location.href='/dashboard.html'" class="mr-4 text-gray-600 hover:text-gray-900 transition-colors">
+                        <i class="fas fa-arrow-left text-xl"></i>
+                    </button>
+                    <div>
+                        <h2 id="projectName" class="text-2xl font-bold text-gray-900">Carregando...</h2>
+                        <p class="text-sm text-gray-600">Gerencie os relatórios deste projeto</p>
+                    </div>
+                </div>
+                
+                <button 
+                    id="generateReportBtn"
+                    class="bg-blue-600 text-white px-4 py-2 rounded text-sm font-medium hover:bg-blue-700 transition-all flex items-center"
+                >
+                    <i class="fas fa-plus mr-2"></i>
+                    Gerar Relatório
+                </button>
+            </div>
+
+            <!-- Seção de Relatórios Salvos -->
+            <div class="bg-white border border-gray-200 rounded-lg p-6 mb-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-bold text-gray-900 flex items-center">
+                        <i class="fas fa-chart-bar mr-2 text-blue-600"></i>
+                        Relatórios Salvos
+                        <span id="reportsCount" class="ml-2 text-sm text-gray-500">(0)</span>
+                    </h3>
+                </div>
+
+                <!-- Loading State -->
+                <div id="reportsLoading" class="text-center py-12">
+                    <div class="animate-spin rounded-full h-12 w-12 border-b-4 border-blue-600 mx-auto mb-4"></div>
+                    <p class="text-gray-600">Carregando relatórios...</p>
+                </div>
+
+                <!-- Empty State -->
+                <div id="reportsEmpty" class="hidden text-center py-12">
+                    <i class="fas fa-folder-open text-6xl text-gray-300 mb-4"></i>
+                    <h4 class="text-xl font-bold text-gray-800 mb-2">Nenhum relatório salvo</h4>
+                    <p class="text-gray-600 mb-6">Gere seu primeiro relatório para começar</p>
+                    <button onclick="document.getElementById('generateReportBtn').click()" class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-all">
+                        <i class="fas fa-plus mr-2"></i>
+                        Gerar Primeiro Relatório
+                    </button>
+                </div>
+
+                <!-- Grid de Relatórios -->
+                <div id="reportsGrid" class="hidden grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <!-- Cards serão inseridos aqui via JavaScript -->
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script type="module">
+        import { auth } from './config/firebase.js';
+        import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+        import { authService } from './services/authService.js?v=1.4';
+        import { projectsService } from './services/projects.js?v=1.3';
+        import { reportsService } from './services/reportsService.js?v=1.0';
+
+        const projectNameEl = document.getElementById('projectName');
+        const logoutBtn = document.getElementById('logoutBtn');
+        const adminLink = document.getElementById('adminLink');
+        const generateReportBtn = document.getElementById('generateReportBtn');
+        const reportsLoading = document.getElementById('reportsLoading');
+        const reportsEmpty = document.getElementById('reportsEmpty');
+        const reportsGrid = document.getElementById('reportsGrid');
+        const reportsCount = document.getElementById('reportsCount');
+
+        let currentProjectId = null;
+
+        // Pegar ID do projeto da URL
+        const urlParams = new URLSearchParams(window.location.search);
+        currentProjectId = urlParams.get('id');
+
+        if (!currentProjectId) {
+            alert('Projeto não encontrado');
+            window.location.href = '/dashboard.html';
+        }
+
+        // Logout
+        logoutBtn.addEventListener('click', async () => {
+            if (confirm('Tem certeza que deseja sair?')) {
+                await authService.logout();
+                window.location.href = '/login.html';
+            }
+        });
+
+        // Botão Gerar Relatório
+        generateReportBtn.addEventListener('click', () => {
+            localStorage.setItem('currentProject', currentProjectId);
+            window.location.href = '/tipo-relatorio.html';
+        });
+
+        // Carregar dados do projeto
+        async function loadProject() {
+            try {
+                const projects = await projectsService.listProjects();
+                const project = projects.find(p => p.id === currentProjectId);
+                
+                if (project) {
+                    projectNameEl.textContent = project.name;
+                } else {
+                    projectNameEl.textContent = 'Projeto não encontrado';
+                }
+            } catch (error) {
+                console.error('Erro ao carregar projeto:', error);
+                projectNameEl.textContent = 'Erro ao carregar';
+            }
+        }
+
+        // Carregar relatórios salvos
+        async function loadReports() {
+            try {
+                reportsLoading.classList.remove('hidden');
+                reportsEmpty.classList.add('hidden');
+                reportsGrid.classList.add('hidden');
+
+                const reports = await reportsService.listReports(currentProjectId);
+                
+                reportsLoading.classList.add('hidden');
+                
+                if (reports.length === 0) {
+                    reportsEmpty.classList.remove('hidden');
+                    reportsCount.textContent = '(0)';
+                } else {
+                    reportsGrid.classList.remove('hidden');
+                    reportsCount.textContent = `(${reports.length})`;
+                    renderReports(reports);
+                }
+            } catch (error) {
+                console.error('Erro ao carregar relatórios:', error);
+                reportsLoading.classList.add('hidden');
+                reportsEmpty.classList.remove('hidden');
+            }
+        }
+
+        // Renderizar relatórios
+        function renderReports(reports) {
+            reportsGrid.innerHTML = reports.map(report => {
+                const createdDate = new Date(report.createdAt).toLocaleString('pt-BR', {
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+
+                // Definir ícones baseado na plataforma
+                let platformIcon = '';
+                if (report.platform === 'meta') {
+                    platformIcon = '<i class="fab fa-facebook text-blue-600 mr-2"></i>';
+                } else if (report.platform === 'google') {
+                    platformIcon = '<i class="fab fa-google text-red-600 mr-2"></i>';
+                } else if (report.platform === 'both') {
+                    platformIcon = '<i class="fab fa-facebook text-blue-600 mr-1"></i><i class="fab fa-google text-red-600 mr-2"></i>';
+                }
+
+                return `
+                    <div class="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-lg transition-all">
+                        <div class="mb-3">
+                            <div class="flex items-center mb-2">
+                                ${platformIcon}
+                                <h4 class="text-sm font-bold text-gray-900">${report.reportName}</h4>
+                            </div>
+                            <p class="text-xs text-gray-600 mb-1">
+                                <i class="fas fa-calendar text-blue-600 mr-1"></i>
+                                ${report.dateRange}
+                            </p>
+                            <p class="text-xs text-gray-500">
+                                <i class="fas fa-clock mr-1"></i>
+                                Salvo em: ${createdDate}
+                            </p>
+                        </div>
+                        
+                        <div class="flex gap-2">
+                            <button onclick="openReport('${report.id}')" class="flex-1 bg-blue-600 text-white px-3 py-1.5 rounded text-xs font-medium hover:bg-blue-700 transition-all">
+                                <i class="fas fa-folder-open mr-1"></i>
+                                Abrir
+                            </button>
+                            <button onclick="deleteReport('${report.id}')" class="px-3 py-1.5 bg-red-600 text-white rounded text-xs hover:bg-red-700 transition-all">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Abrir relatório
+        window.openReport = (reportId) => {
+            console.log('Abrindo relatório:', reportId);
+            localStorage.setItem('currentProject', currentProjectId);
+            localStorage.setItem('currentReport', reportId);
+            window.location.href = '/RelatorioCompleto.html?report=' + reportId;
+        };
+
+        // Deletar relatório
+        window.deleteReport = async (reportId) => {
+            if (!confirm('Tem certeza que deseja excluir este relatório?')) {
+                return;
+            }
+
+            try {
+                await reportsService.deleteReport(currentProjectId, reportId);
+                await loadReports();
+            } catch (error) {
+                console.error('Erro ao deletar relatório:', error);
+                alert('Erro ao deletar relatório');
+            }
+        };
+
+        // Carregar dados do usuário e mostrar link admin
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                const userData = authService.getCurrentUser();
+                if (userData && userData.role === 'admin') {
+                    adminLink.classList.remove('hidden');
+                }
+                
+                await loadProject();
+                await loadReports();
+            }
+        });
+    </script>
+</body>
+</html>
+

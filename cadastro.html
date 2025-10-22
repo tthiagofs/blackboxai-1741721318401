@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Criar Conta - Insightflow</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center font-sans p-4">
+    <!-- Container Principal -->
+    <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden">
+        <!-- Header -->
+        <div class="bg-gradient-to-r from-blue-600 to-indigo-600 px-8 py-6 text-center">
+            <div class="inline-block bg-white bg-opacity-20 rounded-full p-4 mb-4">
+                <i class="fas fa-user-plus text-4xl text-white"></i>
+            </div>
+            <h1 class="text-3xl font-bold text-white mb-2">Bem-vindo!</h1>
+            <p class="text-blue-100">Crie sua conta no Insightflow</p>
+        </div>
+
+        <!-- Content -->
+        <div id="content" class="p-8">
+            <!-- Loading State -->
+            <div id="loading" class="text-center py-12">
+                <div class="animate-spin rounded-full h-16 w-16 border-b-4 border-blue-600 mx-auto mb-4"></div>
+                <p class="text-gray-600">Verificando convite...</p>
+            </div>
+
+            <!-- Invalid Invite -->
+            <div id="invalidInvite" class="hidden text-center py-8">
+                <div class="bg-red-50 rounded-full w-20 h-20 flex items-center justify-center mx-auto mb-4">
+                    <i class="fas fa-times-circle text-4xl text-red-600"></i>
+                </div>
+                <h2 class="text-2xl font-bold text-gray-900 mb-2">Convite Inválido</h2>
+                <p class="text-gray-600 mb-6">Este convite expirou ou não existe.</p>
+                <a href="/login.html" class="inline-block px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all">
+                    <i class="fas fa-arrow-left mr-2"></i>
+                    Voltar ao Login
+                </a>
+            </div>
+
+            <!-- Form -->
+            <form id="signupForm" class="hidden space-y-6">
+                <!-- Email (read-only) -->
+                <div>
+                    <label for="email" class="block text-sm font-semibold text-gray-700 mb-2">
+                        <i class="fas fa-envelope text-blue-600 mr-2"></i>
+                        Email
+                    </label>
+                    <input 
+                        type="email" 
+                        id="email" 
+                        class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50 cursor-not-allowed"
+                        readonly
+                    >
+                </div>
+
+                <!-- Nome -->
+                <div>
+                    <label for="name" class="block text-sm font-semibold text-gray-700 mb-2">
+                        <i class="fas fa-user text-blue-600 mr-2"></i>
+                        Nome Completo
+                    </label>
+                    <input 
+                        type="text" 
+                        id="name" 
+                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="Digite seu nome completo"
+                        required
+                    >
+                </div>
+
+                <!-- Senha -->
+                <div>
+                    <label for="password" class="block text-sm font-semibold text-gray-700 mb-2">
+                        <i class="fas fa-lock text-blue-600 mr-2"></i>
+                        Senha
+                    </label>
+                    <div class="relative">
+                        <input 
+                            type="password" 
+                            id="password" 
+                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent pr-12"
+                            placeholder="Mínimo de 6 caracteres"
+                            minlength="6"
+                            required
+                        >
+                        <button 
+                            type="button"
+                            id="togglePassword"
+                            class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                        >
+                            <i class="fas fa-eye"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Confirmar Senha -->
+                <div>
+                    <label for="confirmPassword" class="block text-sm font-semibold text-gray-700 mb-2">
+                        <i class="fas fa-lock text-blue-600 mr-2"></i>
+                        Confirmar Senha
+                    </label>
+                    <div class="relative">
+                        <input 
+                            type="password" 
+                            id="confirmPassword" 
+                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent pr-12"
+                            placeholder="Digite a senha novamente"
+                            minlength="6"
+                            required
+                        >
+                        <button 
+                            type="button"
+                            id="toggleConfirmPassword"
+                            class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                        >
+                            <i class="fas fa-eye"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Error Message -->
+                <div id="errorMessage" class="hidden bg-red-50 border border-red-200 rounded-lg p-4">
+                    <div class="flex items-center">
+                        <i class="fas fa-exclamation-circle text-red-600 mr-3"></i>
+                        <p class="text-red-800 text-sm" id="errorText"></p>
+                    </div>
+                </div>
+
+                <!-- Submit Button -->
+                <button 
+                    type="submit"
+                    id="submitBtn"
+                    class="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-4 rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all font-semibold text-lg shadow-lg"
+                >
+                    <i class="fas fa-user-plus mr-2"></i>
+                    Criar Minha Conta
+                </button>
+
+                <!-- Login Link -->
+                <p class="text-center text-sm text-gray-600">
+                    Já tem uma conta?
+                    <a href="/login.html" class="text-blue-600 hover:text-blue-700 font-semibold">
+                        Fazer Login
+                    </a>
+                </p>
+            </form>
+        </div>
+    </div>
+
+    <script type="module">
+        import { auth, db } from './config/firebase.js';
+        import { createUserWithEmailAndPassword } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+        import { doc, getDoc, setDoc, deleteDoc, query, collection, where, getDocs } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+
+        // Elements
+        const loading = document.getElementById('loading');
+        const invalidInvite = document.getElementById('invalidInvite');
+        const signupForm = document.getElementById('signupForm');
+        const emailInput = document.getElementById('email');
+        const nameInput = document.getElementById('name');
+        const passwordInput = document.getElementById('password');
+        const confirmPasswordInput = document.getElementById('confirmPassword');
+        const submitBtn = document.getElementById('submitBtn');
+        const errorMessage = document.getElementById('errorMessage');
+        const errorText = document.getElementById('errorText');
+        const togglePassword = document.getElementById('togglePassword');
+        const toggleConfirmPassword = document.getElementById('toggleConfirmPassword');
+
+        let inviteId = null;
+        let inviteEmail = null;
+
+        // Toggle password visibility
+        togglePassword.addEventListener('click', () => {
+            const type = passwordInput.type === 'password' ? 'text' : 'password';
+            passwordInput.type = type;
+            togglePassword.querySelector('i').classList.toggle('fa-eye');
+            togglePassword.querySelector('i').classList.toggle('fa-eye-slash');
+        });
+
+        toggleConfirmPassword.addEventListener('click', () => {
+            const type = confirmPasswordInput.type === 'password' ? 'text' : 'password';
+            confirmPasswordInput.type = type;
+            toggleConfirmPassword.querySelector('i').classList.toggle('fa-eye');
+            toggleConfirmPassword.querySelector('i').classList.toggle('fa-eye-slash');
+        });
+
+        // Verificar convite
+        async function verifyInvite() {
+            try {
+                // Pegar email da URL
+                const urlParams = new URLSearchParams(window.location.search);
+                const email = urlParams.get('email');
+
+                if (!email) {
+                    showInvalidInvite();
+                    return;
+                }
+
+                // Buscar convite no Firestore
+                const invitesQuery = query(collection(db, 'invites'), where('email', '==', email));
+                const snapshot = await getDocs(invitesQuery);
+
+                if (snapshot.empty) {
+                    showInvalidInvite();
+                    return;
+                }
+
+                const inviteDoc = snapshot.docs[0];
+                const invite = inviteDoc.data();
+                inviteId = inviteDoc.id;
+
+                // Verificar se expirou
+                const expiresAt = new Date(invite.expiresAt);
+                if (new Date() > expiresAt) {
+                    showInvalidInvite();
+                    return;
+                }
+
+                // Convite válido
+                inviteEmail = email;
+                emailInput.value = email;
+                loading.classList.add('hidden');
+                signupForm.classList.remove('hidden');
+
+            } catch (error) {
+                console.error('Erro ao verificar convite:', error);
+                showInvalidInvite();
+            }
+        }
+
+        function showInvalidInvite() {
+            loading.classList.add('hidden');
+            invalidInvite.classList.remove('hidden');
+        }
+
+        // Submit form
+        signupForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const name = nameInput.value.trim();
+            const password = passwordInput.value;
+            const confirmPassword = confirmPasswordInput.value;
+
+            // Validar senhas
+            if (password !== confirmPassword) {
+                showError('As senhas não coincidem!');
+                return;
+            }
+
+            if (password.length < 6) {
+                showError('A senha deve ter no mínimo 6 caracteres!');
+                return;
+            }
+
+            if (!name) {
+                showError('Por favor, digite seu nome completo!');
+                return;
+            }
+
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Criando conta...';
+            errorMessage.classList.add('hidden');
+
+            try {
+                // Criar usuário no Firebase Auth
+                const userCredential = await createUserWithEmailAndPassword(auth, inviteEmail, password);
+                const user = userCredential.user;
+
+                // Criar documento do usuário no Firestore
+                await setDoc(doc(db, 'users', user.uid), {
+                    name: name,
+                    email: inviteEmail,
+                    role: 'user',
+                    createdAt: new Date().toISOString(),
+                    updatedAt: new Date().toISOString()
+                });
+
+                // Deletar convite usado
+                if (inviteId) {
+                    await deleteDoc(doc(db, 'invites', inviteId));
+                }
+
+                // Redirecionar para dashboard
+                window.location.href = '/dashboard.html';
+
+            } catch (error) {
+                console.error('Erro ao criar conta:', error);
+                
+                if (error.code === 'auth/email-already-in-use') {
+                    showError('Este email já está em uso!');
+                } else if (error.code === 'auth/weak-password') {
+                    showError('Senha muito fraca. Use pelo menos 6 caracteres!');
+                } else {
+                    showError('Erro ao criar conta. Tente novamente.');
+                }
+
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="fas fa-user-plus mr-2"></i>Criar Minha Conta';
+            }
+        });
+
+        function showError(message) {
+            errorText.textContent = message;
+            errorMessage.classList.remove('hidden');
+        }
+
+        // Verificar convite ao carregar
+        verifyInvite();
+    </script>
+</body>
+</html>
+

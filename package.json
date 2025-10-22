@@ -10,5 +10,9 @@
   },
   "keywords": ["meta-ads", "google-ads", "reports", "analytics"],
   "author": "Thiago",
-  "license": "MIT"
+  "license": "MIT",
+  "dependencies": {
+    "@sendgrid/mail": "^7.7.0",
+    "node-fetch": "^2.6.7"
+  }
 }

@@ -54,6 +54,21 @@ service cloud.firestore {
       allow create: if request.auth != null && 
                       get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
     }
+    
+    // Regras para coleção de relatórios
+    match /reports/{reportId} {
+      // Permitir leitura e escrita apenas para o dono do relatório
+      allow read, delete: if request.auth != null && 
+                             resource.data.userId == request.auth.uid;
+      
+      // Permitir criação se o userId for o usuário autenticado
+      allow create: if request.auth != null && 
+                      request.resource.data.userId == request.auth.uid;
+      
+      // Permitir atualização apenas para o dono
+      allow update: if request.auth != null && 
+                      resource.data.userId == request.auth.uid;
+    }
   }
 }
 ```
@@ -82,6 +97,10 @@ service cloud.firestore {
 - ✅ Todos os usuários autenticados podem **ler** convites
 - ✅ Apenas **admin** pode **criar** novos convites
 - ✅ Todos podem **deletar** (para invalidar após uso)
+
+### 📊 Coleção `reports`
+- ✅ Cada usuário pode **criar, ler, editar e deletar** apenas seus próprios relatórios
+- ❌ Um usuário **não pode ver** relatórios de outros usuários
 
 ---
 

@@ -159,10 +159,10 @@ class GoogleAuthService {
         }
 
         try {
-            console.log('🔍 Buscando contas Google Ads via Netlify Function...');
+            console.log('🔍 Buscando contas Google Ads via API...');
             
-            // Chamar a Netlify Function para listar contas
-            const response = await fetch('/.netlify/functions/google-ads', {
+            // Chamar a API Function para listar contas
+            const response = await fetch('/api/google-ads', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

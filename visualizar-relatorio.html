@@ -202,6 +202,7 @@
                     }
 
                     console.log('✅ Token Meta obtido, criando FacebookInsightsService...');
+                    console.log('🔑 Token (primeiros 20 chars):', connections.meta.token?.substring(0, 20) + '...');
                     const metaAccount = reportData.metaAccount;
                     const insightsService = new FacebookInsightsService(connections.meta.token);
 

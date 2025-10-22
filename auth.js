@@ -123,6 +123,7 @@ class FacebookAuth {
             // Salvar no Firebase
             try {
                 await connectionService.initialize();
+                console.log('💾 Salvando token no Firebase (primeiros 20 chars):', this.accessToken?.substring(0, 20) + '...');
                 await connectionService.saveMetaConnection(this.accessToken, this.adAccountsMap);
                 console.log('✅ Conexão Meta salva no Firebase');
             } catch (error) {

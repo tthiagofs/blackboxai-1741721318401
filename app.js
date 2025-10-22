@@ -1,7 +1,7 @@
-import { appAuth, fbAuth } from './auth.js?v=2.8';
-import { formatDateISOToBR, encodeWhatsAppText, formatCurrencyBRL } from './utils/format.js?v=2.8';
-import { debounce, setSelectedStyles } from './utils/dom.js?v=2.8';
-import { googleAuth } from './authGoogle.js?v=2.8';
+import { appAuth, fbAuth } from './auth.js?v=2.9';
+import { formatDateISOToBR, encodeWhatsAppText, formatCurrencyBRL } from './utils/format.js?v=2.9';
+import { debounce, setSelectedStyles } from './utils/dom.js?v=2.9';
+import { googleAuth } from './authGoogle.js?v=2.9';
 
 const appLoginScreen = document.getElementById('appLoginScreen');
 const reportSelectionScreen = document.getElementById('reportSelectionScreen');
@@ -45,11 +45,14 @@ let currentAccessToken = localStorage.getItem('fbAccessToken') || null;
 
 // Função para alternar telas
 function showScreen(screen) {
-    appLoginScreen.style.display = 'none';
-    reportSelectionScreen.style.display = 'none';
-    loginScreen.style.display = 'none';
-    mainContent.style.display = 'none';
-    screen.style.display = 'block';
+    // Esconder todas as telas
+    appLoginScreen.classList.add('hidden');
+    reportSelectionScreen.classList.add('hidden');
+    loginScreen.classList.add('hidden');
+    if (mainContent) mainContent.classList.add('hidden');
+    
+    // Mostrar a tela solicitada
+    screen.classList.remove('hidden');
 
     if (screen === mainContent) {
         const backBtn = document.getElementById('backToReportSelectionBtn');

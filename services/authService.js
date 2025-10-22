@@ -25,14 +25,22 @@ export class AuthService {
         onAuthStateChanged(auth, async (user) => {
             if (user) {
                 console.log('✅ Usuário autenticado:', user.email);
-                // Buscar dados do usuário no Firestore
-                const userData = await this.getUserData(user.uid);
-                this.currentUser = { ...user, ...userData };
+                console.log('🔍 UID:', user.uid);
                 
-                // Atualizar último login
-                await this.updateLastLogin(user.uid);
+                // Buscar dados do usuário no Firestore
+                try {
+                    const userData = await this.getUserData(user.uid);
+                    console.log('👤 Dados do usuário carregados:', userData);
+                    this.currentUser = { ...user, ...userData };
+                    
+                    // Atualizar último login
+                    await this.updateLastLogin(user.uid);
+                } catch (error) {
+                    console.error('❌ Erro ao carregar dados do usuário:', error);
+                }
             } else {
-                console.log('⚠️ Usuário não autenticado');
+                console.log('⚠️ Usuário não autenticado - SESSION PERDIDA');
+                console.trace('Stack trace do logout:');
                 this.currentUser = null;
             }
         });

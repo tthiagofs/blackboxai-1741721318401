@@ -164,8 +164,14 @@
         import { projectsService } from './services/projects.js?v=1.1';
 
         // Proteger rota - redirecionar se não estiver logado
+        console.log('🔒 Verificando autenticação no dashboard...');
+        console.log('🔍 isAuthenticated:', authService.isAuthenticated());
+        
         if (!authService.isAuthenticated()) {
+            console.warn('⚠️ NÃO AUTENTICADO - Redirecionando para login');
             window.location.href = '/login.html';
+        } else {
+            console.log('✅ Autenticado - Carregando dashboard');
         }
 
         // Elementos do DOM

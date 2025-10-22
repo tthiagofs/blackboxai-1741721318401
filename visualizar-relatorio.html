@@ -39,41 +39,34 @@
     <!-- Main Content -->
     <main class="ml-64 bg-gray-50 min-h-screen">
         <div class="p-8">
-            <!-- Header -->
-            <div class="mb-6 flex justify-between items-center">
-                <div>
-                    <h2 class="text-3xl font-bold text-gray-900" id="reportTitle">Carregando...</h2>
-                    <p class="text-gray-600 mt-1" id="reportSubtitle">Aguarde...</p>
-                </div>
-                
-                <!-- Botão Exportar PDF -->
-                <button id="exportPdfBtn" class="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white font-bold py-3 px-6 rounded-xl transition duration-300 transform hover:scale-[1.02] shadow-lg flex items-center">
-                    <i class="fas fa-file-pdf mr-2 text-xl"></i>
-                    <span class="text-lg">Exportar PDF</span>
-                </button>
-            </div>
-
             <!-- Loading -->
             <div id="loadingSection" class="text-center py-12">
                 <i class="fas fa-spinner fa-spin text-4xl text-blue-600 mb-4"></i>
-                <p class="text-gray-600">Carregando relatório...</p>
+                <p class="text-gray-600 text-lg mb-2">Carregando relatório...</p>
+                <p class="text-gray-500 text-sm">Buscando dados atualizados da API</p>
             </div>
 
-            <!-- Relatório Container -->
-            <div id="reportContainer" class="hidden">
-                <!-- O relatório será renderizado aqui -->
-            </div>
+            <!-- Relatório Container (será preenchido pelo JS) -->
+            <div id="reportContainer" class="hidden"></div>
         </div>
     </main>
 
-    <!-- Firebase Config -->
+    <!-- Scripts -->
+    <script src="https://connect.facebook.net/en_US/sdk.js"></script>
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    
     <script type="module">
         import { auth } from './config/firebase.js';
         import { onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
         import { reportsService } from './services/reportsService.js?v=1.0';
+        import { connectionService } from './services/connectionService.js?v=1.0';
+        import { FacebookInsightsService } from './services/facebookInsights.js?v=3.0';
         import { exportToPDF } from './exportPDF.js';
 
         console.log('🔥 Firebase inicializado com sucesso!');
+
+        let reportData = null;
+        let generatedMetrics = null;
 
         // Verificar autenticação
         onAuthStateChanged(auth, async (user) => {
@@ -84,8 +77,32 @@
             }
 
             console.log('✅ Usuário autenticado:', user.email);
-            await loadReport();
+            
+            // Inicializar Facebook SDK
+            await initializeFacebookSDK();
+            
+            // Carregar conexões salvas
+            await connectionService.initialize();
+            
+            // Carregar e regenerar relatório
+            await loadAndRegenerateReport();
         });
+
+        // Inicializar Facebook SDK
+        function initializeFacebookSDK() {
+            return new Promise((resolve) => {
+                window.fbAsyncInit = function() {
+                    FB.init({
+                        appId: '8664931536960419',
+                        cookie: true,
+                        xfbml: true,
+                        version: 'v18.0'
+                    });
+                    console.log('✅ Facebook SDK inicializado');
+                    resolve();
+                };
+            });
+        }
 
         // Logout
         document.getElementById('logoutBtn').addEventListener('click', async () => {
@@ -97,8 +114,8 @@
             }
         });
 
-        // Carregar relatório
-        async function loadReport() {
+        // Carregar e regenerar relatório
+        async function loadAndRegenerateReport() {
             const urlParams = new URLSearchParams(window.location.search);
             const reportId = urlParams.get('report');
             const projectId = localStorage.getItem('currentProject');
@@ -111,136 +128,366 @@
 
             try {
                 console.log('📥 Carregando relatório:', reportId);
-                const report = await reportsService.getReport(projectId, reportId);
+                reportData = await reportsService.getReport(projectId, reportId);
                 
-                console.log('✅ Relatório carregado:', report);
-                renderReport(report);
+                console.log('✅ Relatório carregado:', reportData);
+                console.log('🔄 Regenerando dados da API...');
                 
-                // Configurar botão de exportar PDF
-                document.getElementById('exportPdfBtn').addEventListener('click', () => {
-                    exportToPDF();
-                });
+                // Regenerar métricas com dados atualizados da API
+                await regenerateMetrics();
                 
             } catch (error) {
                 console.error('❌ Erro ao carregar relatório:', error);
-                alert('Erro ao carregar relatório');
-                window.location.href = '/dashboard.html';
+                
+                // Verificar se é erro de token expirado
+                if (error.message === 'TOKEN_EXPIRED' || error.message.includes('Session has expired')) {
+                    alert('⚠️ Sua sessão do Facebook expirou!\n\nPor favor, vá até a tela de CONEXÕES e faça login novamente.');
+                    setTimeout(() => {
+                        if (confirm('Deseja ir para a tela de CONEXÕES agora?')) {
+                            window.location.href = '/conexoes.html?tokenExpired=true';
+                        }
+                    }, 1000);
+                } else {
+                    alert('Erro ao carregar relatório');
+                    window.location.href = '/dashboard.html';
+                }
             }
         }
 
-        // Renderizar relatório
-        function renderReport(report) {
+        // Regenerar métricas da API
+        async function regenerateMetrics() {
+            const loadingSection = document.getElementById('loadingSection');
+            const loadingText = loadingSection.querySelector('p:last-child');
+            
+            try {
+                let metrics = null;
+                let blackMetrics = null;
+                let bestAds = [];
+                let comparisonMetrics = null;
+
+                // ========== META ADS ==========
+                if (reportData.platform === 'meta' || reportData.platform === 'both') {
+                    loadingText.textContent = 'Buscando dados do Meta Ads...';
+                    
+                    // Obter token do Meta
+                    const connections = connectionService.getConnectionStatus();
+                    if (!connections.meta.connected) {
+                        throw new Error('Meta Ads não conectado. Vá para CONEXÕES e faça login.');
+                    }
+
+                    const metaAccount = reportData.metaAccount;
+                    const insightsService = new FacebookInsightsService(connections.meta.token);
+
+                    // Buscar métricas
+                    metrics = await insightsService.getAccountInsights(
+                        metaAccount.id,
+                        reportData.analysisStart,
+                        reportData.analysisEnd
+                    );
+
+                    // Se tem Black, buscar também
+                    if (reportData.manualData.hasBlack) {
+                        blackMetrics = await insightsService.getAccountInsights(
+                            metaAccount.id,
+                            reportData.analysisStart,
+                            reportData.analysisEnd,
+                            true // isBlack
+                        );
+                    }
+
+                    // Buscar melhores anúncios
+                    loadingText.textContent = 'Buscando melhores anúncios...';
+                    bestAds = await insightsService.getBestPerformingAds(
+                        metaAccount.id,
+                        reportData.analysisStart,
+                        reportData.analysisEnd
+                    );
+
+                    // Se tem período de comparação
+                    if (reportData.comparisonStart && reportData.comparisonEnd) {
+                        loadingText.textContent = 'Buscando dados de comparação...';
+                        const comparisonData = await insightsService.getComparisonData(
+                            metaAccount.id,
+                            reportData.comparisonStart,
+                            reportData.comparisonEnd
+                        );
+                        comparisonMetrics = comparisonData.metrics;
+                    }
+                }
+
+                // ========== GOOGLE ADS ==========
+                if (reportData.platform === 'google' || reportData.platform === 'both') {
+                    loadingText.textContent = 'Buscando dados do Google Ads...';
+                    // TODO: Implementar Google Ads quando necessário
+                    console.log('⚠️ Google Ads ainda não implementado na visualização');
+                }
+
+                // Armazenar métricas regeneradas
+                generatedMetrics = {
+                    metrics,
+                    blackMetrics,
+                    bestAds,
+                    comparisonMetrics
+                };
+
+                // Renderizar relatório completo
+                renderCompleteReport();
+                
+            } catch (error) {
+                console.error('❌ Erro ao regenerar métricas:', error);
+                throw error;
+            }
+        }
+
+        // Renderizar relatório completo
+        function renderCompleteReport() {
             const loadingSection = document.getElementById('loadingSection');
             const reportContainer = document.getElementById('reportContainer');
-            const reportTitle = document.getElementById('reportTitle');
-            const reportSubtitle = document.getElementById('reportSubtitle');
-
-            // Atualizar título
-            reportTitle.textContent = report.reportName;
-            reportSubtitle.textContent = `Período: ${report.dateRange}`;
 
             // Ocultar loading
             loadingSection.classList.add('hidden');
             reportContainer.classList.remove('hidden');
 
-            // Renderizar conteúdo do relatório
-            // TODO: Aqui você precisará implementar a lógica para regenerar o relatório
-            // com os dados salvos em report.filters, report.manualData, etc.
-            
+            const { metrics, blackMetrics, bestAds, comparisonMetrics } = generatedMetrics;
+            const { manualData } = reportData;
+
+            // Calcular CPM (custo por mensagem)
+            const cpm = metrics.conversations > 0 ? metrics.spend / metrics.conversations : 0;
+            const blackCpm = blackMetrics && blackMetrics.conversations > 0 ? blackMetrics.spend / blackMetrics.conversations : 0;
+
+            // Header com botão exportar
             reportContainer.innerHTML = `
-                <div class="bg-white rounded-xl shadow-lg p-8 mb-6">
-                    <h3 class="text-2xl font-bold text-gray-900 mb-4">
-                        <i class="fas fa-info-circle text-blue-600 mr-2"></i>
-                        Informações do Relatório
+                <!-- Header -->
+                <div class="mb-6 flex justify-between items-center">
+                    <div>
+                        <h2 class="text-3xl font-bold text-gray-900">${reportData.reportName}</h2>
+                        <p class="text-gray-600 mt-1">Período: ${reportData.dateRange}</p>
+                    </div>
+                    
+                    <button id="exportPdfBtn" class="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white font-bold py-3 px-6 rounded-xl transition duration-300 transform hover:scale-[1.02] shadow-lg flex items-center">
+                        <i class="fas fa-file-pdf mr-2 text-xl"></i>
+                        <span class="text-lg">Exportar PDF</span>
+                    </button>
+                </div>
+
+                <!-- Conteúdo do Relatório -->
+                <div id="report-content" class="space-y-6">
+                    ${renderMetricsSection(metrics, blackMetrics, cpm, blackCpm)}
+                    ${renderBusinessResults(manualData)}
+                    ${renderBestAds(bestAds)}
+                    ${comparisonMetrics ? renderComparison(metrics, comparisonMetrics) : ''}
+                </div>
+            `;
+
+            // Adicionar evento ao botão exportar
+            document.getElementById('exportPdfBtn').addEventListener('click', () => {
+                exportToPDF();
+            });
+        }
+
+        // Renderizar seção de métricas
+        function renderMetricsSection(metrics, blackMetrics, cpm, blackCpm) {
+            const hasBlack = reportData.manualData.hasBlack && blackMetrics;
+            
+            return `
+                <div class="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl shadow-lg p-8 text-white">
+                    <h3 class="text-2xl font-bold mb-6 flex items-center">
+                        <i class="fas fa-chart-bar mr-3"></i>
+                        CAMPANHAS${hasBlack ? ' WHITE' : ''}
                     </h3>
                     
-                    <div class="grid grid-cols-2 gap-4">
-                        <div class="bg-gray-50 p-4 rounded-lg">
-                            <p class="text-sm text-gray-600 mb-1">Plataforma</p>
-                            <p class="text-lg font-bold text-gray-900">${getPlatformName(report.platform)}</p>
+                    <div class="grid grid-cols-4 gap-4">
+                        <div class="bg-white/10 backdrop-blur-sm rounded-lg p-4">
+                            <p class="text-sm opacity-90 mb-1">INVESTIMENTO</p>
+                            <p class="text-2xl font-bold">R$ ${metrics.spend.toFixed(2)}</p>
                         </div>
-                        
-                        <div class="bg-gray-50 p-4 rounded-lg">
-                            <p class="text-sm text-gray-600 mb-1">Período de Análise</p>
-                            <p class="text-lg font-bold text-gray-900">${report.dateRange}</p>
+                        <div class="bg-white/10 backdrop-blur-sm rounded-lg p-4">
+                            <p class="text-sm opacity-90 mb-1">ALCANCE</p>
+                            <p class="text-2xl font-bold">${metrics.reach.toLocaleString('pt-BR')}</p>
                         </div>
-                        
-                        ${report.comparisonStart ? `
-                        <div class="bg-gray-50 p-4 rounded-lg col-span-2">
-                            <p class="text-sm text-gray-600 mb-1">Período de Comparação</p>
-                            <p class="text-lg font-bold text-gray-900">${formatDate(report.comparisonStart)} - ${formatDate(report.comparisonEnd)}</p>
+                        <div class="bg-white/10 backdrop-blur-sm rounded-lg p-4">
+                            <p class="text-sm opacity-90 mb-1">CONVERSAS INICIADAS</p>
+                            <p class="text-2xl font-bold">${metrics.conversations}</p>
                         </div>
-                        ` : ''}
+                        <div class="bg-white/10 backdrop-blur-sm rounded-lg p-4">
+                            <p class="text-sm opacity-90 mb-1">CUSTO POR CONVERSA</p>
+                            <p class="text-2xl font-bold">R$ ${cpm.toFixed(2)}</p>
+                        </div>
                     </div>
                 </div>
 
-                <div class="bg-white rounded-xl shadow-lg p-8 mb-6">
-                    <h3 class="text-2xl font-bold text-gray-900 mb-4">
-                        <i class="fas fa-chart-line text-green-600 mr-2"></i>
-                        Dados Manuais
+                ${hasBlack ? `
+                <div class="bg-gradient-to-r from-gray-800 to-gray-900 rounded-xl shadow-lg p-8 text-white">
+                    <h3 class="text-2xl font-bold mb-6 flex items-center">
+                        <i class="fas fa-chart-bar mr-3"></i>
+                        CAMPANHAS BLACK
                     </h3>
                     
-                    <div class="grid grid-cols-2 gap-4">
-                        <div class="bg-gray-50 p-4 rounded-lg">
-                            <p class="text-sm text-gray-600 mb-1">Faturamento</p>
-                            <p class="text-2xl font-bold text-green-600">R$ ${report.manualData.revenue.toLocaleString('pt-BR')}</p>
+                    <div class="grid grid-cols-4 gap-4">
+                        <div class="bg-white/10 backdrop-blur-sm rounded-lg p-4">
+                            <p class="text-sm opacity-90 mb-1">INVESTIMENTO</p>
+                            <p class="text-2xl font-bold">R$ ${blackMetrics.spend.toFixed(2)}</p>
                         </div>
-                        
-                        <div class="bg-gray-50 p-4 rounded-lg">
-                            <p class="text-sm text-gray-600 mb-1">Vendas</p>
-                            <p class="text-2xl font-bold text-blue-600">${report.manualData.sales}</p>
+                        <div class="bg-white/10 backdrop-blur-sm rounded-lg p-4">
+                            <p class="text-sm opacity-90 mb-1">ALCANCE</p>
+                            <p class="text-2xl font-bold">${blackMetrics.reach.toLocaleString('pt-BR')}</p>
                         </div>
-                        
-                        <div class="bg-gray-50 p-4 rounded-lg">
-                            <p class="text-sm text-gray-600 mb-1">Orçamentos</p>
-                            <p class="text-2xl font-bold text-purple-600">${report.manualData.budgets}</p>
+                        <div class="bg-white/10 backdrop-blur-sm rounded-lg p-4">
+                            <p class="text-sm opacity-90 mb-1">CONVERSAS INICIADAS</p>
+                            <p class="text-2xl font-bold">${blackMetrics.conversations}</p>
                         </div>
-                        
-                        <div class="bg-gray-50 p-4 rounded-lg">
-                            <p class="text-sm text-gray-600 mb-1">Possui Black?</p>
-                            <p class="text-2xl font-bold ${report.manualData.hasBlack ? 'text-gray-900' : 'text-gray-400'}">
-                                ${report.manualData.hasBlack ? 'Sim' : 'Não'}
-                            </p>
+                        <div class="bg-white/10 backdrop-blur-sm rounded-lg p-4">
+                            <p class="text-sm opacity-90 mb-1">CUSTO POR CONVERSA</p>
+                            <p class="text-2xl font-bold">R$ ${blackCpm.toFixed(2)}</p>
                         </div>
                     </div>
+                </div>
+                ` : ''}
+            `;
+        }
+
+        // Renderizar resultados do negócio
+        function renderBusinessResults(manualData) {
+            return `
+                <div class="bg-white rounded-xl shadow-lg p-8">
+                    <h3 class="text-2xl font-bold text-gray-900 mb-6 flex items-center">
+                        <i class="fas fa-trophy text-yellow-500 mr-3"></i>
+                        RESULTADOS DO NEGÓCIO
+                    </h3>
                     
-                    ${report.manualData.analysis ? `
-                    <div class="mt-4 bg-blue-50 border border-blue-200 p-4 rounded-lg">
-                        <p class="text-sm text-gray-600 mb-2 font-semibold">Análise de Desempenho:</p>
-                        <p class="text-gray-800">${report.manualData.analysis}</p>
+                    <div class="grid grid-cols-3 gap-6">
+                        <div class="text-center p-4 bg-green-50 rounded-lg">
+                            <p class="text-sm text-gray-600 mb-2">Orçamentos Concluídos</p>
+                            <p class="text-4xl font-bold text-green-600">${manualData.budgets}</p>
+                        </div>
+                        <div class="text-center p-4 bg-blue-50 rounded-lg">
+                            <p class="text-sm text-gray-600 mb-2">Número de Vendas</p>
+                            <p class="text-4xl font-bold text-blue-600">${manualData.sales}</p>
+                        </div>
+                        <div class="text-center p-4 bg-purple-50 rounded-lg">
+                            <p class="text-sm text-gray-600 mb-2">Faturamento</p>
+                            <p class="text-4xl font-bold text-purple-600">R$ ${manualData.revenue.toLocaleString('pt-BR')}</p>
+                        </div>
+                    </div>
+
+                    ${manualData.analysis ? `
+                    <div class="mt-6 bg-blue-50 border-l-4 border-blue-600 p-4">
+                        <p class="text-sm font-semibold text-gray-700 mb-2">ANÁLISE DE DESEMPENHO E PONTOS DE MELHORIA</p>
+                        <p class="text-gray-800">${manualData.analysis}</p>
                     </div>
                     ` : ''}
-                </div>
-
-                <div class="bg-yellow-50 border border-yellow-200 rounded-xl p-6 text-center">
-                    <i class="fas fa-exclamation-triangle text-yellow-600 text-3xl mb-3"></i>
-                    <h4 class="text-lg font-bold text-gray-900 mb-2">Regeneração de Dados da API</h4>
-                    <p class="text-gray-700 mb-4">
-                        Para visualizar os dados completos da API (métricas, campanhas, anúncios), 
-                        será necessário regenerar o relatório com os filtros salvos.
-                    </p>
-                    <p class="text-sm text-gray-600">
-                        <strong>Nota:</strong> Esta funcionalidade será implementada em breve.
-                    </p>
                 </div>
             `;
         }
 
-        // Funções auxiliares
-        function getPlatformName(platform) {
-            const platforms = {
-                'meta': 'Meta Ads (Facebook)',
-                'google': 'Google Ads',
-                'both': 'Meta Ads + Google Ads'
-            };
-            return platforms[platform] || platform;
+        // Renderizar melhores anúncios
+        function renderBestAds(bestAds) {
+            if (!bestAds || bestAds.length === 0) {
+                return '';
+            }
+
+            const adsHTML = bestAds.map((ad, index) => `
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <div class="flex items-start mb-4">
+                        <div class="w-12 h-12 bg-gradient-to-br from-yellow-400 to-yellow-600 rounded-full flex items-center justify-center text-white font-bold text-xl mr-4">
+                            ${index + 1}º
+                        </div>
+                        <div class="flex-1">
+                            <h4 class="font-bold text-gray-900 mb-1">${ad.name || 'Sem nome'}</h4>
+                            <p class="text-sm text-gray-600">ID: ${ad.id}</p>
+                        </div>
+                    </div>
+
+                    ${ad.thumbnail ? `
+                    <div class="mb-4 rounded-lg overflow-hidden">
+                        <img src="${ad.thumbnail}" alt="Preview" class="w-full h-auto">
+                    </div>
+                    ` : ''}
+
+                    <div class="grid grid-cols-2 gap-3">
+                        <div class="bg-blue-50 p-3 rounded">
+                            <p class="text-xs text-gray-600 mb-1">Investimento</p>
+                            <p class="text-lg font-bold text-blue-600">R$ ${(ad.spend || 0).toFixed(2)}</p>
+                        </div>
+                        <div class="bg-green-50 p-3 rounded">
+                            <p class="text-xs text-gray-600 mb-1">Conversas</p>
+                            <p class="text-lg font-bold text-green-600">${ad.conversations || 0}</p>
+                        </div>
+                        <div class="bg-purple-50 p-3 rounded">
+                            <p class="text-xs text-gray-600 mb-1">Alcance</p>
+                            <p class="text-lg font-bold text-purple-600">${(ad.reach || 0).toLocaleString('pt-BR')}</p>
+                        </div>
+                        <div class="bg-yellow-50 p-3 rounded">
+                            <p class="text-xs text-gray-600 mb-1">CPM</p>
+                            <p class="text-lg font-bold text-yellow-600">R$ ${ad.conversations > 0 ? (ad.spend / ad.conversations).toFixed(2) : '0.00'}</p>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+
+            return `
+                <div class="bg-gradient-to-r from-purple-600 to-pink-600 rounded-xl shadow-lg p-8 text-white">
+                    <h3 class="text-2xl font-bold mb-6 flex items-center">
+                        <i class="fas fa-star mr-3"></i>
+                        MELHORES ANÚNCIOS
+                    </h3>
+                    
+                    <div class="grid grid-cols-2 gap-6">
+                        ${adsHTML}
+                    </div>
+                </div>
+            `;
         }
 
-        function formatDate(dateStr) {
-            const [year, month, day] = dateStr.split('-');
-            return `${day}/${month}/${year}`;
+        // Renderizar comparação
+        function renderComparison(currentMetrics, comparisonMetrics) {
+            const spendDiff = currentMetrics.spend - comparisonMetrics.spend;
+            const reachDiff = currentMetrics.reach - comparisonMetrics.reach;
+            const convDiff = currentMetrics.conversations - comparisonMetrics.conversations;
+            
+            const currentCpm = currentMetrics.conversations > 0 ? currentMetrics.spend / currentMetrics.conversations : 0;
+            const compCpm = comparisonMetrics.conversations > 0 ? comparisonMetrics.spend / comparisonMetrics.conversations : 0;
+            const cpmDiff = currentCpm - compCpm;
+
+            const formatDiff = (value, isNegativeGood = false) => {
+                const isPositive = value >= 0;
+                const colorClass = (isNegativeGood ? !isPositive : isPositive) ? 'text-green-600' : 'text-red-600';
+                const icon = isPositive ? '↑' : '↓';
+                return `<span class="${colorClass} font-bold">${icon} ${Math.abs(value).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>`;
+            };
+
+            return `
+                <div class="bg-white rounded-xl shadow-lg p-8">
+                    <h3 class="text-2xl font-bold text-gray-900 mb-6 flex items-center">
+                        <i class="fas fa-exchange-alt text-indigo-600 mr-3"></i>
+                        COMPARAÇÃO DE PERÍODOS
+                    </h3>
+                    
+                    <div class="grid grid-cols-4 gap-4">
+                        <div class="border border-gray-200 rounded-lg p-4">
+                            <p class="text-sm text-gray-600 mb-2">Investimento</p>
+                            <p class="text-xl font-bold text-gray-900">R$ ${currentMetrics.spend.toFixed(2)}</p>
+                            <p class="text-sm mt-1">${formatDiff(spendDiff)}</p>
+                        </div>
+                        <div class="border border-gray-200 rounded-lg p-4">
+                            <p class="text-sm text-gray-600 mb-2">Alcance</p>
+                            <p class="text-xl font-bold text-gray-900">${currentMetrics.reach.toLocaleString('pt-BR')}</p>
+                            <p class="text-sm mt-1">${formatDiff(reachDiff)}</p>
+                        </div>
+                        <div class="border border-gray-200 rounded-lg p-4">
+                            <p class="text-sm text-gray-600 mb-2">Conversas</p>
+                            <p class="text-xl font-bold text-gray-900">${currentMetrics.conversations}</p>
+                            <p class="text-sm mt-1">${formatDiff(convDiff)}</p>
+                        </div>
+                        <div class="border border-gray-200 rounded-lg p-4">
+                            <p class="text-sm text-gray-600 mb-2">Custo/Conversa</p>
+                            <p class="text-xl font-bold text-gray-900">R$ ${currentCpm.toFixed(2)}</p>
+                            <p class="text-sm mt-1">${formatDiff(cpmDiff, true)}</p>
+                        </div>
+                    </div>
+                </div>
+            `;
         }
     </script>
 </body>
 </html>
-

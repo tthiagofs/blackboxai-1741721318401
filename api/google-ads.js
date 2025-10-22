@@ -49,7 +49,7 @@ async function listAccounts(accessToken, res) {
     console.log(`🔑 Developer Token: ${process.env.GOOGLE_ADS_DEVELOPER_TOKEN ? 'Presente' : 'AUSENTE'}`);
     console.log(`🎫 Access Token: ${accessToken ? 'Presente (primeiros 20 chars): ' + accessToken.substring(0, 20) + '...' : 'AUSENTE'}`);
     
-    const url = 'https://googleads.googleapis.com/v18/customers:listAccessibleCustomers';
+    const url = 'https://googleads.googleapis.com/v19/customers:listAccessibleCustomers';
     
     const response = await fetch(url, {
       method: 'GET',
@@ -117,7 +117,7 @@ async function getAccountInfo(customerId, accessToken) {
     `;
 
     const response = await fetch(
-      `https://googleads.googleapis.com/v18/customers/${customerId}/googleAds:searchStream`,
+      `https://googleads.googleapis.com/v19/customers/${customerId}/googleAds:searchStream`,
       {
         method: 'POST',
         headers: {
@@ -179,7 +179,7 @@ async function getAccountInsights(customerId, startDate, endDate, accessToken, r
     console.log('🔍 Query:', query);
 
     const response = await fetch(
-      `https://googleads.googleapis.com/v18/customers/${customerId}/googleAds:searchStream`,
+      `https://googleads.googleapis.com/v19/customers/${customerId}/googleAds:searchStream`,
       {
         method: 'POST',
         headers: {

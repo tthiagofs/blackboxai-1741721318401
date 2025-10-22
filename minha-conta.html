@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Minha Conta - Insightflow</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- Proteção de Auth -->
+    <script type="module">
+        import { auth } from './config/firebase.js';
+        import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+        
+        console.log('⏳ [Minha Conta] Aguardando Firebase verificar autenticação...');
+        
+        onAuthStateChanged(auth, (user) => {
+            console.log('🔔 [Minha Conta] onAuthStateChanged disparado - user:', user?.email || 'null');
+            
+            if (!user) {
+                console.warn('⚠️ [Minha Conta] Usuário NÃO autenticado - redirecionando para login');
+                window.location.href = '/login.html';
+                return;
+            }
+            
+            console.log('✅ [Minha Conta] Usuário autenticado:', user.email);
+        });
+    </script>
+
+    <!-- Header -->
+    <header class="bg-white shadow-sm border-b border-gray-200">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-4">
+                    <a href="/dashboard.html" class="text-gray-600 hover:text-gray-900 transition-colors">
+                        <i class="fas fa-arrow-left text-xl"></i>
+                    </a>
+                    <div>
+                        <h1 class="text-2xl font-bold text-gray-900">Minha Conta</h1>
+                        <p class="text-sm text-gray-600">Gerencie suas informações pessoais</p>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-3">
+                    <div id="userAvatar" class="w-10 h-10 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-full flex items-center justify-center text-white font-bold">
+                        U
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Success/Error Messages -->
+        <div id="successMessage" class="hidden mb-6 bg-green-50 border border-green-200 rounded-lg p-4">
+            <div class="flex items-center">
+                <i class="fas fa-check-circle text-green-600 mr-3"></i>
+                <p class="text-green-800 font-medium">Informações atualizadas com sucesso!</p>
+            </div>
+        </div>
+
+        <div id="errorMessage" class="hidden mb-6 bg-red-50 border border-red-200 rounded-lg p-4">
+            <div class="flex items-center">
+                <i class="fas fa-exclamation-circle text-red-600 mr-3"></i>
+                <p class="text-red-800 font-medium" id="errorText"></p>
+            </div>
+        </div>
+
+        <!-- Profile Card -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden mb-6">
+            <div class="bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-4">
+                <h2 class="text-xl font-bold text-white flex items-center">
+                    <i class="fas fa-user mr-3"></i>
+                    Informações do Perfil
+                </h2>
+            </div>
+            
+            <form id="profileForm" class="p-6 space-y-6">
+                <!-- Nome -->
+                <div>
+                    <label for="name" class="block text-sm font-semibold text-gray-700 mb-2">
+                        <i class="fas fa-user-circle text-blue-600 mr-2"></i>
+                        Nome Completo
+                    </label>
+                    <input 
+                        type="text" 
+                        id="name" 
+                        name="name"
+                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                        placeholder="Digite seu nome completo"
+                        required
+                    >
+                </div>
+
+                <!-- Email -->
+                <div>
+                    <label for="email" class="block text-sm font-semibold text-gray-700 mb-2">
+                        <i class="fas fa-envelope text-blue-600 mr-2"></i>
+                        Email
+                    </label>
+                    <input 
+                        type="email" 
+                        id="email" 
+                        name="email"
+                        class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50 cursor-not-allowed"
+                        disabled
+                    >
+                    <p class="text-xs text-gray-500 mt-1">O email não pode ser alterado</p>
+                </div>
+
+                <!-- Role (apenas visualização) -->
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">
+                        <i class="fas fa-shield-alt text-blue-600 mr-2"></i>
+                        Tipo de Conta
+                    </label>
+                    <div id="roleDisplay" class="px-4 py-3 bg-blue-50 border border-blue-200 rounded-lg">
+                        <span class="text-blue-800 font-medium">Carregando...</span>
+                    </div>
+                </div>
+
+                <!-- Data de Criação -->
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">
+                        <i class="fas fa-calendar-alt text-blue-600 mr-2"></i>
+                        Membro desde
+                    </label>
+                    <div id="createdAtDisplay" class="px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg">
+                        <span class="text-gray-700">Carregando...</span>
+                    </div>
+                </div>
+
+                <!-- Botões -->
+                <div class="flex items-center justify-end space-x-4 pt-4 border-t border-gray-200">
+                    <button 
+                        type="button"
+                        onclick="window.location.href='/dashboard.html'"
+                        class="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-all"
+                    >
+                        <i class="fas fa-times mr-2"></i>
+                        Cancelar
+                    </button>
+                    <button 
+                        type="submit"
+                        id="saveBtn"
+                        class="px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all"
+                    >
+                        <i class="fas fa-save mr-2"></i>
+                        Salvar Alterações
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Security Card -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+            <div class="bg-gradient-to-r from-red-600 to-pink-600 px-6 py-4">
+                <h2 class="text-xl font-bold text-white flex items-center">
+                    <i class="fas fa-lock mr-3"></i>
+                    Segurança
+                </h2>
+            </div>
+            
+            <div class="p-6">
+                <!-- Alterar Senha -->
+                <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-all">
+                    <div>
+                        <h3 class="font-semibold text-gray-900">Alterar Senha</h3>
+                        <p class="text-sm text-gray-600">Atualize sua senha de acesso</p>
+                    </div>
+                    <button 
+                        id="changePasswordBtn"
+                        class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-all"
+                    >
+                        <i class="fas fa-key mr-2"></i>
+                        Alterar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Modal Alterar Senha -->
+    <div id="passwordModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-xl shadow-2xl max-w-md w-full">
+            <div class="bg-gradient-to-r from-red-600 to-pink-600 px-6 py-4 flex items-center justify-between">
+                <h3 class="text-xl font-bold text-white">
+                    <i class="fas fa-key mr-2"></i>
+                    Alterar Senha
+                </h3>
+                <button id="closePasswordModal" class="text-white hover:text-gray-200">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            
+            <form id="passwordForm" class="p-6 space-y-4">
+                <div>
+                    <label for="currentPassword" class="block text-sm font-semibold text-gray-700 mb-2">
+                        Senha Atual
+                    </label>
+                    <div class="relative">
+                        <input 
+                            type="password" 
+                            id="currentPassword" 
+                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                            required
+                        >
+                        <button 
+                            type="button"
+                            id="toggleCurrentPassword"
+                            class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                        >
+                            <i class="fas fa-eye"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div>
+                    <label for="newPassword" class="block text-sm font-semibold text-gray-700 mb-2">
+                        Nova Senha
+                    </label>
+                    <div class="relative">
+                        <input 
+                            type="password" 
+                            id="newPassword" 
+                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                            minlength="6"
+                            required
+                        >
+                        <button 
+                            type="button"
+                            id="toggleNewPassword"
+                            class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                        >
+                            <i class="fas fa-eye"></i>
+                        </button>
+                    </div>
+                    <p class="text-xs text-gray-500 mt-1">Mínimo de 6 caracteres</p>
+                </div>
+
+                <div>
+                    <label for="confirmPassword" class="block text-sm font-semibold text-gray-700 mb-2">
+                        Confirmar Nova Senha
+                    </label>
+                    <div class="relative">
+                        <input 
+                            type="password" 
+                            id="confirmPassword" 
+                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                            minlength="6"
+                            required
+                        >
+                        <button 
+                            type="button"
+                            id="toggleConfirmPassword"
+                            class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                        >
+                            <i class="fas fa-eye"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="flex items-center space-x-3 pt-4">
+                    <button 
+                        type="button"
+                        id="cancelPasswordBtn"
+                        class="flex-1 px-4 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+                    >
+                        Cancelar
+                    </button>
+                    <button 
+                        type="submit"
+                        id="savePasswordBtn"
+                        class="flex-1 px-4 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700"
+                    >
+                        Alterar Senha
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script type="module">
+        import { auth, db } from './config/firebase.js';
+        import { onAuthStateChanged, updatePassword, EmailAuthProvider, reauthenticateWithCredential } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+        import { doc, getDoc, updateDoc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+        import { authService } from './services/authService.js?v=1.4';
+
+        const profileForm = document.getElementById('profileForm');
+        const nameInput = document.getElementById('name');
+        const emailInput = document.getElementById('email');
+        const roleDisplay = document.getElementById('roleDisplay');
+        const createdAtDisplay = document.getElementById('createdAtDisplay');
+        const userAvatar = document.getElementById('userAvatar');
+        const saveBtn = document.getElementById('saveBtn');
+        const successMessage = document.getElementById('successMessage');
+        const errorMessage = document.getElementById('errorMessage');
+        const errorText = document.getElementById('errorText');
+
+        // Modal senha
+        const passwordModal = document.getElementById('passwordModal');
+        const changePasswordBtn = document.getElementById('changePasswordBtn');
+        const closePasswordModal = document.getElementById('closePasswordModal');
+        const cancelPasswordBtn = document.getElementById('cancelPasswordBtn');
+        const passwordForm = document.getElementById('passwordForm');
+
+        // Toggle password visibility
+        const toggleButtons = [
+            { btn: 'toggleCurrentPassword', input: 'currentPassword' },
+            { btn: 'toggleNewPassword', input: 'newPassword' },
+            { btn: 'toggleConfirmPassword', input: 'confirmPassword' }
+        ];
+
+        toggleButtons.forEach(({ btn, input }) => {
+            document.getElementById(btn).addEventListener('click', () => {
+                const inputEl = document.getElementById(input);
+                const icon = document.getElementById(btn).querySelector('i');
+                
+                if (inputEl.type === 'password') {
+                    inputEl.type = 'text';
+                    icon.classList.remove('fa-eye');
+                    icon.classList.add('fa-eye-slash');
+                } else {
+                    inputEl.type = 'password';
+                    icon.classList.remove('fa-eye-slash');
+                    icon.classList.add('fa-eye');
+                }
+            });
+        });
+
+        // Carregar dados do usuário
+        onAuthStateChanged(auth, async (user) => {
+            if (!user) return;
+
+            try {
+                const userDoc = await getDoc(doc(db, 'users', user.uid));
+                
+                if (userDoc.exists()) {
+                    const userData = userDoc.data();
+                    
+                    // Preencher campos
+                    nameInput.value = userData.name || '';
+                    emailInput.value = user.email || '';
+                    
+                    // Avatar com inicial
+                    const initial = userData.name ? userData.name.charAt(0).toUpperCase() : 'U';
+                    userAvatar.textContent = initial;
+                    
+                    // Role
+                    const roleText = userData.role === 'admin' ? 'Administrador' : 'Usuário';
+                    const roleClass = userData.role === 'admin' ? 'bg-purple-50 border-purple-200' : 'bg-blue-50 border-blue-200';
+                    const textClass = userData.role === 'admin' ? 'text-purple-800' : 'text-blue-800';
+                    roleDisplay.className = `px-4 py-3 ${roleClass} border rounded-lg`;
+                    roleDisplay.innerHTML = `
+                        <span class="${textClass} font-medium">
+                            <i class="fas fa-${userData.role === 'admin' ? 'crown' : 'user'} mr-2"></i>
+                            ${roleText}
+                        </span>
+                    `;
+                    
+                    // Data de criação
+                    if (userData.createdAt) {
+                        const date = new Date(userData.createdAt);
+                        const formatted = date.toLocaleDateString('pt-BR', { 
+                            day: '2-digit', 
+                            month: 'long', 
+                            year: 'numeric' 
+                        });
+                        createdAtDisplay.innerHTML = `<span class="text-gray-700">${formatted}</span>`;
+                    }
+                }
+            } catch (error) {
+                console.error('Erro ao carregar dados:', error);
+                showError('Erro ao carregar informações do perfil');
+            }
+        });
+
+        // Salvar alterações
+        profileForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const user = auth.currentUser;
+            if (!user) return;
+
+            saveBtn.disabled = true;
+            saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Salvando...';
+
+            try {
+                await updateDoc(doc(db, 'users', user.uid), {
+                    name: nameInput.value.trim(),
+                    updatedAt: new Date().toISOString()
+                });
+
+                showSuccess();
+                
+                // Atualizar avatar
+                const initial = nameInput.value.charAt(0).toUpperCase();
+                userAvatar.textContent = initial;
+
+            } catch (error) {
+                console.error('Erro ao salvar:', error);
+                showError('Erro ao salvar alterações. Tente novamente.');
+            } finally {
+                saveBtn.disabled = false;
+                saveBtn.innerHTML = '<i class="fas fa-save mr-2"></i>Salvar Alterações';
+            }
+        });
+
+        // Modal de senha
+        changePasswordBtn.addEventListener('click', () => {
+            passwordModal.classList.remove('hidden');
+        });
+
+        closePasswordModal.addEventListener('click', () => {
+            passwordModal.classList.add('hidden');
+            passwordForm.reset();
+        });
+
+        cancelPasswordBtn.addEventListener('click', () => {
+            passwordModal.classList.add('hidden');
+            passwordForm.reset();
+        });
+
+        // Alterar senha
+        passwordForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const currentPassword = document.getElementById('currentPassword').value;
+            const newPassword = document.getElementById('newPassword').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+
+            // Validar senhas
+            if (newPassword !== confirmPassword) {
+                alert('As senhas não coincidem!');
+                return;
+            }
+
+            if (newPassword.length < 6) {
+                alert('A nova senha deve ter no mínimo 6 caracteres!');
+                return;
+            }
+
+            const savePasswordBtn = document.getElementById('savePasswordBtn');
+            savePasswordBtn.disabled = true;
+            savePasswordBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Alterando...';
+
+            try {
+                const user = auth.currentUser;
+                
+                // Reautenticar
+                const credential = EmailAuthProvider.credential(user.email, currentPassword);
+                await reauthenticateWithCredential(user, credential);
+                
+                // Atualizar senha
+                await updatePassword(user, newPassword);
+                
+                passwordModal.classList.add('hidden');
+                passwordForm.reset();
+                showSuccess('Senha alterada com sucesso!');
+
+            } catch (error) {
+                console.error('Erro ao alterar senha:', error);
+                
+                if (error.code === 'auth/wrong-password') {
+                    alert('Senha atual incorreta!');
+                } else {
+                    alert('Erro ao alterar senha. Tente novamente.');
+                }
+            } finally {
+                savePasswordBtn.disabled = false;
+                savePasswordBtn.innerHTML = 'Alterar Senha';
+            }
+        });
+
+        // Funções auxiliares
+        function showSuccess(message = 'Informações atualizadas com sucesso!') {
+            successMessage.querySelector('p').textContent = message;
+            successMessage.classList.remove('hidden');
+            errorMessage.classList.add('hidden');
+            
+            setTimeout(() => {
+                successMessage.classList.add('hidden');
+            }, 5000);
+        }
+
+        function showError(message) {
+            errorText.textContent = message;
+            errorMessage.classList.remove('hidden');
+            successMessage.classList.add('hidden');
+            
+            setTimeout(() => {
+                errorMessage.classList.add('hidden');
+            }, 5000);
+        }
+    </script>
+</body>
+</html>
+

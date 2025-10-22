@@ -163,13 +163,40 @@
         import { authService } from './services/authService.js?v=1.0';
         import { projectsService } from './services/projects.js?v=1.1';
 
+        // DEBUG: Interceptar qualquer tentativa de reload/redirect
+        const originalReload = window.location.reload;
+        window.location.reload = function() {
+            console.error('🚨 RELOAD DETECTADO!');
+            console.trace('Stack trace do reload:');
+            debugger; // Pausa o navegador aqui
+            return originalReload.apply(this, arguments);
+        };
+
+        // Interceptar mudanças de location
+        let isRedirecting = false;
+        Object.defineProperty(window.location, 'href', {
+            set: function(url) {
+                if (!isRedirecting) {
+                    console.error('🚨 REDIRECT DETECTADO para:', url);
+                    console.trace('Stack trace do redirect:');
+                    debugger; // Pausa o navegador aqui
+                }
+                isRedirecting = true;
+                window.location.replace(url);
+            },
+            get: function() {
+                return window.location.toString();
+            }
+        });
+
         // Proteger rota - redirecionar se não estiver logado
         console.log('🔒 Verificando autenticação no dashboard...');
         console.log('🔍 isAuthenticated:', authService.isAuthenticated());
         
         if (!authService.isAuthenticated()) {
             console.warn('⚠️ NÃO AUTENTICADO - Redirecionando para login');
-            window.location.href = '/login.html';
+            isRedirecting = true;
+            window.location.replace('/login.html');
         } else {
             console.log('✅ Autenticado - Carregando dashboard');
         }

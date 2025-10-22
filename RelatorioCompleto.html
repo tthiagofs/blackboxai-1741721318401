@@ -190,7 +190,7 @@ ul.list-disc li br {
                     </div>
                     
                     <!-- Google Ads -->
-                    <div>
+            <div>
                         <div class="flex items-center mb-3">
                             <div class="w-8 h-8 bg-blue-50 rounded-lg flex items-center justify-center mr-3">
                                 <span class="text-blue-500 font-bold text-sm">G</span>
@@ -201,8 +201,8 @@ ul.list-disc li br {
                         <select id="googleAdsAccountId"
                             class="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition">
                             <option value="">Selecione a conta</option>
-                        </select>
-                    </div>
+                </select>
+            </div>
                 </div>
             </div>
 
@@ -210,16 +210,16 @@ ul.list-disc li br {
             <div class="bg-white rounded-2xl shadow-md p-6 border border-gray-100">
                 <h3 class="text-lg font-semibold text-gray-800 mb-4">Período do Relatório</h3>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">
-                    <div>
+                <div>
                         <label for="startDate" class="block text-sm font-medium text-gray-700 mb-2">Data de Início</label>
-                        <input type="date" id="startDate" required
+                    <input type="date" id="startDate" required
                             class="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition">
-                    </div>
-                    <div>
+                </div>
+                <div>
                         <label for="endDate" class="block text-sm font-medium text-gray-700 mb-2">Data de Término</label>
-                        <input type="date" id="endDate" required
+                    <input type="date" id="endDate" required
                             class="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition">
-                    </div>
+                </div>
                 </div>
                 <button type="button" id="last7DaysBtn" 
                     class="bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium px-4 py-2 rounded-lg transition inline-flex items-center">
@@ -228,114 +228,163 @@ ul.list-disc li br {
             </div>
 
 
-            <!-- Nova Pergunta: A unidade possui Black? -->
-            <div id="blackQuestion" class="text-center">
-                <p class="text-sm font-medium text-gray-700 mb-2">A unidade possui Black?</p>
-                <div class="flex justify-center space-x-4">
+            <!-- Card: Filtrar por -->
+            <div class="bg-white rounded-2xl shadow-md p-6 border border-gray-100">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4">Filtrar por</h3>
+                
+                <!-- Pergunta: A unidade possui Black? -->
+                <div id="blackQuestion" class="mb-4">
+                    <p class="text-sm font-medium text-gray-700 mb-3">A unidade possui Black?</p>
+                    <div class="flex gap-3">
                     <button type="button" id="hasBlackYesBtn"
-                        class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition duration-300">
+                            class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-lg transition duration-300 transform hover:scale-[1.02]">
                         Sim
                     </button>
                     <button type="button" id="hasBlackNoBtn"
-                        class="bg-gray-500 hover:bg-gray-600 text-white font-medium py-2 px-4 rounded-md transition duration-300">
+                            class="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold py-3 px-4 rounded-lg transition duration-300 transform hover:scale-[1.02]">
                         Não
                     </button>
                 </div>
             </div>
-            <div id="whiteFilters" class="hidden flex flex-wrap gap-4">
+
+                <!-- Filtros padrão (sem White/Black) -->
+                <div id="defaultFilters" class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <button type="button" id="filterCampaigns"
+                        class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-lg transition duration-300 flex items-center justify-center">
+                        <i class="fas fa-filter mr-2"></i>Selecionar Campanhas
+                    </button>
+                    <button type="button" id="filterAdSets"
+                        class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-lg transition duration-300 flex items-center justify-center">
+                        <i class="fas fa-layer-group mr-2"></i>Selecionar Conjuntos
+                    </button>
+                </div>
+
+                <!-- Filtros White -->
+                <div id="whiteFilters" class="hidden space-y-3">
+                    <div class="bg-blue-50 rounded-lg p-4 border border-blue-200">
+                        <h4 class="text-sm font-semibold text-blue-800 mb-3">Campanhas White</h4>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <button type="button" id="filterWhiteCampaigns"
-                    class="flex-1 bg-primary hover:bg-secondary text-white font-medium py-2 px-4 rounded-md transition duration-300">
-                    <i class="fas fa-filter mr-2"></i>Campanhas White
+                                class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-lg transition duration-300 flex items-center justify-center">
+                                <i class="fas fa-filter mr-2"></i>Campanhas
                 </button>
                 <button type="button" id="filterWhiteAdSets"
-                    class="flex-1 bg-primary hover:bg-secondary text-white font-medium py-2 px-4 rounded-md transition duration-300">
-                    <i class="fas fa-layer-group mr-2"></i>Conjuntos White
+                                class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-lg transition duration-300 flex items-center justify-center">
+                                <i class="fas fa-layer-group mr-2"></i>Conjuntos
                 </button>
             </div>
-            <div id="blackFilters" class="hidden flex flex-wrap gap-4">
+                    </div>
+                </div>
+
+                <!-- Filtros Black -->
+                <div id="blackFilters" class="hidden space-y-3">
+                    <div class="bg-gray-900 rounded-lg p-4 border border-gray-700">
+                        <h4 class="text-sm font-semibold text-gray-100 mb-3">Campanhas Black</h4>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <button type="button" id="filterBlackCampaigns"
-                    class="flex-1 bg-primary hover:bg-secondary text-white font-medium py-2 px-4 rounded-md transition duration-300">
-                    <i class="fas fa-filter mr-2"></i>Campanhas Black
+                                class="bg-gray-700 hover:bg-gray-600 text-white font-medium py-3 px-4 rounded-lg transition duration-300 flex items-center justify-center">
+                                <i class="fas fa-filter mr-2"></i>Campanhas
                 </button>
                 <button type="button" id="filterBlackAdSets"
-                    class="flex-1 bg-primary hover:bg-secondary text-white font-medium py-2 px-4 rounded-md transition duration-300">
-                    <i class="fas fa-layer-group mr-2"></i>Conjuntos Black
-                </button>
-            </div>
-            <div id="defaultFilters" class="flex flex-wrap gap-4">
-                <button type="button" id="filterCampaigns"
-                    class="flex-1 bg-primary hover:bg-secondary text-white font-medium py-2 px-4 rounded-md transition duration-300">
-                    <i class="fas fa-filter mr-2"></i>Campanhas
-                </button>
-                <button type="button" id="filterAdSets"
-                    class="flex-1 bg-primary hover:bg-secondary text-white font-medium py-2 px-4 rounded-md transition duration-300">
+                                class="bg-gray-700 hover:bg-gray-600 text-white font-medium py-3 px-4 rounded-lg transition duration-300 flex items-center justify-center">
                     <i class="fas fa-layer-group mr-2"></i>Conjuntos
                 </button>
             </div>
-            <div id="comparisonFilter" class="flex flex-wrap gap-4 mt-4">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card: Período de Comparação -->
+            <div id="comparisonFilter" class="bg-white rounded-2xl shadow-md p-6 border border-gray-100">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4">Período de Comparação</h3>
                 <button type="button" id="comparePeriods"
-                    class="flex-1 bg-primary hover:bg-secondary text-white font-medium py-2 px-4 rounded-md transition duration-300">
-                    <i class="fas fa-calendar-week mr-2"></i>Período de Comparação
+                    class="w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold py-3 px-4 rounded-lg transition duration-300 flex items-center justify-center">
+                    <i class="fas fa-calendar-week mr-2"></i>Ativar Comparação de Período
                 </button>
             </div>
-            <!-- Novos campos adicionados aqui -->
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
-                <div>
-                    <label for="budgetsCompleted" class="block text-sm font-medium text-gray-700 mb-1">
-                        <i class="fas fa-clipboard-check mr-2"></i>Orçamentos Realizados
-                    </label>
-                    <input type="number" id="budgetsCompleted" min="0" step="1" placeholder="Digite o número de orçamentos"
-                        class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent">
-                </div>
-                <div>
-                    <label for="salesCount" class="block text-sm font-medium text-gray-700 mb-1">
-                        <i class="fas fa-shopping-cart mr-2"></i>Número de Vendas
-                    </label>
-                    <input type="number" id="salesCount" min="0" step="1" placeholder="Digite o número de vendas"
-                        class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent">
-                </div>
-                <div>
-                    <label for="revenue" class="block text-sm font-medium text-gray-700 mb-1">
-                        <i class="fas fa-money-bill-wave mr-2"></i>Faturamento (R$)
-                    </label>
-                    <input type="number" id="revenue" min="0" step="0.01" placeholder="Digite o faturamento"
-                        class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent">
+            <!-- Card: Métricas do Período -->
+            <div class="bg-white rounded-2xl shadow-md p-6 border border-gray-100">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4">Métricas do Período</h3>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                        <label for="budgetsCompleted" class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="fas fa-clipboard-check mr-2 text-blue-600"></i>Orçamento (R$)
+                        </label>
+                        <input type="number" id="budgetsCompleted" min="0" step="1" placeholder="0.00"
+                            class="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition">
+                    </div>
+                    <div>
+                        <label for="salesCount" class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="fas fa-shopping-cart mr-2 text-green-600"></i>Número de Vendas
+                        </label>
+                        <input type="number" id="salesCount" min="0" step="1" placeholder="0"
+                            class="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition">
+                    </div>
+                    <div>
+                        <label for="revenue" class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="fas fa-money-bill-wave mr-2 text-emerald-600"></i>Faturamento (R$)
+                        </label>
+                        <input type="number" id="revenue" min="0" step="0.01" placeholder="0.00"
+                            class="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition">
+                    </div>
                 </div>
             </div>
-            <!-- Novo campo de análise -->
-            <div class="mt-4">
-                <label for="performanceAnalysis" class="block text-sm font-medium text-gray-700 mb-1">
-                    <i class="fas fa-comment-dots mr-2"></i>Análise de Desempenho e Pontos de Melhoria (opcional)
-                </label>
+
+            <!-- Card: Análise do Relatório -->
+            <div class="bg-white rounded-2xl shadow-md p-6 border border-gray-100">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4">
+                    <i class="fas fa-comment-dots mr-2 text-purple-600"></i>Análise do Relatório
+                </h3>
                 <textarea
                     id="performanceAnalysis"
                     name="performanceAnalysis"
-                    rows="4"
-                    class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent"
-                    placeholder="Digite sua análise aqui. Separe os parágrafos com uma linha em branco."
+                    rows="5"
+                    class="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition resize-none"
+                    placeholder="Digite sua análise de desempenho e pontos de melhoria aqui. Separe os parágrafos com uma linha em branco."
                 ></textarea>
+                <p class="text-xs text-gray-500 mt-2">
+                    <i class="fas fa-info-circle mr-1"></i>Campo opcional. Use para adicionar insights e recomendações.
+                </p>
             </div>
-            <button type="submit"
-                class="w-full bg-green-600 hover:bg-green-700 text-white font-medium py-3 px-4 rounded-md transition duration-300">
-                <i class="fas fa-chart-bar mr-2"></i>Gerar Relatório
-            </button>
+
+            <!-- Botão Gerar Relatório -->
+            <div class="flex gap-4">
+                <button type="submit"
+                    class="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-bold py-4 px-6 rounded-xl transition duration-300 transform hover:scale-[1.02] shadow-lg flex items-center justify-center">
+                    <i class="fas fa-chart-bar mr-3 text-xl"></i>
+                    <span class="text-lg">Gerar Relatório</span>
+                </button>
+            </div>
         </form>
 
-        <div id="reportContainer" class="mt-8 space-y-8"></div>
+            <!-- Container de Loading -->
+            <div id="loadingIndicator" class="hidden">
+                <div class="bg-blue-50 border border-blue-200 rounded-xl p-6 text-center">
+                    <div class="animate-spin inline-block w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full mb-4"></div>
+                    <p class="text-blue-800 font-semibold text-lg">Gerando relatório...</p>
+                    <p class="text-blue-600 text-sm mt-2">Isso pode levar alguns segundos</p>
+                </div>
+            </div>
 
-        <div class="flex space-x-4 mt-6">
-            <button id="backToReportSelectionBtn"
-                class="flex-1 bg-gray-500 hover:bg-gray-600 text-white font-medium py-2 px-4 rounded-md transition duration-300">
-                <i class="fas fa-arrow-left mr-2"></i>Voltar
-            </button>
-            <button id="refreshBtn"
-                class="flex-1 bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-4 rounded-md transition duration-300">
-                <i class="fas fa-sync-alt mr-2"></i>Refresh
-            </button>
-            <button id="shareWhatsAppBtn"
-                class="hidden flex-1 bg-[#25D366] hover:bg-[#20c058] text-white font-medium py-2 px-4 rounded-md transition duration-300">
-                <i class="fab fa-whatsapp mr-2"></i>Compartilhar no WhatsApp
-            </button>
+            <!-- Container do Relatório Gerado -->
+            <div id="reportContainer" class="mt-8 space-y-8"></div>
+
+            <!-- Botões de Ação -->
+            <div class="flex flex-wrap gap-3 mt-6">
+                <button id="backToReportSelectionBtn"
+                    class="flex-1 min-w-[200px] bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold py-3 px-6 rounded-lg transition duration-300 flex items-center justify-center">
+                    <i class="fas fa-arrow-left mr-2"></i>Voltar
+                </button>
+                <button id="refreshBtn"
+                    class="flex-1 min-w-[200px] bg-blue-100 hover:bg-blue-200 text-blue-700 font-semibold py-3 px-6 rounded-lg transition duration-300 flex items-center justify-center">
+                    <i class="fas fa-sync-alt mr-2"></i>Atualizar
+                </button>
+                <button id="shareWhatsAppBtn"
+                    class="hidden flex-1 min-w-[200px] bg-[#25D366] hover:bg-[#20c058] text-white font-semibold py-3 px-6 rounded-lg transition duration-300 flex items-center justify-center">
+                    <i class="fab fa-whatsapp mr-2"></i>Compartilhar no WhatsApp
+                </button>
+            </div>
+        </div>
         </div>
     </div>
 
@@ -497,6 +546,6 @@ ul.list-disc li br {
     <!-- Scripts -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script async defer crossorigin="anonymous" src="https://connect.facebook.net/en_US/sdk.js"></script>
-    <script type="module" src="RelatorioCompleto.js?v=2.6"></script>
+    <script type="module" src="RelatorioCompleto.js?v=2.9"></script>
 <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'93075eeb8ba96b9d',t:'MTc0NDY3NzQwOC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script><script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'930c0ec9980abce6',t:'MTc0NDcyNjU1NS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script><script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'930e06e76bdd8027',t:'MTc0NDc0NzIwMy4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>

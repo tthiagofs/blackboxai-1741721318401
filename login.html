@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Insightflow</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center font-sans">
+    <!-- Container Principal -->
+    <div class="w-full max-w-md">
+        <!-- Card de Login -->
+        <div class="bg-white rounded-2xl shadow-2xl p-8">
+            <!-- Logo/Header -->
+            <div class="text-center mb-8">
+                <div class="inline-block bg-gradient-to-r from-blue-600 to-indigo-600 rounded-full p-4 mb-4">
+                    <i class="fas fa-chart-line text-4xl text-white"></i>
+                </div>
+                <h1 class="text-3xl font-bold text-gray-800 mb-2">Insightflow</h1>
+                <p class="text-gray-600">Geração inteligente de relatórios de ads</p>
+            </div>
+
+            <!-- Formulário de Login -->
+            <form id="loginForm" class="space-y-6">
+                <!-- Email -->
+                <div>
+                    <label for="email" class="block text-sm font-semibold text-gray-700 mb-2">
+                        <i class="fas fa-envelope text-blue-600 mr-2"></i>Email
+                    </label>
+                    <input 
+                        type="email" 
+                        id="email" 
+                        name="email" 
+                        required
+                        placeholder="seu@email.com"
+                        class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-600 focus:outline-none transition-colors"
+                    >
+                </div>
+
+                <!-- Senha -->
+                <div>
+                    <label for="password" class="block text-sm font-semibold text-gray-700 mb-2">
+                        <i class="fas fa-lock text-blue-600 mr-2"></i>Senha
+                    </label>
+                    <div class="relative">
+                        <input 
+                            type="password" 
+                            id="password" 
+                            name="password" 
+                            required
+                            placeholder="••••••••"
+                            class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-600 focus:outline-none transition-colors pr-12"
+                        >
+                        <button 
+                            type="button" 
+                            id="togglePassword"
+                            class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-blue-600 transition-colors"
+                        >
+                            <i class="fas fa-eye" id="togglePasswordIcon"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Mensagem de Erro -->
+                <div id="errorMessage" class="hidden">
+                    <div class="bg-red-50 border-2 border-red-200 text-red-700 px-4 py-3 rounded-lg flex items-center">
+                        <i class="fas fa-exclamation-circle mr-3"></i>
+                        <span id="errorText"></span>
+                    </div>
+                </div>
+
+                <!-- Botão de Login -->
+                <button 
+                    type="submit" 
+                    id="loginBtn"
+                    class="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold py-3 px-6 rounded-lg hover:from-blue-700 hover:to-indigo-700 transform hover:scale-[1.02] transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                >
+                    <i class="fas fa-sign-in-alt mr-2"></i>
+                    <span id="loginBtnText">Entrar</span>
+                </button>
+            </form>
+
+            <!-- Footer -->
+            <div class="mt-6 text-center">
+                <p class="text-sm text-gray-600">
+                    <i class="fas fa-shield-alt text-blue-600 mr-1"></i>
+                    Suas credenciais são seguras e criptografadas
+                </p>
+            </div>
+        </div>
+
+        <!-- Copyright -->
+        <div class="text-center mt-6">
+            <p class="text-white text-sm">
+                © 2025 Insightflow. Todos os direitos reservados.
+            </p>
+        </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div class="bg-white rounded-xl p-6 flex flex-col items-center">
+            <div class="animate-spin rounded-full h-12 w-12 border-b-4 border-blue-600 mb-4"></div>
+            <p class="text-gray-700 font-semibold">Autenticando...</p>
+        </div>
+    </div>
+
+    <script type="module">
+        import { authService } from './services/authService.js';
+
+        const loginForm = document.getElementById('loginForm');
+        const emailInput = document.getElementById('email');
+        const passwordInput = document.getElementById('password');
+        const loginBtn = document.getElementById('loginBtn');
+        const loginBtnText = document.getElementById('loginBtnText');
+        const errorMessage = document.getElementById('errorMessage');
+        const errorText = document.getElementById('errorText');
+        const loadingOverlay = document.getElementById('loadingOverlay');
+        const togglePassword = document.getElementById('togglePassword');
+        const togglePasswordIcon = document.getElementById('togglePasswordIcon');
+
+        // Toggle senha visível/oculta
+        togglePassword.addEventListener('click', () => {
+            const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+            passwordInput.setAttribute('type', type);
+            
+            if (type === 'text') {
+                togglePasswordIcon.classList.remove('fa-eye');
+                togglePasswordIcon.classList.add('fa-eye-slash');
+            } else {
+                togglePasswordIcon.classList.remove('fa-eye-slash');
+                togglePasswordIcon.classList.add('fa-eye');
+            }
+        });
+
+        // Verificar se já está logado
+        if (authService.isAuthenticated()) {
+            console.log('✅ Usuário já autenticado - redirecionando para dashboard');
+            window.location.href = '/dashboard.html';
+        }
+
+        // Esconder mensagem de erro ao digitar
+        emailInput.addEventListener('input', hideError);
+        passwordInput.addEventListener('input', hideError);
+
+        function hideError() {
+            errorMessage.classList.add('hidden');
+        }
+
+        function showError(message) {
+            errorText.textContent = message;
+            errorMessage.classList.remove('hidden');
+        }
+
+        function setLoading(isLoading) {
+            loginBtn.disabled = isLoading;
+            
+            if (isLoading) {
+                loadingOverlay.classList.remove('hidden');
+                loginBtnText.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Entrando...';
+            } else {
+                loadingOverlay.classList.add('hidden');
+                loginBtnText.innerHTML = '<i class="fas fa-sign-in-alt mr-2"></i>Entrar';
+            }
+        }
+
+        // Submit do formulário
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const email = emailInput.value.trim();
+            const password = passwordInput.value;
+
+            // Validações básicas
+            if (!email || !password) {
+                showError('Por favor, preencha todos os campos.');
+                return;
+            }
+
+            if (password.length < 6) {
+                showError('A senha deve ter pelo menos 6 caracteres.');
+                return;
+            }
+
+            // Tentar fazer login
+            setLoading(true);
+            hideError();
+
+            try {
+                const result = await authService.login(email, password);
+
+                if (result.success) {
+                    console.log('✅ Login bem-sucedido!');
+                    
+                    // Pequeno delay para mostrar sucesso
+                    setTimeout(() => {
+                        window.location.href = '/dashboard.html';
+                    }, 500);
+                } else {
+                    setLoading(false);
+                    showError(result.error);
+                }
+            } catch (error) {
+                setLoading(false);
+                console.error('❌ Erro no login:', error);
+                showError('Erro ao fazer login. Tente novamente.');
+            }
+        });
+
+        // Enter para submit
+        passwordInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                loginForm.dispatchEvent(new Event('submit'));
+            }
+        });
+    </script>
+</body>
+</html>
+

@@ -560,6 +560,16 @@ ul.list-disc li br {
     </div>
 
     <!-- Scripts -->
+    <!-- Proteção de Auth (DEVE ser o primeiro script) -->
+    <script type="module">
+        import { authService } from './services/authService.js';
+        
+        // Proteger rota - redirecionar se não estiver logado
+        if (!authService.isAuthenticated()) {
+            window.location.href = '/login.html';
+        }
+    </script>
+    
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script async defer crossorigin="anonymous" src="https://connect.facebook.net/en_US/sdk.js"></script>
     <script type="module" src="RelatorioCompleto.js?v=3.1"></script>

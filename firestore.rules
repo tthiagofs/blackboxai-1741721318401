@@ -11,13 +11,30 @@ service cloud.firestore {
     
     // Regras para coleção de projetos
     match /projects/{projectId} {
-      // Permitir leitura e escrita apenas para o dono do projeto
-      allow read, write: if request.auth != null && 
-                           resource.data.ownerId == request.auth.uid;
+      // Função auxiliar para verificar ownership (aceita ownerId ou userId)
+      function isOwner() {
+        return request.auth != null && 
+               (resource.data.ownerId == request.auth.uid || 
+                resource.data.userId == request.auth.uid);
+      }
       
-      // Permitir criação se o ownerId for o usuário autenticado
-      allow create: if request.auth != null && 
-                      request.resource.data.ownerId == request.auth.uid;
+      function isCreator() {
+        return request.auth != null && 
+               (request.resource.data.ownerId == request.auth.uid || 
+                request.resource.data.userId == request.auth.uid);
+      }
+      
+      // Permitir leitura apenas para o dono do projeto
+      allow read: if isOwner();
+      
+      // Permitir criação se o ownerId/userId for o usuário autenticado
+      allow create: if isCreator();
+      
+      // Permitir atualização e exclusão apenas para o dono
+      allow update, delete: if isOwner();
+      
+      // Permitir listar todos os projetos (a query filtra por userId)
+      allow list: if request.auth != null;
     }
     
     // Regras para coleção de convites (apenas para admin)

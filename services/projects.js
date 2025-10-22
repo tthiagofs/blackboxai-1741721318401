@@ -31,7 +31,8 @@ export class ProjectsService {
 
             const projectData = {
                 name: projectName,
-                userId: user.uid,
+                ownerId: user.uid, // Alterado de userId para ownerId
+                userId: user.uid,  // Manter por compatibilidade
                 createdAt: serverTimestamp(),
                 updatedAt: serverTimestamp(),
                 settings: {},

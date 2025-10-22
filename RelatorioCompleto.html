@@ -347,22 +347,20 @@ ul.list-disc li br {
                 </p>
             </div>
 
-            <!-- Botão Gerar Relatório -->
+            <!-- Botões Gerar e Salvar Relatório -->
             <div class="flex gap-4">
-            <button type="submit"
+                <button type="submit"
                     class="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-bold py-4 px-6 rounded-xl transition duration-300 transform hover:scale-[1.02] shadow-lg flex items-center justify-center">
                     <i class="fas fa-chart-bar mr-3 text-xl"></i>
                     <span class="text-lg">Gerar Relatório</span>
                 </button>
-            </div>
-
-            <!-- Botão Salvar Relatório (aparece após gerar) -->
-            <div id="saveReportSection" class="hidden flex gap-4 mt-4">
-                <button type="button" id="saveReportBtn"
+                
+                <!-- Botão Salvar Relatório (aparece após gerar) -->
+                <button type="button" id="saveReportBtn" style="display: none;"
                     class="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold py-4 px-6 rounded-xl transition duration-300 transform hover:scale-[1.02] shadow-lg flex items-center justify-center">
                     <i class="fas fa-save mr-3 text-xl"></i>
                     <span class="text-lg">Salvar Relatório</span>
-            </button>
+                </button>
             </div>
         </form>
 
@@ -603,9 +601,13 @@ ul.list-disc li br {
         
         // Função para mostrar botão de salvar (será chamada após gerar o relatório)
         window.showSaveButton = () => {
-            const saveSection = document.getElementById('saveReportSection');
-            if (saveSection) {
-                saveSection.classList.remove('hidden');
+            console.log('🔘 Mostrando botão de salvar relatório...');
+            const saveBtn = document.getElementById('saveReportBtn');
+            if (saveBtn) {
+                saveBtn.style.display = 'flex';
+                console.log('✅ Botão de salvar exibido');
+            } else {
+                console.error('❌ Botão saveReportBtn não encontrado');
             }
         };
         

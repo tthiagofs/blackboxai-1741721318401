@@ -228,8 +228,19 @@ export class FacebookInsightsService {
     async getCreativeData(adId) {
         try {
             const url = `/${adId}?fields=creative{thumbnail_url,image_hash,object_story_spec,effective_object_story_id}&access_token=${this.accessToken}`;
-            const response = await new Promise((resolve) => {
-                FB.api(url, resolve);
+            const response = await new Promise((resolve, reject) => {
+                const timeout = setTimeout(() => {
+                    reject(new Error('Timeout ao buscar dados do criativo'));
+                }, 10000); // 10 segundos de timeout
+                
+                FB.api(url, (res) => {
+                    clearTimeout(timeout);
+                    if (res && res.error) {
+                        reject(new Error(res.error.message || 'Erro na API do Facebook'));
+                    } else {
+                        resolve(res);
+                    }
+                });
             });
 
             if (response && !response.error && response.creative) {
@@ -252,8 +263,19 @@ export class FacebookInsightsService {
                 // Tentar effective_object_story_id
                 if (creative.effective_object_story_id) {
                     const storyUrl = `/${creative.effective_object_story_id}?fields=full_picture&access_token=${this.accessToken}`;
-                    const storyResponse = await new Promise((resolve) => {
-                        FB.api(storyUrl, resolve);
+                    const storyResponse = await new Promise((resolve, reject) => {
+                        const timeout = setTimeout(() => {
+                            reject(new Error('Timeout ao buscar story'));
+                        }, 10000);
+                        
+                        FB.api(storyUrl, (res) => {
+                            clearTimeout(timeout);
+                            if (res && res.error) {
+                                reject(new Error(res.error.message || 'Erro na API do Facebook'));
+                            } else {
+                                resolve(res);
+                            }
+                        });
                     });
                     
                     if (storyResponse && !storyResponse.error && storyResponse.full_picture) {
@@ -425,11 +447,14 @@ export class FacebookInsightsService {
             for (let i = 0; i < topAds.length; i++) {
                 await this._delay(300); // Delay entre cada busca de creative
                 try {
+                    console.log(`🖼️ Buscando creative do anúncio ${i+1}/${topAds.length}: ${topAds[i].id}`);
                     const creativeData = await this.getCreativeData(topAds[i].id);
                     topAds[i].imageUrl = creativeData.imageUrl;
+                    console.log(`✅ Creative obtido para anúncio ${i+1}`);
                 } catch (error) {
                     console.warn(`⚠️ Erro ao buscar creative do anúncio ${topAds[i].id}:`, error.message);
-                    // Mantém o placeholder
+                    console.warn('Stack:', error.stack);
+                    // Mantém o placeholder - não interrompe o fluxo
                 }
             }
 

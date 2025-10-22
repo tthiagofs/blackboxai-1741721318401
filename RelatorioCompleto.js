@@ -1540,9 +1540,11 @@ function prepareReportDataForSaving(accountName, startDate, endDate, metaAccount
     let comparisonStart = null;
     let comparisonEnd = null;
     
-    if (comparisonMetrics && comparisonStartDate && comparisonEndDate) {
-        comparisonStart = comparisonStartDate;
-        comparisonEnd = comparisonEndDate;
+    if (comparisonMetrics && comparisonData) {
+        if (comparisonData.startDate && comparisonData.endDate) {
+            comparisonStart = comparisonData.startDate;
+            comparisonEnd = comparisonData.endDate;
+        }
     }
     
     // Criar objeto com todos os dados do relatório

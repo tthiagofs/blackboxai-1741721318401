@@ -854,6 +854,14 @@ async function generateCompleteReport() {
         // Renderizar relatório
         renderCompleteReport(accountName, startDate, endDate, metrics, blackMetrics, bestAds, comparisonMetrics, budgetsCompleted, salesCount, revenue, performanceAnalysis);
         
+        // Preparar dados para salvamento
+        prepareReportDataForSaving(accountName, startDate, endDate, unitId, googleAccountId, metrics, blackMetrics, comparisonMetrics, budgetsCompleted, salesCount, revenue, performanceAnalysis);
+        
+        // Mostrar botão de salvar relatório
+        if (typeof window.showSaveButton === 'function') {
+            window.showSaveButton();
+        }
+        
         console.timeEnd('⏱️ GERAÇÃO COMPLETA DO RELATÓRIO');
 
     } catch (error) {
@@ -1459,6 +1467,102 @@ refreshBtn.addEventListener('click', () => {
     // Recarregar a página
     window.location.reload();
 });
+
+// ==================== FUNÇÃO PARA PREPARAR DADOS DO RELATÓRIO PARA SALVAMENTO ====================
+function prepareReportDataForSaving(accountName, startDate, endDate, metaAccountId, googleAccountId, metrics, blackMetrics, comparisonMetrics, budgetsCompleted, salesCount, revenue, performanceAnalysis) {
+    console.log('📦 Preparando dados do relatório para salvamento...');
+    
+    // Determinar plataforma e nome do relatório
+    let platform = '';
+    let reportName = '';
+    let metaAccount = null;
+    let googleAccount = null;
+    
+    if (metaAccountId && googleAccountId) {
+        platform = 'both';
+        reportName = adAccountsMap[metaAccountId] || accountName; // Prioridade para Meta
+        metaAccount = {
+            id: metaAccountId,
+            name: adAccountsMap[metaAccountId] || 'Conta Meta'
+        };
+        const accounts = googleAuth.getStoredAccounts();
+        const googleAcc = accounts.find(acc => acc.customerId === googleAccountId);
+        googleAccount = {
+            id: googleAccountId,
+            name: googleAcc ? googleAcc.name : 'Conta Google'
+        };
+    } else if (metaAccountId) {
+        platform = 'meta';
+        reportName = adAccountsMap[metaAccountId] || accountName;
+        metaAccount = {
+            id: metaAccountId,
+            name: adAccountsMap[metaAccountId] || 'Conta Meta'
+        };
+    } else if (googleAccountId) {
+        platform = 'google';
+        const accounts = googleAuth.getStoredAccounts();
+        const googleAcc = accounts.find(acc => acc.customerId === googleAccountId);
+        reportName = googleAcc ? googleAcc.name : accountName;
+        googleAccount = {
+            id: googleAccountId,
+            name: googleAcc ? googleAcc.name : 'Conta Google'
+        };
+    }
+    
+    // Formatar data para exibição
+    const formatDateBR = (dateStr) => {
+        const [year, month, day] = dateStr.split('-');
+        return `${day}/${month}/${year}`;
+    };
+    
+    const dateRange = `${formatDateBR(startDate)} - ${formatDateBR(endDate)}`;
+    
+    // Preparar dados de comparação
+    let comparisonStart = null;
+    let comparisonEnd = null;
+    
+    if (comparisonMetrics && comparisonStartDate && comparisonEndDate) {
+        comparisonStart = comparisonStartDate;
+        comparisonEnd = comparisonEndDate;
+    }
+    
+    // Criar objeto com todos os dados do relatório
+    window.currentReportData = {
+        reportName: reportName,
+        platform: platform,
+        dateRange: dateRange,
+        analysisStart: startDate,
+        analysisEnd: endDate,
+        comparisonStart: comparisonStart,
+        comparisonEnd: comparisonEnd,
+        
+        // Contas
+        metaAccount: metaAccount,
+        googleAccount: googleAccount,
+        
+        // Dados manuais
+        manualData: {
+            revenue: revenue || 0,
+            sales: salesCount || 0,
+            budgets: budgetsCompleted || 0,
+            analysis: performanceAnalysis || '',
+            hasBlack: hasBlack || false
+        },
+        
+        // Configurações de filtros (para regenerar o relatório)
+        filters: {
+            selectedCampaigns: Array.from(selectedCampaigns),
+            selectedAdSets: Array.from(selectedAdSets),
+            selectedWhiteCampaigns: Array.from(selectedWhiteCampaigns),
+            selectedWhiteAdSets: Array.from(selectedWhiteAdSets),
+            selectedBlackCampaigns: Array.from(selectedBlackCampaigns),
+            selectedBlackAdSets: Array.from(selectedBlackAdSets),
+            hasBlack: hasBlack
+        }
+    };
+    
+    console.log('✅ Dados do relatório preparados:', window.currentReportData);
+}
 
 // Botão de limpar cache removido - cache desabilitado para melhor performance
 

@@ -1056,27 +1056,44 @@ function renderStandardReport(metrics, comparisonMetrics) {
     const costChange = comparisonMetrics ? calculateChange(parseFloat(metrics.costPerConversation), parseFloat(comparisonMetrics.previous.costPerConversation)) : null;
     
     return `
-                        <div class="bg-gradient-to-r from-blue-50 to-blue-100 border-l-4 border-blue-600 rounded-lg p-6 mb-6">
-                            <h3 class="text-2xl font-bold text-blue-900 mb-4">📊 Campanhas</h3>
+                        <div class="bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl p-6 mb-6 shadow-xl">
+                            <div class="flex items-center mb-6">
+                                <div class="w-12 h-12 bg-white bg-opacity-20 rounded-xl flex items-center justify-center mr-3">
+                                    <i class="fas fa-chart-bar text-2xl text-white"></i>
+                                </div>
+                                <h3 class="text-3xl font-bold text-white">Campanhas</h3>
+                            </div>
                             <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                                <div class="bg-white rounded-lg p-4 shadow-sm border border-blue-200">
-                                    <h4 class="text-xs font-semibold text-blue-600 uppercase mb-2">Investimento</h4>
-                    <p class="text-2xl font-bold text-gray-900">${formatCurrencyBRL(metrics.spend)}</p>
+                                <div class="bg-white bg-opacity-95 backdrop-blur rounded-xl p-5 shadow-md border-2 border-white border-opacity-50">
+                                    <div class="flex items-center mb-2">
+                                        <i class="fas fa-dollar-sign text-blue-600 text-lg mr-2"></i>
+                                        <h4 class="text-xs font-bold text-blue-600 uppercase">Investimento</h4>
+                                    </div>
+                                    <p class="text-2xl font-bold text-gray-900">${formatCurrencyBRL(metrics.spend)}</p>
                     ${renderChangeBadge(spendChange)}
                                 </div>
-                                <div class="bg-white rounded-lg p-4 shadow-sm border border-blue-200">
-                                    <h4 class="text-xs font-semibold text-blue-600 uppercase mb-2">Alcance</h4>
+                                <div class="bg-white bg-opacity-95 backdrop-blur rounded-xl p-5 shadow-md border-2 border-white border-opacity-50">
+                                    <div class="flex items-center mb-2">
+                                        <i class="fas fa-users text-indigo-600 text-lg mr-2"></i>
+                                        <h4 class="text-xs font-bold text-indigo-600 uppercase">Alcance</h4>
+                                    </div>
                                     <p class="text-2xl font-bold text-gray-900">${metrics.reach.toLocaleString('pt-BR')}</p>
                     ${renderChangeBadge(reachChange)}
                                 </div>
-                                <div class="bg-white rounded-lg p-4 shadow-sm border border-blue-200">
-                                    <h4 class="text-xs font-semibold text-blue-600 uppercase mb-2">Conversas Iniciadas</h4>
+                                <div class="bg-white bg-opacity-95 backdrop-blur rounded-xl p-5 shadow-md border-2 border-white border-opacity-50">
+                                    <div class="flex items-center mb-2">
+                                        <i class="fas fa-comments text-emerald-600 text-lg mr-2"></i>
+                                        <h4 class="text-xs font-bold text-emerald-600 uppercase">Conversas Iniciadas</h4>
+                                    </div>
                                     <p class="text-2xl font-bold text-gray-900">${metrics.conversations}</p>
                     ${renderChangeBadge(conversationsChange)}
                                 </div>
-                                <div class="bg-white rounded-lg p-4 shadow-sm border border-blue-200">
-                                    <h4 class="text-xs font-semibold text-blue-600 uppercase mb-2">Custo por Conversa</h4>
-                    <p class="text-2xl font-bold text-gray-900">${formatCurrencyBRL(metrics.costPerConversation)}</p>
+                                <div class="bg-white bg-opacity-95 backdrop-blur rounded-xl p-5 shadow-md border-2 border-white border-opacity-50">
+                                    <div class="flex items-center mb-2">
+                                        <i class="fas fa-calculator text-purple-600 text-lg mr-2"></i>
+                                        <h4 class="text-xs font-bold text-purple-600 uppercase">Custo por Conversa</h4>
+                                    </div>
+                                    <p class="text-2xl font-bold text-gray-900">${formatCurrencyBRL(metrics.costPerConversation)}</p>
                     ${renderCostChangeBadge(costChange)}
                                 </div>
                             </div>
@@ -1091,24 +1108,40 @@ function renderBestAds(bestAds) {
 
     return `
                         <div class="mt-6">
-                            <h3 class="text-2xl font-bold text-gray-900 mb-4">🏆 Anúncios em Destaque</h3>
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                ${bestAds.map(ad => `
-                    <div class="bg-white border-2 border-emerald-200 rounded-xl p-4 shadow-md hover:shadow-lg transition">
-                        <div class="flex items-start gap-4">
-                            <img src="${ad.imageUrl}" alt="Anúncio" class="w-28 h-28 object-cover rounded-lg border-2 border-emerald-300" onerror="this.src='https://dummyimage.com/150x150/10b981/fff&text=AD'">
-                            <div class="flex-1">
-                                <div class="bg-emerald-50 rounded-lg p-3 mb-2">
-                                    <p class="text-sm font-semibold text-emerald-800">💬 Leads: <span class="text-xl font-bold">${ad.messages}</span></p>
+                            <div class="bg-gradient-to-r from-amber-500 to-orange-600 rounded-2xl p-6 shadow-xl">
+                                <div class="flex items-center mb-6">
+                                    <div class="w-12 h-12 bg-white bg-opacity-20 rounded-xl flex items-center justify-center mr-3">
+                                        <i class="fas fa-trophy text-2xl text-white"></i>
+                                    </div>
+                                    <h3 class="text-3xl font-bold text-white">Anúncios em Destaque</h3>
                                 </div>
-                                <div class="space-y-1">
-                                    <p class="text-sm text-gray-700"><span class="font-semibold">Investimento:</span> ${formatCurrencyBRL(ad.spend)}</p>
-                                    <p class="text-sm text-gray-700"><span class="font-semibold">Custo por Lead:</span> ${formatCurrencyBRL(ad.costPerMessage)}</p>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    ${bestAds.map(ad => `
+                        <div class="bg-white bg-opacity-95 backdrop-blur rounded-xl p-5 shadow-lg border-2 border-white border-opacity-50">
+                            <div class="flex items-start gap-4">
+                                <img src="${ad.imageUrl}" alt="Anúncio" class="w-28 h-28 object-cover rounded-lg shadow-md" onerror="this.src='https://dummyimage.com/150x150/10b981/fff&text=AD'">
+                                <div class="flex-1">
+                                    <div class="bg-gradient-to-r from-emerald-500 to-teal-600 rounded-lg p-3 mb-3 shadow-md">
+                                        <div class="flex items-center text-white">
+                                            <i class="fas fa-comment-dots mr-2 text-lg"></i>
+                                            <p class="font-semibold">Leads: <span class="text-2xl font-bold">${ad.messages}</span></p>
+                                        </div>
+                                    </div>
+                                    <div class="space-y-2">
+                                        <div class="flex items-center text-gray-700">
+                                            <i class="fas fa-dollar-sign text-blue-600 mr-2"></i>
+                                            <p class="text-sm"><span class="font-semibold">Investimento:</span> ${formatCurrencyBRL(ad.spend)}</p>
+                                        </div>
+                                        <div class="flex items-center text-gray-700">
+                                            <i class="fas fa-calculator text-purple-600 mr-2"></i>
+                                            <p class="text-sm"><span class="font-semibold">Custo/Lead:</span> ${formatCurrencyBRL(ad.costPerMessage)}</p>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
-                `).join('')}
+                    `).join('')}
+                                </div>
                             </div>
                         </div>
     `;

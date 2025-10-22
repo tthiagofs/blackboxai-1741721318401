@@ -1,3 +1,5 @@
+import { connectionService } from './services/connectionService.js';
+
 // Autenticação Google para Google Ads
 class GoogleAuthService {
     constructor() {
@@ -6,6 +8,7 @@ class GoogleAuthService {
         this.accessToken = null;
         this.tokenClient = null;
         this.isInitialized = false;
+        this.adAccounts = [];
     }
 
     // Inicializar Google Identity Services
@@ -122,11 +125,21 @@ class GoogleAuthService {
     }
 
     // Limpar token
-    clearToken() {
+    async clearToken() {
         localStorage.removeItem('google_ads_access_token');
         localStorage.removeItem('google_ads_token_time');
         localStorage.removeItem('google_ads_accounts');
         this.accessToken = null;
+        this.adAccounts = [];
+        
+        // Remover do Firebase
+        try {
+            await connectionService.initialize();
+            await connectionService.disconnectGoogle();
+            console.log('✅ Conexão Google removida do Firebase');
+        } catch (error) {
+            console.warn('⚠️ Erro ao remover conexão Google do Firebase:', error);
+        }
     }
 
     // Verificar se está autenticado
@@ -171,7 +184,21 @@ class GoogleAuthService {
             
             // Salvar contas no localStorage
             if (data.accounts && data.accounts.length > 0) {
+                this.adAccounts = data.accounts;
                 localStorage.setItem('google_ads_accounts', JSON.stringify(data.accounts));
+                
+                // Salvar no Firebase
+                try {
+                    await connectionService.initialize();
+                    await connectionService.saveGoogleConnection(
+                        this.accessToken,
+                        null, // Google não usa refresh token neste fluxo
+                        this.adAccounts
+                    );
+                    console.log('✅ Conexão Google salva no Firebase');
+                } catch (error) {
+                    console.warn('⚠️ Erro ao salvar conexão Google no Firebase:', error);
+                }
             }
             
             return data.accounts || [];

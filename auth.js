@@ -1,3 +1,5 @@
+import { connectionService } from './services/connectionService.js';
+
 // Classe para autenticação do aplicativo
 class AppAuth {
     constructor() {
@@ -117,6 +119,16 @@ class FacebookAuth {
             this.accessToken = response.authResponse.accessToken;
             localStorage.setItem('fbAccessToken', this.accessToken);
             await this.loadAllAdAccounts();
+            
+            // Salvar no Firebase
+            try {
+                await connectionService.initialize();
+                await connectionService.saveMetaConnection(this.accessToken, this.adAccountsMap);
+                console.log('✅ Conexão Meta salva no Firebase');
+            } catch (error) {
+                console.warn('⚠️ Erro ao salvar conexão no Firebase:', error);
+                // Não interrompe o fluxo, apenas loga
+            }
             
             return response;
         } catch (error) {
@@ -291,13 +303,23 @@ class FacebookAuth {
         return this.adAccountsMap;
     }
 
-    logout() {
+    async logout() {
         return new Promise((resolve) => {
-            FB.logout(() => {
+            FB.logout(async () => {
                 localStorage.removeItem('fbAccessToken');
                 localStorage.removeItem('adAccountsMap');
                 this.accessToken = null;
                 this.adAccountsMap = {};
+                
+                // Remover do Firebase
+                try {
+                    await connectionService.initialize();
+                    await connectionService.disconnectMeta();
+                    console.log('✅ Conexão Meta removida do Firebase');
+                } catch (error) {
+                    console.warn('⚠️ Erro ao remover conexão do Firebase:', error);
+                }
+                
                 resolve();
             });
         });

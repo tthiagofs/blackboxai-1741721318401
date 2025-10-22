@@ -164,11 +164,12 @@
         import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
         import { authService } from './services/authService.js?v=1.3';
         import { projectsService } from './services/projects.js?v=1.3';
+        import { connectionService } from './services/connectionService.js?v=1.0';
 
         // Aguardar Firebase estar pronto antes de verificar autenticação
         console.log('⏳ Aguardando Firebase verificar autenticação...');
         
-        onAuthStateChanged(auth, (user) => {
+        onAuthStateChanged(auth, async (user) => {
             console.log('🔔 onAuthStateChanged disparado - user:', user?.email || 'null');
             
             if (!user) {
@@ -178,6 +179,15 @@
             }
             
             console.log('✅ Usuário autenticado no dashboard:', user.email);
+            
+            // Carregar conexões salvas
+            try {
+                await connectionService.initialize();
+                console.log('✅ ConnectionService inicializado');
+            } catch (error) {
+                console.warn('⚠️ Erro ao inicializar ConnectionService:', error);
+            }
+            
             initDashboard();
         });
 

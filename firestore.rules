@@ -1,0 +1,32 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Regras para coleção de usuários
+    match /users/{userId} {
+      // Permitir leitura e escrita apenas para o próprio usuário autenticado
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // Regras para coleção de projetos
+    match /projects/{projectId} {
+      // Permitir leitura e escrita apenas para o dono do projeto
+      allow read, write: if request.auth != null && 
+                           resource.data.ownerId == request.auth.uid;
+      
+      // Permitir criação se o ownerId for o usuário autenticado
+      allow create: if request.auth != null && 
+                      request.resource.data.ownerId == request.auth.uid;
+    }
+    
+    // Regras para coleção de convites (apenas para admin)
+    match /invites/{inviteId} {
+      // Apenas admin pode criar/deletar convites
+      allow read, delete: if request.auth != null;
+      allow create: if request.auth != null && 
+                      get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+  }
+}
+

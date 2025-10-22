@@ -130,22 +130,30 @@
     <!-- Scripts -->
     <script async defer crossorigin="anonymous" src="https://connect.facebook.net/en_US/sdk.js"></script>
     <script type="module">
-        import { handleFacebookLogin, handleGoogleLogin, checkLoginStatus } from './auth.js?v=2.0';
+        import { fbAuth } from './auth.js?v=2.10';
+        import { googleAuth } from './authGoogle.js?v=2.10';
+        import { connectionService } from './services/connectionService.js?v=1.0';
 
         const loginBtn = document.getElementById('loginBtn');
         const googleLoginBtn = document.getElementById('googleLoginBtn');
         const metaStatus = document.getElementById('metaStatus');
         const googleStatus = document.getElementById('googleStatus');
 
+        // Inicializar Google Auth
+        await googleAuth.initialize().catch(err => console.error('Erro ao inicializar Google Auth:', err));
+
         // Verificar status de login ao carregar
-        function updateConnectionStatus() {
-            checkLoginStatus().then(status => {
+        async function updateConnectionStatus() {
+            try {
+                await connectionService.initialize();
+                const status = connectionService.getConnectionStatus();
+
                 // Status do Meta
-                if (status.facebook) {
+                if (status.meta.connected) {
                     metaStatus.innerHTML = `
                         <div class="flex items-center text-green-600">
                             <i class="fas fa-check-circle text-sm mr-2"></i>
-                            <span class="text-sm font-semibold">Conectado</span>
+                            <span class="text-sm font-semibold">Conectado (${status.meta.accountsCount} contas)</span>
                         </div>
                     `;
                     loginBtn.innerHTML = '<i class="fas fa-sync mr-2"></i><span>Reconectar</span>';
@@ -154,18 +162,20 @@
                 }
 
                 // Status do Google
-                if (status.google) {
+                if (status.google.connected) {
                     googleStatus.innerHTML = `
                         <div class="flex items-center text-green-600">
                             <i class="fas fa-check-circle text-sm mr-2"></i>
-                            <span class="text-sm font-semibold">Conectado</span>
+                            <span class="text-sm font-semibold">Conectado (${status.google.accountsCount} contas)</span>
                         </div>
                     `;
                     googleLoginBtn.innerHTML = '<i class="fas fa-sync mr-2"></i><span>Reconectar</span>';
                     googleLoginBtn.classList.remove('bg-red-600', 'hover:bg-red-700');
                     googleLoginBtn.classList.add('bg-green-600', 'hover:bg-green-700');
                 }
-            });
+            } catch (error) {
+                console.warn('⚠️ Erro ao verificar status de conexões:', error);
+            }
         }
 
         // Event listeners
@@ -173,20 +183,33 @@
             loginBtn.disabled = true;
             loginBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i><span>Conectando...</span>';
             
-            await handleFacebookLogin();
-            updateConnectionStatus();
-            
-            loginBtn.disabled = false;
+            try {
+                await fbAuth.login();
+                console.log('✅ Login Meta realizado com sucesso');
+                await updateConnectionStatus();
+            } catch (error) {
+                console.error('❌ Erro no login Meta:', error);
+                alert('Erro ao conectar com Meta Ads. Tente novamente.');
+            } finally {
+                loginBtn.disabled = false;
+            }
         });
 
         googleLoginBtn.addEventListener('click', async () => {
             googleLoginBtn.disabled = true;
             googleLoginBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i><span>Conectando...</span>';
             
-            await handleGoogleLogin();
-            updateConnectionStatus();
-            
-            googleLoginBtn.disabled = false;
+            try {
+                await googleAuth.login();
+                await googleAuth.fetchAccessibleAccounts();
+                console.log('✅ Login Google realizado com sucesso');
+                await updateConnectionStatus();
+            } catch (error) {
+                console.error('❌ Erro no login Google:', error);
+                alert('Erro ao conectar com Google Ads. Tente novamente.');
+            } finally {
+                googleLoginBtn.disabled = false;
+            }
         });
 
         // Verificar status inicial

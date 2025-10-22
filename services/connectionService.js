@@ -201,14 +201,18 @@ class ConnectionService {
      * Retorna o status das conexões
      */
     getConnectionStatus() {
+        // Verificar também o localStorage para compatibilidade
+        const fbToken = localStorage.getItem('fbAccessToken');
+        const googleToken = localStorage.getItem('google_ads_access_token');
+        
         return {
             meta: {
-                connected: this.connections.meta.connected,
+                connected: this.connections.meta.connected || !!fbToken,
                 accountsCount: Object.keys(this.connections.meta.adAccounts || {}).length,
                 lastUpdate: this.connections.meta.lastUpdate
             },
             google: {
-                connected: this.connections.google.connected,
+                connected: this.connections.google.connected || !!googleToken,
                 accountsCount: (this.connections.google.adAccounts || []).length,
                 lastUpdate: this.connections.google.lastUpdate
             }

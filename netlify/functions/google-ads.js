@@ -60,18 +60,15 @@ async function listAccounts(accessToken, headers) {
     console.log(`🔑 Developer Token: ${process.env.GOOGLE_ADS_DEVELOPER_TOKEN ? 'Presente' : 'AUSENTE'}`);
     console.log(`🎫 Access Token: ${accessToken ? 'Presente (primeiros 20 chars): ' + accessToken.substring(0, 20) + '...' : 'AUSENTE'}`);
     
-    // CORREÇÃO: O método HTTP deve ser POST, não GET!
-    // URL: https://googleads.googleapis.com/v17/customers:listAccessibleCustomers
-    const url = 'https://googleads.googleapis.com/v17/customers:listAccessibleCustomers';
+    // URL corrigida: endpoint sem versão na URL
+    const url = 'https://googleads.googleapis.com/v18/customers:listAccessibleCustomers';
     
     const response = await fetch(url, {
-      method: 'POST',  // <-- MUDADO DE GET PARA POST
+      method: 'GET',  // ListAccessibleCustomers usa GET
       headers: {
         'Authorization': `Bearer ${accessToken}`,
         'developer-token': process.env.GOOGLE_ADS_DEVELOPER_TOKEN,
-        'Content-Type': 'application/json',
       },
-      body: JSON.stringify({}),  // Corpo vazio para POST
     });
 
     if (!response.ok) {
@@ -137,7 +134,7 @@ async function getAccountInfo(customerId, accessToken) {
     `;
 
     const response = await fetch(
-      `https://googleads.googleapis.com/v17/customers/${customerId}/googleAds:searchStream`,
+      `https://googleads.googleapis.com/v18/customers/${customerId}/googleAds:searchStream`,
       {
         method: 'POST',
         headers: {
@@ -202,7 +199,7 @@ async function getAccountInsights(customerId, startDate, endDate, accessToken, h
     console.log('🔍 Query:', query);
 
     const response = await fetch(
-      `https://googleads.googleapis.com/v17/customers/${customerId}/googleAds:searchStream`,
+      `https://googleads.googleapis.com/v18/customers/${customerId}/googleAds:searchStream`,
       {
         method: 'POST',
         headers: {

@@ -160,13 +160,29 @@
     </div>
 
     <script type="module">
-        import { authService } from './services/authService.js?v=1.2';
-        import { projectsService } from './services/projects.js?v=1.2';
+        import { auth } from './config/firebase.js';
+        import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+        import { authService } from './services/authService.js?v=1.3';
+        import { projectsService } from './services/projects.js?v=1.3';
 
-        // Proteger rota - redirecionar se não estiver logado
-        if (!authService.isAuthenticated()) {
-            window.location.href = '/login.html';
-        }
+        // Aguardar Firebase estar pronto antes de verificar autenticação
+        console.log('⏳ Aguardando Firebase verificar autenticação...');
+        
+        onAuthStateChanged(auth, (user) => {
+            console.log('🔔 onAuthStateChanged disparado - user:', user?.email || 'null');
+            
+            if (!user) {
+                console.warn('⚠️ Usuário NÃO autenticado - redirecionando para login');
+                window.location.href = '/login.html';
+                return;
+            }
+            
+            console.log('✅ Usuário autenticado no dashboard:', user.email);
+            initDashboard();
+        });
+
+        function initDashboard() {
+            console.log('🎯 Inicializando dashboard...');
 
         // Elementos do DOM
         const userName = document.getElementById('userName');
@@ -383,6 +399,7 @@
         // Inicializar
         loadUserData();
         loadProjects();
+        }
     </script>
 </body>
 </html>

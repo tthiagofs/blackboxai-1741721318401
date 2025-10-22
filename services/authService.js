@@ -150,7 +150,9 @@ export class AuthService {
 
     // Verificar se usuário está autenticado
     isAuthenticated() {
-        return auth.currentUser !== null;
+        const isAuth = auth.currentUser !== null;
+        console.log('🔍 isAuthenticated() chamado:', isAuth, 'currentUser:', auth.currentUser?.email || 'null');
+        return isAuth;
     }
 
     // Buscar dados do usuário no Firestore

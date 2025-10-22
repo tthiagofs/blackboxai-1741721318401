@@ -27,6 +27,14 @@ export class FacebookInsightsService {
                 currentUrl = response.paging && response.paging.next ? response.paging.next : null;
                 retryCount = 0;
             } else {
+                // Verificar se o token expirou
+                if (response?.error?.message?.includes('Session has expired') || 
+                    response?.error?.message?.includes('Error validating access token') ||
+                    response?.error?.code === 190) {
+                    console.error('🔴 Token do Facebook expirado!');
+                    throw new Error('TOKEN_EXPIRED');
+                }
+                
                 if (response?.error?.message?.includes('User request limit reached') || 
                     response?.error?.message?.includes('Application request limit reached') ||
                     response?.error?.code === 17 || 

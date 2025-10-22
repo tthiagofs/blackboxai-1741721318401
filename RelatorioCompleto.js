@@ -871,7 +871,21 @@ async function generateCompleteReport() {
 
     } catch (error) {
         console.error('Erro ao gerar relatório:', error);
-        alert('Erro ao gerar relatório. Tente novamente.');
+        
+        // Verificar se o erro é de token expirado
+        if (error.message === 'TOKEN_EXPIRED' || error.message.includes('Session has expired')) {
+            alert('⚠️ Sua sessão do Facebook expirou!\n\nPor favor, vá até a tela de CONEXÕES e faça login novamente no Facebook.');
+            
+            // Redirecionar para a tela de conexões após 1 segundo
+            setTimeout(() => {
+                if (confirm('Deseja ir para a tela de CONEXÕES agora?')) {
+                    window.location.href = '/conexoes.html?tokenExpired=true';
+                }
+            }, 1000);
+        } else {
+            alert('Erro ao gerar relatório. Tente novamente.');
+        }
+        
         console.timeEnd('⏱️ GERAÇÃO COMPLETA DO RELATÓRIO');
     }
 }

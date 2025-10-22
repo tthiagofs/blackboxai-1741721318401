@@ -188,15 +188,20 @@
                     console.log('📱 [regenerateMetrics] Processando Meta Ads...');
                     loadingText.textContent = 'Buscando dados do Meta Ads...';
                     
-                    // Obter token do Meta
+                    // IMPORTANTE: Recarregar conexões do Firestore para pegar token atualizado
+                    console.log('🔄 Recarregando conexões do Firestore...');
+                    await connectionService.loadConnections();
+                    
+                    // Obter token do Meta (agora atualizado)
                     const connections = connectionService.getConnectionStatus();
-                    console.log('🔌 [regenerateMetrics] Status conexões:', connections);
+                    console.log('🔌 [regenerateMetrics] Status conexões (recarregado):', connections);
                     
                     if (!connections.meta.connected) {
                         console.error('❌ Meta Ads não conectado!');
                         throw new Error('Meta Ads não conectado. Vá para CONEXÕES e faça login.');
                     }
 
+                    console.log('✅ Token Meta obtido, criando FacebookInsightsService...');
                     const metaAccount = reportData.metaAccount;
                     const insightsService = new FacebookInsightsService(connections.meta.token);
 

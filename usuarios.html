@@ -8,7 +8,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
-<body class="bg-white min-h-screen font-sans">
+<body class="bg-gray-50 min-h-screen font-sans">
     <!-- Proteção de Auth (apenas admin) -->
     <script type="module">
         import { auth, db } from './config/firebase.js';
@@ -42,7 +42,7 @@
     <!-- Container Principal -->
     <div class="flex min-h-screen">
         <!-- Sidebar -->
-        <aside id="sidebar" class="w-56 bg-gray-100 flex flex-col border-r border-gray-200">
+        <aside id="sidebar" class="w-56 bg-white flex flex-col border-r border-gray-200">
             <!-- Logo -->
             <div class="p-6">
                 <h1 class="text-xl font-bold text-gray-800">Relatórios</h1>
@@ -50,22 +50,22 @@
 
             <!-- Menu de Navegação -->
             <nav class="flex-1 px-3">
-                <a href="/dashboard.html" class="flex items-center px-3 py-2.5 mb-1 text-gray-700 hover:bg-gray-200 rounded-lg transition-all">
+                <a href="/dashboard.html" class="flex items-center px-3 py-2.5 mb-1 border-l-4 border-transparent text-gray-700 hover:bg-gray-50 transition-all">
                     <i class="fas fa-home mr-3 text-sm"></i>
                     <span class="text-sm">Tela Inicial</span>
                 </a>
                 
-                <a href="/conexoes.html" class="flex items-center px-3 py-2.5 mb-1 text-gray-700 hover:bg-gray-200 rounded-lg transition-all">
+                <a href="/conexoes.html" class="flex items-center px-3 py-2.5 mb-1 border-l-4 border-transparent text-gray-700 hover:bg-gray-50 transition-all">
                     <i class="fas fa-plug mr-3 text-sm"></i>
                     <span class="text-sm">Conexões</span>
                 </a>
                 
-                <a href="/minha-conta.html" class="flex items-center px-3 py-2.5 mb-1 text-gray-700 hover:bg-gray-200 rounded-lg transition-all">
+                <a href="/minha-conta.html" class="flex items-center px-3 py-2.5 mb-1 border-l-4 border-transparent text-gray-700 hover:bg-gray-50 transition-all">
                     <i class="fas fa-user mr-3 text-sm"></i>
                     <span class="text-sm">Minha Conta</span>
                 </a>
                 
-                <a href="/usuarios.html" class="flex items-center px-3 py-2.5 mb-1 bg-blue-50 text-blue-600 rounded-lg transition-all">
+                <a href="/usuarios.html" class="flex items-center px-3 py-2.5 mb-1 border-l-4 border-blue-600 bg-blue-50 text-blue-600 transition-all">
                     <i class="fas fa-users mr-3 text-sm"></i>
                     <span class="text-sm">Usuários</span>
                 </a>
@@ -81,19 +81,19 @@
         </aside>
 
         <!-- Conteúdo Principal -->
-        <main class="flex-1 p-10">
+        <main class="flex-1 p-10 bg-white">
             <!-- Header -->
             <div class="mb-8 flex items-center justify-between">
                 <div>
-                    <h2 class="text-3xl font-bold text-gray-900 mb-2">Gerenciar Usuários</h2>
-                    <p class="text-gray-600">Gerencie usuários e convites pendentes</p>
+                    <h2 class="text-2xl font-bold text-gray-900 mb-1">Gerenciar Usuários</h2>
+                    <p class="text-sm text-gray-600">Gerencie usuários e convites pendentes</p>
                 </div>
                 <button 
                     id="sendInviteBtn"
-                    class="bg-blue-600 text-white px-5 py-2.5 rounded-lg hover:bg-blue-700 transition-all flex items-center shadow-sm"
+                    class="bg-blue-600 text-white px-4 py-2 rounded text-sm font-medium hover:bg-blue-700 transition-all flex items-center"
                 >
-                    <i class="fas fa-plus mr-2 text-sm"></i>
-                    <span class="text-sm font-medium">Convidar Novos Usuários</span>
+                    <i class="fas fa-plus mr-2"></i>
+                    Convidar Novos Usuários
                 </button>
             </div>
 
@@ -102,13 +102,13 @@
                 <nav class="flex space-x-8">
                     <button 
                         id="usersTab"
-                        class="tab-btn active pb-3 px-1 border-b-2 border-blue-600 text-blue-600 font-semibold transition-all text-sm"
+                        class="tab-btn active pb-3 px-1 border-b-2 border-blue-600 text-blue-600 font-medium transition-all text-sm"
                     >
                         Usuários (3)
                     </button>
                     <button 
                         id="invitesTab"
-                        class="tab-btn pb-3 px-1 border-b-2 border-transparent text-gray-500 hover:text-gray-700 font-semibold transition-all text-sm"
+                        class="tab-btn pb-3 px-1 border-b-2 border-transparent text-gray-500 hover:text-gray-700 font-medium transition-all text-sm"
                     >
                         Convites Pendentes (2)
                     </button>
@@ -364,23 +364,23 @@
 
                 return `
                     <tr class="hover:bg-gray-50">
-                        <td class="px-6 py-4">
+                        <td class="px-6 py-3">
                             <div class="flex items-center">
-                                <div class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 mr-3">
-                                    <i class="fas fa-user text-sm"></i>
+                                <div class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 mr-3">
+                                    <i class="fas fa-user text-xs"></i>
                                 </div>
                                 <div class="font-medium text-gray-900 text-sm">${user.name || 'Sem nome'}</div>
                             </div>
                         </td>
-                        <td class="px-6 py-4 text-gray-600 text-sm">
+                        <td class="px-6 py-3 text-gray-700 text-sm">
                             ${user.email}
                         </td>
-                        <td class="px-6 py-4">
-                            <span class="px-3 py-1 rounded-full text-xs font-semibold ${roleClass}">
+                        <td class="px-6 py-3">
+                            <span class="px-2.5 py-1 rounded text-xs font-medium ${roleClass}">
                                 ${roleText}
                             </span>
                         </td>
-                        <td class="px-6 py-4 text-gray-600 text-sm">
+                        <td class="px-6 py-3 text-gray-700 text-sm">
                             ${date}
                         </td>
                     </tr>
@@ -428,21 +428,21 @@
 
                 return `
                     <tr class="hover:bg-gray-50">
-                        <td class="px-6 py-4 text-gray-900 text-sm">
+                        <td class="px-6 py-3 text-gray-900 text-sm">
                             ${invite.email}
                         </td>
-                        <td class="px-6 py-4 text-gray-600 text-sm">
+                        <td class="px-6 py-3 text-gray-700 text-sm">
                             ${createdAt}
                         </td>
-                        <td class="px-6 py-4 text-gray-600 text-sm">
+                        <td class="px-6 py-3 text-gray-700 text-sm">
                             ${expiresAt}
                         </td>
-                        <td class="px-6 py-4">
-                            <span class="px-3 py-1 rounded-full text-xs font-semibold ${isExpired ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'}">
+                        <td class="px-6 py-3">
+                            <span class="px-2.5 py-1 rounded text-xs font-medium ${isExpired ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'}">
                                 ${isExpired ? 'Expirado' : 'Ativo'}
                             </span>
                         </td>
-                        <td class="px-6 py-4 text-right">
+                        <td class="px-6 py-3 text-right">
                             <button 
                                 onclick="deleteInvite('${invite.id}')"
                                 class="text-red-600 hover:text-red-800 transition-colors"

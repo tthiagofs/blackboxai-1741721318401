@@ -8,11 +8,11 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
-<body class="bg-white min-h-screen font-sans">
+<body class="bg-gray-50 min-h-screen font-sans">
     <!-- Container Principal -->
     <div class="flex min-h-screen">
         <!-- Sidebar -->
-        <aside id="sidebar" class="w-56 bg-gray-100 flex flex-col border-r border-gray-200">
+        <aside id="sidebar" class="w-56 bg-white flex flex-col border-r border-gray-200">
             <!-- Logo -->
             <div class="p-6">
                 <h1 class="text-xl font-bold text-gray-800">Relatórios</h1>
@@ -20,23 +20,23 @@
 
             <!-- Menu de Navegação -->
             <nav class="flex-1 px-3">
-                <a href="/dashboard.html" class="flex items-center px-3 py-2.5 mb-1 bg-blue-50 text-blue-600 rounded-lg transition-all">
+                <a href="/dashboard.html" class="flex items-center px-3 py-2.5 mb-1 border-l-4 border-blue-600 bg-blue-50 text-blue-600 transition-all">
                     <i class="fas fa-home mr-3 text-sm"></i>
                     <span class="text-sm">Tela Inicial</span>
                 </a>
                 
-                <a href="/conexoes.html" class="flex items-center px-3 py-2.5 mb-1 text-gray-700 hover:bg-gray-200 rounded-lg transition-all">
+                <a href="/conexoes.html" class="flex items-center px-3 py-2.5 mb-1 border-l-4 border-transparent text-gray-700 hover:bg-gray-50 transition-all">
                     <i class="fas fa-plug mr-3 text-sm"></i>
                     <span class="text-sm">Conexões</span>
                 </a>
                 
-                <a href="/minha-conta.html" class="flex items-center px-3 py-2.5 mb-1 text-gray-700 hover:bg-gray-200 rounded-lg transition-all">
+                <a href="/minha-conta.html" class="flex items-center px-3 py-2.5 mb-1 border-l-4 border-transparent text-gray-700 hover:bg-gray-50 transition-all">
                     <i class="fas fa-user mr-3 text-sm"></i>
                     <span class="text-sm">Minha Conta</span>
                 </a>
                 
                 <!-- Link Admin (apenas para admins) -->
-                <a href="/usuarios.html" id="adminLink" class="hidden flex items-center px-3 py-2.5 mb-1 text-gray-700 hover:bg-gray-200 rounded-lg transition-all">
+                <a href="/usuarios.html" id="adminLink" class="hidden flex items-center px-3 py-2.5 mb-1 border-l-4 border-transparent text-gray-700 hover:bg-gray-50 transition-all">
                     <i class="fas fa-users mr-3 text-sm"></i>
                     <span class="text-sm">Usuários</span>
                 </a>
@@ -52,13 +52,13 @@
         </aside>
 
         <!-- Conteúdo Principal -->
-        <main class="flex-1 p-10">
+        <main class="flex-1 p-10 bg-white">
             <!-- Header -->
             <div class="mb-8 flex items-center justify-between">
-                <h2 class="text-3xl font-bold text-gray-900">Meus Projetos</h2>
-                <button id="newProjectBtn" class="bg-blue-600 text-white px-5 py-2.5 rounded-lg hover:bg-blue-700 transition-all flex items-center shadow-sm">
-                    <i class="fas fa-plus mr-2 text-sm"></i>
-                    <span class="text-sm font-medium">Criar Novo Projeto</span>
+                <h2 class="text-2xl font-bold text-gray-900">Meus Projetos</h2>
+                <button id="newProjectBtn" class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-all flex items-center text-sm font-medium">
+                    <i class="fas fa-plus mr-2"></i>
+                    Criar Novo Projeto
                 </button>
             </div>
 
@@ -304,23 +304,23 @@
         // Criar card de projeto
         function createProjectCard(project) {
             const card = document.createElement('div');
-            card.className = 'project-card bg-white rounded-lg p-5 border border-gray-200 hover:border-blue-500 hover:shadow-md transition-all';
+            card.className = 'project-card bg-white rounded-lg p-4 border border-gray-200 hover:shadow-lg transition-all';
             
             const date = project.createdAt?.toDate ? project.createdAt.toDate() : new Date(project.createdAt);
             const formattedDate = date.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
             
             card.innerHTML = `
-                <div class="mb-4">
-                    <h4 class="text-base font-bold text-gray-900 mb-1">${project.name}</h4>
+                <div class="mb-3">
+                    <h4 class="text-sm font-bold text-gray-900 mb-1">${project.name}</h4>
                     <p class="text-xs text-gray-500">${formattedDate}</p>
                 </div>
                 
                 <div class="flex gap-2">
-                    <button onclick="openProject('${project.id}')" class="flex-1 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-all text-sm font-medium">
+                    <button onclick="openProject('${project.id}')" class="flex items-center justify-center bg-blue-600 text-white px-3 py-1.5 rounded text-xs font-medium hover:bg-blue-700 transition-all">
                         <i class="fas fa-arrow-right mr-1"></i>
                         Acessar
                     </button>
-                    <button onclick="deleteProject('${project.id}', event)" class="px-3 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-all text-sm">
+                    <button onclick="deleteProject('${project.id}', event)" class="px-2.5 py-1.5 bg-red-600 text-white rounded text-xs hover:bg-red-700 transition-all">
                         <i class="fas fa-trash"></i>
                     </button>
                 </div>

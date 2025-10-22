@@ -102,24 +102,24 @@ appLoginForm.addEventListener('submit', async (e) => {
     
     const usernameInput = document.getElementById('username');
     const passwordInput = document.getElementById('password');
-    const username = usernameInput.value.trim();
-    const password = passwordInput.value.trim();
+    const username = usernameInput ? usernameInput.value.trim() : '';
+    const password = passwordInput ? passwordInput.value.trim() : '';
 
     if (username === '' || password === '') {
         appLoginError.textContent = 'Por favor, preencha todos os campos.';
-        appLoginError.style.display = 'block';
+        appLoginError.classList.remove('hidden');
         return;
     }
 
     if (appAuth.validateAppLogin(username, password)) {
-        appLoginError.style.display = 'none';
+        appLoginError.classList.add('hidden');
         localStorage.setItem('appLoggedIn', 'true');  // Armazena que o login foi bem-sucedido
         showScreen(loginScreen);  // Vai direto para login Meta/Google
         usernameInput.value = '';
         passwordInput.value = '';
     } else {
         appLoginError.textContent = 'Usuário ou senha inválidos.';
-        appLoginError.style.display = 'block';
+        appLoginError.classList.remove('hidden');
         usernameInput.value = '';
         passwordInput.value = '';
     }
@@ -129,7 +129,7 @@ appLoginForm.addEventListener('submit', async (e) => {
 simpleReportBtn.addEventListener('click', async () => {
     simpleReportBtn.classList.add('active');
     // Já está logado, apenas carrega contas e vai para tela
-    showScreen(mainContent);
+        showScreen(mainContent);
     if (fbLoggedIn) {
         await loadAdAccounts();
     }
@@ -138,7 +138,7 @@ simpleReportBtn.addEventListener('click', async () => {
 // Seleção de relatório completo
 completeReportBtn.addEventListener('click', async () => {
     // Já está logado, vai direto para a tela de relatório
-    window.location.href = 'RelatorioCompleto.html';
+        window.location.href = 'RelatorioCompleto.html';
 });
 
 // Variáveis de estado de login
@@ -777,12 +777,12 @@ if (appLoggedIn) {
             googleLoggedIn = true;
         }
         
-        showScreen(reportSelectionScreen);
+    showScreen(reportSelectionScreen);
     } else {
         // Logado no app mas não nas plataformas → vai para login de plataformas
         console.log('⚠️ Logado no app, mas não nas plataformas');
-        showScreen(loginScreen);
-    }
+            showScreen(loginScreen);
+        }
 } else {
     // Não logado no app → vai para login do app
     console.log('⚠️ Não logado no app');

@@ -52,13 +52,11 @@ async function listAccounts(accessToken, res) {
     const url = 'https://googleads.googleapis.com/v18/customers:listAccessibleCustomers';
     
     const response = await fetch(url, {
-      method: 'POST',
+      method: 'GET',
       headers: {
         'Authorization': `Bearer ${accessToken}`,
         'developer-token': process.env.GOOGLE_ADS_DEVELOPER_TOKEN,
-        'Content-Type': 'application/json',
       },
-      body: JSON.stringify({}),
     });
 
     if (!response.ok) {

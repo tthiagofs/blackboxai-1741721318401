@@ -78,11 +78,15 @@
 
             console.log('✅ Usuário autenticado:', user.email);
             
-            // Inicializar Facebook SDK
-            await initializeFacebookSDK();
-            
             // Carregar conexões salvas
             await connectionService.initialize();
+            
+            // Inicializar Facebook SDK (se ainda não foi)
+            if (typeof FB === 'undefined') {
+                await initializeFacebookSDK();
+            } else {
+                console.log('✅ Facebook SDK já estava carregado');
+            }
             
             // Carregar e regenerar relatório
             await loadAndRegenerateReport();
@@ -120,6 +124,8 @@
             const reportId = urlParams.get('report');
             const projectId = localStorage.getItem('currentProject');
 
+            console.log('🔍 URL Params - reportId:', reportId, 'projectId:', projectId);
+
             if (!reportId || !projectId) {
                 alert('Erro: Relatório não encontrado');
                 window.location.href = '/dashboard.html';
@@ -156,10 +162,12 @@
 
         // Regenerar métricas da API
         async function regenerateMetrics() {
+            console.log('🔄 [regenerateMetrics] Iniciando regeneração...');
             const loadingSection = document.getElementById('loadingSection');
             const loadingText = loadingSection.querySelector('p:last-child');
             
             try {
+                console.log('📊 [regenerateMetrics] Plataforma:', reportData.platform);
                 let metrics = null;
                 let blackMetrics = null;
                 let bestAds = [];
@@ -167,11 +175,15 @@
 
                 // ========== META ADS ==========
                 if (reportData.platform === 'meta' || reportData.platform === 'both') {
+                    console.log('📱 [regenerateMetrics] Processando Meta Ads...');
                     loadingText.textContent = 'Buscando dados do Meta Ads...';
                     
                     // Obter token do Meta
                     const connections = connectionService.getConnectionStatus();
+                    console.log('🔌 [regenerateMetrics] Status conexões:', connections);
+                    
                     if (!connections.meta.connected) {
+                        console.error('❌ Meta Ads não conectado!');
                         throw new Error('Meta Ads não conectado. Vá para CONEXÕES e faça login.');
                     }
 

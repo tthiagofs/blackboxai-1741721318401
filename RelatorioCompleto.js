@@ -1,10 +1,10 @@
-import { fbAuth } from './auth.js?v=2.6';
-import { exportToPDF } from './exportPDF.js?v=2.6';
-import { formatDateISOToBR, formatCurrencyBRL, encodeWhatsAppText } from './utils/format.js?v=2.6';
-import { setSelectedStyles, debounce } from './utils/dom.js?v=2.6';
-import { FacebookInsightsService } from './services/facebookInsights.js?v=2.6';
-import { GoogleAdsService } from './services/googleAds.js?v=2.6';
-import { googleAuth } from './authGoogle.js?v=2.6';
+import { fbAuth } from './auth.js?v=3.0';
+import { exportToPDF } from './exportPDF.js?v=3.0';
+import { formatDateISOToBR, formatCurrencyBRL, encodeWhatsAppText } from './utils/format.js?v=3.0';
+import { setSelectedStyles, debounce } from './utils/dom.js?v=3.0';
+import { FacebookInsightsService } from './services/facebookInsights.js?v=3.0';
+import { GoogleAdsService } from './services/googleAds.js?v=3.0';
+import { googleAuth } from './authGoogle.js?v=3.0';
 
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -1056,24 +1056,28 @@ function renderStandardReport(metrics, comparisonMetrics) {
     const costChange = comparisonMetrics ? calculateChange(parseFloat(metrics.costPerConversation), parseFloat(comparisonMetrics.previous.costPerConversation)) : null;
     
     return `
-                        <div class="bg-blue-900 text-white rounded-lg p-4 mb-6">
-                            <h3 class="text-xl font-semibold uppercase mb-3">Campanhas</h3>
+                        <div class="bg-gradient-to-r from-blue-50 to-blue-100 border-l-4 border-blue-600 rounded-lg p-6 mb-6">
+                            <h3 class="text-2xl font-bold text-blue-900 mb-4">📊 Campanhas</h3>
                             <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                                <div class="metric-card">
-                                    <h4 class="text-sm font-medium text-gray-200 mb-1">Investimento</h4>
-                    <p class="text-lg font-semibold text-white">${formatCurrencyBRL(metrics.spend)}${renderChangeBadge(spendChange)}</p>
+                                <div class="bg-white rounded-lg p-4 shadow-sm border border-blue-200">
+                                    <h4 class="text-xs font-semibold text-blue-600 uppercase mb-2">Investimento</h4>
+                    <p class="text-2xl font-bold text-gray-900">${formatCurrencyBRL(metrics.spend)}</p>
+                    ${renderChangeBadge(spendChange)}
                                 </div>
-                                <div class="metric-card">
-                                    <h4 class="text-sm font-medium text-gray-200 mb-1">Alcance</h4>
-                                    <p class="text-lg font-semibold text-white">${metrics.reach}${renderChangeBadge(reachChange)}</p>
+                                <div class="bg-white rounded-lg p-4 shadow-sm border border-blue-200">
+                                    <h4 class="text-xs font-semibold text-blue-600 uppercase mb-2">Alcance</h4>
+                                    <p class="text-2xl font-bold text-gray-900">${metrics.reach.toLocaleString('pt-BR')}</p>
+                    ${renderChangeBadge(reachChange)}
                                 </div>
-                                <div class="metric-card">
-                                    <h4 class="text-sm font-medium text-gray-200 mb-1">Conversas Iniciadas</h4>
-                                    <p class="text-lg font-semibold text-white">${metrics.conversations}${renderChangeBadge(conversationsChange)}</p>
+                                <div class="bg-white rounded-lg p-4 shadow-sm border border-blue-200">
+                                    <h4 class="text-xs font-semibold text-blue-600 uppercase mb-2">Conversas Iniciadas</h4>
+                                    <p class="text-2xl font-bold text-gray-900">${metrics.conversations}</p>
+                    ${renderChangeBadge(conversationsChange)}
                                 </div>
-                                <div class="metric-card">
-                                    <h4 class="text-sm font-medium text-gray-200 mb-1">Custo por Conversa</h4>
-                    <p class="text-lg font-semibold text-white">${formatCurrencyBRL(metrics.costPerConversation)}${renderCostChangeBadge(costChange)}</p>
+                                <div class="bg-white rounded-lg p-4 shadow-sm border border-blue-200">
+                                    <h4 class="text-xs font-semibold text-blue-600 uppercase mb-2">Custo por Conversa</h4>
+                    <p class="text-2xl font-bold text-gray-900">${formatCurrencyBRL(metrics.costPerConversation)}</p>
+                    ${renderCostChangeBadge(costChange)}
                                 </div>
                             </div>
         </div>
@@ -1086,19 +1090,27 @@ function renderBestAds(bestAds) {
     }
 
     return `
-                        <h3 class="text-xl font-semibold text-primary mb-3">Anúncios em Destaque</h3>
-                        <div class="space-y-4">
-            ${bestAds.map(ad => `
-                                        <div class="flex items-center bg-white border border-gray-200 rounded-lg p-3">
-                    <img src="${ad.imageUrl}" alt="Anúncio" class="w-24 h-24 object-cover rounded-md mr-4" onerror="this.src='https://dummyimage.com/150x150/ccc/fff'">
-                                            <div>
-                                                <p class="text-gray-700 text-base"><strong>Leads:</strong> ${ad.messages}</p>
-                        <p class="text-gray-700 text-base"><strong>Investimento:</strong> ${formatCurrencyBRL(ad.spend)}</p>
-                        <p class="text-gray-700 text-base"><strong>Custo por Lead:</strong> ${formatCurrencyBRL(ad.costPerMessage)}</p>
-                                            </div>
-                                        </div>
-            `).join('')}
-        </div>
+                        <div class="mt-6">
+                            <h3 class="text-2xl font-bold text-gray-900 mb-4">🏆 Anúncios em Destaque</h3>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                ${bestAds.map(ad => `
+                    <div class="bg-white border-2 border-emerald-200 rounded-xl p-4 shadow-md hover:shadow-lg transition">
+                        <div class="flex items-start gap-4">
+                            <img src="${ad.imageUrl}" alt="Anúncio" class="w-28 h-28 object-cover rounded-lg border-2 border-emerald-300" onerror="this.src='https://dummyimage.com/150x150/10b981/fff&text=AD'">
+                            <div class="flex-1">
+                                <div class="bg-emerald-50 rounded-lg p-3 mb-2">
+                                    <p class="text-sm font-semibold text-emerald-800">💬 Leads: <span class="text-xl font-bold">${ad.messages}</span></p>
+                                </div>
+                                <div class="space-y-1">
+                                    <p class="text-sm text-gray-700"><span class="font-semibold">Investimento:</span> ${formatCurrencyBRL(ad.spend)}</p>
+                                    <p class="text-sm text-gray-700"><span class="font-semibold">Custo por Lead:</span> ${formatCurrencyBRL(ad.costPerMessage)}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `).join('')}
+                            </div>
+                        </div>
     `;
 }
 

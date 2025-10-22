@@ -1,3 +1,34 @@
+/* ===== ESTILOS DE IMPRESSÃO ===== */
+@media print {
+    /* Garantir que tudo fique legível na impressão */
+    * {
+        -webkit-print-color-adjust: exact !important;
+        color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
+    
+    /* Converter fundos escuros em claros para impressão */
+    .bg-blue-900, .bg-gray-900, .bg-black {
+        background-color: #f3f4f6 !important;
+        color: #111827 !important;
+    }
+    
+    /* Garantir texto escuro em fundos claros */
+    .text-white, .text-gray-200 {
+        color: #111827 !important;
+    }
+    
+    /* Bordas visíveis */
+    .border, .border-gray-200 {
+        border: 1px solid #d1d5db !important;
+    }
+    
+    /* Ocultar elementos desnecessários na impressão */
+    button, .no-print {
+        display: none !important;
+    }
+}
+
 /* ===== VARIÁVEIS CSS ===== */
 :root {
     /* Cores principais */

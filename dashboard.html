@@ -160,8 +160,8 @@
     </div>
 
     <script type="module">
-        import { authService } from './services/authService.js';
-        import { projectsService } from './services/projects.js';
+        import { authService } from './services/authService.js?v=1.0';
+        import { projectsService } from './services/projects.js?v=1.1';
 
         // Proteger rota - redirecionar se não estiver logado
         if (!authService.isAuthenticated()) {

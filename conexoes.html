@@ -130,9 +130,11 @@
     <!-- Scripts -->
     <script async defer crossorigin="anonymous" src="https://connect.facebook.net/en_US/sdk.js"></script>
     <script type="module">
-        import { fbAuth } from './auth.js?v=2.10';
-        import { googleAuth } from './authGoogle.js?v=2.10';
-        import { connectionService } from './services/connectionService.js?v=1.0';
+        import { auth } from './config/firebase.js';
+        import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+        import { fbAuth } from './auth.js?v=2.11';
+        import { googleAuth } from './authGoogle.js?v=2.11';
+        import { connectionService } from './services/connectionService.js?v=1.1';
 
         const loginBtn = document.getElementById('loginBtn');
         const googleLoginBtn = document.getElementById('googleLoginBtn');
@@ -145,8 +147,17 @@
         // Verificar status de login ao carregar
         async function updateConnectionStatus() {
             try {
+                // Aguardar Firebase autenticar
+                const user = auth.currentUser;
+                if (!user) {
+                    console.log('⏳ Aguardando autenticação do Firebase...');
+                    return;
+                }
+
                 await connectionService.initialize();
                 const status = connectionService.getConnectionStatus();
+                
+                console.log('📊 Status das conexões:', status);
 
                 // Status do Meta
                 if (status.meta.connected) {
@@ -212,8 +223,13 @@
             }
         });
 
-        // Verificar status inicial
-        updateConnectionStatus();
+        // Aguardar autenticação antes de verificar status
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                console.log('✅ Usuário autenticado, verificando conexões...');
+                await updateConnectionStatus();
+            }
+        });
     </script>
 </body>
 </html>

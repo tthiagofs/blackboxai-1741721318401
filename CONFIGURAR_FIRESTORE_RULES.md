@@ -51,6 +51,12 @@ service cloud.firestore {
                 request.resource.data.userId == request.auth.uid);
       }
       
+      function isProjectOwner() {
+        return request.auth != null && 
+               (get(/databases/$(database)/documents/projects/$(projectId)).data.ownerId == request.auth.uid ||
+                get(/databases/$(database)/documents/projects/$(projectId)).data.userId == request.auth.uid);
+      }
+      
       // Permitir leitura apenas para o dono do projeto
       allow read: if isOwner();
       
@@ -62,6 +68,12 @@ service cloud.firestore {
       
       // Permitir listar todos os projetos (a query filtra por userId)
       allow list: if request.auth != null;
+      
+      // Regras para subcoleção de relatórios dentro de projetos
+      match /reports/{reportId} {
+        // Permitir CRUD completo para o dono do projeto
+        allow read, write, create, update, delete: if isProjectOwner();
+      }
     }
     
     // Regras para coleção de convites (apenas para admin)
@@ -115,9 +127,10 @@ service cloud.firestore {
 - ✅ Apenas **admin** pode **criar** novos convites
 - ✅ Todos podem **deletar** (para invalidar após uso)
 
-### 📊 Coleção `reports`
-- ✅ Cada usuário pode **criar, ler, editar e deletar** apenas seus próprios relatórios
-- ❌ Um usuário **não pode ver** relatórios de outros usuários
+### 📊 Subcoleção `projects/{projectId}/reports`
+- ✅ Cada usuário pode **criar, ler, editar e deletar** relatórios apenas nos seus próprios projetos
+- ✅ Relatórios são organizados como **subcoleção** dentro de cada projeto
+- ❌ Um usuário **não pode ver** relatórios de projetos de outros usuários
 
 ---
 

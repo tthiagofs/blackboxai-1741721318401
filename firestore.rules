@@ -24,6 +24,12 @@ service cloud.firestore {
                 request.resource.data.userId == request.auth.uid);
       }
       
+      function isProjectOwner() {
+        return request.auth != null && 
+               (get(/databases/$(database)/documents/projects/$(projectId)).data.ownerId == request.auth.uid ||
+                get(/databases/$(database)/documents/projects/$(projectId)).data.userId == request.auth.uid);
+      }
+      
       // Permitir leitura apenas para o dono do projeto
       allow read: if isOwner();
       
@@ -35,6 +41,12 @@ service cloud.firestore {
       
       // Permitir listar todos os projetos (a query filtra por userId)
       allow list: if request.auth != null;
+      
+      // Regras para subcoleção de relatórios dentro de projetos
+      match /reports/{reportId} {
+        // Permitir CRUD completo para o dono do projeto
+        allow read, write, create, update, delete: if isProjectOwner();
+      }
     }
     
     // Regras para coleção de convites (apenas para admin)

@@ -1,10 +1,10 @@
 /* ===== VARIÁVEIS CSS ===== */
 :root {
     /* Cores principais */
-    --primary-color: #1e3c72;
-    --primary-hover: #2a5298;
-    --secondary-color: #2563eb;
-    --secondary-hover: #1d4ed8;
+    --primary-color: #2563eb;
+    --primary-hover: #1d4ed8;
+    --secondary-color: #10b981;
+    --secondary-hover: #059669;
     
     /* Cores de fundo */
     --bg-primary: linear-gradient(135deg, #1e3c72, #2a5298);

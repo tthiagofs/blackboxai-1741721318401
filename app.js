@@ -1,7 +1,7 @@
-import { appAuth, fbAuth } from './auth.js?v=2.5';
-import { formatDateISOToBR, encodeWhatsAppText, formatCurrencyBRL } from './utils/format.js?v=2.5';
-import { debounce, setSelectedStyles } from './utils/dom.js?v=2.5';
-import { googleAuth } from './authGoogle.js?v=2.5';
+import { appAuth, fbAuth } from './auth.js?v=2.7';
+import { formatDateISOToBR, encodeWhatsAppText, formatCurrencyBRL } from './utils/format.js?v=2.7';
+import { debounce, setSelectedStyles } from './utils/dom.js?v=2.7';
+import { googleAuth } from './authGoogle.js?v=2.7';
 
 const appLoginScreen = document.getElementById('appLoginScreen');
 const reportSelectionScreen = document.getElementById('reportSelectionScreen');
@@ -14,6 +14,8 @@ const completeReportBtn = document.getElementById('completeReportBtn');
 const loginBtn = document.getElementById('loginBtn');
 const googleLoginBtn = document.getElementById('googleLoginBtn');
 const continueToReportBtn = document.getElementById('continueToReportBtn');
+const continueToReportBtnContainer = document.getElementById('continueToReportBtnContainer');
+const togglePassword = document.getElementById('togglePassword');
 const fbLoginStatus = document.getElementById('fbLoginStatus');
 const googleLoginStatus = document.getElementById('googleLoginStatus');
 const form = document.getElementById('form');
@@ -184,7 +186,7 @@ async function handleFacebookLogin() {
             fbLoggedIn = true;
             fbLoginStatus.classList.remove('hidden');
             loginBtn.classList.add('hidden');
-            checkLoginStatus();
+            // checkLoginStatus() será chamado no event listener
             
             console.log('✅ Facebook conectado com sucesso!');
         } else {
@@ -218,7 +220,7 @@ async function handleGoogleLogin() {
         googleLoggedIn = true;
         googleLoginStatus.classList.remove('hidden');
         googleLoginBtn.classList.add('hidden');
-        checkLoginStatus();
+        // checkLoginStatus() será chamado no event listener
         
         console.log('✅ Google conectado com sucesso!');
     } catch (error) {
@@ -671,14 +673,78 @@ shareWhatsAppBtn.addEventListener('click', () => {
     window.open(`https://api.whatsapp.com/send?text=${encodedText}`, '_blank');
 });
 
-loginBtn.addEventListener('click', (event) => {
+// Toggle de visualização de senha
+if (togglePassword) {
+    togglePassword.addEventListener('click', () => {
+        const passwordInput = document.getElementById('password');
+        const icon = togglePassword.querySelector('i');
+        
+        if (passwordInput.type === 'password') {
+            passwordInput.type = 'text';
+            icon.className = 'fas fa-eye-slash';
+        } else {
+            passwordInput.type = 'password';
+            icon.className = 'fas fa-eye';
+        }
+    });
+}
+
+// Função para mostrar loading no botão
+function setButtonLoading(button, isLoading) {
+    const btnText = button.querySelector('.btn-text');
+    if (isLoading) {
+        button.disabled = true;
+        button.classList.add('opacity-75', 'cursor-not-allowed');
+        if (btnText) {
+            btnText.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Conectando...';
+        }
+    } else {
+        button.disabled = false;
+        button.classList.remove('opacity-75', 'cursor-not-allowed');
+    }
+}
+
+// Função para verificar e mostrar botão "Continuar"
+function checkLoginStatus() {
+    if (fbLoggedIn || googleLoggedIn) {
+        if (continueToReportBtnContainer) {
+            continueToReportBtnContainer.classList.remove('hidden');
+        }
+    } else {
+        if (continueToReportBtnContainer) {
+            continueToReportBtnContainer.classList.add('hidden');
+        }
+    }
+}
+
+loginBtn.addEventListener('click', async (event) => {
     event.preventDefault();
-    handleFacebookLogin();
+    setButtonLoading(loginBtn, true);
+    try {
+        await handleFacebookLogin();
+        checkLoginStatus();
+    } finally {
+        const btnText = loginBtn.querySelector('.btn-text');
+        if (btnText) {
+            btnText.innerHTML = '<i class="fab fa-facebook-f mr-2"></i>Conectar Facebook';
+        }
+        setButtonLoading(loginBtn, false);
+    }
 });
 
-googleLoginBtn.addEventListener('click', (event) => {
+googleLoginBtn.addEventListener('click', async (event) => {
     event.preventDefault();
-    handleGoogleLogin();
+    setButtonLoading(googleLoginBtn, true);
+    try {
+        await handleGoogleLogin();
+        checkLoginStatus();
+    } finally {
+        const btnText = googleLoginBtn.querySelector('.btn-text');
+        if (btnText) {
+            btnText.innerHTML = '<i class="fab fa-google mr-2"></i>Conectar Google';
+        }
+        setButtonLoading(googleLoginBtn, false);
+    }
 });
 
 continueToReportBtn.addEventListener('click', () => {

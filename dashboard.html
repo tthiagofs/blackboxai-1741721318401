@@ -7,178 +7,149 @@
     <link rel="stylesheet" href="style.css">
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        .fade-in {
-            animation: fadeIn 0.5s ease-out;
-        }
-        .card-hover {
-            transition: all 0.3s ease;
-        }
-        .card-hover:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
-        }
-    </style>
 </head>
-<body class="bg-white min-h-screen">
-    <!-- Proteção de Auth -->
-    <script type="module">
-        import { auth } from './config/firebase.js';
-        import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
-        
-        onAuthStateChanged(auth, (user) => {
-            if (!user) {
-                window.location.href = '/login.html';
-                return;
-            }
-        });
-    </script>
-
-    <!-- Header -->
-    <header class="bg-white border-b border-gray-200">
-        <div class="max-w-7xl mx-auto px-6 py-4">
-            <div class="flex items-center justify-between">
-                <!-- Logo -->
-                <div class="flex items-center space-x-3">
-                    <div class="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
-                        <i class="fas fa-chart-line text-xl text-white"></i>
+<body class="bg-gray-50 min-h-screen font-sans">
+    <!-- Container Principal -->
+    <div class="flex min-h-screen">
+        <!-- Sidebar -->
+        <aside id="sidebar" class="w-64 bg-gradient-to-b from-blue-600 to-indigo-700 text-white flex flex-col shadow-xl">
+            <!-- Header do Sidebar -->
+            <div class="p-6 border-b border-blue-500">
+                <div class="flex items-center mb-4">
+                    <div class="w-12 h-12 bg-white rounded-full flex items-center justify-center mr-3">
+                        <i class="fas fa-chart-line text-2xl text-blue-600"></i>
                     </div>
-                    <h1 class="text-xl font-bold text-gray-900">Insightflow</h1>
+                    <h1 class="text-xl font-bold">Insightflow</h1>
                 </div>
-
-                <!-- Menu -->
-                <nav class="hidden md:flex items-center space-x-6">
-                    <a href="/dashboard.html" class="text-blue-600 font-semibold border-b-2 border-blue-600 pb-1">
-                        Dashboard
-                    </a>
-                    <a href="/conexoes.html" class="text-gray-600 hover:text-blue-600 transition-colors pb-1">
-                        Conexões
-                    </a>
-                    <a href="/minha-conta.html" class="text-gray-600 hover:text-blue-600 transition-colors pb-1">
-                        Minha Conta
-                    </a>
-                    <a href="/usuarios.html" id="adminLink" class="hidden text-gray-600 hover:text-blue-600 transition-colors pb-1">
-                        Usuários
-                    </a>
-                </nav>
-
-                <!-- User Menu -->
-                <div class="flex items-center space-x-4">
-                    <div class="text-right hidden md:block">
-                        <p id="userName" class="text-sm font-semibold text-gray-900">...</p>
-                        <p id="userEmail" class="text-xs text-gray-500">...</p>
+                
+                <!-- Perfil do Usuário -->
+                <div class="flex items-center mt-4">
+                    <div id="userAvatar" class="w-10 h-10 bg-blue-300 rounded-full flex items-center justify-center text-blue-900 font-bold mr-3">
+                        <i class="fas fa-user"></i>
                     </div>
-                    <div id="userAvatar" class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 font-bold">
-                        U
+                    <div class="flex-1">
+                        <p id="userName" class="font-semibold text-sm">Carregando...</p>
+                        <p id="userEmail" class="text-xs text-blue-200">...</p>
                     </div>
-                    <button id="logoutBtn" class="text-gray-600 hover:text-red-600 transition-colors" title="Sair">
-                        <i class="fas fa-sign-out-alt"></i>
-                    </button>
                 </div>
             </div>
-        </div>
-    </header>
 
-    <!-- Main Content -->
-    <main class="max-w-7xl mx-auto px-6 py-12">
-        <!-- Welcome Section -->
-        <div class="text-center mb-12 fade-in">
-            <h2 class="text-4xl font-bold text-gray-900 mb-3">
-                <span id="greetingText">Olá</span>, <span id="userNameHeader">...</span>! 👋
-            </h2>
-            <p class="text-lg text-gray-600">Bem-vindo ao Insightflow</p>
-        </div>
+            <!-- Menu de Navegação -->
+            <nav class="flex-1 p-4">
+                <a href="/dashboard.html" class="flex items-center px-4 py-3 mb-2 bg-blue-500 bg-opacity-50 rounded-lg hover:bg-opacity-70 transition-all">
+                    <i class="fas fa-home mr-3"></i>
+                    <span>Dashboard</span>
+                </a>
+                
+                <a href="/conexoes.html" class="flex items-center px-4 py-3 mb-2 rounded-lg hover:bg-blue-500 hover:bg-opacity-50 transition-all">
+                    <i class="fas fa-link mr-3"></i>
+                    <span>Conexões</span>
+                </a>
+                
+                <a href="/minha-conta.html" class="flex items-center px-4 py-3 mb-2 rounded-lg hover:bg-blue-500 hover:bg-opacity-50 transition-all">
+                    <i class="fas fa-user-circle mr-3"></i>
+                    <span>Minha Conta</span>
+                </a>
+                
+                <!-- Link Admin (apenas para admins) -->
+                <a href="/usuarios.html" id="adminLink" class="hidden flex items-center px-4 py-3 mb-2 rounded-lg hover:bg-blue-500 hover:bg-opacity-50 transition-all">
+                    <i class="fas fa-users-cog mr-3"></i>
+                    <span>Usuários</span>
+                </a>
+            </nav>
 
-        <!-- Projects Section -->
-        <div class="fade-in" style="animation-delay: 0.1s;">
-            <!-- Section Header -->
-            <div class="flex items-center justify-between mb-8">
-                <div>
-                    <h3 class="text-2xl font-bold text-gray-900">Meus Projetos</h3>
-                    <p class="text-gray-600 mt-1">Crie e gerencie seus projetos de análise</p>
-                </div>
-                <button id="newProjectBtn" class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-all shadow-md hover:shadow-lg flex items-center space-x-2">
-                    <i class="fas fa-plus"></i>
-                    <span>Novo Projeto</span>
+            <!-- Botão Sair -->
+            <div class="p-4 border-t border-blue-500">
+                <button id="logoutBtn" class="w-full flex items-center justify-center px-4 py-3 bg-red-500 hover:bg-red-600 rounded-lg transition-all">
+                    <i class="fas fa-sign-out-alt mr-2"></i>
+                    <span>Sair</span>
                 </button>
             </div>
+        </aside>
 
-            <!-- Projects Grid -->
-            <div id="projectsGrid">
-                <!-- Loading State -->
-                <div id="projectsLoading" class="flex items-center justify-center py-20">
-                    <div class="text-center">
-                        <div class="animate-spin rounded-full h-12 w-12 border-b-4 border-blue-600 mx-auto mb-4"></div>
-                        <p class="text-gray-600">Carregando projetos...</p>
-                    </div>
-                </div>
+        <!-- Conteúdo Principal -->
+        <main class="flex-1 p-8">
+            <!-- Header -->
+            <div class="mb-8">
+                <h2 class="text-3xl font-bold text-gray-800 mb-2">
+                    <span id="greetingText">Olá</span>, <span id="userNameHeader">...</span>! 👋
+                </h2>
+                <p class="text-gray-600">Bem-vindo ao Insightflow</p>
+            </div>
 
-                <!-- Empty State -->
-                <div id="projectsEmpty" class="hidden text-center py-20">
-                    <div class="inline-flex items-center justify-center w-20 h-20 bg-gray-100 rounded-full mb-6">
-                        <i class="fas fa-folder-open text-4xl text-gray-400"></i>
-                    </div>
-                    <h3 class="text-xl font-semibold text-gray-900 mb-2">Nenhum projeto ainda</h3>
-                    <p class="text-gray-600 mb-6">Crie seu primeiro projeto para começar a gerar relatórios</p>
-                    <button id="createFirstProjectBtn" class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-all shadow-md inline-flex items-center space-x-2">
-                        <i class="fas fa-plus"></i>
-                        <span>Criar Primeiro Projeto</span>
+            <!-- Projetos -->
+            <div class="mb-8">
+                <div class="flex items-center justify-between mb-6">
+                    <h3 class="text-2xl font-bold text-gray-800">Meus Projetos</h3>
+                    <button id="newProjectBtn" class="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-6 py-3 rounded-lg hover:from-blue-700 hover:to-indigo-700 transform hover:scale-105 transition-all shadow-lg flex items-center">
+                        <i class="fas fa-plus mr-2"></i>
+                        Novo Projeto
                     </button>
                 </div>
 
-                <!-- Projects List (populated by JS) -->
-                <div id="projectsList" class="hidden grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+                <!-- Grid de Projetos -->
+                <div id="projectsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <!-- Loading State -->
+                    <div id="projectsLoading" class="col-span-full flex items-center justify-center py-12">
+                        <div class="text-center">
+                            <div class="animate-spin rounded-full h-12 w-12 border-b-4 border-blue-600 mx-auto mb-4"></div>
+                            <p class="text-gray-600">Carregando projetos...</p>
+                        </div>
+                    </div>
+
+                    <!-- Empty State (será mostrado via JS se não houver projetos) -->
+                    <div id="projectsEmpty" class="hidden col-span-full text-center py-12">
+                        <div class="bg-white rounded-2xl p-12 shadow-md">
+                            <i class="fas fa-folder-open text-6xl text-gray-300 mb-4"></i>
+                            <h4 class="text-xl font-bold text-gray-800 mb-2">Nenhum projeto ainda</h4>
+                            <p class="text-gray-600 mb-6">Crie seu primeiro projeto para começar a gerar relatórios</p>
+                            <button onclick="document.getElementById('newProjectBtn').click()" class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-all">
+                                <i class="fas fa-plus mr-2"></i>
+                                Criar Primeiro Projeto
+                            </button>
+                        </div>
+                    </div>
+                </div>
             </div>
-        </div>
-    </main>
+        </main>
+    </div>
 
     <!-- Modal Novo Projeto -->
-    <div id="newProjectModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-        <div class="bg-white rounded-xl shadow-2xl max-w-md w-full">
-            <!-- Modal Header -->
-            <div class="bg-blue-600 px-6 py-4 rounded-t-xl flex items-center justify-between">
-                <h3 class="text-xl font-bold text-white">
-                    <i class="fas fa-folder-plus mr-2"></i>
-                    Novo Projeto
-                </h3>
-                <button id="closeModalBtn" class="text-white hover:text-gray-200 transition-colors">
-                    <i class="fas fa-times text-xl"></i>
+    <div id="newProjectModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div class="bg-white rounded-2xl p-8 max-w-md w-full mx-4 shadow-2xl">
+            <div class="flex items-center justify-between mb-6">
+                <h3 class="text-2xl font-bold text-gray-800">Novo Projeto</h3>
+                <button id="closeModalBtn" class="text-gray-500 hover:text-gray-700 transition-colors">
+                    <i class="fas fa-times text-2xl"></i>
                 </button>
             </div>
 
-            <!-- Modal Body -->
-            <form id="newProjectForm" class="p-6 space-y-4">
-                <div>
+            <form id="newProjectForm">
+                <div class="mb-6">
                     <label for="projectName" class="block text-sm font-semibold text-gray-700 mb-2">
-                        Nome do Projeto
+                        <i class="fas fa-folder text-blue-600 mr-2"></i>Nome do Projeto
                     </label>
                     <input 
                         type="text" 
                         id="projectName" 
-                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                        placeholder="Ex: Relatório Oral Centter"
                         required
-                        autocomplete="off"
+                        placeholder="Ex: Campanha Black Friday 2025"
+                        class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-600 focus:outline-none transition-colors"
                     >
                 </div>
 
-                <!-- Buttons -->
-                <div class="flex items-center space-x-3 pt-4">
+                <div class="flex gap-3">
                     <button 
-                        type="button"
+                        type="button" 
                         id="cancelProjectBtn"
-                        class="flex-1 px-4 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-all"
+                        class="flex-1 px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-all"
                     >
                         Cancelar
                     </button>
                     <button 
                         type="submit" 
                         id="createProjectBtn"
-                        class="flex-1 bg-blue-600 text-white px-4 py-3 rounded-lg hover:bg-blue-700 transition-all shadow-md"
+                        class="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-6 py-3 rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all disabled:opacity-50"
                     >
                         <i class="fas fa-check mr-2"></i>
                         Criar
@@ -189,22 +160,30 @@
     </div>
 
     <script type="module">
-        import { auth, db } from './config/firebase.js';
+        import { auth } from './config/firebase.js';
         import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
-        import { authService } from './services/authService.js?v=1.4';
-        import { projectsService } from './services/projects.js?v=1.4';
-        import { connectionService } from './services/connectionService.js?v=1.1';
+        import { authService } from './services/authService.js?v=1.3';
+        import { projectsService } from './services/projects.js?v=1.3';
+        import { connectionService } from './services/connectionService.js?v=1.0';
 
-        // Aguardar Firebase estar pronto
+        // Aguardar Firebase estar pronto antes de verificar autenticação
+        console.log('⏳ Aguardando Firebase verificar autenticação...');
+        
         onAuthStateChanged(auth, async (user) => {
+            console.log('🔔 onAuthStateChanged disparado - user:', user?.email || 'null');
+            
             if (!user) {
+                console.warn('⚠️ Usuário NÃO autenticado - redirecionando para login');
                 window.location.href = '/login.html';
                 return;
             }
             
+            console.log('✅ Usuário autenticado no dashboard:', user.email);
+            
             // Carregar conexões salvas
             try {
                 await connectionService.initialize();
+                console.log('✅ ConnectionService inicializado');
             } catch (error) {
                 console.warn('⚠️ Erro ao inicializar ConnectionService:', error);
             }
@@ -213,153 +192,225 @@
         });
 
         function initDashboard() {
-            const userName = document.getElementById('userName');
-            const userEmail = document.getElementById('userEmail');
-            const userNameHeader = document.getElementById('userNameHeader');
-            const userAvatar = document.getElementById('userAvatar');
-            const logoutBtn = document.getElementById('logoutBtn');
-            const adminLink = document.getElementById('adminLink');
-            const newProjectBtn = document.getElementById('newProjectBtn');
-            const createFirstProjectBtn = document.getElementById('createFirstProjectBtn');
-            const newProjectModal = document.getElementById('newProjectModal');
-            const closeModalBtn = document.getElementById('closeModalBtn');
-            const cancelProjectBtn = document.getElementById('cancelProjectBtn');
-            const newProjectForm = document.getElementById('newProjectForm');
-            const projectNameInput = document.getElementById('projectName');
-            const projectsGrid = document.getElementById('projectsGrid');
-            const projectsLoading = document.getElementById('projectsLoading');
-            const projectsEmpty = document.getElementById('projectsEmpty');
-            const projectsList = document.getElementById('projectsList');
-            const greetingText = document.getElementById('greetingText');
+            console.log('🎯 Inicializando dashboard...');
 
-            // Saudação baseada no horário
-            const hour = new Date().getHours();
-            if (hour < 12) {
-                greetingText.textContent = 'Bom dia';
-            } else if (hour < 18) {
-                greetingText.textContent = 'Boa tarde';
-            } else {
-                greetingText.textContent = 'Boa noite';
-            }
+        // Elementos do DOM
+        const userName = document.getElementById('userName');
+        const userEmail = document.getElementById('userEmail');
+        const userNameHeader = document.getElementById('userNameHeader');
+        const userAvatar = document.getElementById('userAvatar');
+        const logoutBtn = document.getElementById('logoutBtn');
+        const adminLink = document.getElementById('adminLink');
+        const newProjectBtn = document.getElementById('newProjectBtn');
+        const newProjectModal = document.getElementById('newProjectModal');
+        const closeModalBtn = document.getElementById('closeModalBtn');
+        const cancelProjectBtn = document.getElementById('cancelProjectBtn');
+        const newProjectForm = document.getElementById('newProjectForm');
+        const projectNameInput = document.getElementById('projectName');
+        const projectsGrid = document.getElementById('projectsGrid');
+        const projectsLoading = document.getElementById('projectsLoading');
+        const projectsEmpty = document.getElementById('projectsEmpty');
+        const greetingText = document.getElementById('greetingText');
 
-            // Carregar dados do usuário
-            async function loadUserData() {
-                const user = authService.getCurrentUser();
+        // Saudação baseada no horário
+        const hour = new Date().getHours();
+        if (hour < 12) {
+            greetingText.textContent = 'Bom dia';
+        } else if (hour < 18) {
+            greetingText.textContent = 'Boa tarde';
+        } else {
+            greetingText.textContent = 'Boa noite';
+        }
+
+        // Carregar dados do usuário
+        async function loadUserData() {
+            const user = authService.getCurrentUser();
+            
+            if (user) {
+                userName.textContent = user.name || 'Usuário';
+                userEmail.textContent = user.email || '';
+                userNameHeader.textContent = user.name || 'Usuário';
                 
-                if (user) {
-                    userName.textContent = user.name || 'Usuário';
-                    userEmail.textContent = user.email || '';
-                    userNameHeader.textContent = user.name || 'Usuário';
-                    
-                    // Avatar com inicial
-                    const initial = user.name ? user.name.charAt(0).toUpperCase() : 'U';
-                    userAvatar.textContent = initial;
-                    
-                    // Mostrar link admin
-                    if (user.role === 'admin') {
-                        adminLink.classList.remove('hidden');
-                    }
+                // Avatar com inicial do nome
+                const initial = user.name ? user.name.charAt(0).toUpperCase() : 'U';
+                userAvatar.innerHTML = initial;
+                
+                // Mostrar link admin se for admin
+                if (user.role === 'admin') {
+                    adminLink.classList.remove('hidden');
                 }
             }
+        }
 
-            // Logout
-            logoutBtn.addEventListener('click', async () => {
-                if (confirm('Tem certeza que deseja sair?')) {
-                    await authService.logout();
-                    window.location.href = '/login.html';
-                }
-            });
+        // Logout
+        logoutBtn.addEventListener('click', async () => {
+            if (confirm('Tem certeza que deseja sair?')) {
+                await authService.logout();
+                window.location.href = '/login.html';
+            }
+        });
 
-            // Modal Novo Projeto
-            function openModal() {
-                newProjectModal.classList.remove('hidden');
-                projectNameInput.focus();
+        // Modal Novo Projeto
+        newProjectBtn.addEventListener('click', () => {
+            newProjectModal.classList.remove('hidden');
+            projectNameInput.focus();
+        });
+
+        closeModalBtn.addEventListener('click', () => {
+            newProjectModal.classList.add('hidden');
+            projectNameInput.value = '';
+        });
+
+        cancelProjectBtn.addEventListener('click', () => {
+            newProjectModal.classList.add('hidden');
+            projectNameInput.value = '';
+        });
+
+        // Criar novo projeto
+        newProjectForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const projectName = projectNameInput.value.trim();
+            
+            if (!projectName) {
+                alert('Por favor, digite um nome para o projeto');
+                return;
             }
 
-            function closeModal() {
-                newProjectModal.classList.add('hidden');
-                newProjectForm.reset();
-            }
+            const createBtn = document.getElementById('createProjectBtn');
+            createBtn.disabled = true;
+            createBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Criando...';
 
-            newProjectBtn.addEventListener('click', openModal);
-            createFirstProjectBtn?.addEventListener('click', openModal);
-            closeModalBtn.addEventListener('click', closeModal);
-            cancelProjectBtn.addEventListener('click', closeModal);
-
-            // Criar Projeto
-            newProjectForm.addEventListener('submit', async (e) => {
-                e.preventDefault();
+            try {
+                const result = await projectsService.createProject(projectName);
                 
-                const name = projectNameInput.value.trim();
-                if (!name) return;
+                if (result.success) {
+                    newProjectModal.classList.add('hidden');
+                    projectNameInput.value = '';
+                    await loadProjects();
+                } else {
+                    alert('Erro ao criar projeto: ' + result.error);
+                }
+            } catch (error) {
+                console.error('Erro ao criar projeto:', error);
+                alert('Erro ao criar projeto. Tente novamente.');
+            } finally {
+                createBtn.disabled = false;
+                createBtn.innerHTML = '<i class="fas fa-check mr-2"></i>Criar';
+            }
+        });
 
-                const createBtn = document.getElementById('createProjectBtn');
-                createBtn.disabled = true;
-                createBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Criando...';
+        // Carregar projetos
+        async function loadProjects() {
+            projectsLoading.classList.remove('hidden');
+            projectsEmpty.classList.add('hidden');
+            
+            // Limpar projetos existentes
+            const existingProjects = projectsGrid.querySelectorAll('.project-card');
+            existingProjects.forEach(card => card.remove());
 
+            try {
+                const projects = await projectsService.listProjects();
+                
+                projectsLoading.classList.add('hidden');
+                
+                if (projects.length === 0) {
+                    projectsEmpty.classList.remove('hidden');
+                } else {
+                    projects.forEach(project => {
+                        const projectCard = createProjectCard(project);
+                        projectsGrid.appendChild(projectCard);
+                    });
+                }
+            } catch (error) {
+                console.error('❌ Erro ao carregar projetos:', error);
+                console.error('Detalhes:', error.message);
+                projectsLoading.classList.add('hidden');
+                
+                // Mostrar mensagem de erro mas NÃO redirecionar
+                projectsEmpty.classList.remove('hidden');
+                const emptyDiv = document.getElementById('projectsEmpty');
+                emptyDiv.innerHTML = `
+                    <div class="col-span-full text-center py-12">
+                        <div class="bg-red-50 rounded-2xl p-12 shadow-md border-2 border-red-200">
+                            <i class="fas fa-exclamation-triangle text-6xl text-red-400 mb-4"></i>
+                            <h4 class="text-xl font-bold text-gray-800 mb-2">Erro ao carregar projetos</h4>
+                            <p class="text-gray-600 mb-4">${error.message || 'Erro desconhecido'}</p>
+                            <button onclick="location.reload()" class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-all">
+                                <i class="fas fa-sync mr-2"></i>
+                                Tentar Novamente
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        // Criar card de projeto
+        function createProjectCard(project) {
+            const card = document.createElement('div');
+            card.className = 'project-card bg-white rounded-xl p-6 shadow-md hover:shadow-xl transition-all cursor-pointer border-2 border-transparent hover:border-blue-600';
+            
+            const date = project.createdAt?.toDate ? project.createdAt.toDate() : new Date(project.createdAt);
+            const formattedDate = date.toLocaleDateString('pt-BR');
+            
+            card.innerHTML = `
+                <div class="flex items-start justify-between mb-4">
+                    <div class="flex-1">
+                        <h4 class="text-lg font-bold text-gray-800 mb-2">${project.name}</h4>
+                        <p class="text-sm text-gray-500">
+                            <i class="fas fa-calendar text-blue-600 mr-1"></i>
+                            Criado em ${formattedDate}
+                        </p>
+                    </div>
+                    <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-folder text-blue-600 text-xl"></i>
+                    </div>
+                </div>
+                
+                <div class="flex gap-2 mt-4">
+                    <button onclick="openProject('${project.id}')" class="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-all text-sm">
+                        <i class="fas fa-folder-open mr-1"></i>
+                        Abrir
+                    </button>
+                    <button onclick="deleteProject('${project.id}', event)" class="px-4 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-all text-sm">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            `;
+            
+            return card;
+        }
+
+        // Abrir projeto (futuro)
+        window.openProject = (projectId) => {
+            console.log('Abrindo projeto:', projectId);
+            localStorage.setItem('currentProject', projectId);
+            // Futuramente: window.location.href = `/projeto.html?id=${projectId}`;
+            // Por enquanto, vai direto para relatório completo
+            window.location.href = '/RelatorioCompleto.html';
+        };
+
+        // Deletar projeto
+        window.deleteProject = async (projectId, event) => {
+            event.stopPropagation();
+            
+            if (confirm('Tem certeza que deseja excluir este projeto?')) {
                 try {
-                    await projectsService.createProject({ name });
-                    closeModal();
+                    await projectsService.deleteProject(projectId);
                     await loadProjects();
                 } catch (error) {
-                    console.error('Erro ao criar projeto:', error);
-                    alert('Erro ao criar projeto. Tente novamente.');
-                } finally {
-                    createBtn.disabled = false;
-                    createBtn.innerHTML = '<i class="fas fa-check mr-2"></i>Criar';
-                }
-            });
-
-            // Carregar Projetos
-            async function loadProjects() {
-                projectsLoading.classList.remove('hidden');
-                projectsEmpty.classList.add('hidden');
-                projectsList.classList.add('hidden');
-
-                try {
-                    const projects = await projectsService.listProjects();
-                    
-                    projectsLoading.classList.add('hidden');
-
-                    if (projects.length === 0) {
-                        projectsEmpty.classList.remove('hidden');
-                        return;
-                    }
-
-                    projectsList.classList.remove('hidden');
-                    projectsList.innerHTML = projects.map(project => `
-                        <div class="bg-white border border-gray-200 rounded-xl p-6 card-hover cursor-pointer">
-                            <div class="flex items-start justify-between mb-4">
-                                <div class="flex items-center space-x-3">
-                                    <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                                        <i class="fas fa-folder text-2xl text-blue-600"></i>
-                                    </div>
-                                    <div>
-                                        <h3 class="font-bold text-gray-900 text-lg">${project.name}</h3>
-                                        <p class="text-sm text-gray-500">Criado em ${new Date(project.createdAt).toLocaleDateString('pt-BR')}</p>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <div class="mt-4 pt-4 border-t border-gray-100">
-                                <button class="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-all text-sm font-semibold">
-                                    <i class="fas fa-chart-bar mr-2"></i>
-                                    Gerar Relatório
-                                </button>
-                            </div>
-                        </div>
-                    `).join('');
-                } catch (error) {
-                    console.error('Erro ao carregar projetos:', error);
-                    projectsLoading.classList.add('hidden');
-                    projectsEmpty.classList.remove('hidden');
+                    console.error('Erro ao deletar projeto:', error);
+                    alert('Erro ao deletar projeto');
                 }
             }
+        };
 
-            // Inicializar
-            loadUserData();
-            loadProjects();
+        // Inicializar
+        loadUserData();
+        loadProjects();
         }
     </script>
 </body>
 </html>
+

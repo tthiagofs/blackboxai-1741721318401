@@ -341,8 +341,14 @@
                 </div>
             `;
 
-            // Adicionar evento ao botão PDF
-            document.getElementById('exportPdfBtn').addEventListener('click', exportPDF);
+            // Adicionar evento ao botão PDF (com verificação)
+            const exportBtn = document.getElementById('exportPDFBtn');
+            if (exportBtn) {
+                exportBtn.addEventListener('click', exportPDF);
+                console.log('✅ Botão exportar PDF configurado');
+            } else {
+                console.error('❌ Botão exportPDFBtn não encontrado no DOM');
+            }
             
             console.log('✅ Relatório renderizado com sucesso!');
         }
@@ -352,16 +358,19 @@
             console.log('📄 Exportando para PDF...');
             
             const { jsPDF } = window.jspdf;
-            const reportContent = document.getElementById('report-content');
+            
+            // Buscar o container principal do relatório (bg-white)
+            const reportContent = document.querySelector('.bg-white.rounded-lg.shadow-lg');
             
             if (!reportContent) {
-                alert('Erro ao exportar PDF');
+                alert('Erro ao exportar PDF: Conteúdo não encontrado');
+                console.error('❌ Container do relatório não encontrado');
                 return;
             }
 
             try {
-                // Ocultar botão durante captura
-                const btn = document.getElementById('exportPdfBtn');
+                // Ocultar botão durante captura (ID correto: exportPDFBtn)
+                const btn = document.getElementById('exportPDFBtn');
                 if (btn) btn.style.display = 'none';
 
                 // Capturar como imagem
@@ -372,7 +381,7 @@
                 });
 
                 // Restaurar botão
-                if (btn) btn.style.display = 'flex';
+                if (btn) btn.style.display = 'inline-flex';
 
                 // Criar PDF
                 const imgData = canvas.toDataURL('image/png');

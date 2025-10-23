@@ -93,8 +93,8 @@ export async function initializeDefaultTemplates(userId) {
 export async function listTemplates(userId) {
     try {
         const templatesRef = collection(db, 'users', userId, 'analysisTemplates');
-        const q = query(templatesRef, orderBy('order', 'asc'));
-        const snapshot = await getDocs(q);
+        // Removido orderBy para evitar necessidade de índice
+        const snapshot = await getDocs(templatesRef);
 
         const templates = {};
         snapshot.forEach(doc => {
@@ -106,6 +106,11 @@ export async function listTemplates(userId) {
                 id: doc.id,
                 ...data
             });
+        });
+
+        // Ordenar cada categoria manualmente por 'order'
+        Object.keys(templates).forEach(category => {
+            templates[category].sort((a, b) => (a.order || 0) - (b.order || 0));
         });
 
         return templates;
@@ -180,8 +185,9 @@ export async function getTemplatesByCategory(userId, category) {
         const templatesRef = collection(db, 'users', userId, 'analysisTemplates');
         const q = query(
             templatesRef, 
-            where('category', '==', category),
-            orderBy('order', 'asc')
+            where('category', '==', category)
+            // Removido orderBy para evitar necessidade de índice composto
+            // Os templates serão ordenados manualmente após busca
         );
         const snapshot = await getDocs(q);
 
@@ -192,6 +198,9 @@ export async function getTemplatesByCategory(userId, category) {
                 ...doc.data()
             });
         });
+
+        // Ordenar manualmente por 'order'
+        templates.sort((a, b) => (a.order || 0) - (b.order || 0));
 
         return templates;
     } catch (error) {

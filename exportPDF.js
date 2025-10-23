@@ -46,10 +46,11 @@ export async function exportToPDF(
         // Pegar todas as seções filhas diretas
         const children = Array.from(mainContent.children);
         children.forEach(child => {
-            // Cada seção (Meta Ads White, Black, Google, Anúncios, Resultados, Análise)
+            // Cada seção (Meta Ads White, Black, Google, Total Leads, Anúncios, Resultados, Análise)
             if (child.classList.contains('bg-blue-600') || 
                 child.classList.contains('bg-gray-900') || 
                 child.classList.contains('bg-red-600') ||
+                child.classList.contains('bg-gradient-to-r') || // Incluir gradientes (Total de Leads)
                 child.classList.contains('mt-6') ||
                 child.tagName === 'P') {
                 sections.push(child);

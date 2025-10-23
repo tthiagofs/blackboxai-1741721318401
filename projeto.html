@@ -355,7 +355,7 @@
         import { auth, db, storage } from './config/firebase.js';
         import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
         import { ref, uploadBytes, getDownloadURL } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js';
-        import { doc, updateDoc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+        import { doc, updateDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
         import { authService } from './services/authService.js?v=1.4';
         import { projectsService } from './services/projects.js?v=1.3';
         import { reportsService } from './services/reportsService.js?v=1.0';
@@ -463,13 +463,22 @@
                 const projectRef = doc(db, 'projects', currentProjectId);
                 await updateDoc(projectRef, {
                     logoUrl: downloadURL,
-                    updatedAt: new Date().toISOString()
+                    updatedAt: serverTimestamp()
                 });
 
-                console.log('✅ Logo salva com sucesso no Firestore!');
+                console.log('✅ Logo salva com sucesso no Firestore!', {
+                    projectId: currentProjectId,
+                    logoUrl: downloadURL
+                });
                 
                 // Atualizar o projeto atual
                 currentProject = await projectsService.getProject(currentProjectId);
+                console.log('✅ Projeto atualizado:', currentProject);
+                
+                // Garantir que a logo permaneça visível
+                if (currentProject && currentProject.logoUrl) {
+                    logoPreview.src = currentProject.logoUrl;
+                }
                 
                 alert('✅ Logo salva com sucesso!\n\nFormato ideal: PNG ou JPG\nTamanho: 200x200px\nA logo será exibida nos relatórios.');
             } catch (error) {

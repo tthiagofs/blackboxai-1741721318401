@@ -1187,8 +1187,8 @@ function renderCompleteReport(unitName, startDate, endDate, metrics, blackMetric
 function renderBlackWhiteReport(metrics, blackMetrics, accountName = '') {
     // Helper para criar ícone com fundo colorido (melhor para PDF)
     const createIconWithBackground = (iconClass, bgColor) => {
-        return `<div style="width: 16px; height: 16px; min-width: 16px; min-height: 16px; background-color: ${bgColor}; border-radius: 4px; display: flex; align-items: center; justify-content: center;">
-            <i class="${iconClass}" style="font-size: 10px; color: white;"></i>
+        return `<div style="width: 20px; height: 20px; min-width: 20px; min-height: 20px; background-color: ${bgColor}; border-radius: 4px; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;">
+            <i class="${iconClass}" style="font-size: 11px; color: white; line-height: 1;"></i>
         </div>`;
     };
 
@@ -1328,6 +1328,13 @@ function renderBlackWhiteReport(metrics, blackMetrics, accountName = '') {
 }
 
 function renderStandardReport(metrics, comparisonMetrics, accountName = '') {
+    // Helper para criar ícone com fundo colorido (melhor para PDF)
+    const createIconWithBackground = (iconClass, bgColor) => {
+        return `<div style="width: 20px; height: 20px; min-width: 20px; min-height: 20px; background-color: ${bgColor}; border-radius: 4px; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;">
+            <i class="${iconClass}" style="font-size: 11px; color: white; line-height: 1;"></i>
+        </div>`;
+    };
+
     // Helper para calcular variação percentual
     const calculateChange = (current, previous) => {
         if (!previous || previous === 0) return null;

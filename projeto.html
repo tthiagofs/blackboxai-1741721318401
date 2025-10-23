@@ -263,7 +263,9 @@
             console.log('Abrindo relatório:', reportId);
             localStorage.setItem('currentProject', currentProjectId);
             localStorage.setItem('currentReport', reportId);
-            window.location.href = '/visualizar-relatorio.html?report=' + reportId;
+            // Adiciona timestamp para quebrar cache
+            const timestamp = new Date().getTime();
+            window.location.href = `/visualizar-relatorio.html?report=${reportId}&_t=${timestamp}`;
         };
 
         // Deletar relatório

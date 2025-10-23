@@ -237,6 +237,7 @@ let hasBlack = null; // null (não respondido), true (Sim), false (Não)
 let reportMetrics = null;      // Para armazenar as métricas (metrics)
 let reportBlackMetrics = null; // Para armazenar as métricas Black (blackMetrics)
 let reportBestAds = null;      // Para armazenar os melhores anúncios (bestAds)
+let reportComparisonMetrics = null; // Para armazenar os dados de comparação
 let lastFormState = {
     unitId: null,
     startDate: null,
@@ -1135,9 +1136,10 @@ async function generateCompleteReport() {
         reportMetrics = metrics;
         reportBlackMetrics = blackMetrics;
     reportBestAds = bestAds;
+        reportComparisonMetrics = comparisonMetrics;
 
-        // Renderizar relatório (SEM análise ainda)
-        renderCompleteReport(accountName, startDate, endDate, metrics, blackMetrics, bestAds, comparisonMetrics, 0, 0, 0, '', currentProjectLogo);
+        // Renderizar relatório COM dados de negócio, mas SEM análise de texto ainda
+        renderCompleteReport(accountName, startDate, endDate, metrics, blackMetrics, bestAds, comparisonMetrics, budgetsCompleted, salesCount, revenue, '', currentProjectLogo);
         
         // Mostrar seção de análise
         const analysisSection = document.getElementById('analysisSection');
@@ -1846,7 +1848,7 @@ if (generateFinalReportBtn) {
             reportMetrics, 
             reportBlackMetrics, 
             reportBestAds, 
-            null, // comparisonMetrics (já está no reportMetrics)
+            reportComparisonMetrics, // Usar os dados de comparação salvos
             budgetsCompleted, 
             salesCount, 
             revenue, 
@@ -1872,7 +1874,6 @@ if (generateFinalReportBtn) {
         }
         
         console.log('✅ Relatório regenerado com sucesso!');
-        alert('✅ Relatório atualizado com sua análise!');
     });
 }
 

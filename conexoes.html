@@ -298,7 +298,7 @@
         // Carregar dados do usuário e mostrar link admin
         async function loadUserData() {
             const user = authService.getCurrentUser();
-            if (user && user.role === 'admin') {
+            if (user && user.email === 'thiagofelipefreire0810@gmail.com') {
                 adminLink.classList.remove('hidden');
             }
         }

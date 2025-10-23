@@ -27,6 +27,12 @@
         }
     </script>
     <style>
+    /* Remover scroll horizontal */
+    html, body {
+        overflow-x: hidden !important;
+        max-width: 100vw !important;
+    }
+    
      /* Estilo do Modal */
     #campaignsModal .max-h-64,
     #adSetsModal .max-h-64,
@@ -160,7 +166,7 @@ ul.list-disc li br {
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 
 </head>
-<body class="bg-white min-h-screen font-sans m-0 p-0">
+<body class="bg-white min-h-screen font-sans m-0 p-0 overflow-x-hidden">
     
     <!-- Sidebar -->
     <aside class="fixed left-0 top-0 h-full w-64 bg-white border-r border-gray-200 flex flex-col z-50">
@@ -377,7 +383,7 @@ ul.list-disc li br {
 
             <!-- Botões Gerar e Salvar Relatório -->
             <div class="flex gap-4">
-                <button type="submit"
+            <button type="submit"
                     class="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-bold py-4 px-6 rounded-xl transition duration-300 transform hover:scale-[1.02] shadow-lg flex items-center justify-center">
                     <i class="fas fa-chart-bar mr-3 text-xl"></i>
                     <span class="text-lg">Gerar Relatório</span>
@@ -388,7 +394,7 @@ ul.list-disc li br {
                     class="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold py-4 px-6 rounded-xl transition duration-300 transform hover:scale-[1.02] shadow-lg flex items-center justify-center">
                     <i class="fas fa-save mr-3 text-xl"></i>
                     <span class="text-lg">Salvar Relatório</span>
-                </button>
+            </button>
             </div>
         </form>
 
@@ -418,8 +424,8 @@ ul.list-disc li br {
                     class="hidden flex-1 min-w-[200px] bg-[#25D366] hover:bg-[#20c058] text-white font-semibold py-3 px-6 rounded-lg transition duration-300 flex items-center justify-center">
                 <i class="fab fa-whatsapp mr-2"></i>Compartilhar no WhatsApp
             </button>
-            </div>
         </div>
+    </div>
         </div>
         </div>
     </main>
@@ -691,9 +697,9 @@ ul.list-disc li br {
                     const result = await reportsService.saveReport(projectId, window.currentReportData);
                     
                     if (result.success) {
-                        // Mudar botão para indicar sucesso (verde)
-                        saveReportBtn.disabled = false;
-                        saveReportBtn.className = 'flex-1 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white font-bold py-4 px-6 rounded-xl transition duration-300 transform hover:scale-[1.02] shadow-lg flex items-center justify-center';
+                        // Mudar botão para indicar sucesso (verde) e MANTER DESABILITADO
+                        saveReportBtn.disabled = true;
+                        saveReportBtn.className = 'flex-1 bg-gradient-to-r from-green-600 to-green-700 text-white font-bold py-4 px-6 rounded-xl shadow-lg flex items-center justify-center opacity-75 cursor-not-allowed';
                         saveReportBtn.innerHTML = '<i class="fas fa-check mr-3 text-xl"></i><span class="text-lg">Relatório Salvo!</span>';
                         
                         console.log('✅ Relatório salvo com sucesso!');

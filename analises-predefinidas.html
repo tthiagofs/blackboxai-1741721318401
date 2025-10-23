@@ -18,63 +18,6 @@
             background: #f8f9fa;
         }
 
-        .sidebar {
-            background: white;
-            border-right: 1px solid #e5e7eb;
-            height: 100vh;
-            position: fixed;
-            left: 0;
-            top: 0;
-            width: 250px;
-            display: flex;
-            flex-direction: column;
-            transition: transform 0.3s ease;
-            z-index: 50;
-        }
-
-        .sidebar-header {
-            padding: 1.5rem;
-            border-bottom: 1px solid #e5e7eb;
-        }
-
-        .sidebar-menu {
-            flex: 1;
-            overflow-y: auto;
-            padding: 1rem 0;
-        }
-
-        .menu-item {
-            display: flex;
-            align-items: center;
-            padding: 0.75rem 1.5rem;
-            color: #6b7280;
-            text-decoration: none;
-            transition: all 0.2s;
-            cursor: pointer;
-        }
-
-        .menu-item:hover {
-            background: #f3f4f6;
-            color: #3b82f6;
-        }
-
-        .menu-item.active {
-            background: #eff6ff;
-            color: #3b82f6;
-            border-right: 3px solid #3b82f6;
-        }
-
-        .menu-item i {
-            width: 20px;
-            margin-right: 0.75rem;
-        }
-
-        .main-content {
-            margin-left: 250px;
-            min-height: 100vh;
-            background: #f8f9fa;
-        }
-
         .template-card {
             background: white;
             border: 1px solid #e5e7eb;
@@ -226,44 +169,56 @@
         }
     </style>
 </head>
-<body>
-    <!-- Sidebar -->
-    <div class="sidebar">
-        <div class="sidebar-header">
-            <h1 class="text-xl font-bold text-gray-800">InsightFlow</h1>
-        </div>
-        <nav class="sidebar-menu">
-            <a href="dashboard.html" class="menu-item">
-                <i class="fas fa-th-large"></i>
-                <span>Dashboard</span>
-            </a>
-            <a href="conexoes.html" class="menu-item">
-                <i class="fas fa-plug"></i>
-                <span>Conexões</span>
-            </a>
-            <a href="minha-conta.html" class="menu-item">
-                <i class="fas fa-user"></i>
-                <span>Minha Conta</span>
-            </a>
-            <a href="usuarios.html" class="menu-item" id="usuariosMenu" style="display: none;">
-                <i class="fas fa-users"></i>
-                <span>Usuários</span>
-            </a>
-            <a href="analises-predefinidas.html" class="menu-item active">
-                <i class="fas fa-comments"></i>
-                <span>Análises Pré-Definidas</span>
-            </a>
-        </nav>
-        <div class="p-4 border-t border-gray-200">
-            <button id="logoutBtn" class="menu-item w-full text-left text-red-600 hover:bg-red-50">
-                <i class="fas fa-sign-out-alt"></i>
-                <span>Sair</span>
-            </button>
-        </div>
-    </div>
+<body class="bg-white min-h-screen font-sans m-0 p-0">
+    <!-- Container Principal -->
+    <div class="flex min-h-screen w-full">
+        <!-- Sidebar -->
+        <aside id="sidebar" class="w-56 bg-white flex flex-col border-r border-gray-200">
+            <!-- Logo -->
+            <div class="p-6">
+                <h1 class="text-xl font-bold text-gray-800">Relatórios</h1>
+            </div>
 
-    <!-- Main Content -->
-    <div class="main-content">
+            <!-- Menu de Navegação -->
+            <nav class="flex-1 px-3">
+                <a href="/dashboard.html" class="flex items-center px-3 py-2.5 mb-1 border-l-4 border-transparent text-gray-700 hover:bg-gray-50 transition-all">
+                    <i class="fas fa-home mr-3 text-sm"></i>
+                    <span class="text-sm">Tela Inicial</span>
+                </a>
+                
+                <a href="/conexoes.html" class="flex items-center px-3 py-2.5 mb-1 border-l-4 border-transparent text-gray-700 hover:bg-gray-50 transition-all">
+                    <i class="fas fa-plug mr-3 text-sm"></i>
+                    <span class="text-sm">Conexões</span>
+                </a>
+                
+                <a href="/minha-conta.html" class="flex items-center px-3 py-2.5 mb-1 border-l-4 border-transparent text-gray-700 hover:bg-gray-50 transition-all">
+                    <i class="fas fa-user mr-3 text-sm"></i>
+                    <span class="text-sm">Minha Conta</span>
+                </a>
+                
+                <!-- Link Admin (apenas para admins) -->
+                <a href="/usuarios.html" id="adminLink" class="hidden flex items-center px-3 py-2.5 mb-1 border-l-4 border-transparent text-gray-700 hover:bg-gray-50 transition-all">
+                    <i class="fas fa-users mr-3 text-sm"></i>
+                    <span class="text-sm">Usuários</span>
+                </a>
+                
+                <a href="/analises-predefinidas.html" class="flex items-center px-3 py-2.5 mb-1 border-l-4 border-blue-600 bg-blue-50 text-blue-600 transition-all">
+                    <i class="fas fa-comments mr-3 text-sm"></i>
+                    <span class="text-sm">Análises Pré-Definidas</span>
+                </a>
+            </nav>
+
+            <!-- Botão Sair -->
+            <div class="p-3">
+                <button id="logoutBtn" class="w-full flex items-center px-3 py-2.5 text-red-600 hover:bg-red-50 rounded-lg transition-all">
+                    <i class="fas fa-sign-out-alt mr-3 text-sm"></i>
+                    <span class="text-sm">Log out</span>
+                </button>
+            </div>
+        </aside>
+
+        <!-- Conteúdo Principal -->
+        <main class="flex-1 p-10 bg-gray-50">
         <div class="max-w-5xl mx-auto p-6">
             <!-- Header -->
             <div class="mb-6">
@@ -392,8 +347,9 @@
             currentUser = user;
 
             // Mostra menu de usuários para admin
-            if (user.email === 'thiagofelipefreire0810@gmail.com') {
-                document.getElementById('usuariosMenu').style.display = 'flex';
+            const adminLink = document.getElementById('adminLink');
+            if (user.email === 'thiagofelipefreire0810@gmail.com' && adminLink) {
+                adminLink.classList.remove('hidden');
             }
 
             await loadTemplates();
@@ -551,6 +507,8 @@
             }, 3000);
         }
     </script>
+        </main>
+    </div>
 </body>
 </html>
 

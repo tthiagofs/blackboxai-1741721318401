@@ -266,7 +266,9 @@
                 
             } catch (error) {
                 console.error('❌ Erro ao regenerar métricas:', error);
-                console.error('Detalhes do erro:', error.message, error.stack);
+                console.error('📝 Mensagem:', error?.message);
+                console.error('📚 Stack:', error?.stack);
+                console.error('🔍 Erro completo:', JSON.stringify(error, Object.getOwnPropertyNames(error)));
                 throw error;
             }
         }
@@ -285,14 +287,26 @@
             
             console.log('🎨 [renderCompleteReport] Loading ocultado, container exibido');
 
+            console.log('📦 [renderCompleteReport] Extraindo dados...');
+            console.log('- generatedMetrics:', generatedMetrics);
+            console.log('- reportData:', reportData);
+            
             const { metrics, blackMetrics, bestAds, comparisonMetrics } = generatedMetrics;
             const { manualData } = reportData;
 
+            console.log('✅ [renderCompleteReport] Dados extraídos:');
+            console.log('- metrics:', metrics);
+            console.log('- bestAds:', bestAds?.length);
+            console.log('- manualData:', manualData);
+
             // Calcular CPM (custo por mensagem)
+            console.log('🔢 [renderCompleteReport] Calculando CPMs...');
             const cpm = metrics.conversations > 0 ? metrics.spend / metrics.conversations : 0;
             const blackCpm = blackMetrics && blackMetrics.conversations > 0 ? blackMetrics.spend / blackMetrics.conversations : 0;
+            console.log(`✅ CPM: ${cpm}, Black CPM: ${blackCpm}`);
 
             // Header com botão exportar
+            console.log('🎨 [renderCompleteReport] Gerando HTML...');
             reportContainer.innerHTML = `
                 <!-- Header -->
                 <div class="mb-6 flex justify-between items-center">
@@ -316,15 +330,21 @@
                 </div>
             `;
 
+            console.log('🎨 [renderCompleteReport] HTML gerado, adicionando listener...');
+            
             // Adicionar evento ao botão exportar
             document.getElementById('exportPdfBtn').addEventListener('click', () => {
                 exportToPDF();
             });
+            
+            console.log('✅ [renderCompleteReport] RENDERIZAÇÃO COMPLETA COM SUCESSO!');
         }
 
         // Renderizar seção de métricas
         function renderMetricsSection(metrics, blackMetrics, cpm, blackCpm) {
+            console.log('📊 [renderMetricsSection] Renderizando métricas...');
             const hasBlack = reportData.manualData.hasBlack && blackMetrics;
+            console.log(`- hasBlack: ${hasBlack}`);
             
             return `
                 <div class="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl shadow-lg p-8 text-white">
@@ -385,6 +405,8 @@
 
         // Renderizar resultados do negócio
         function renderBusinessResults(manualData) {
+            console.log('💼 [renderBusinessResults] Renderizando resultados do negócio...');
+            console.log('- manualData:', manualData);
             return `
                 <div class="bg-white rounded-xl shadow-lg p-8">
                     <h3 class="text-2xl font-bold text-gray-900 mb-6 flex items-center">
@@ -419,7 +441,10 @@
 
         // Renderizar melhores anúncios
         function renderBestAds(bestAds) {
+            console.log('🏆 [renderBestAds] Renderizando melhores anúncios...');
+            console.log('- bestAds:', bestAds?.length);
             if (!bestAds || bestAds.length === 0) {
+                console.log('⚠️ [renderBestAds] Sem anúncios para renderizar');
                 return '';
             }
 

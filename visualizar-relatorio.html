@@ -6,10 +6,12 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <title>Visualizar Relatório - Insightflow v5.0</title>
+    <title>Visualizar Relatório - Insightflow</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="style.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 </head>
 <body class="bg-white min-h-screen font-sans m-0 p-0">
     
@@ -45,563 +47,326 @@
             <!-- Loading -->
             <div id="loadingSection" class="text-center py-12">
                 <i class="fas fa-spinner fa-spin text-4xl text-blue-600 mb-4"></i>
-                <p class="text-gray-600 text-lg mb-2">Carregando relatório...</p>
-                <p class="text-gray-500 text-sm">Buscando dados atualizados da API</p>
+                <p class="text-gray-600 text-lg">Carregando relatório salvo...</p>
             </div>
 
-            <!-- Relatório Container (será preenchido pelo JS) -->
+            <!-- Relatório Container -->
             <div id="reportContainer" class="hidden"></div>
         </div>
     </main>
 
     <!-- Scripts -->
-    <script src="https://connect.facebook.net/en_US/sdk.js"></script>
-    <script src="https://accounts.google.com/gsi/client" async defer></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-    
     <script type="module">
-        // VERSION: 5.0 - Com jsPDF e logs
-        const V = '5.0.1741726000000'; // Timestamp para quebrar cache
-        
-        // Verificar se é a versão correta
-        const EXPECTED_VERSION = '5.0';
-        const storedVersion = sessionStorage.getItem('visualizar_version');
-        
-        if (storedVersion !== EXPECTED_VERSION) {
-            console.log('⚠️ VERSÃO ANTIGA DETECTADA! Forçando reload...');
-            sessionStorage.setItem('visualizar_version', EXPECTED_VERSION);
-            location.reload(true); // Force reload ignorando cache
-        }
-        
-        import { auth } from './config/firebase.js';
+        import { auth, db } from './config/firebase.js';
         import { onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
-        import { reportsService } from './services/reportsService.js?v=1.0';
-        import { connectionService } from './services/connectionService.js?v=1.0';
-        import { FacebookInsightsService } from './services/facebookInsights.js?v=3.0';
-        import { exportToPDF } from './exportPDF.js';
+        import { doc, getDoc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 
-        console.log('🔥 Firebase inicializado com sucesso!');
-        console.log('📌 VERSÃO: 5.0 - COM JSPDF E LOGS COMPLETOS!');
-        console.log('🕐 Build:', V);
-        console.log('✅ Versão correta carregada!');
-        console.log('🎨 Design: Azul/Branco moderno');
+        console.log('🎨 Visualizar Relatório v2.0 - SIMPLIFICADO');
 
         let reportData = null;
-        let generatedMetrics = null;
 
-        // Verificar autenticação
+        // Auth
         onAuthStateChanged(auth, async (user) => {
             if (!user) {
-                console.log('⚠️ Usuário não autenticado, redirecionando...');
                 window.location.href = '/login.html';
                 return;
             }
-
             console.log('✅ Usuário autenticado:', user.email);
-            
-            // Carregar conexões salvas
-            await connectionService.initialize();
-            
-            // Inicializar Facebook SDK (sempre chamar init, mesmo se já carregado)
-            await initializeFacebookSDK();
-            
-            // Carregar e regenerar relatório
-            await loadAndRegenerateReport();
+            await loadReport();
         });
-
-        // Inicializar Facebook SDK
-        function initializeFacebookSDK() {
-            return new Promise((resolve) => {
-                // Se o FB já existe, apenas inicializar
-                if (typeof FB !== 'undefined') {
-                    console.log('📱 Facebook SDK já carregado, inicializando...');
-                    FB.init({
-                        appId: '8664931536960419',
-                        cookie: true,
-                        xfbml: true,
-                        version: 'v18.0'
-                    });
-                    console.log('✅ Facebook SDK inicializado');
-                    resolve();
-                } else {
-                    // Caso não exista, aguardar o carregamento
-                    window.fbAsyncInit = function() {
-                        FB.init({
-                            appId: '8664931536960419',
-                            cookie: true,
-                            xfbml: true,
-                            version: 'v18.0'
-                        });
-                        console.log('✅ Facebook SDK inicializado (async)');
-                        resolve();
-                    };
-                }
-            });
-        }
 
         // Logout
         document.getElementById('logoutBtn').addEventListener('click', async () => {
-            try {
-                await signOut(auth);
-                window.location.href = '/login.html';
-            } catch (error) {
-                console.error('Erro ao fazer logout:', error);
-            }
+            await signOut(auth);
+            window.location.href = '/login.html';
         });
 
-        // Carregar e regenerar relatório
-        async function loadAndRegenerateReport() {
+        // Carregar relatório
+        async function loadReport() {
             const urlParams = new URLSearchParams(window.location.search);
             const reportId = urlParams.get('report');
             const projectId = localStorage.getItem('currentProject');
 
-            console.log('🔍 URL Params - reportId:', reportId, 'projectId:', projectId);
-
             if (!reportId || !projectId) {
-                alert('Erro: Relatório não encontrado');
+                alert('Relatório não encontrado');
                 window.location.href = '/dashboard.html';
                 return;
             }
 
             try {
-                console.log('📥 Carregando relatório:', reportId);
-                reportData = await reportsService.getReport(projectId, reportId);
+                console.log('📥 Carregando relatório:', reportId, 'do projeto:', projectId);
                 
-                console.log('✅ Relatório carregado:', reportData);
-                console.log('🔄 Regenerando dados da API...');
+                const reportRef = doc(db, 'projects', projectId, 'reports', reportId);
+                const reportSnap = await getDoc(reportRef);
                 
-                // Regenerar métricas com dados atualizados da API
-                await regenerateMetrics();
+                if (!reportSnap.exists()) {
+                    throw new Error('Relatório não encontrado');
+                }
+
+                reportData = { id: reportSnap.id, ...reportSnap.data() };
+                console.log('✅ Dados carregados:', reportData);
+
+                // Renderizar
+                renderReport();
                 
             } catch (error) {
-                console.error('❌ Erro ao carregar relatório:', error);
-                console.error('🔍 Tipo do erro:', typeof error);
-                console.error('📝 Mensagem:', error?.message);
-                console.error('📚 Stack:', error?.stack);
-                console.error('🔧 Nome:', error?.name);
-                console.error('💾 JSON:', JSON.stringify(error, Object.getOwnPropertyNames(error), 2));
-                
-                // Mostrar erro na tela ao invés de alert
-                const loadingSection = document.getElementById('loadingSection');
-                if (loadingSection) {
-                    loadingSection.innerHTML = `
-                        <div class="text-center">
-                            <i class="fas fa-exclamation-triangle text-6xl text-red-600 mb-4"></i>
-                            <h2 class="text-2xl font-bold text-gray-900 mb-4">Erro ao Carregar Relatório</h2>
-                            <div class="bg-red-50 border border-red-200 rounded-lg p-6 text-left max-w-2xl mx-auto mb-6">
-                                <p class="text-sm text-gray-700 font-mono mb-2"><strong>Tipo:</strong> ${typeof error}</p>
-                                <p class="text-sm text-gray-700 font-mono mb-2"><strong>Nome:</strong> ${error?.name || 'N/A'}</p>
-                                <p class="text-sm text-gray-700 font-mono mb-2"><strong>Mensagem:</strong> ${error?.message || 'Erro desconhecido'}</p>
-                                <details class="mt-4">
-                                    <summary class="cursor-pointer text-blue-600 hover:text-blue-800">Ver Stack Trace</summary>
-                                    <pre class="mt-2 text-xs bg-white p-3 rounded overflow-auto">${error?.stack || 'N/A'}</pre>
-                                </details>
-                            </div>
-                            <button onclick="window.location.href='/dashboard.html'" class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700">
-                                Voltar para Dashboard
-                            </button>
-                        </div>
-                    `;
-                }
+                console.error('❌ Erro:', error);
+                document.getElementById('loadingSection').innerHTML = `
+                    <div class="text-center">
+                        <i class="fas fa-exclamation-triangle text-6xl text-red-600 mb-4"></i>
+                        <h2 class="text-2xl font-bold text-gray-900 mb-4">Erro ao Carregar</h2>
+                        <p class="text-gray-600 mb-6">${error.message}</p>
+                        <button onclick="window.location.href='/dashboard.html'" class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700">
+                            Voltar
+                        </button>
+                    </div>
+                `;
             }
         }
 
-        // Regenerar métricas da API
-        async function regenerateMetrics() {
-            console.log('🔄 [regenerateMetrics] Iniciando regeneração...');
-            const loadingSection = document.getElementById('loadingSection');
-            const loadingText = loadingSection.querySelector('p:last-child');
+        // Renderizar relatório
+        function renderReport() {
+            console.log('🎨 Renderizando relatório...');
             
-            try {
-                console.log('📊 [regenerateMetrics] Plataforma:', reportData.platform);
-                let metrics = null;
-                let blackMetrics = null;
-                let bestAds = [];
-                let comparisonMetrics = null;
-
-                // ========== META ADS ==========
-                if (reportData.platform === 'meta' || reportData.platform === 'both') {
-                    console.log('📱 [regenerateMetrics] Processando Meta Ads...');
-                    loadingText.textContent = 'Buscando dados do Meta Ads...';
-                    
-                    // IMPORTANTE: Recarregar conexões do Firestore para pegar token atualizado
-                    console.log('🔄 Recarregando conexões do Firestore...');
-                    await connectionService.loadConnections();
-                    
-                    // Obter token do Meta (agora atualizado)
-                    const connections = connectionService.getConnectionStatus();
-                    console.log('🔌 [regenerateMetrics] Status conexões (recarregado):', connections);
-                    
-                    if (!connections.meta.connected) {
-                        console.error('❌ Meta Ads não conectado!');
-                        throw new Error('Meta Ads não conectado. Vá para CONEXÕES e faça login.');
-                    }
-
-                    console.log('✅ Token Meta obtido, criando FacebookInsightsService...');
-                    console.log('🔑 Token (primeiros 20 chars):', connections.meta.token?.substring(0, 20) + '...');
-                    const metaAccount = reportData.metaAccount;
-                    const insightsService = new FacebookInsightsService(connections.meta.token);
-
-                    // Buscar métricas
-                    console.log('📊 Buscando métricas...');
-                    metrics = await insightsService.getAccountInsights(
-                        metaAccount.id,
-                        reportData.analysisStart,
-                        reportData.analysisEnd
-                    );
-                    console.log('✅ Métricas obtidas:', metrics);
-                    console.log('- Spend:', metrics.spend);
-                    console.log('- Reach:', metrics.reach);
-                    console.log('- Conversations:', metrics.conversations);
-
-                    // Se tem Black, buscar também
-                    if (reportData.manualData.hasBlack) {
-                        blackMetrics = await insightsService.getAccountInsights(
-                            metaAccount.id,
-                            reportData.analysisStart,
-                            reportData.analysisEnd,
-                            true // isBlack
-                        );
-                    }
-
-                    // Buscar melhores anúncios
-                    loadingText.textContent = 'Buscando melhores anúncios...';
-                    bestAds = await insightsService.getBestPerformingAds(
-                        metaAccount.id,
-                        reportData.analysisStart,
-                        reportData.analysisEnd
-                    );
-
-                    // Se tem período de comparação
-                    if (reportData.comparisonStart && reportData.comparisonEnd) {
-                        loadingText.textContent = 'Buscando dados de comparação...';
-                        const comparisonData = await insightsService.getComparisonData(
-                            metaAccount.id,
-                            reportData.comparisonStart,
-                            reportData.comparisonEnd
-                        );
-                        comparisonMetrics = comparisonData.metrics;
-                    }
-                }
-
-                // ========== GOOGLE ADS ==========
-                if (reportData.platform === 'google' || reportData.platform === 'both') {
-                    loadingText.textContent = 'Buscando dados do Google Ads...';
-                    // TODO: Implementar Google Ads quando necessário
-                    console.log('⚠️ Google Ads ainda não implementado na visualização');
-                }
-
-                // Armazenar métricas regeneradas
-                generatedMetrics = {
-                    metrics,
-                    blackMetrics,
-                    bestAds,
-                    comparisonMetrics
-                };
-
-                // Renderizar relatório completo
-                console.log('📊 Dados regenerados, renderizando...');
-                console.log('- Metrics:', metrics);
-                console.log('- Best Ads:', bestAds?.length);
-                
-                try {
-                    renderCompleteReport();
-                    console.log('✅ Renderização concluída com sucesso!');
-                } catch (renderError) {
-                    console.error('❌ ERRO NA RENDERIZAÇÃO:', renderError);
-                    console.error('Tipo:', typeof renderError);
-                    console.error('Mensagem:', renderError?.message);
-                    console.error('Stack:', renderError?.stack);
-                    throw renderError;
-                }
-                
-            } catch (error) {
-                console.error('❌ Erro ao regenerar métricas:', error);
-                console.error('📝 Mensagem:', error?.message);
-                console.error('📚 Stack:', error?.stack);
-                console.error('🔍 Erro completo:', JSON.stringify(error, Object.getOwnPropertyNames(error)));
-                throw error;
-            }
-        }
-
-        // Renderizar relatório completo
-        function renderCompleteReport() {
-            console.log('🎨 [renderCompleteReport] Iniciando renderização...');
             const loadingSection = document.getElementById('loadingSection');
             const reportContainer = document.getElementById('reportContainer');
-
-            console.log('🎨 [renderCompleteReport] Elementos DOM obtidos');
             
-            // Ocultar loading
             loadingSection.classList.add('hidden');
             reportContainer.classList.remove('hidden');
-            
-            console.log('🎨 [renderCompleteReport] Loading ocultado, container exibido');
 
-            console.log('📦 [renderCompleteReport] Extraindo dados...');
-            console.log('- generatedMetrics:', generatedMetrics);
-            console.log('- reportData:', reportData);
-            
-            const { metrics, blackMetrics, bestAds, comparisonMetrics } = generatedMetrics;
-            const { manualData } = reportData;
+            const md = reportData.manualData || {};
+            const savedMetrics = reportData.savedMetrics || {};
+            const savedBlackMetrics = reportData.savedBlackMetrics || {};
+            const savedBestAds = reportData.savedBestAds || [];
+            const hasBlack = md.hasBlack || false;
 
-            console.log('✅ [renderCompleteReport] Dados extraídos:');
-            console.log('- metrics:', metrics);
-            console.log('- bestAds:', bestAds?.length);
-            console.log('- manualData:', manualData);
+            // Calcular CPMs
+            const cpm = savedMetrics.conversations > 0 ? savedMetrics.spend / savedMetrics.conversations : 0;
+            const blackCpm = savedBlackMetrics.conversations > 0 ? savedBlackMetrics.spend / savedBlackMetrics.conversations : 0;
 
-            // Calcular CPM (custo por mensagem)
-            console.log('🔢 [renderCompleteReport] Calculando CPMs...');
-            const cpm = metrics.conversations > 0 ? metrics.spend / metrics.conversations : 0;
-            const blackCpm = blackMetrics && blackMetrics.conversations > 0 ? blackMetrics.spend / blackMetrics.conversations : 0;
-            console.log(`✅ CPM: ${cpm}, Black CPM: ${blackCpm}`);
-
-            // Header com botão exportar
-            console.log('🎨 [renderCompleteReport] Gerando HTML...');
             reportContainer.innerHTML = `
                 <!-- Header -->
-                <div class="mb-6 flex justify-between items-center">
+                <div class="mb-8 flex justify-between items-center">
                     <div>
-                        <h2 class="text-3xl font-bold text-gray-900">${reportData.reportName}</h2>
-                        <p class="text-gray-600 mt-1">Período: ${reportData.dateRange}</p>
+                        <h2 class="text-4xl font-bold text-gray-900 mb-2">${reportData.reportName || 'Relatório'}</h2>
+                        <p class="text-gray-600 text-lg">
+                            <i class="fas fa-calendar mr-2"></i>${reportData.dateRange || ''}
+                        </p>
                     </div>
                     
-                    <button id="exportPdfBtn" class="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white font-bold py-3 px-6 rounded-xl transition duration-300 transform hover:scale-[1.02] shadow-lg flex items-center">
-                        <i class="fas fa-file-pdf mr-2 text-xl"></i>
+                    <button id="exportPdfBtn" class="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white font-bold py-4 px-8 rounded-xl transition duration-300 transform hover:scale-[1.02] shadow-lg flex items-center">
+                        <i class="fas fa-file-pdf mr-3 text-2xl"></i>
                         <span class="text-lg">Exportar PDF</span>
                     </button>
                 </div>
 
-                <!-- Conteúdo do Relatório -->
-                <div id="report-content" class="space-y-6">
-                    ${renderMetricsSection(metrics, blackMetrics, cpm, blackCpm)}
-                    ${renderBusinessResults(manualData)}
-                    ${renderBestAds(bestAds)}
-                    ${comparisonMetrics ? renderComparison(metrics, comparisonMetrics) : ''}
-                </div>
-            `;
-
-            console.log('🎨 [renderCompleteReport] HTML gerado, adicionando listener...');
-            
-            // Adicionar evento ao botão exportar
-            document.getElementById('exportPdfBtn').addEventListener('click', () => {
-                exportToPDF();
-            });
-            
-            console.log('✅ [renderCompleteReport] RENDERIZAÇÃO COMPLETA COM SUCESSO!');
-        }
-
-        // Renderizar seção de métricas
-        function renderMetricsSection(metrics, blackMetrics, cpm, blackCpm) {
-            console.log('📊 [renderMetricsSection] Renderizando métricas...');
-            const hasBlack = reportData.manualData.hasBlack && blackMetrics;
-            console.log(`- hasBlack: ${hasBlack}`);
-            
-            return `
-                <div class="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl shadow-lg p-8 text-white">
-                    <h3 class="text-2xl font-bold mb-6 flex items-center">
-                        <i class="fas fa-chart-bar mr-3"></i>
-                        CAMPANHAS${hasBlack ? ' WHITE' : ''}
-                    </h3>
+                <!-- Relatório -->
+                <div id="report-content" class="space-y-8">
                     
-                    <div class="grid grid-cols-4 gap-4">
-                        <div class="bg-white/10 backdrop-blur-sm rounded-lg p-4">
-                            <p class="text-sm opacity-90 mb-1">INVESTIMENTO</p>
-                            <p class="text-2xl font-bold">R$ ${(metrics.spend || 0).toFixed(2)}</p>
+                    <!-- Métricas Principais ${hasBlack ? 'WHITE' : ''} -->
+                    <section class="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl shadow-2xl p-10 text-white">
+                        <h3 class="text-3xl font-bold mb-8 flex items-center">
+                            <i class="fas fa-chart-line mr-4 text-4xl"></i>
+                            CAMPANHAS${hasBlack ? ' WHITE' : ''}
+                        </h3>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+                            <div class="bg-white/10 backdrop-blur-sm rounded-xl p-6 transform hover:scale-105 transition">
+                                <p class="text-sm uppercase tracking-wide opacity-90 mb-2">Investimento</p>
+                                <p class="text-3xl font-bold">R$ ${(savedMetrics.spend || 0).toFixed(2)}</p>
+                            </div>
+                            <div class="bg-white/10 backdrop-blur-sm rounded-xl p-6 transform hover:scale-105 transition">
+                                <p class="text-sm uppercase tracking-wide opacity-90 mb-2">Alcance</p>
+                                <p class="text-3xl font-bold">${(savedMetrics.reach || 0).toLocaleString('pt-BR')}</p>
+                            </div>
+                            <div class="bg-white/10 backdrop-blur-sm rounded-xl p-6 transform hover:scale-105 transition">
+                                <p class="text-sm uppercase tracking-wide opacity-90 mb-2">Conversas Iniciadas</p>
+                                <p class="text-3xl font-bold">${savedMetrics.conversations || 0}</p>
+                            </div>
+                            <div class="bg-white/10 backdrop-blur-sm rounded-xl p-6 transform hover:scale-105 transition">
+                                <p class="text-sm uppercase tracking-wide opacity-90 mb-2">Custo por Conversa</p>
+                                <p class="text-3xl font-bold">R$ ${cpm.toFixed(2)}</p>
+                            </div>
                         </div>
-                        <div class="bg-white/10 backdrop-blur-sm rounded-lg p-4">
-                            <p class="text-sm opacity-90 mb-1">ALCANCE</p>
-                            <p class="text-2xl font-bold">${(metrics.reach || 0).toLocaleString('pt-BR')}</p>
-                        </div>
-                        <div class="bg-white/10 backdrop-blur-sm rounded-lg p-4">
-                            <p class="text-sm opacity-90 mb-1">CONVERSAS INICIADAS</p>
-                            <p class="text-2xl font-bold">${metrics.conversations || 0}</p>
-                        </div>
-                        <div class="bg-white/10 backdrop-blur-sm rounded-lg p-4">
-                            <p class="text-sm opacity-90 mb-1">CUSTO POR CONVERSA</p>
-                            <p class="text-2xl font-bold">R$ ${(cpm || 0).toFixed(2)}</p>
-                        </div>
-                    </div>
-                </div>
+                    </section>
 
-                ${hasBlack ? `
-                <div class="bg-gradient-to-r from-gray-800 to-gray-900 rounded-xl shadow-lg p-8 text-white">
-                    <h3 class="text-2xl font-bold mb-6 flex items-center">
-                        <i class="fas fa-chart-bar mr-3"></i>
-                        CAMPANHAS BLACK
-                    </h3>
-                    
-                    <div class="grid grid-cols-4 gap-4">
-                        <div class="bg-white/10 backdrop-blur-sm rounded-lg p-4">
-                            <p class="text-sm opacity-90 mb-1">INVESTIMENTO</p>
-                            <p class="text-2xl font-bold">R$ ${(blackMetrics.spend || 0).toFixed(2)}</p>
+                    ${hasBlack ? `
+                    <!-- Métricas BLACK -->
+                    <section class="bg-gradient-to-r from-gray-800 to-gray-900 rounded-2xl shadow-2xl p-10 text-white">
+                        <h3 class="text-3xl font-bold mb-8 flex items-center">
+                            <i class="fas fa-chart-line mr-4 text-4xl"></i>
+                            CAMPANHAS BLACK
+                        </h3>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+                            <div class="bg-white/10 backdrop-blur-sm rounded-xl p-6 transform hover:scale-105 transition">
+                                <p class="text-sm uppercase tracking-wide opacity-90 mb-2">Investimento</p>
+                                <p class="text-3xl font-bold">R$ ${(savedBlackMetrics.spend || 0).toFixed(2)}</p>
+                            </div>
+                            <div class="bg-white/10 backdrop-blur-sm rounded-xl p-6 transform hover:scale-105 transition">
+                                <p class="text-sm uppercase tracking-wide opacity-90 mb-2">Alcance</p>
+                                <p class="text-3xl font-bold">${(savedBlackMetrics.reach || 0).toLocaleString('pt-BR')}</p>
+                            </div>
+                            <div class="bg-white/10 backdrop-blur-sm rounded-xl p-6 transform hover:scale-105 transition">
+                                <p class="text-sm uppercase tracking-wide opacity-90 mb-2">Conversas Iniciadas</p>
+                                <p class="text-3xl font-bold">${savedBlackMetrics.conversations || 0}</p>
+                            </div>
+                            <div class="bg-white/10 backdrop-blur-sm rounded-xl p-6 transform hover:scale-105 transition">
+                                <p class="text-sm uppercase tracking-wide opacity-90 mb-2">Custo por Conversa</p>
+                                <p class="text-3xl font-bold">R$ ${blackCpm.toFixed(2)}</p>
+                            </div>
                         </div>
-                        <div class="bg-white/10 backdrop-blur-sm rounded-lg p-4">
-                            <p class="text-sm opacity-90 mb-1">ALCANCE</p>
-                            <p class="text-2xl font-bold">${(blackMetrics.reach || 0).toLocaleString('pt-BR')}</p>
-                        </div>
-                        <div class="bg-white/10 backdrop-blur-sm rounded-lg p-4">
-                            <p class="text-sm opacity-90 mb-1">CONVERSAS INICIADAS</p>
-                            <p class="text-2xl font-bold">${blackMetrics.conversations || 0}</p>
-                        </div>
-                        <div class="bg-white/10 backdrop-blur-sm rounded-lg p-4">
-                            <p class="text-sm opacity-90 mb-1">CUSTO POR CONVERSA</p>
-                            <p class="text-2xl font-bold">R$ ${(blackCpm || 0).toFixed(2)}</p>
-                        </div>
-                    </div>
-                </div>
-                ` : ''}
-            `;
-        }
-
-        // Renderizar resultados do negócio
-        function renderBusinessResults(manualData) {
-            console.log('💼 [renderBusinessResults] Renderizando resultados do negócio...');
-            console.log('- manualData:', manualData);
-            return `
-                <div class="bg-white rounded-xl shadow-lg p-8">
-                    <h3 class="text-2xl font-bold text-gray-900 mb-6 flex items-center">
-                        <i class="fas fa-trophy text-yellow-500 mr-3"></i>
-                        RESULTADOS DO NEGÓCIO
-                    </h3>
-                    
-                    <div class="grid grid-cols-3 gap-6">
-                        <div class="text-center p-4 bg-green-50 rounded-lg">
-                            <p class="text-sm text-gray-600 mb-2">Orçamentos Concluídos</p>
-                            <p class="text-4xl font-bold text-green-600">${manualData.budgets}</p>
-                        </div>
-                        <div class="text-center p-4 bg-blue-50 rounded-lg">
-                            <p class="text-sm text-gray-600 mb-2">Número de Vendas</p>
-                            <p class="text-4xl font-bold text-blue-600">${manualData.sales}</p>
-                        </div>
-                        <div class="text-center p-4 bg-purple-50 rounded-lg">
-                            <p class="text-sm text-gray-600 mb-2">Faturamento</p>
-                            <p class="text-4xl font-bold text-purple-600">R$ ${manualData.revenue.toLocaleString('pt-BR')}</p>
-                        </div>
-                    </div>
-
-                    ${manualData.analysis ? `
-                    <div class="mt-6 bg-blue-50 border-l-4 border-blue-600 p-4">
-                        <p class="text-sm font-semibold text-gray-700 mb-2">ANÁLISE DE DESEMPENHO E PONTOS DE MELHORIA</p>
-                        <p class="text-gray-800">${manualData.analysis}</p>
-                    </div>
+                    </section>
                     ` : ''}
+
+                    <!-- Resultados do Negócio -->
+                    <section class="bg-white rounded-2xl shadow-2xl p-10">
+                        <h3 class="text-3xl font-bold text-gray-900 mb-8 flex items-center">
+                            <i class="fas fa-trophy text-yellow-500 mr-4 text-4xl"></i>
+                            RESULTADOS DO NEGÓCIO
+                        </h3>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
+                            <div class="text-center p-8 bg-gradient-to-br from-green-50 to-green-100 rounded-2xl shadow-lg transform hover:scale-105 transition">
+                                <p class="text-sm text-gray-600 uppercase tracking-wide mb-3">Orçamentos Concluídos</p>
+                                <p class="text-6xl font-bold text-green-600">${md.budgets || 0}</p>
+                            </div>
+                            <div class="text-center p-8 bg-gradient-to-br from-blue-50 to-blue-100 rounded-2xl shadow-lg transform hover:scale-105 transition">
+                                <p class="text-sm text-gray-600 uppercase tracking-wide mb-3">Número de Vendas</p>
+                                <p class="text-6xl font-bold text-blue-600">${md.sales || 0}</p>
+                            </div>
+                            <div class="text-center p-8 bg-gradient-to-br from-purple-50 to-purple-100 rounded-2xl shadow-lg transform hover:scale-105 transition">
+                                <p class="text-sm text-gray-600 uppercase tracking-wide mb-3">Faturamento</p>
+                                <p class="text-6xl font-bold text-purple-600">R$ ${(md.revenue || 0).toLocaleString('pt-BR')}</p>
+                            </div>
+                        </div>
+
+                        ${md.analysis ? `
+                        <div class="bg-gradient-to-r from-blue-50 to-indigo-50 border-l-4 border-blue-600 p-6 rounded-lg">
+                            <p class="text-sm font-bold text-gray-700 uppercase tracking-wide mb-3">
+                                <i class="fas fa-lightbulb mr-2 text-yellow-500"></i>
+                                Análise de Desempenho
+                            </p>
+                            <p class="text-gray-800 text-lg leading-relaxed">${md.analysis}</p>
+                        </div>
+                        ` : ''}
+                    </section>
+
+                    ${savedBestAds.length > 0 ? `
+                    <!-- Melhores Anúncios -->
+                    <section class="bg-gradient-to-r from-purple-600 to-pink-600 rounded-2xl shadow-2xl p-10 text-white">
+                        <h3 class="text-3xl font-bold mb-8 flex items-center">
+                            <i class="fas fa-star mr-4 text-4xl"></i>
+                            MELHORES ANÚNCIOS
+                        </h3>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            ${savedBestAds.map((ad, i) => `
+                                <div class="bg-white rounded-2xl shadow-xl p-8 text-gray-900">
+                                    <div class="flex items-start mb-6">
+                                        <div class="w-16 h-16 bg-gradient-to-br from-yellow-400 to-yellow-600 rounded-full flex items-center justify-center text-white font-bold text-2xl mr-5 shadow-lg">
+                                            ${i + 1}º
+                                        </div>
+                                        <div class="flex-1">
+                                            <h4 class="font-bold text-xl text-gray-900 mb-2">${ad.name || 'Sem nome'}</h4>
+                                            <p class="text-sm text-gray-600">ID: ${ad.id}</p>
+                                        </div>
+                                    </div>
+
+                                    ${ad.thumbnail ? `
+                                    <div class="mb-6 rounded-xl overflow-hidden shadow-lg">
+                                        <img src="${ad.thumbnail}" alt="Preview" class="w-full h-auto">
+                                    </div>
+                                    ` : ''}
+
+                                    <div class="grid grid-cols-2 gap-4">
+                                        <div class="bg-blue-50 p-4 rounded-lg">
+                                            <p class="text-xs text-gray-600 uppercase tracking-wide mb-1">Investimento</p>
+                                            <p class="text-xl font-bold text-blue-600">R$ ${(ad.spend || 0).toFixed(2)}</p>
+                                        </div>
+                                        <div class="bg-green-50 p-4 rounded-lg">
+                                            <p class="text-xs text-gray-600 uppercase tracking-wide mb-1">Conversas</p>
+                                            <p class="text-xl font-bold text-green-600">${ad.conversations || 0}</p>
+                                        </div>
+                                        <div class="bg-purple-50 p-4 rounded-lg">
+                                            <p class="text-xs text-gray-600 uppercase tracking-wide mb-1">Alcance</p>
+                                            <p class="text-xl font-bold text-purple-600">${(ad.reach || 0).toLocaleString('pt-BR')}</p>
+                                        </div>
+                                        <div class="bg-yellow-50 p-4 rounded-lg">
+                                            <p class="text-xs text-gray-600 uppercase tracking-wide mb-1">CPM</p>
+                                            <p class="text-xl font-bold text-yellow-600">R$ ${ad.conversations > 0 ? (ad.spend / ad.conversations).toFixed(2) : '0.00'}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </section>
+                    ` : ''}
+
                 </div>
             `;
+
+            // Adicionar evento ao botão PDF
+            document.getElementById('exportPdfBtn').addEventListener('click', exportPDF);
+            
+            console.log('✅ Relatório renderizado com sucesso!');
         }
 
-        // Renderizar melhores anúncios
-        function renderBestAds(bestAds) {
-            console.log('🏆 [renderBestAds] Renderizando melhores anúncios...');
-            console.log('- bestAds:', bestAds?.length);
-            if (!bestAds || bestAds.length === 0) {
-                console.log('⚠️ [renderBestAds] Sem anúncios para renderizar');
-                return '';
+        // Exportar PDF
+        async function exportPDF() {
+            console.log('📄 Exportando para PDF...');
+            
+            const { jsPDF } = window.jspdf;
+            const reportContent = document.getElementById('report-content');
+            
+            if (!reportContent) {
+                alert('Erro ao exportar PDF');
+                return;
             }
 
-            const adsHTML = bestAds.map((ad, index) => `
-                <div class="bg-white rounded-lg shadow-md p-6">
-                    <div class="flex items-start mb-4">
-                        <div class="w-12 h-12 bg-gradient-to-br from-yellow-400 to-yellow-600 rounded-full flex items-center justify-center text-white font-bold text-xl mr-4">
-                            ${index + 1}º
-                        </div>
-                        <div class="flex-1">
-                            <h4 class="font-bold text-gray-900 mb-1">${ad.name || 'Sem nome'}</h4>
-                            <p class="text-sm text-gray-600">ID: ${ad.id}</p>
-                        </div>
-                    </div>
+            try {
+                // Ocultar botão durante captura
+                const btn = document.getElementById('exportPdfBtn');
+                if (btn) btn.style.display = 'none';
 
-                    ${ad.thumbnail ? `
-                    <div class="mb-4 rounded-lg overflow-hidden">
-                        <img src="${ad.thumbnail}" alt="Preview" class="w-full h-auto">
-                    </div>
-                    ` : ''}
+                // Capturar como imagem
+                const canvas = await html2canvas(reportContent, {
+                    scale: 2,
+                    useCORS: true,
+                    logging: false
+                });
 
-                    <div class="grid grid-cols-2 gap-3">
-                        <div class="bg-blue-50 p-3 rounded">
-                            <p class="text-xs text-gray-600 mb-1">Investimento</p>
-                            <p class="text-lg font-bold text-blue-600">R$ ${(ad.spend || 0).toFixed(2)}</p>
-                        </div>
-                        <div class="bg-green-50 p-3 rounded">
-                            <p class="text-xs text-gray-600 mb-1">Conversas</p>
-                            <p class="text-lg font-bold text-green-600">${ad.conversations || 0}</p>
-                        </div>
-                        <div class="bg-purple-50 p-3 rounded">
-                            <p class="text-xs text-gray-600 mb-1">Alcance</p>
-                            <p class="text-lg font-bold text-purple-600">${(ad.reach || 0).toLocaleString('pt-BR')}</p>
-                        </div>
-                        <div class="bg-yellow-50 p-3 rounded">
-                            <p class="text-xs text-gray-600 mb-1">CPM</p>
-                            <p class="text-lg font-bold text-yellow-600">R$ ${ad.conversations > 0 ? (ad.spend / ad.conversations).toFixed(2) : '0.00'}</p>
-                        </div>
-                    </div>
-                </div>
-            `).join('');
+                // Restaurar botão
+                if (btn) btn.style.display = 'flex';
 
-            return `
-                <div class="bg-gradient-to-r from-purple-600 to-pink-600 rounded-xl shadow-lg p-8 text-white">
-                    <h3 class="text-2xl font-bold mb-6 flex items-center">
-                        <i class="fas fa-star mr-3"></i>
-                        MELHORES ANÚNCIOS
-                    </h3>
-                    
-                    <div class="grid grid-cols-2 gap-6">
-                        ${adsHTML}
-                    </div>
-                </div>
-            `;
-        }
+                // Criar PDF
+                const imgData = canvas.toDataURL('image/png');
+                const imgWidth = canvas.width;
+                const imgHeight = canvas.height;
+                const pdfWidth = 210;
+                const pdfHeight = 297;
+                const imgWidthInMm = imgWidth * 0.0353;
+                const imgHeightInMm = imgHeight * 0.0353;
+                const ratio = pdfWidth / imgWidthInMm;
+                const scaledWidth = imgWidthInMm * ratio;
+                const scaledHeight = imgHeightInMm * ratio;
 
-        // Renderizar comparação
-        function renderComparison(currentMetrics, comparisonMetrics) {
-            const spendDiff = currentMetrics.spend - comparisonMetrics.spend;
-            const reachDiff = currentMetrics.reach - comparisonMetrics.reach;
-            const convDiff = currentMetrics.conversations - comparisonMetrics.conversations;
-            
-            const currentCpm = currentMetrics.conversations > 0 ? currentMetrics.spend / currentMetrics.conversations : 0;
-            const compCpm = comparisonMetrics.conversations > 0 ? comparisonMetrics.spend / comparisonMetrics.conversations : 0;
-            const cpmDiff = currentCpm - compCpm;
+                const doc = new jsPDF({
+                    orientation: 'portrait',
+                    unit: 'mm',
+                    format: 'a4'
+                });
 
-            const formatDiff = (value, isNegativeGood = false) => {
-                const isPositive = value >= 0;
-                const colorClass = (isNegativeGood ? !isPositive : isPositive) ? 'text-green-600' : 'text-red-600';
-                const icon = isPositive ? '↑' : '↓';
-                return `<span class="${colorClass} font-bold">${icon} ${Math.abs(value).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>`;
-            };
-
-            return `
-                <div class="bg-white rounded-xl shadow-lg p-8">
-                    <h3 class="text-2xl font-bold text-gray-900 mb-6 flex items-center">
-                        <i class="fas fa-exchange-alt text-indigo-600 mr-3"></i>
-                        COMPARAÇÃO DE PERÍODOS
-                    </h3>
-                    
-                    <div class="grid grid-cols-4 gap-4">
-                        <div class="border border-gray-200 rounded-lg p-4">
-                            <p class="text-sm text-gray-600 mb-2">Investimento</p>
-                            <p class="text-xl font-bold text-gray-900">R$ ${currentMetrics.spend.toFixed(2)}</p>
-                            <p class="text-sm mt-1">${formatDiff(spendDiff)}</p>
-                        </div>
-                        <div class="border border-gray-200 rounded-lg p-4">
-                            <p class="text-sm text-gray-600 mb-2">Alcance</p>
-                            <p class="text-xl font-bold text-gray-900">${currentMetrics.reach.toLocaleString('pt-BR')}</p>
-                            <p class="text-sm mt-1">${formatDiff(reachDiff)}</p>
-                        </div>
-                        <div class="border border-gray-200 rounded-lg p-4">
-                            <p class="text-sm text-gray-600 mb-2">Conversas</p>
-                            <p class="text-xl font-bold text-gray-900">${currentMetrics.conversations}</p>
-                            <p class="text-sm mt-1">${formatDiff(convDiff)}</p>
-                        </div>
-                        <div class="border border-gray-200 rounded-lg p-4">
-                            <p class="text-sm text-gray-600 mb-2">Custo/Conversa</p>
-                            <p class="text-xl font-bold text-gray-900">R$ ${currentCpm.toFixed(2)}</p>
-                            <p class="text-sm mt-1">${formatDiff(cpmDiff, true)}</p>
-                        </div>
-                    </div>
-                </div>
-            `;
+                doc.addImage(imgData, 'PNG', 0, 10, scaledWidth, scaledHeight);
+                doc.save(`${reportData.reportName || 'Relatorio'}.pdf`);
+                
+                console.log('✅ PDF exportado!');
+            } catch (error) {
+                console.error('❌ Erro ao exportar PDF:', error);
+                alert('Erro ao exportar PDF. Tente novamente.');
+            }
         }
     </script>
 </body>
 </html>
+

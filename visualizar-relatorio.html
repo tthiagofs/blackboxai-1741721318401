@@ -20,37 +20,37 @@
         }
     </style>
 </head>
-<body class="bg-white min-h-screen font-sans m-0 p-0 overflow-x-hidden">
-    
-    <!-- Sidebar -->
-    <aside class="fixed left-0 top-0 h-full w-64 bg-white border-r border-gray-200 flex flex-col z-50">
-        <div class="p-6 border-b border-gray-200">
-            <h1 class="text-2xl font-bold text-gray-900">Insightflow</h1>
-            <p class="text-sm text-gray-600 mt-1">Visualizar Relatório</p>
-        </div>
-        
-        <nav class="flex-1 p-4">
-            <a href="javascript:history.back()" class="flex items-center px-4 py-3 text-gray-700 hover:bg-gray-100 rounded-lg transition-all mb-2">
-                <i class="fas fa-arrow-left mr-3 text-gray-600"></i>
-                <span>Voltar</span>
-            </a>
-            <a href="/dashboard.html" class="flex items-center px-4 py-3 text-gray-700 hover:bg-gray-100 rounded-lg transition-all">
-                <i class="fas fa-home mr-3 text-gray-600"></i>
-                <span>Dashboard</span>
-            </a>
-        </nav>
-        
-        <div class="p-4 border-t border-gray-200">
-            <button id="logoutBtn" class="w-full flex items-center justify-center px-4 py-3 text-red-600 hover:bg-red-50 rounded-lg transition-all">
-                <i class="fas fa-sign-out-alt mr-2"></i>
-                <span>Sair</span>
-            </button>
-        </div>
-    </aside>
+<body class="bg-white min-h-screen font-sans m-0 p-0">
+    <!-- Container Principal -->
+    <div class="flex min-h-screen w-full">
+        <!-- Sidebar -->
+        <aside class="w-56 bg-white flex flex-col border-r border-gray-200">
+            <div class="p-6">
+                <h1 class="text-xl font-bold text-gray-800">Relatórios</h1>
+            </div>
+            
+            <nav class="flex-1 px-3">
+                <a href="javascript:history.back()" class="flex items-center px-3 py-2.5 mb-1 border-l-4 border-transparent text-gray-700 hover:bg-gray-50 transition-all">
+                    <i class="fas fa-arrow-left mr-3 text-sm"></i>
+                    <span class="text-sm">Voltar</span>
+                </a>
+                <a href="/dashboard.html" class="flex items-center px-3 py-2.5 mb-1 border-l-4 border-transparent text-gray-700 hover:bg-gray-50 transition-all">
+                    <i class="fas fa-home mr-3 text-sm"></i>
+                    <span class="text-sm">Tela Inicial</span>
+                </a>
+            </nav>
+            
+            <div class="p-3">
+                <button id="logoutBtn" class="w-full flex items-center px-3 py-2.5 text-red-600 hover:bg-red-50 rounded-lg transition-all">
+                    <i class="fas fa-sign-out-alt mr-3 text-sm"></i>
+                    <span class="text-sm">Log out</span>
+                </button>
+            </div>
+        </aside>
 
-    <!-- Main Content -->
-    <main class="ml-64 bg-gray-50 min-h-screen">
-        <div class="p-8">
+        <!-- Conteúdo Principal -->
+        <main class="flex-1 p-10 bg-gray-50">
+            <div>
             <!-- Loading -->
             <div id="loadingSection" class="text-center py-12">
                 <i class="fas fa-spinner fa-spin text-4xl text-blue-600 mb-4"></i>
@@ -60,7 +60,9 @@
             <!-- Relatório Container -->
             <div id="reportContainer" class="hidden"></div>
         </div>
-    </main>
+        </div>
+        </main>
+    </div>
 
     <!-- Scripts -->
     <script type="module">

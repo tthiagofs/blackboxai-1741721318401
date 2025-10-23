@@ -242,6 +242,30 @@ function toggleModal(modalId, show) {
         return;
     }
     if (show) {
+        // Verificar se os dados foram carregados
+        const unitId = document.getElementById('unitId').value;
+        const startDate = document.getElementById('startDate').value;
+        const endDate = document.getElementById('endDate').value;
+        
+        if (!unitId || !startDate || !endDate) {
+            alert('Por favor, selecione a conta e o período primeiro');
+            return;
+        }
+        
+        // Verificar se campanhas foram carregadas
+        if ((modalId.includes('campaign') || modalId.includes('Campaigns')) && !campaignsMap[unitId]) {
+            console.warn('Campanhas ainda não carregadas, aguarde...');
+            alert('Aguarde o carregamento dos dados...');
+            return;
+        }
+        
+        // Verificar se ad sets foram carregados
+        if ((modalId.includes('adSet') || modalId.includes('AdSets')) && !adSetsMap[unitId]) {
+            console.warn('Ad Sets ainda não carregados, aguarde...');
+            alert('Aguarde o carregamento dos dados...');
+            return;
+        }
+        
         modal.classList.remove('hidden');
         if (modalId === 'campaignsModal') {
             renderCampaignOptions();

@@ -127,7 +127,175 @@
             }
         }
 
-        // Renderizar relatório
+        // ========== FUNÇÕES DE RENDERIZAÇÃO (COPIADAS DO RelatorioCompleto.js) ==========
+        
+        function formatCurrencyBRL(value) {
+            return `R$ ${parseFloat(value || 0).toFixed(2).replace('.', ',')}`;
+        }
+        
+        function formatDateISOToBR(dateStr) {
+            const [year, month, day] = dateStr.split('-');
+            return `${day}/${month}/${year}`;
+        }
+        
+        function renderBlackWhiteReport(metrics, blackMetrics) {
+            return `
+                <div class="bg-blue-600 rounded-lg p-6 mb-6 shadow-lg">
+                    <h3 class="text-2xl font-bold text-white mb-4 uppercase">Campanhas White</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                        <div class="bg-white rounded-lg p-4 shadow-md">
+                            <h4 class="text-xs font-semibold text-blue-600 uppercase mb-2">Investimento</h4>
+                            <p class="text-2xl font-bold text-gray-900">${formatCurrencyBRL(metrics.spend)}</p>
+                        </div>
+                        <div class="bg-white rounded-lg p-4 shadow-md">
+                            <h4 class="text-xs font-semibold text-blue-600 uppercase mb-2">Alcance</h4>
+                            <p class="text-2xl font-bold text-gray-900">${metrics.reach.toLocaleString('pt-BR')}</p>
+                        </div>
+                        <div class="bg-white rounded-lg p-4 shadow-md">
+                            <h4 class="text-xs font-semibold text-blue-600 uppercase mb-2">Conversas Iniciadas</h4>
+                            <p class="text-2xl font-bold text-gray-900">${metrics.conversations}</p>
+                        </div>
+                        <div class="bg-white rounded-lg p-4 shadow-md">
+                            <h4 class="text-xs font-semibold text-blue-600 uppercase mb-2">Custo por Conversa</h4>
+                            <p class="text-2xl font-bold text-gray-900">${formatCurrencyBRL(metrics.costPerConversation)}</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-gray-800 rounded-lg p-6 mb-6 shadow-lg">
+                    <h3 class="text-2xl font-bold text-white mb-4 uppercase">Campanhas Black</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                        <div class="bg-white rounded-lg p-4 shadow-md">
+                            <h4 class="text-xs font-semibold text-gray-800 uppercase mb-2">Investimento</h4>
+                            <p class="text-2xl font-bold text-gray-900">${formatCurrencyBRL(blackMetrics.spend)}</p>
+                        </div>
+                        <div class="bg-white rounded-lg p-4 shadow-md">
+                            <h4 class="text-xs font-semibold text-gray-800 uppercase mb-2">Alcance</h4>
+                            <p class="text-2xl font-bold text-gray-900">${blackMetrics.reach.toLocaleString('pt-BR')}</p>
+                        </div>
+                        <div class="bg-white rounded-lg p-4 shadow-md">
+                            <h4 class="text-xs font-semibold text-gray-800 uppercase mb-2">Conversas Iniciadas</h4>
+                            <p class="text-2xl font-bold text-gray-900">${blackMetrics.conversations}</p>
+                        </div>
+                        <div class="bg-white rounded-lg p-4 shadow-md">
+                            <h4 class="text-xs font-semibold text-gray-800 uppercase mb-2">Custo por Conversa</h4>
+                            <p class="text-2xl font-bold text-gray-900">${formatCurrencyBRL(blackMetrics.costPerConversation)}</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        function renderStandardReport(metrics) {
+            return `
+                <div class="bg-blue-600 rounded-lg p-6 mb-6 shadow-lg">
+                    <h3 class="text-2xl font-bold text-white mb-4 uppercase">Campanhas</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                        <div class="bg-white rounded-lg p-4 shadow-md">
+                            <h4 class="text-xs font-semibold text-blue-600 uppercase mb-2">Investimento</h4>
+                            <p class="text-2xl font-bold text-gray-900">${formatCurrencyBRL(metrics.spend)}</p>
+                        </div>
+                        <div class="bg-white rounded-lg p-4 shadow-md">
+                            <h4 class="text-xs font-semibold text-blue-600 uppercase mb-2">Alcance</h4>
+                            <p class="text-2xl font-bold text-gray-900">${metrics.reach.toLocaleString('pt-BR')}</p>
+                        </div>
+                        <div class="bg-white rounded-lg p-4 shadow-md">
+                            <h4 class="text-xs font-semibold text-blue-600 uppercase mb-2">Conversas Iniciadas</h4>
+                            <p class="text-2xl font-bold text-gray-900">${metrics.conversations}</p>
+                        </div>
+                        <div class="bg-white rounded-lg p-4 shadow-md">
+                            <h4 class="text-xs font-semibold text-blue-600 uppercase mb-2">Custo por Conversa</h4>
+                            <p class="text-2xl font-bold text-gray-900">${formatCurrencyBRL(metrics.costPerConversation)}</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        function renderBestAds(bestAds) {
+            if (!bestAds || bestAds.length === 0) {
+                return '';
+            }
+
+            return `
+                <div class="mt-6">
+                    <h3 class="text-2xl font-bold text-blue-600 mb-4">Anúncios em Destaque</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        ${bestAds.map(ad => `
+                            <div class="bg-white border-2 border-blue-200 rounded-lg p-4 shadow-md">
+                                <div class="flex items-start gap-4">
+                                    <img src="${ad.imageUrl || 'https://dummyimage.com/150x150/2563eb/fff&text=AD'}" 
+                                         alt="Anúncio" 
+                                         class="w-24 h-24 object-cover rounded-md border border-gray-300" 
+                                         onerror="this.src='https://dummyimage.com/150x150/2563eb/fff&text=AD'">
+                                    <div class="flex-1">
+                                        <div class="bg-blue-50 rounded-md p-3 mb-2 border border-blue-200">
+                                            <p class="text-sm font-semibold text-blue-600">Leads: <span class="text-xl font-bold text-gray-900">${ad.messages || ad.conversations || 0}</span></p>
+                                        </div>
+                                        <div class="space-y-1">
+                                            <p class="text-sm text-gray-700"><strong class="text-blue-600">Investimento:</strong> ${formatCurrencyBRL(ad.spend)}</p>
+                                            <p class="text-sm text-gray-700"><strong class="text-blue-600">Custo/Lead:</strong> ${formatCurrencyBRL(ad.costPerMessage || ad.costPerConversation || 0)}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+        }
+        
+        function renderBusinessResults(budgetsCompleted, salesCount, revenue) {
+            if (budgetsCompleted === 0 && salesCount === 0 && revenue === 0) {
+                return '';
+            }
+
+            return `
+                <div class="mt-6">
+                    <h3 class="text-2xl font-bold text-blue-600 mb-4">Resultados do Negócio</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div class="bg-white border-2 border-blue-200 rounded-lg p-5 shadow-md">
+                            <h4 class="text-xs font-semibold text-blue-600 uppercase mb-2">Orçamentos Concluídos</h4>
+                            <p class="text-3xl font-bold text-gray-900">${budgetsCompleted.toLocaleString('pt-BR')}</p>
+                        </div>
+                        <div class="bg-white border-2 border-blue-200 rounded-lg p-5 shadow-md">
+                            <h4 class="text-xs font-semibold text-blue-600 uppercase mb-2">Número de Vendas</h4>
+                            <p class="text-3xl font-bold text-gray-900">${salesCount.toLocaleString('pt-BR')}</p>
+                        </div>
+                        <div class="bg-white border-2 border-blue-200 rounded-lg p-5 shadow-md">
+                            <h4 class="text-xs font-semibold text-blue-600 uppercase mb-2">Faturamento</h4>
+                            <p class="text-3xl font-bold text-gray-900">${formatCurrencyBRL(revenue)}</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        function renderPerformanceAnalysis(performanceAnalysis) {
+            if (!performanceAnalysis || performanceAnalysis.trim() === '') {
+                return '';
+            }
+
+            const paragraphs = performanceAnalysis.split(/\n\s*\n/).filter(p => p.trim());
+            if (paragraphs.length === 0) {
+                return '';
+            }
+
+            return `
+                <div class="mt-6">
+                    <h3 class="text-2xl font-bold text-blue-600 mb-4">Análise de Desempenho e Pontos de Melhoria</h3>
+                    <div class="bg-white border-2 border-blue-200 rounded-lg p-6 shadow-md">
+                        <ul class="list-disc list-inside space-y-3 text-gray-800 leading-relaxed">
+                            ${paragraphs.map(paragraph => {
+                                const formattedParagraph = paragraph.replace(/\n/g, '<br>');
+                                return `<li class="text-base">${formattedParagraph}</li>`;
+                            }).join('')}
+                        </ul>
+                    </div>
+                </div>
+            `;
+        }
+        
+        // ========== RENDERIZAR RELATÓRIO ==========
         function renderReport() {
             console.log('🎨 Renderizando relatório...');
             
@@ -143,169 +311,33 @@
             const savedBestAds = reportData.savedBestAds || [];
             const hasBlack = md.hasBlack || false;
 
-            // Calcular CPMs
-            const cpm = savedMetrics.conversations > 0 ? savedMetrics.spend / savedMetrics.conversations : 0;
-            const blackCpm = savedBlackMetrics.conversations > 0 ? savedBlackMetrics.spend / savedBlackMetrics.conversations : 0;
+            // Adicionar costPerConversation às métricas
+            savedMetrics.costPerConversation = savedMetrics.conversations > 0 ? savedMetrics.spend / savedMetrics.conversations : 0;
+            if (hasBlack) {
+                savedBlackMetrics.costPerConversation = savedBlackMetrics.conversations > 0 ? savedBlackMetrics.spend / savedBlackMetrics.conversations : 0;
+            }
 
+            // Usar o MESMO HTML/CSS do RelatorioCompleto.js
+            const formattedStartDate = formatDateISOToBR(reportData.analysisStart);
+            const formattedEndDate = formatDateISOToBR(reportData.analysisEnd);
+            
             reportContainer.innerHTML = `
-                <!-- Header -->
-                <div class="mb-8 flex justify-between items-center">
-                    <div>
-                        <h2 class="text-4xl font-bold text-gray-900 mb-2">${reportData.reportName || 'Relatório'}</h2>
-                        <p class="text-gray-600 text-lg">
-                            <i class="fas fa-calendar mr-2"></i>${reportData.dateRange || ''}
-                        </p>
-                    </div>
-                    
-                    <button id="exportPdfBtn" class="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white font-bold py-4 px-8 rounded-xl transition duration-300 transform hover:scale-[1.02] shadow-lg flex items-center">
-                        <i class="fas fa-file-pdf mr-3 text-2xl"></i>
-                        <span class="text-lg">Exportar PDF</span>
+                <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
+                    <h2 class="text-2xl font-semibold text-primary mb-4">Relatório Completo - ${reportData.reportName}</h2>
+                    <button id="exportPDFBtn" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition mb-4">
+                        <i class="fas fa-file-pdf mr-2"></i>Exportar para PDF
                     </button>
-                </div>
-
-                <!-- Relatório -->
-                <div id="report-content" class="space-y-8">
+                    <p class="text-gray-600 text-base mb-4">
+                        <i class="fas fa-calendar-alt mr-2"></i>Período Analisado: ${formattedStartDate} a ${formattedEndDate}
+                    </p>
                     
-                    <!-- Métricas Principais ${hasBlack ? 'WHITE' : ''} -->
-                    <section class="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl shadow-2xl p-10 text-white">
-                        <h3 class="text-3xl font-bold mb-8 flex items-center">
-                            <i class="fas fa-chart-line mr-4 text-4xl"></i>
-                            CAMPANHAS${hasBlack ? ' WHITE' : ''}
-                        </h3>
-                        
-                        <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
-                            <div class="bg-white/10 backdrop-blur-sm rounded-xl p-6 transform hover:scale-105 transition">
-                                <p class="text-sm uppercase tracking-wide opacity-90 mb-2">Investimento</p>
-                                <p class="text-3xl font-bold">R$ ${(savedMetrics.spend || 0).toFixed(2)}</p>
-                            </div>
-                            <div class="bg-white/10 backdrop-blur-sm rounded-xl p-6 transform hover:scale-105 transition">
-                                <p class="text-sm uppercase tracking-wide opacity-90 mb-2">Alcance</p>
-                                <p class="text-3xl font-bold">${(savedMetrics.reach || 0).toLocaleString('pt-BR')}</p>
-                            </div>
-                            <div class="bg-white/10 backdrop-blur-sm rounded-xl p-6 transform hover:scale-105 transition">
-                                <p class="text-sm uppercase tracking-wide opacity-90 mb-2">Conversas Iniciadas</p>
-                                <p class="text-3xl font-bold">${savedMetrics.conversations || 0}</p>
-                            </div>
-                            <div class="bg-white/10 backdrop-blur-sm rounded-xl p-6 transform hover:scale-105 transition">
-                                <p class="text-sm uppercase tracking-wide opacity-90 mb-2">Custo por Conversa</p>
-                                <p class="text-3xl font-bold">R$ ${cpm.toFixed(2)}</p>
-                            </div>
-                        </div>
-                    </section>
-
-                    ${hasBlack ? `
-                    <!-- Métricas BLACK -->
-                    <section class="bg-gradient-to-r from-gray-800 to-gray-900 rounded-2xl shadow-2xl p-10 text-white">
-                        <h3 class="text-3xl font-bold mb-8 flex items-center">
-                            <i class="fas fa-chart-line mr-4 text-4xl"></i>
-                            CAMPANHAS BLACK
-                        </h3>
-                        
-                        <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
-                            <div class="bg-white/10 backdrop-blur-sm rounded-xl p-6 transform hover:scale-105 transition">
-                                <p class="text-sm uppercase tracking-wide opacity-90 mb-2">Investimento</p>
-                                <p class="text-3xl font-bold">R$ ${(savedBlackMetrics.spend || 0).toFixed(2)}</p>
-                            </div>
-                            <div class="bg-white/10 backdrop-blur-sm rounded-xl p-6 transform hover:scale-105 transition">
-                                <p class="text-sm uppercase tracking-wide opacity-90 mb-2">Alcance</p>
-                                <p class="text-3xl font-bold">${(savedBlackMetrics.reach || 0).toLocaleString('pt-BR')}</p>
-                            </div>
-                            <div class="bg-white/10 backdrop-blur-sm rounded-xl p-6 transform hover:scale-105 transition">
-                                <p class="text-sm uppercase tracking-wide opacity-90 mb-2">Conversas Iniciadas</p>
-                                <p class="text-3xl font-bold">${savedBlackMetrics.conversations || 0}</p>
-                            </div>
-                            <div class="bg-white/10 backdrop-blur-sm rounded-xl p-6 transform hover:scale-105 transition">
-                                <p class="text-sm uppercase tracking-wide opacity-90 mb-2">Custo por Conversa</p>
-                                <p class="text-3xl font-bold">R$ ${blackCpm.toFixed(2)}</p>
-                            </div>
-                        </div>
-                    </section>
-                    ` : ''}
-
-                    <!-- Resultados do Negócio -->
-                    <section class="bg-white rounded-2xl shadow-2xl p-10">
-                        <h3 class="text-3xl font-bold text-gray-900 mb-8 flex items-center">
-                            <i class="fas fa-trophy text-yellow-500 mr-4 text-4xl"></i>
-                            RESULTADOS DO NEGÓCIO
-                        </h3>
-                        
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
-                            <div class="text-center p-8 bg-gradient-to-br from-green-50 to-green-100 rounded-2xl shadow-lg transform hover:scale-105 transition">
-                                <p class="text-sm text-gray-600 uppercase tracking-wide mb-3">Orçamentos Concluídos</p>
-                                <p class="text-6xl font-bold text-green-600">${md.budgets || 0}</p>
-                            </div>
-                            <div class="text-center p-8 bg-gradient-to-br from-blue-50 to-blue-100 rounded-2xl shadow-lg transform hover:scale-105 transition">
-                                <p class="text-sm text-gray-600 uppercase tracking-wide mb-3">Número de Vendas</p>
-                                <p class="text-6xl font-bold text-blue-600">${md.sales || 0}</p>
-                            </div>
-                            <div class="text-center p-8 bg-gradient-to-br from-purple-50 to-purple-100 rounded-2xl shadow-lg transform hover:scale-105 transition">
-                                <p class="text-sm text-gray-600 uppercase tracking-wide mb-3">Faturamento</p>
-                                <p class="text-6xl font-bold text-purple-600">R$ ${(md.revenue || 0).toLocaleString('pt-BR')}</p>
-                            </div>
-                        </div>
-
-                        ${md.analysis ? `
-                        <div class="bg-gradient-to-r from-blue-50 to-indigo-50 border-l-4 border-blue-600 p-6 rounded-lg">
-                            <p class="text-sm font-bold text-gray-700 uppercase tracking-wide mb-3">
-                                <i class="fas fa-lightbulb mr-2 text-yellow-500"></i>
-                                Análise de Desempenho
-                            </p>
-                            <p class="text-gray-800 text-lg leading-relaxed">${md.analysis}</p>
-                        </div>
-                        ` : ''}
-                    </section>
-
-                    ${savedBestAds.length > 0 ? `
-                    <!-- Melhores Anúncios -->
-                    <section class="bg-gradient-to-r from-purple-600 to-pink-600 rounded-2xl shadow-2xl p-10 text-white">
-                        <h3 class="text-3xl font-bold mb-8 flex items-center">
-                            <i class="fas fa-star mr-4 text-4xl"></i>
-                            MELHORES ANÚNCIOS
-                        </h3>
-                        
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-                            ${savedBestAds.map((ad, i) => `
-                                <div class="bg-white rounded-2xl shadow-xl p-8 text-gray-900">
-                                    <div class="flex items-start mb-6">
-                                        <div class="w-16 h-16 bg-gradient-to-br from-yellow-400 to-yellow-600 rounded-full flex items-center justify-center text-white font-bold text-2xl mr-5 shadow-lg">
-                                            ${i + 1}º
-                                        </div>
-                                        <div class="flex-1">
-                                            <h4 class="font-bold text-xl text-gray-900 mb-2">${ad.name || 'Sem nome'}</h4>
-                                            <p class="text-sm text-gray-600">ID: ${ad.id}</p>
-                                        </div>
-                                    </div>
-
-                                    ${ad.thumbnail ? `
-                                    <div class="mb-6 rounded-xl overflow-hidden shadow-lg">
-                                        <img src="${ad.thumbnail}" alt="Preview" class="w-full h-auto">
-                                    </div>
-                                    ` : ''}
-
-                                    <div class="grid grid-cols-2 gap-4">
-                                        <div class="bg-blue-50 p-4 rounded-lg">
-                                            <p class="text-xs text-gray-600 uppercase tracking-wide mb-1">Investimento</p>
-                                            <p class="text-xl font-bold text-blue-600">R$ ${(ad.spend || 0).toFixed(2)}</p>
-                                        </div>
-                                        <div class="bg-green-50 p-4 rounded-lg">
-                                            <p class="text-xs text-gray-600 uppercase tracking-wide mb-1">Conversas</p>
-                                            <p class="text-xl font-bold text-green-600">${ad.conversations || 0}</p>
-                                        </div>
-                                        <div class="bg-purple-50 p-4 rounded-lg">
-                                            <p class="text-xs text-gray-600 uppercase tracking-wide mb-1">Alcance</p>
-                                            <p class="text-xl font-bold text-purple-600">${(ad.reach || 0).toLocaleString('pt-BR')}</p>
-                                        </div>
-                                        <div class="bg-yellow-50 p-4 rounded-lg">
-                                            <p class="text-xs text-gray-600 uppercase tracking-wide mb-1">CPM</p>
-                                            <p class="text-xl font-bold text-yellow-600">R$ ${ad.conversations > 0 ? (ad.spend / ad.conversations).toFixed(2) : '0.00'}</p>
-                                        </div>
-                                    </div>
-                                </div>
-                            `).join('')}
-                        </div>
-                    </section>
-                    ` : ''}
-
+                    ${hasBlack ? renderBlackWhiteReport(savedMetrics, savedBlackMetrics) : renderStandardReport(savedMetrics)}
+                    
+                    ${renderBestAds(savedBestAds)}
+                    
+                    ${renderBusinessResults(md.budgets || 0, md.sales || 0, md.revenue || 0)}
+                    
+                    ${renderPerformanceAnalysis(md.analysis || '')}
                 </div>
             `;
 

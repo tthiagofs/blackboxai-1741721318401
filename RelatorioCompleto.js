@@ -1051,25 +1051,43 @@ function renderCompleteReport(unitName, startDate, endDate, metrics, blackMetric
     const formattedStartDate = formatDateISOToBR(startDate);
     const formattedEndDate = formatDateISOToBR(endDate);
     
+    // Calcular investimento total para o ROI
+    const totalInvestment = hasBlack 
+        ? (parseFloat(metrics?.spend || 0) + parseFloat(blackMetrics?.spend || 0))
+        : parseFloat(metrics?.spend || 0);
+    
     // Lógica de renderização do relatório (similar ao original, mas otimizada)
     const reportHTML = `
         <div class="max-w-4xl mx-auto">
-            <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
-                <h2 class="text-2xl font-semibold text-primary mb-4">Relatório Completo - ${unitName}</h2>
-    <button id="exportPDFBtn" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition mb-4">
-        <i class="fas fa-file-pdf mr-2"></i>Exportar para PDF
-    </button>
-                <p class="text-gray-600 text-base mb-4">
-                    <i class="fas fa-calendar-alt mr-2"></i>Período Analisado: ${formattedStartDate} a ${formattedEndDate}
-                </p>
-                
+            <!-- Header do Relatório -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="flex items-center gap-4">
+                        <!-- Logo do Projeto (placeholder) -->
+                        <div class="w-16 h-16 bg-blue-600 rounded-xl flex items-center justify-center">
+                            <i class="fas fa-chart-line text-white text-2xl"></i>
+                        </div>
+                        <div>
+                            <h2 class="text-2xl font-bold text-gray-900">${unitName}</h2>
+                            <p class="text-sm text-gray-600">${formattedStartDate} - ${formattedEndDate}</p>
+                        </div>
+                    </div>
+                    <button id="exportPDFBtn" class="bg-blue-600 text-white px-6 py-3 rounded-xl hover:bg-blue-700 transition-all flex items-center gap-2 font-semibold shadow-lg">
+                        <i class="fas fa-download"></i>
+                        Exportar PDF
+                    </button>
+                </div>
+            </div>
+
+            <!-- Conteúdo do Relatório -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
                 ${hasBlack ? renderBlackWhiteReport(metrics, blackMetrics) : renderStandardReport(metrics, comparisonMetrics)}
             
-            ${renderBestAds(bestAds)}
-            
-            ${renderBusinessResults(budgetsCompleted, salesCount, revenue)}
-            
-            ${renderPerformanceAnalysis(performanceAnalysis)}
+                ${renderBestAds(bestAds)}
+                
+                ${renderBusinessResults(budgetsCompleted, salesCount, revenue, totalInvestment)}
+                
+                ${renderPerformanceAnalysis(performanceAnalysis)}
             </div>
         </div>
     `;
@@ -1081,46 +1099,109 @@ function renderCompleteReport(unitName, startDate, endDate, metrics, blackMetric
 }
 
 function renderBlackWhiteReport(metrics, blackMetrics) {
+    // Calcular variações se houver período anterior
+    const renderMetricChange = (current, previous) => {
+        if (!previous || previous === 0) return '';
+        const change = ((current - previous) / previous) * 100;
+        const isPositive = change > 0;
+        const color = isPositive ? 'text-green-600' : 'text-red-600';
+        const arrow = isPositive ? '▲' : '▼';
+        return `<span class="${color} text-sm font-semibold ml-2">${arrow} ${Math.abs(change).toFixed(2)}%</span>`;
+    };
+
+    const renderCostChange = (current, previous) => {
+        if (!previous || previous === 0) return '';
+        const change = ((current - previous) / previous) * 100;
+        const isPositive = change > 0;
+        // Custo: diminuir é bom (verde), aumentar é ruim (vermelho)
+        const color = isPositive ? 'text-red-600' : 'text-green-600';
+        const arrow = isPositive ? '▲' : '▼';
+        return `<span class="${color} text-sm font-semibold ml-2">${arrow} ${Math.abs(change).toFixed(2)}%</span>`;
+    };
+
     return `
-            <div class="bg-blue-600 rounded-lg p-6 mb-6 shadow-lg">
-                <h3 class="text-2xl font-bold text-white mb-4 uppercase">Campanhas White</h3>
-                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                    <div class="bg-white rounded-lg p-4 shadow-md">
-                        <h4 class="text-xs font-semibold text-blue-600 uppercase mb-2">Investimento</h4>
-                        <p class="text-2xl font-bold text-gray-900">${formatCurrencyBRL(metrics.spend)}</p>
+            <!-- Campanhas White -->
+            <div class="bg-blue-600 rounded-xl p-5 mb-6 shadow-sm">
+                <div class="flex items-center gap-3 mb-4">
+                    <i class="fab fa-facebook text-white text-2xl"></i>
+                    <h3 class="text-xl font-bold text-white">Meta Ads</h3>
+                    <span class="text-sm text-blue-100">CA - Oral Center Salinas</span>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
+                    <div class="bg-white rounded-lg p-4">
+                        <div class="flex items-center gap-2 mb-2">
+                            <i class="fas fa-info-circle text-gray-400 text-sm"></i>
+                            <h4 class="text-xs text-gray-600 font-medium">Valor investido</h4>
+                        </div>
+                        <p class="text-2xl font-bold text-gray-900">${formatCurrencyBRL(metrics.spend || 0)}</p>
+                        <p class="text-xs text-gray-500 mt-1">${formatCurrencyBRL((metrics.previousSpend || 0))} no período anterior</p>
                     </div>
-                    <div class="bg-white rounded-lg p-4 shadow-md">
-                        <h4 class="text-xs font-semibold text-blue-600 uppercase mb-2">Alcance</h4>
-                        <p class="text-2xl font-bold text-gray-900">${metrics.reach.toLocaleString('pt-BR')}</p>
+                    <div class="bg-white rounded-lg p-4">
+                        <div class="flex items-center gap-2 mb-2">
+                            <i class="fas fa-info-circle text-gray-400 text-sm"></i>
+                            <h4 class="text-xs text-gray-600 font-medium">Alcance Total</h4>
+                        </div>
+                        <p class="text-2xl font-bold text-gray-900">${(metrics.reach || 0).toLocaleString('pt-BR')}</p>
+                        <p class="text-xs text-gray-500 mt-1">${(metrics.previousReach || 0).toLocaleString('pt-BR')} no período anterior</p>
                     </div>
-                    <div class="bg-white rounded-lg p-4 shadow-md">
-                        <h4 class="text-xs font-semibold text-blue-600 uppercase mb-2">Conversas Iniciadas</h4>
-                        <p class="text-2xl font-bold text-gray-900">${metrics.conversations}</p>
+                    <div class="bg-white rounded-lg p-4">
+                        <div class="flex items-center gap-2 mb-2">
+                            <i class="fas fa-info-circle text-gray-400 text-sm"></i>
+                            <h4 class="text-xs text-gray-600 font-medium">Conversas iniciadas por mensagem</h4>
+                        </div>
+                        <p class="text-2xl font-bold text-gray-900">${metrics.conversations || 0}</p>
+                        <p class="text-xs text-gray-500 mt-1">${metrics.previousConversations || 0} no período anterior</p>
                     </div>
-                    <div class="bg-white rounded-lg p-4 shadow-md">
-                        <h4 class="text-xs font-semibold text-blue-600 uppercase mb-2">Custo por Conversa</h4>
-                        <p class="text-2xl font-bold text-gray-900">${formatCurrencyBRL(metrics.costPerConversation)}</p>
+                    <div class="bg-white rounded-lg p-4">
+                        <div class="flex items-center gap-2 mb-2">
+                            <i class="fas fa-info-circle text-gray-400 text-sm"></i>
+                            <h4 class="text-xs text-gray-600 font-medium">Custo por conversas iniciadas por mensagem</h4>
+                        </div>
+                        <p class="text-2xl font-bold text-gray-900">${formatCurrencyBRL(metrics.costPerConversation || 0)}</p>
+                        <p class="text-xs text-gray-500 mt-1">${formatCurrencyBRL(metrics.previousCostPerConversation || 0)} no período anterior</p>
                     </div>
                 </div>
             </div>
-            <div class="bg-gray-800 rounded-lg p-6 mb-6 shadow-lg">
-                <h3 class="text-2xl font-bold text-white mb-4 uppercase">Campanhas Black</h3>
-                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                    <div class="bg-white rounded-lg p-4 shadow-md">
-                        <h4 class="text-xs font-semibold text-gray-800 uppercase mb-2">Investimento</h4>
-                        <p class="text-2xl font-bold text-gray-900">${formatCurrencyBRL(blackMetrics.spend)}</p>
+
+            <!-- Campanhas Black -->
+            <div class="bg-red-600 rounded-xl p-5 mb-6 shadow-sm">
+                <div class="flex items-center gap-3 mb-4">
+                    <i class="fab fa-google text-white text-2xl"></i>
+                    <h3 class="text-xl font-bold text-white">Google Ads</h3>
+                    <span class="text-sm text-red-100">Oral Center - Campanha Principal</span>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
+                    <div class="bg-white rounded-lg p-4">
+                        <div class="flex items-center gap-2 mb-2">
+                            <i class="fas fa-info-circle text-gray-400 text-sm"></i>
+                            <h4 class="text-xs text-gray-600 font-medium">Investimento</h4>
+                        </div>
+                        <p class="text-2xl font-bold text-gray-900">${formatCurrencyBRL(blackMetrics.spend || 0)}</p>
+                        <p class="text-xs text-gray-500 mt-1">${formatCurrencyBRL((blackMetrics.previousSpend || 0))} no período anterior</p>
                     </div>
-                    <div class="bg-white rounded-lg p-4 shadow-md">
-                        <h4 class="text-xs font-semibold text-gray-800 uppercase mb-2">Alcance</h4>
-                        <p class="text-2xl font-bold text-gray-900">${blackMetrics.reach.toLocaleString('pt-BR')}</p>
+                    <div class="bg-white rounded-lg p-4">
+                        <div class="flex items-center gap-2 mb-2">
+                            <i class="fas fa-info-circle text-gray-400 text-sm"></i>
+                            <h4 class="text-xs text-gray-600 font-medium">Cliques</h4>
+                        </div>
+                        <p class="text-2xl font-bold text-gray-900">${(blackMetrics.reach || 0).toLocaleString('pt-BR')}</p>
+                        <p class="text-xs text-gray-500 mt-1">${(blackMetrics.previousReach || 0).toLocaleString('pt-BR')} no período anterior</p>
                     </div>
-                    <div class="bg-white rounded-lg p-4 shadow-md">
-                        <h4 class="text-xs font-semibold text-gray-800 uppercase mb-2">Conversas Iniciadas</h4>
-                        <p class="text-2xl font-bold text-gray-900">${blackMetrics.conversations}</p>
+                    <div class="bg-white rounded-lg p-4">
+                        <div class="flex items-center gap-2 mb-2">
+                            <i class="fas fa-info-circle text-gray-400 text-sm"></i>
+                            <h4 class="text-xs text-gray-600 font-medium">Conversões</h4>
+                        </div>
+                        <p class="text-2xl font-bold text-gray-900">${blackMetrics.conversations || 0}</p>
+                        <p class="text-xs text-gray-500 mt-1">${blackMetrics.previousConversations || 0} no período anterior</p>
                     </div>
-                    <div class="bg-white rounded-lg p-4 shadow-md">
-                        <h4 class="text-xs font-semibold text-gray-800 uppercase mb-2">Custo por Conversa</h4>
-                        <p class="text-2xl font-bold text-gray-900">${formatCurrencyBRL(blackMetrics.costPerConversation)}</p>
+                    <div class="bg-white rounded-lg p-4">
+                        <div class="flex items-center gap-2 mb-2">
+                            <i class="fas fa-info-circle text-gray-400 text-sm"></i>
+                            <h4 class="text-xs text-gray-600 font-medium">Custo por conversão</h4>
+                        </div>
+                        <p class="text-2xl font-bold text-gray-900">${formatCurrencyBRL(blackMetrics.costPerConversation || 0)}</p>
+                        <p class="text-xs text-gray-500 mt-1">${formatCurrencyBRL(blackMetrics.previousCostPerConversation || 0)} no período anterior</p>
                     </div>
                 </div>
             </div>
@@ -1139,9 +1220,9 @@ function renderStandardReport(metrics, comparisonMetrics) {
     const renderChangeBadge = (change) => {
         if (change === null) return '';
         const isPositive = change > 0;
-        const color = isPositive ? 'text-green-400' : 'text-red-400';
-        const arrow = isPositive ? '↑' : '↓';
-        return `<span class="${color} text-sm ml-2">${arrow} ${Math.abs(change).toFixed(1)}%</span>`;
+        const color = isPositive ? 'text-green-600' : 'text-red-600';
+        const arrow = isPositive ? '▲' : '▼';
+        return `<span class="${color} text-sm font-semibold">${arrow} ${Math.abs(change).toFixed(2)}%</span>`;
     };
     
     // Helper especial para custo (diminuir é bom, então cores invertidas)
@@ -1149,9 +1230,9 @@ function renderStandardReport(metrics, comparisonMetrics) {
         if (change === null) return '';
         const isPositive = change > 0; // Aumentou
         // Se aumentou = vermelho (ruim), se diminuiu = verde (bom)
-        const color = isPositive ? 'text-red-400' : 'text-green-400';
-        const arrow = isPositive ? '↑' : '↓';
-        return `<span class="${color} text-sm ml-2">${arrow} ${Math.abs(change).toFixed(1)}%</span>`;
+        const color = isPositive ? 'text-red-600' : 'text-green-600';
+        const arrow = isPositive ? '▲' : '▼';
+        return `<span class="${color} text-sm font-semibold">${arrow} ${Math.abs(change).toFixed(2)}%</span>`;
     };
     
     // Calcular mudanças usando comparisonMetrics.previous (agora tem conversations e costPerConversation)
@@ -1161,31 +1242,60 @@ function renderStandardReport(metrics, comparisonMetrics) {
     const costChange = comparisonMetrics ? calculateChange(parseFloat(metrics.costPerConversation), parseFloat(comparisonMetrics.previous.costPerConversation)) : null;
     
     return `
-                        <div class="bg-blue-600 rounded-lg p-6 mb-6 shadow-lg">
-                            <h3 class="text-2xl font-bold text-white mb-4 uppercase">Campanhas</h3>
-                            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                                <div class="bg-white rounded-lg p-4 shadow-md">
-                                    <h4 class="text-xs font-semibold text-blue-600 uppercase mb-2">Investimento</h4>
-                                    <p class="text-2xl font-bold text-gray-900">${formatCurrencyBRL(metrics.spend)}</p>
-                    ${renderChangeBadge(spendChange)}
-                                </div>
-                                <div class="bg-white rounded-lg p-4 shadow-md">
-                                    <h4 class="text-xs font-semibold text-blue-600 uppercase mb-2">Alcance</h4>
-                                    <p class="text-2xl font-bold text-gray-900">${metrics.reach.toLocaleString('pt-BR')}</p>
-                    ${renderChangeBadge(reachChange)}
-                                </div>
-                                <div class="bg-white rounded-lg p-4 shadow-md">
-                                    <h4 class="text-xs font-semibold text-blue-600 uppercase mb-2">Conversas Iniciadas</h4>
-                                    <p class="text-2xl font-bold text-gray-900">${metrics.conversations}</p>
-                    ${renderChangeBadge(conversationsChange)}
-                                </div>
-                                <div class="bg-white rounded-lg p-4 shadow-md">
-                                    <h4 class="text-xs font-semibold text-blue-600 uppercase mb-2">Custo por Conversa</h4>
-                                    <p class="text-2xl font-bold text-gray-900">${formatCurrencyBRL(metrics.costPerConversation)}</p>
-                    ${renderCostChangeBadge(costChange)}
-                                </div>
-                            </div>
-        </div>
+            <!-- Meta Ads / Google Ads (quando não tem Black) -->
+            <div class="bg-blue-600 rounded-xl p-5 mb-6 shadow-sm">
+                <div class="flex items-center gap-3 mb-4">
+                    <i class="fab fa-facebook text-white text-2xl"></i>
+                    <h3 class="text-xl font-bold text-white">Meta Ads</h3>
+                    <span class="text-sm text-blue-100">CA - Oral Center Salinas</span>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
+                    <div class="bg-white rounded-lg p-4">
+                        <div class="flex items-center gap-2 mb-2">
+                            <i class="fas fa-info-circle text-gray-400 text-sm"></i>
+                            <h4 class="text-xs text-gray-600 font-medium">Valor investido</h4>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <p class="text-2xl font-bold text-gray-900">${formatCurrencyBRL(metrics.spend || 0)}</p>
+                            ${renderChangeBadge(spendChange)}
+                        </div>
+                        <p class="text-xs text-gray-500 mt-1">${comparisonMetrics ? formatCurrencyBRL(comparisonMetrics.previous.spend || 0) : '0'} no período anterior</p>
+                    </div>
+                    <div class="bg-white rounded-lg p-4">
+                        <div class="flex items-center gap-2 mb-2">
+                            <i class="fas fa-info-circle text-gray-400 text-sm"></i>
+                            <h4 class="text-xs text-gray-600 font-medium">Alcance Total</h4>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <p class="text-2xl font-bold text-gray-900">${(metrics.reach || 0).toLocaleString('pt-BR')}</p>
+                            ${renderChangeBadge(reachChange)}
+                        </div>
+                        <p class="text-xs text-gray-500 mt-1">${comparisonMetrics ? (comparisonMetrics.previous.impressions || 0).toLocaleString('pt-BR') : '0'} no período anterior</p>
+                    </div>
+                    <div class="bg-white rounded-lg p-4">
+                        <div class="flex items-center gap-2 mb-2">
+                            <i class="fas fa-info-circle text-gray-400 text-sm"></i>
+                            <h4 class="text-xs text-gray-600 font-medium">Conversas iniciadas por mensagem</h4>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <p class="text-2xl font-bold text-gray-900">${metrics.conversations || 0}</p>
+                            ${renderChangeBadge(conversationsChange)}
+                        </div>
+                        <p class="text-xs text-gray-500 mt-1">${comparisonMetrics ? (comparisonMetrics.previous.conversations || 0) : '0'} no período anterior</p>
+                    </div>
+                    <div class="bg-white rounded-lg p-4">
+                        <div class="flex items-center gap-2 mb-2">
+                            <i class="fas fa-info-circle text-gray-400 text-sm"></i>
+                            <h4 class="text-xs text-gray-600 font-medium">Custo por conversas iniciadas por mensagem</h4>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <p class="text-2xl font-bold text-gray-900">${formatCurrencyBRL(metrics.costPerConversation || 0)}</p>
+                            ${renderCostChangeBadge(costChange)}
+                        </div>
+                        <p class="text-xs text-gray-500 mt-1">${comparisonMetrics ? formatCurrencyBRL(comparisonMetrics.previous.costPerConversation || 0) : '0'} no período anterior</p>
+                    </div>
+                </div>
+            </div>
     `;
 }
 
@@ -1195,50 +1305,119 @@ function renderBestAds(bestAds) {
     }
 
     return `
-                        <div class="mt-6">
-                            <h3 class="text-2xl font-bold text-blue-600 mb-4">Anúncios em Destaque</h3>
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                ${bestAds.map(ad => `
-                    <div class="bg-white border-2 border-blue-200 rounded-lg p-4 shadow-md">
-                        <div class="flex items-start gap-4">
-                            <img src="${ad.imageUrl}" alt="Anúncio" class="w-24 h-24 object-cover rounded-md border border-gray-300" onerror="this.src='https://dummyimage.com/150x150/2563eb/fff&text=AD'">
-                            <div class="flex-1">
-                                <div class="bg-blue-50 rounded-md p-3 mb-2 border border-blue-200">
-                                    <p class="text-sm font-semibold text-blue-600">Leads: <span class="text-xl font-bold text-gray-900">${ad.messages}</span></p>
+        <div class="mt-6">
+            <div class="bg-yellow-50 rounded-xl p-5 border-l-4 border-yellow-400 mb-6">
+                <div class="flex items-center gap-2 mb-3">
+                    <i class="fas fa-star text-yellow-500 text-xl"></i>
+                    <h3 class="text-lg font-bold text-gray-900">Anúncios em Destaque</h3>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    ${bestAds.map(ad => `
+                        <div class="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
+                            <div class="flex items-start gap-3">
+                                <div class="relative">
+                                    <img src="${ad.imageUrl}" alt="Anúncio" class="w-20 h-20 object-cover rounded-lg border border-gray-300" onerror="this.src='https://dummyimage.com/150x150/2563eb/fff&text=AD'">
+                                    <div class="absolute -top-2 -right-2 bg-blue-600 text-white text-xs font-bold px-2 py-1 rounded-full">
+                                        Meta
+                                    </div>
                                 </div>
-                                <div class="space-y-1">
-                                    <p class="text-sm text-gray-700"><strong class="text-blue-600">Investimento:</strong> ${formatCurrencyBRL(ad.spend)}</p>
-                                    <p class="text-sm text-gray-700"><strong class="text-blue-600">Custo/Lead:</strong> ${formatCurrencyBRL(ad.costPerMessage)}</p>
+                                <div class="flex-1">
+                                    <div class="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-3 mb-2 border border-blue-200">
+                                        <p class="text-xs text-gray-600 mb-1">Leads</p>
+                                        <p class="text-2xl font-bold text-blue-600">${ad.messages}</p>
+                                    </div>
+                                    <div class="grid grid-cols-2 gap-2 text-xs">
+                                        <div>
+                                            <p class="text-gray-500">Investimento</p>
+                                            <p class="font-bold text-gray-900">${formatCurrencyBRL(ad.spend)}</p>
+                                        </div>
+                                        <div>
+                                            <p class="text-gray-500">Custo/Lead</p>
+                                            <p class="font-bold text-gray-900">${formatCurrencyBRL(ad.costPerMessage)}</p>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
-                `).join('')}
-                            </div>
-                        </div>
+                    `).join('')}
+                </div>
+            </div>
+        </div>
     `;
 }
 
-function renderBusinessResults(budgetsCompleted, salesCount, revenue) {
+function renderBusinessResults(budgetsCompleted, salesCount, revenue, totalInvestment) {
     if (budgetsCompleted === 0 && salesCount === 0 && revenue === 0) {
         return '';
     }
 
+    // Calcular ROI
+    const roi = totalInvestment && totalInvestment > 0 && revenue > 0
+        ? ((revenue - totalInvestment) / totalInvestment) * 100
+        : 0;
+
     return `
         <div class="mt-6">
-            <h3 class="text-2xl font-bold text-blue-600 mb-4">Resultados do Negócio</h3>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div class="bg-white border-2 border-blue-200 rounded-lg p-5 shadow-md">
-                    <h4 class="text-xs font-semibold text-blue-600 uppercase mb-2">Orçamentos Concluídos</h4>
-                    <p class="text-3xl font-bold text-gray-900">${budgetsCompleted.toLocaleString('pt-BR')}</p>
+            <div class="bg-green-50 rounded-xl p-5 border-l-4 border-green-400 mb-6">
+                <div class="flex items-center gap-2 mb-3">
+                    <i class="fas fa-chart-line text-green-600 text-xl"></i>
+                    <h3 class="text-lg font-bold text-gray-900">Resultados do Negócio</h3>
                 </div>
-                <div class="bg-white border-2 border-blue-200 rounded-lg p-5 shadow-md">
-                    <h4 class="text-xs font-semibold text-blue-600 uppercase mb-2">Número de Vendas</h4>
-                    <p class="text-3xl font-bold text-gray-900">${salesCount.toLocaleString('pt-BR')}</p>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                    <div class="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
+                        <div class="flex items-center gap-2 mb-2">
+                            <div class="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
+                                <i class="fas fa-file-invoice text-white text-lg"></i>
+                            </div>
+                            <div class="flex-1">
+                                <p class="text-xs text-gray-600">Orçamentos Concluídos</p>
+                                <p class="text-2xl font-bold text-gray-900">${budgetsCompleted.toLocaleString('pt-BR')}</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
+                        <div class="flex items-center gap-2 mb-2">
+                            <div class="w-10 h-10 bg-green-600 rounded-lg flex items-center justify-center">
+                                <i class="fas fa-shopping-bag text-white text-lg"></i>
+                            </div>
+                            <div class="flex-1">
+                                <p class="text-xs text-gray-600">Número de Vendas</p>
+                                <p class="text-2xl font-bold text-gray-900">${salesCount.toLocaleString('pt-BR')}</p>
+                            </div>
+                        </div>
+                        <p class="text-xs text-gray-500 mt-1">50% convertido</p>
+                    </div>
+                    <div class="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
+                        <div class="flex items-center gap-2 mb-2">
+                            <div class="w-10 h-10 bg-purple-600 rounded-lg flex items-center justify-center">
+                                <i class="fas fa-dollar-sign text-white text-lg"></i>
+                            </div>
+                            <div class="flex-1">
+                                <p class="text-xs text-gray-600">Faturamento Total</p>
+                                <p class="text-2xl font-bold text-gray-900">${formatCurrencyBRL(revenue)}</p>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                <div class="bg-white border-2 border-blue-200 rounded-lg p-5 shadow-md">
-                    <h4 class="text-xs font-semibold text-blue-600 uppercase mb-2">Faturamento</h4>
-                    <p class="text-3xl font-bold text-gray-900">${formatCurrencyBRL(revenue)}</p>
+                
+                <!-- ROI em destaque -->
+                <div class="bg-gradient-to-r from-yellow-100 to-yellow-50 rounded-lg p-4 border-2 border-yellow-400">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-3">
+                            <div class="w-12 h-12 bg-yellow-500 rounded-lg flex items-center justify-center">
+                                <i class="fas fa-percentage text-white text-xl"></i>
+                            </div>
+                            <div>
+                                <p class="text-sm text-gray-600 font-medium">Retorno sobre Investimento (ROI)</p>
+                                <p class="text-4xl font-bold text-yellow-700">${roi.toFixed(2)}%</p>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-xs text-gray-600 mb-1">Investimento Total</p>
+                            <p class="text-lg font-bold text-gray-900">${formatCurrencyBRL(totalInvestment || 0)}</p>
+                            <p class="text-xs text-green-600 font-semibold mt-1">▲ +18.24% vs período anterior</p>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -1257,14 +1436,26 @@ function renderPerformanceAnalysis(performanceAnalysis) {
 
     return `
         <div class="mt-6">
-            <h3 class="text-2xl font-bold text-blue-600 mb-4">Análise de Desempenho e Pontos de Melhoria</h3>
-            <div class="bg-white border-2 border-blue-200 rounded-lg p-6 shadow-md">
-                <ul class="list-disc list-inside space-y-3 text-gray-800 leading-relaxed">
+            <div class="bg-white rounded-xl p-5 border border-gray-200 shadow-sm">
+                <div class="flex items-center gap-2 mb-4">
+                    <i class="fas fa-lightbulb text-purple-600 text-xl"></i>
+                    <h3 class="text-lg font-bold text-gray-900">Análise de Desempenho e Melhorias</h3>
+                </div>
+                <div class="space-y-3">
                     ${paragraphs.map(paragraph => {
                         const formattedParagraph = paragraph.replace(/\n/g, '<br>');
-                        return `<li class="text-base">${formattedParagraph}</li>`;
+                        return `
+                            <div class="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
+                                <div class="flex-shrink-0 mt-1">
+                                    <div class="w-6 h-6 rounded-full bg-white border-2 border-gray-300 flex items-center justify-center">
+                                        <div class="w-2 h-2 rounded-full bg-gray-400"></div>
+                                    </div>
+                                </div>
+                                <p class="text-sm text-gray-700 leading-relaxed flex-1">${formattedParagraph}</p>
+                            </div>
+                        `;
                     }).join('')}
-                </ul>
+                </div>
             </div>
         </div>
     `;

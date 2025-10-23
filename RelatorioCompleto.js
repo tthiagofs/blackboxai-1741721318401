@@ -6,6 +6,7 @@ import { FacebookInsightsService } from './services/facebookInsights.js?v=3.0';
 import { GoogleAdsService } from './services/googleAds.js?v=3.0';
 import { googleAuth } from './authGoogle.js?v=3.0';
 import { projectsService } from './services/projects.js?v=1.3';
+import { createIconWithBackgroundSVG } from './iconsSVG.js';
 
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -1223,9 +1224,7 @@ function renderBlackWhiteReport(metrics, blackMetrics, accountName = '') {
                 <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
                     <div class="bg-white rounded-lg p-4">
                         <div class="flex items-center gap-2 mb-2">
-                            <div style="width: 16px; height: 16px; min-width: 16px; min-height: 16px; background-color: #3b82f6; border-radius: 4px; display: flex; align-items: center; justify-content: center;">
-                                <i class="fas fa-dollar-sign" style="font-size: 10px; color: white;"></i>
-                            </div>
+                            ${createIconWithBackgroundSVG('dollar', '#3b82f6')}
                             <h4 class="text-xs text-gray-600 font-medium">Valor investido</h4>
                         </div>
                         <p class="text-2xl font-bold text-gray-900">

@@ -56,6 +56,7 @@
     <script src="https://accounts.google.com/gsi/client" async defer></script>
     
     <script type="module">
+        // VERSION: 2.0 - Debug detalhado
         import { auth } from './config/firebase.js';
         import { onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
         import { reportsService } from './services/reportsService.js?v=1.0';
@@ -64,6 +65,7 @@
         import { exportToPDF } from './exportPDF.js';
 
         console.log('🔥 Firebase inicializado com sucesso!');
+        console.log('📌 VERSÃO: 2.0 - Debug detalhado ativado!');
 
         let reportData = null;
         let generatedMetrics = null;

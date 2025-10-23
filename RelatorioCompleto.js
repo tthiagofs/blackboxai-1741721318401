@@ -39,11 +39,16 @@ async function loadProjectLogo() {
 async function displayAnalysisSuggestions(currentConversations, previousConversations, budgets, sales) {
     console.log('🎯 [displayAnalysisSuggestions] Iniciando...');
     
-    const userId = fbAuth.currentUser?.uid;
-    if (!userId) {
-        console.error('❌ [displayAnalysisSuggestions] Usuário não autenticado!');
+    // Importar auth do Firebase
+    const { auth } = await import('./config/firebase.js');
+    
+    // Verificar autenticação de forma mais robusta
+    const user = auth.currentUser;
+    if (!user || !user.uid) {
+        console.error('❌ [displayAnalysisSuggestions] Usuário não autenticado!', { user, fbAuth: fbAuth.currentUser });
         return;
     }
+    const userId = user.uid;
     console.log('✅ [displayAnalysisSuggestions] User ID:', userId);
 
     try {

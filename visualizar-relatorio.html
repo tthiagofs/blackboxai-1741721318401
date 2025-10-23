@@ -481,16 +481,19 @@
             reportContainer.innerHTML = `
                 <style>
                     /* Melhorar renderização de ícones para PDF */
-                    .report-icon {
+                    .report-card-icon {
                         display: inline-flex !important;
                         align-items: center !important;
                         justify-content: center !important;
-                        width: 1em !important;
-                        height: 1em !important;
+                        width: 14px !important;
+                        height: 14px !important;
+                        min-width: 14px !important;
+                        min-height: 14px !important;
+                        text-align: center !important;
                         vertical-align: middle !important;
                     }
-                    .report-card-icon {
-                        display: flex !important;
+                    .fas, .fab {
+                        display: inline-flex !important;
                         align-items: center !important;
                         justify-content: center !important;
                     }

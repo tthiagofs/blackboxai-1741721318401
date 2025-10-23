@@ -1121,16 +1121,19 @@ function renderCompleteReport(unitName, startDate, endDate, metrics, blackMetric
     const reportHTML = `
         <style>
             /* Melhorar renderização de ícones para PDF */
-            .report-icon {
+            .report-card-icon {
                 display: inline-flex !important;
                 align-items: center !important;
                 justify-content: center !important;
-                width: 1em !important;
-                height: 1em !important;
+                width: 14px !important;
+                height: 14px !important;
+                min-width: 14px !important;
+                min-height: 14px !important;
+                text-align: center !important;
                 vertical-align: middle !important;
             }
-            .report-card-icon {
-                display: flex !important;
+            .fas, .fab {
+                display: inline-flex !important;
                 align-items: center !important;
                 justify-content: center !important;
             }
@@ -1216,7 +1219,10 @@ function renderBlackWhiteReport(metrics, blackMetrics, accountName = '') {
                             <i class="fas fa-info-circle text-gray-400 text-sm report-card-icon"></i>
                             <h4 class="text-xs text-gray-600 font-medium">Valor investido</h4>
                         </div>
-                        <p class="text-2xl font-bold text-gray-900">${formatCurrencyBRL(metrics.spend || 0)}</p>
+                        <p class="text-2xl font-bold text-gray-900">
+                            ${formatCurrencyBRL(metrics.spend || 0)}
+                            ${renderCostChange(metrics.spend, metrics.previousSpend)}
+                        </p>
                         <p class="text-xs text-gray-500 mt-1">${formatCurrencyBRL((metrics.previousSpend || 0))} no período anterior</p>
                     </div>
                     <div class="bg-white rounded-lg p-4">
@@ -1224,7 +1230,10 @@ function renderBlackWhiteReport(metrics, blackMetrics, accountName = '') {
                             <i class="fas fa-info-circle text-gray-400 text-sm report-card-icon"></i>
                             <h4 class="text-xs text-gray-600 font-medium">Alcance Total</h4>
                         </div>
-                        <p class="text-2xl font-bold text-gray-900">${(metrics.reach || 0).toLocaleString('pt-BR')}</p>
+                        <p class="text-2xl font-bold text-gray-900">
+                            ${(metrics.reach || 0).toLocaleString('pt-BR')}
+                            ${renderMetricChange(metrics.reach, metrics.previousReach)}
+                        </p>
                         <p class="text-xs text-gray-500 mt-1">${(metrics.previousReach || 0).toLocaleString('pt-BR')} no período anterior</p>
                     </div>
                     <div class="bg-white rounded-lg p-4">
@@ -1232,7 +1241,10 @@ function renderBlackWhiteReport(metrics, blackMetrics, accountName = '') {
                             <i class="fas fa-info-circle text-gray-400 text-sm report-card-icon"></i>
                             <h4 class="text-xs text-gray-600 font-medium">Conversas iniciadas por mensagem</h4>
                         </div>
-                        <p class="text-2xl font-bold text-gray-900">${metrics.conversations || 0}</p>
+                        <p class="text-2xl font-bold text-gray-900">
+                            ${metrics.conversations || 0}
+                            ${renderMetricChange(metrics.conversations, metrics.previousConversations)}
+                        </p>
                         <p class="text-xs text-gray-500 mt-1">${metrics.previousConversations || 0} no período anterior</p>
                     </div>
                     <div class="bg-white rounded-lg p-4">
@@ -1240,7 +1252,10 @@ function renderBlackWhiteReport(metrics, blackMetrics, accountName = '') {
                             <i class="fas fa-info-circle text-gray-400 text-sm report-card-icon"></i>
                             <h4 class="text-xs text-gray-600 font-medium">Custo por conversas iniciadas por mensagem</h4>
                         </div>
-                        <p class="text-2xl font-bold text-gray-900">${formatCurrencyBRL(metrics.costPerConversation || 0)}</p>
+                        <p class="text-2xl font-bold text-gray-900">
+                            ${formatCurrencyBRL(metrics.costPerConversation || 0)}
+                            ${renderCostChange(metrics.costPerConversation, metrics.previousCostPerConversation)}
+                        </p>
                         <p class="text-xs text-gray-500 mt-1">${formatCurrencyBRL(metrics.previousCostPerConversation || 0)} no período anterior</p>
                     </div>
                 </div>
@@ -1259,7 +1274,10 @@ function renderBlackWhiteReport(metrics, blackMetrics, accountName = '') {
                             <i class="fas fa-info-circle text-gray-400 text-sm report-card-icon"></i>
                             <h4 class="text-xs text-gray-600 font-medium">Valor investido</h4>
                         </div>
-                        <p class="text-2xl font-bold text-gray-900">${formatCurrencyBRL(blackMetrics.spend || 0)}</p>
+                        <p class="text-2xl font-bold text-gray-900">
+                            ${formatCurrencyBRL(blackMetrics.spend || 0)}
+                            ${renderCostChange(blackMetrics.spend, blackMetrics.previousSpend)}
+                        </p>
                         <p class="text-xs text-gray-500 mt-1">${formatCurrencyBRL((blackMetrics.previousSpend || 0))} no período anterior</p>
                     </div>
                     <div class="bg-white rounded-lg p-4">
@@ -1267,7 +1285,10 @@ function renderBlackWhiteReport(metrics, blackMetrics, accountName = '') {
                             <i class="fas fa-info-circle text-gray-400 text-sm report-card-icon"></i>
                             <h4 class="text-xs text-gray-600 font-medium">Alcance Total</h4>
                         </div>
-                        <p class="text-2xl font-bold text-gray-900">${(blackMetrics.reach || 0).toLocaleString('pt-BR')}</p>
+                        <p class="text-2xl font-bold text-gray-900">
+                            ${(blackMetrics.reach || 0).toLocaleString('pt-BR')}
+                            ${renderMetricChange(blackMetrics.reach, blackMetrics.previousReach)}
+                        </p>
                         <p class="text-xs text-gray-500 mt-1">${(blackMetrics.previousReach || 0).toLocaleString('pt-BR')} no período anterior</p>
                     </div>
                     <div class="bg-white rounded-lg p-4">
@@ -1275,7 +1296,10 @@ function renderBlackWhiteReport(metrics, blackMetrics, accountName = '') {
                             <i class="fas fa-info-circle text-gray-400 text-sm report-card-icon"></i>
                             <h4 class="text-xs text-gray-600 font-medium">Conversas iniciadas por mensagem</h4>
                         </div>
-                        <p class="text-2xl font-bold text-gray-900">${blackMetrics.conversations || 0}</p>
+                        <p class="text-2xl font-bold text-gray-900">
+                            ${blackMetrics.conversations || 0}
+                            ${renderMetricChange(blackMetrics.conversations, blackMetrics.previousConversations)}
+                        </p>
                         <p class="text-xs text-gray-500 mt-1">${blackMetrics.previousConversations || 0} no período anterior</p>
                     </div>
                     <div class="bg-white rounded-lg p-4">
@@ -1283,7 +1307,10 @@ function renderBlackWhiteReport(metrics, blackMetrics, accountName = '') {
                             <i class="fas fa-info-circle text-gray-400 text-sm report-card-icon"></i>
                             <h4 class="text-xs text-gray-600 font-medium">Custo por conversas iniciadas por mensagem</h4>
                         </div>
-                        <p class="text-2xl font-bold text-gray-900">${formatCurrencyBRL(blackMetrics.costPerConversation || 0)}</p>
+                        <p class="text-2xl font-bold text-gray-900">
+                            ${formatCurrencyBRL(blackMetrics.costPerConversation || 0)}
+                            ${renderCostChange(blackMetrics.costPerConversation, blackMetrics.previousCostPerConversation)}
+                        </p>
                         <p class="text-xs text-gray-500 mt-1">${formatCurrencyBRL(blackMetrics.previousCostPerConversation || 0)} no período anterior</p>
                     </div>
                 </div>

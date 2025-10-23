@@ -293,26 +293,96 @@ export class FacebookInsightsService {
     }
 
     // Insights da conta
-    async getAccountInsights(unitId, startDate, endDate) {
-        const url = `/${unitId}/insights?fields=spend,impressions,clicks,actions&time_range={'since':'${startDate}','until':'${endDate}'}&access_token=${this.accessToken}`;
-        const data = await this.fetchWithPagination(url);
-        
-        if (data.length === 0) {
-            return { spend: 0, impressions: 0, clicks: 0, conversions: 0, actions: [] };
+    async getAccountInsights(unitId, startDate, endDate, selectedCampaigns = [], selectedAdSets = []) {
+        // Se não há filtros, buscar insights da conta toda
+        if (selectedCampaigns.length === 0 && selectedAdSets.length === 0) {
+            const url = `/${unitId}/insights?fields=spend,impressions,clicks,actions&time_range={'since':'${startDate}','until':'${endDate}'}&access_token=${this.accessToken}`;
+            const data = await this.fetchWithPagination(url);
+            
+            if (data.length === 0) {
+                return { spend: 0, impressions: 0, clicks: 0, conversions: 0, actions: [] };
+            }
+
+            const insights = data[0];
+            const conversions = insights.actions?.find(action => 
+                action.action_type === 'offsite_conversion.fb_pixel_purchase' || 
+                action.action_type === 'omni_purchase'
+            )?.value || 0;
+
+            return {
+                spend: parseFloat(insights.spend || 0),
+                impressions: parseInt(insights.impressions || 0),
+                clicks: parseInt(insights.clicks || 0),
+                conversions: parseInt(conversions),
+                actions: insights.actions || []
+            };
         }
 
-        const insights = data[0];
-        const conversions = insights.actions?.find(action => 
-            action.action_type === 'offsite_conversion.fb_pixel_purchase' || 
-            action.action_type === 'omni_purchase'
-        )?.value || 0;
+        // Se há filtros, buscar insights apenas das campanhas/ad sets selecionados
+        console.log(`📊 Buscando insights filtrados:`, {
+            campanhas: selectedCampaigns.length,
+            adSets: selectedAdSets.length,
+            periodo: `${startDate} a ${endDate}`
+        });
+
+        let totalSpend = 0;
+        let totalImpressions = 0;
+        let totalClicks = 0;
+        let totalConversions = 0;
+        let allActions = [];
+
+        // Buscar insights das campanhas selecionadas
+        if (selectedCampaigns.length > 0) {
+            for (const campaignId of selectedCampaigns) {
+                try {
+                    const url = `/${campaignId}/insights?fields=spend,impressions,clicks,actions&time_range={'since':'${startDate}','until':'${endDate}'}&access_token=${this.accessToken}`;
+                    const data = await this.fetchWithPagination(url);
+                    
+                    if (data.length > 0) {
+                        const insights = data[0];
+                        totalSpend += parseFloat(insights.spend || 0);
+                        totalImpressions += parseInt(insights.impressions || 0);
+                        totalClicks += parseInt(insights.clicks || 0);
+                        
+                        if (insights.actions) {
+                            allActions.push(...insights.actions);
+                        }
+                    }
+                } catch (error) {
+                    console.warn(`⚠️ Erro ao buscar insights da campanha ${campaignId}:`, error.message);
+                }
+            }
+        }
+
+        // Buscar insights dos ad sets selecionados
+        if (selectedAdSets.length > 0) {
+            for (const adSetId of selectedAdSets) {
+                try {
+                    const url = `/${adSetId}/insights?fields=spend,impressions,clicks,actions&time_range={'since':'${startDate}','until':'${endDate}'}&access_token=${this.accessToken}`;
+                    const data = await this.fetchWithPagination(url);
+                    
+                    if (data.length > 0) {
+                        const insights = data[0];
+                        totalSpend += parseFloat(insights.spend || 0);
+                        totalImpressions += parseInt(insights.impressions || 0);
+                        totalClicks += parseInt(insights.clicks || 0);
+                        
+                        if (insights.actions) {
+                            allActions.push(...insights.actions);
+                        }
+                    }
+                } catch (error) {
+                    console.warn(`⚠️ Erro ao buscar insights do ad set ${adSetId}:`, error.message);
+                }
+            }
+        }
 
         return {
-            spend: parseFloat(insights.spend || 0),
-            impressions: parseInt(insights.impressions || 0),
-            clicks: parseInt(insights.clicks || 0),
-            conversions: parseInt(conversions),
-            actions: insights.actions || [] // Incluir actions para poder extrair mensagens
+            spend: totalSpend,
+            impressions: totalImpressions,
+            clicks: totalClicks,
+            conversions: totalConversions,
+            actions: allActions
         };
     }
 

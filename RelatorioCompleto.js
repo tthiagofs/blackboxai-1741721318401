@@ -5,8 +5,31 @@ import { setSelectedStyles, debounce } from './utils/dom.js?v=3.0';
 import { FacebookInsightsService } from './services/facebookInsights.js?v=3.0';
 import { GoogleAdsService } from './services/googleAds.js?v=3.0';
 import { googleAuth } from './authGoogle.js?v=3.0';
+import { projectsService } from './services/projects.js?v=1.3';
 
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+// Variável global para armazenar a logo do projeto
+let currentProjectLogo = '';
+
+// Carregar logo do projeto
+async function loadProjectLogo() {
+    try {
+        const projectId = localStorage.getItem('currentProject');
+        if (projectId) {
+            const project = await projectsService.getProject(projectId);
+            if (project && project.logoUrl) {
+                currentProjectLogo = project.logoUrl;
+                console.log('✅ Logo do projeto carregada:', currentProjectLogo);
+            }
+        }
+    } catch (error) {
+        console.warn('⚠️ Não foi possível carregar a logo do projeto:', error.message);
+    }
+}
+
+// Carregar logo ao iniciar
+loadProjectLogo();
 
 // Verificar autenticação Facebook (não obrigatório, pois pode gerar só Google Ads)
 const currentAccessToken = fbAuth.getAccessToken();
@@ -905,26 +928,64 @@ async function generateCompleteReport() {
             accountName = googleAccount ? googleAccount.name : 'Google Ads';
         }
 
-        // Buscar dados de comparação se solicitado (apenas para Meta por enquanto)
+        // Buscar dados de comparação se solicitado (para Meta)
     let comparisonMetrics = null;
-        if (comparisonData && !hasBlack && unitId && insightsService) {
+    let comparisonBlackMetrics = null;
+        if (comparisonData && unitId && insightsService) {
             try {
-                console.log('📊 Buscando dados de comparação Meta...');
-                comparisonMetrics = await insightsService.getComparisonData(unitId, startDate, endDate);
-                
-                console.log('✓ Dados de comparação carregados', {
-                    current: {
-                        conversations: comparisonMetrics.current.conversations,
-                        costPerConversation: comparisonMetrics.current.costPerConversation
-                    },
-                    previous: {
-                        conversations: comparisonMetrics.previous.conversations,
-                        costPerConversation: comparisonMetrics.previous.costPerConversation
-                    }
-                });
+                if (hasBlack) {
+                    // Comparação separada para White e Black
+                    console.log('📊 Buscando dados de comparação Meta (White e Black)...');
+                    const whiteCampaignsArray = selectedWhiteCampaigns.size > 0 ? Array.from(selectedWhiteCampaigns) : [];
+                    const whiteAdSetsArray = selectedWhiteAdSets.size > 0 ? Array.from(selectedWhiteAdSets) : [];
+                    const blackCampaignsArray = selectedBlackCampaigns.size > 0 ? Array.from(selectedBlackCampaigns) : [];
+                    const blackAdSetsArray = selectedBlackAdSets.size > 0 ? Array.from(selectedBlackAdSets) : [];
+                    
+                    const [whiteComparison, blackComparison] = await Promise.all([
+                        insightsService.getComparisonData(unitId, startDate, endDate, whiteCampaignsArray, whiteAdSetsArray),
+                        insightsService.getComparisonData(unitId, startDate, endDate, blackCampaignsArray, blackAdSetsArray)
+                    ]);
+                    
+                    comparisonMetrics = whiteComparison;
+                    comparisonBlackMetrics = blackComparison;
+                    
+                    console.log('✓ Dados de comparação White e Black carregados');
+                } else {
+                    // Comparação simples (sem Black)
+                    console.log('📊 Buscando dados de comparação Meta...');
+                    const campaignsToCompare = selectedCampaigns.size > 0 ? Array.from(selectedCampaigns) : [];
+                    const adSetsToCompare = selectedAdSets.size > 0 ? Array.from(selectedAdSets) : [];
+                    comparisonMetrics = await insightsService.getComparisonData(unitId, startDate, endDate, campaignsToCompare, adSetsToCompare);
+                    
+                    console.log('✓ Dados de comparação carregados', {
+                        current: {
+                            conversations: comparisonMetrics.current.conversations,
+                            costPerConversation: comparisonMetrics.current.costPerConversation
+                        },
+                        previous: {
+                            conversations: comparisonMetrics.previous.conversations,
+                            costPerConversation: comparisonMetrics.previous.costPerConversation
+                        }
+                    });
+                }
             } catch (error) {
                 console.warn('Erro ao carregar dados de comparação:', error);
             }
+        }
+
+        // Adicionar dados de comparação às métricas (se existirem)
+        if (comparisonMetrics) {
+            metrics.previousSpend = comparisonMetrics.previous.spend;
+            metrics.previousReach = comparisonMetrics.previous.impressions;
+            metrics.previousConversations = comparisonMetrics.previous.conversations;
+            metrics.previousCostPerConversation = comparisonMetrics.previous.costPerConversation;
+        }
+        
+        if (comparisonBlackMetrics && blackMetrics) {
+            blackMetrics.previousSpend = comparisonBlackMetrics.previous.spend;
+            blackMetrics.previousReach = comparisonBlackMetrics.previous.impressions;
+            blackMetrics.previousConversations = comparisonBlackMetrics.previous.conversations;
+            blackMetrics.previousCostPerConversation = comparisonBlackMetrics.previous.costPerConversation;
         }
 
         // Armazenar métricas globalmente
@@ -933,7 +994,7 @@ async function generateCompleteReport() {
     reportBestAds = bestAds;
 
         // Renderizar relatório
-        renderCompleteReport(accountName, startDate, endDate, metrics, blackMetrics, bestAds, comparisonMetrics, budgetsCompleted, salesCount, revenue, performanceAnalysis);
+        renderCompleteReport(accountName, startDate, endDate, metrics, blackMetrics, bestAds, comparisonMetrics, budgetsCompleted, salesCount, revenue, performanceAnalysis, currentProjectLogo);
         
         // Preparar dados para salvamento (⭐ ADICIONADO bestAds)
         prepareReportDataForSaving(accountName, startDate, endDate, unitId, googleAccountId, metrics, blackMetrics, bestAds, comparisonMetrics, budgetsCompleted, salesCount, revenue, performanceAnalysis);
@@ -1047,7 +1108,7 @@ function extractMessages(actions) {
     return totalMessages;
 }
 
-function renderCompleteReport(unitName, startDate, endDate, metrics, blackMetrics, bestAds, comparisonMetrics, budgetsCompleted = 0, salesCount = 0, revenue = 0, performanceAnalysis = '') {
+function renderCompleteReport(unitName, startDate, endDate, metrics, blackMetrics, bestAds, comparisonMetrics, budgetsCompleted = 0, salesCount = 0, revenue = 0, performanceAnalysis = '', projectLogoUrl = '') {
     const formattedStartDate = formatDateISOToBR(startDate);
     const formattedEndDate = formatDateISOToBR(endDate);
     
@@ -1058,15 +1119,37 @@ function renderCompleteReport(unitName, startDate, endDate, metrics, blackMetric
     
     // Lógica de renderização do relatório (similar ao original, mas otimizada)
     const reportHTML = `
+        <style>
+            /* Melhorar renderização de ícones para PDF */
+            .report-icon {
+                display: inline-flex !important;
+                align-items: center !important;
+                justify-content: center !important;
+                width: 1em !important;
+                height: 1em !important;
+                vertical-align: middle !important;
+            }
+            .report-card-icon {
+                display: flex !important;
+                align-items: center !important;
+                justify-content: center !important;
+            }
+        </style>
         <div class="max-w-4xl mx-auto">
             <!-- Header do Relatório -->
             <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
                 <div class="flex items-center justify-between mb-4">
                     <div class="flex items-center gap-4">
-                        <!-- Logo do Projeto (placeholder) -->
-                        <div class="w-16 h-16 bg-blue-600 rounded-xl flex items-center justify-center">
-                            <i class="fas fa-chart-line text-white text-2xl"></i>
-                        </div>
+                        <!-- Logo do Projeto -->
+                        ${projectLogoUrl 
+                            ? `<img src="${projectLogoUrl}" alt="Logo" class="w-16 h-16 rounded-xl object-cover border-2 border-gray-200" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
+                               <div class="w-16 h-16 bg-blue-600 rounded-xl flex items-center justify-center" style="display:none;">
+                                   <i class="fas fa-chart-line text-white text-2xl"></i>
+                               </div>`
+                            : `<div class="w-16 h-16 bg-blue-600 rounded-xl flex items-center justify-center">
+                                   <i class="fas fa-chart-line text-white text-2xl"></i>
+                               </div>`
+                        }
                         <div>
                             <h2 class="text-2xl font-bold text-gray-900">${unitName}</h2>
                             <p class="text-sm text-gray-600">${formattedStartDate} - ${formattedEndDate}</p>
@@ -1130,7 +1213,7 @@ function renderBlackWhiteReport(metrics, blackMetrics, accountName = '') {
                 <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
                     <div class="bg-white rounded-lg p-4">
                         <div class="flex items-center gap-2 mb-2">
-                            <i class="fas fa-info-circle text-gray-400 text-sm"></i>
+                            <i class="fas fa-info-circle text-gray-400 text-sm report-card-icon"></i>
                             <h4 class="text-xs text-gray-600 font-medium">Valor investido</h4>
                         </div>
                         <p class="text-2xl font-bold text-gray-900">${formatCurrencyBRL(metrics.spend || 0)}</p>
@@ -1138,7 +1221,7 @@ function renderBlackWhiteReport(metrics, blackMetrics, accountName = '') {
                     </div>
                     <div class="bg-white rounded-lg p-4">
                         <div class="flex items-center gap-2 mb-2">
-                            <i class="fas fa-info-circle text-gray-400 text-sm"></i>
+                            <i class="fas fa-info-circle text-gray-400 text-sm report-card-icon"></i>
                             <h4 class="text-xs text-gray-600 font-medium">Alcance Total</h4>
                         </div>
                         <p class="text-2xl font-bold text-gray-900">${(metrics.reach || 0).toLocaleString('pt-BR')}</p>
@@ -1146,7 +1229,7 @@ function renderBlackWhiteReport(metrics, blackMetrics, accountName = '') {
                     </div>
                     <div class="bg-white rounded-lg p-4">
                         <div class="flex items-center gap-2 mb-2">
-                            <i class="fas fa-info-circle text-gray-400 text-sm"></i>
+                            <i class="fas fa-info-circle text-gray-400 text-sm report-card-icon"></i>
                             <h4 class="text-xs text-gray-600 font-medium">Conversas iniciadas por mensagem</h4>
                         </div>
                         <p class="text-2xl font-bold text-gray-900">${metrics.conversations || 0}</p>
@@ -1154,7 +1237,7 @@ function renderBlackWhiteReport(metrics, blackMetrics, accountName = '') {
                     </div>
                     <div class="bg-white rounded-lg p-4">
                         <div class="flex items-center gap-2 mb-2">
-                            <i class="fas fa-info-circle text-gray-400 text-sm"></i>
+                            <i class="fas fa-info-circle text-gray-400 text-sm report-card-icon"></i>
                             <h4 class="text-xs text-gray-600 font-medium">Custo por conversas iniciadas por mensagem</h4>
                         </div>
                         <p class="text-2xl font-bold text-gray-900">${formatCurrencyBRL(metrics.costPerConversation || 0)}</p>
@@ -1173,7 +1256,7 @@ function renderBlackWhiteReport(metrics, blackMetrics, accountName = '') {
                 <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
                     <div class="bg-white rounded-lg p-4">
                         <div class="flex items-center gap-2 mb-2">
-                            <i class="fas fa-info-circle text-gray-400 text-sm"></i>
+                            <i class="fas fa-info-circle text-gray-400 text-sm report-card-icon"></i>
                             <h4 class="text-xs text-gray-600 font-medium">Valor investido</h4>
                         </div>
                         <p class="text-2xl font-bold text-gray-900">${formatCurrencyBRL(blackMetrics.spend || 0)}</p>
@@ -1181,7 +1264,7 @@ function renderBlackWhiteReport(metrics, blackMetrics, accountName = '') {
                     </div>
                     <div class="bg-white rounded-lg p-4">
                         <div class="flex items-center gap-2 mb-2">
-                            <i class="fas fa-info-circle text-gray-400 text-sm"></i>
+                            <i class="fas fa-info-circle text-gray-400 text-sm report-card-icon"></i>
                             <h4 class="text-xs text-gray-600 font-medium">Alcance Total</h4>
                         </div>
                         <p class="text-2xl font-bold text-gray-900">${(blackMetrics.reach || 0).toLocaleString('pt-BR')}</p>
@@ -1189,7 +1272,7 @@ function renderBlackWhiteReport(metrics, blackMetrics, accountName = '') {
                     </div>
                     <div class="bg-white rounded-lg p-4">
                         <div class="flex items-center gap-2 mb-2">
-                            <i class="fas fa-info-circle text-gray-400 text-sm"></i>
+                            <i class="fas fa-info-circle text-gray-400 text-sm report-card-icon"></i>
                             <h4 class="text-xs text-gray-600 font-medium">Conversas iniciadas por mensagem</h4>
                         </div>
                         <p class="text-2xl font-bold text-gray-900">${blackMetrics.conversations || 0}</p>
@@ -1197,7 +1280,7 @@ function renderBlackWhiteReport(metrics, blackMetrics, accountName = '') {
                     </div>
                     <div class="bg-white rounded-lg p-4">
                         <div class="flex items-center gap-2 mb-2">
-                            <i class="fas fa-info-circle text-gray-400 text-sm"></i>
+                            <i class="fas fa-info-circle text-gray-400 text-sm report-card-icon"></i>
                             <h4 class="text-xs text-gray-600 font-medium">Custo por conversas iniciadas por mensagem</h4>
                         </div>
                         <p class="text-2xl font-bold text-gray-900">${formatCurrencyBRL(blackMetrics.costPerConversation || 0)}</p>
@@ -1252,7 +1335,7 @@ function renderStandardReport(metrics, comparisonMetrics, accountName = '') {
                 <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
                     <div class="bg-white rounded-lg p-4">
                         <div class="flex items-center gap-2 mb-2">
-                            <i class="fas fa-info-circle text-gray-400 text-sm"></i>
+                            <i class="fas fa-info-circle text-gray-400 text-sm report-card-icon"></i>
                             <h4 class="text-xs text-gray-600 font-medium">Valor investido</h4>
                         </div>
                         <div class="flex items-center gap-2">
@@ -1263,7 +1346,7 @@ function renderStandardReport(metrics, comparisonMetrics, accountName = '') {
                     </div>
                     <div class="bg-white rounded-lg p-4">
                         <div class="flex items-center gap-2 mb-2">
-                            <i class="fas fa-info-circle text-gray-400 text-sm"></i>
+                            <i class="fas fa-info-circle text-gray-400 text-sm report-card-icon"></i>
                             <h4 class="text-xs text-gray-600 font-medium">Alcance Total</h4>
                         </div>
                         <div class="flex items-center gap-2">
@@ -1274,7 +1357,7 @@ function renderStandardReport(metrics, comparisonMetrics, accountName = '') {
                     </div>
                     <div class="bg-white rounded-lg p-4">
                         <div class="flex items-center gap-2 mb-2">
-                            <i class="fas fa-info-circle text-gray-400 text-sm"></i>
+                            <i class="fas fa-info-circle text-gray-400 text-sm report-card-icon"></i>
                             <h4 class="text-xs text-gray-600 font-medium">Conversas iniciadas por mensagem</h4>
                         </div>
                         <div class="flex items-center gap-2">
@@ -1285,7 +1368,7 @@ function renderStandardReport(metrics, comparisonMetrics, accountName = '') {
                     </div>
                     <div class="bg-white rounded-lg p-4">
                         <div class="flex items-center gap-2 mb-2">
-                            <i class="fas fa-info-circle text-gray-400 text-sm"></i>
+                            <i class="fas fa-info-circle text-gray-400 text-sm report-card-icon"></i>
                             <h4 class="text-xs text-gray-600 font-medium">Custo por conversas iniciadas por mensagem</h4>
                         </div>
                         <div class="flex items-center gap-2">
@@ -1824,6 +1907,7 @@ function prepareReportDataForSaving(accountName, startDate, endDate, metaAccount
         analysisEnd: endDate,
         comparisonStart: comparisonStart,
         comparisonEnd: comparisonEnd,
+        logoUrl: currentProjectLogo || '', // ⭐ Logo do projeto
         
         // Contas
         metaAccount: metaAccount,

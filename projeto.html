@@ -416,13 +416,16 @@
             logoInput.click();
         });
 
+        // Adicionar tooltip com orientações
+        logoContainer.title = 'Clique para adicionar logo\nFormato: PNG ou JPG\nTamanho ideal: 200x200px\nMáximo: 2MB';
+
         logoInput.addEventListener('change', async (e) => {
             const file = e.target.files[0];
             if (!file) return;
 
             // Validar tipo de arquivo
             if (!file.type.startsWith('image/')) {
-                alert('Por favor, selecione uma imagem válida');
+                alert('Por favor, selecione uma imagem válida (PNG ou JPG)');
                 return;
             }
 
@@ -447,8 +450,10 @@
                 const storage = getStorage();
                 const storageRef = ref(storage, `projects/${currentProjectId}/logo.${file.name.split('.').pop()}`);
                 
+                console.log('📤 Fazendo upload da logo...');
                 await uploadBytes(storageRef, file);
                 const downloadURL = await getDownloadURL(storageRef);
+                console.log('✅ Upload concluído:', downloadURL);
 
                 // Atualizar Firestore
                 const projectRef = doc(db, 'projects', currentProjectId);
@@ -457,10 +462,15 @@
                     updatedAt: new Date().toISOString()
                 });
 
-                console.log('✅ Logo salva com sucesso!');
+                console.log('✅ Logo salva com sucesso no Firestore!');
+                
+                // Atualizar o projeto atual
+                currentProject = await projectsService.getProject(currentProjectId);
+                
+                alert('✅ Logo salva com sucesso!\n\nFormato ideal: PNG ou JPG\nTamanho: 200x200px\nA logo será exibida nos relatórios.');
             } catch (error) {
                 console.error('❌ Erro ao fazer upload da logo:', error);
-                alert('Erro ao fazer upload da logo. Tente novamente.');
+                alert('Erro ao fazer upload da logo. Tente novamente.\n\n' + error.message);
             }
         });
 

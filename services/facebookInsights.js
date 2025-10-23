@@ -352,7 +352,7 @@ export class FacebookInsightsService {
     }
 
     // Dados de comparação
-    async getComparisonData(unitId, currentStartDate, currentEndDate) {
+    async getComparisonData(unitId, currentStartDate, currentEndDate, selectedCampaigns = [], selectedAdSets = []) {
         const current = new Date(currentStartDate);
         const end = new Date(currentEndDate);
         const diffTime = Math.abs(end - current);
@@ -366,9 +366,16 @@ export class FacebookInsightsService {
         const previousStartDate = previousStart.toISOString().split('T')[0];
         const previousEndDate = previousEnd.toISOString().split('T')[0];
 
+        console.log(`📊 Comparando períodos com filtros:`, {
+            campanhas: selectedCampaigns.length,
+            adSets: selectedAdSets.length,
+            atual: `${currentStartDate} a ${currentEndDate}`,
+            anterior: `${previousStartDate} a ${previousEndDate}`
+        });
+
         const [currentMetrics, previousMetrics] = await Promise.all([
-            this.getAccountInsights(unitId, currentStartDate, currentEndDate),
-            this.getAccountInsights(unitId, previousStartDate, previousEndDate)
+            this.getAccountInsights(unitId, currentStartDate, currentEndDate, selectedCampaigns, selectedAdSets),
+            this.getAccountInsights(unitId, previousStartDate, previousEndDate, selectedCampaigns, selectedAdSets)
         ]);
 
         return {

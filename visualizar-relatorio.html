@@ -105,6 +105,9 @@
 
                 reportData = { id: reportSnap.id, ...reportSnap.data() };
                 console.log('✅ Dados carregados:', reportData);
+                console.log('📊 Métricas salvas:', reportData.savedMetrics);
+                console.log('🏆 Melhores anúncios:', reportData.savedBestAds);
+                console.log('💼 Dados manuais:', reportData.manualData);
 
                 // Renderizar
                 renderReport();

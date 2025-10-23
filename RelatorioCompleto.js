@@ -859,8 +859,8 @@ async function generateCompleteReport() {
         // Renderizar relatório
         renderCompleteReport(accountName, startDate, endDate, metrics, blackMetrics, bestAds, comparisonMetrics, budgetsCompleted, salesCount, revenue, performanceAnalysis);
         
-        // Preparar dados para salvamento
-        prepareReportDataForSaving(accountName, startDate, endDate, unitId, googleAccountId, metrics, blackMetrics, comparisonMetrics, budgetsCompleted, salesCount, revenue, performanceAnalysis);
+        // Preparar dados para salvamento (⭐ ADICIONADO bestAds)
+        prepareReportDataForSaving(accountName, startDate, endDate, unitId, googleAccountId, metrics, blackMetrics, bestAds, comparisonMetrics, budgetsCompleted, salesCount, revenue, performanceAnalysis);
         
         // Mostrar botão de salvar relatório
         if (typeof window.showSaveButton === 'function') {
@@ -1488,7 +1488,7 @@ refreshBtn.addEventListener('click', () => {
 });
 
 // ==================== FUNÇÃO PARA PREPARAR DADOS DO RELATÓRIO PARA SALVAMENTO ====================
-function prepareReportDataForSaving(accountName, startDate, endDate, metaAccountId, googleAccountId, metrics, blackMetrics, comparisonMetrics, budgetsCompleted, salesCount, revenue, performanceAnalysis) {
+function prepareReportDataForSaving(accountName, startDate, endDate, metaAccountId, googleAccountId, metrics, blackMetrics, bestAds, comparisonMetrics, budgetsCompleted, salesCount, revenue, performanceAnalysis) {
     console.log('📦 Preparando dados do relatório para salvamento...');
     
     // Determinar plataforma e nome do relatório
@@ -1560,6 +1560,12 @@ function prepareReportDataForSaving(accountName, startDate, endDate, metaAccount
         // Contas
         metaAccount: metaAccount,
         googleAccount: googleAccount,
+        
+        // ⭐ MÉTRICAS SALVAS (para visualização offline)
+        savedMetrics: metrics || { spend: 0, reach: 0, conversations: 0 },
+        savedBlackMetrics: blackMetrics || { spend: 0, reach: 0, conversations: 0 },
+        savedBestAds: bestAds || [],
+        savedComparisonMetrics: comparisonMetrics || null,
         
         // Dados manuais
         manualData: {

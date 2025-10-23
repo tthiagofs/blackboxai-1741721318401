@@ -1081,7 +1081,7 @@ function renderCompleteReport(unitName, startDate, endDate, metrics, blackMetric
 
             <!-- Conteúdo do Relatório -->
             <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                ${hasBlack ? renderBlackWhiteReport(metrics, blackMetrics) : renderStandardReport(metrics, comparisonMetrics)}
+                ${hasBlack ? renderBlackWhiteReport(metrics, blackMetrics, unitName) : renderStandardReport(metrics, comparisonMetrics, unitName)}
             
                 ${renderBestAds(bestAds)}
                 
@@ -1098,7 +1098,7 @@ function renderCompleteReport(unitName, startDate, endDate, metrics, blackMetric
     shareWhatsAppBtn.classList.remove('hidden');
 }
 
-function renderBlackWhiteReport(metrics, blackMetrics) {
+function renderBlackWhiteReport(metrics, blackMetrics, accountName = '') {
     // Calcular variações se houver período anterior
     const renderMetricChange = (current, previous) => {
         if (!previous || previous === 0) return '';
@@ -1124,8 +1124,8 @@ function renderBlackWhiteReport(metrics, blackMetrics) {
             <div class="bg-blue-600 rounded-xl p-5 mb-6 shadow-sm">
                 <div class="flex items-center gap-3 mb-4">
                     <i class="fab fa-facebook text-white text-2xl"></i>
-                    <h3 class="text-xl font-bold text-white">Meta Ads</h3>
-                    <span class="text-sm text-blue-100">CA - Oral Center Salinas</span>
+                    <h3 class="text-xl font-bold text-white">Meta Ads - Campanhas White</h3>
+                    <span class="text-sm text-blue-100">${accountName || 'CA - Oral Center'}</span>
                 </div>
                 <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
                     <div class="bg-white rounded-lg p-4">
@@ -1164,17 +1164,17 @@ function renderBlackWhiteReport(metrics, blackMetrics) {
             </div>
 
             <!-- Campanhas Black -->
-            <div class="bg-red-600 rounded-xl p-5 mb-6 shadow-sm">
+            <div class="bg-gray-900 rounded-xl p-5 mb-6 shadow-sm">
                 <div class="flex items-center gap-3 mb-4">
-                    <i class="fab fa-google text-white text-2xl"></i>
-                    <h3 class="text-xl font-bold text-white">Google Ads</h3>
-                    <span class="text-sm text-red-100">Oral Center - Campanha Principal</span>
+                    <i class="fab fa-facebook text-white text-2xl"></i>
+                    <h3 class="text-xl font-bold text-white">Meta Ads - Campanhas Black</h3>
+                    <span class="text-sm text-gray-300">${accountName || 'CA - Oral Center'}</span>
                 </div>
                 <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
                     <div class="bg-white rounded-lg p-4">
                         <div class="flex items-center gap-2 mb-2">
                             <i class="fas fa-info-circle text-gray-400 text-sm"></i>
-                            <h4 class="text-xs text-gray-600 font-medium">Investimento</h4>
+                            <h4 class="text-xs text-gray-600 font-medium">Valor investido</h4>
                         </div>
                         <p class="text-2xl font-bold text-gray-900">${formatCurrencyBRL(blackMetrics.spend || 0)}</p>
                         <p class="text-xs text-gray-500 mt-1">${formatCurrencyBRL((blackMetrics.previousSpend || 0))} no período anterior</p>
@@ -1182,7 +1182,7 @@ function renderBlackWhiteReport(metrics, blackMetrics) {
                     <div class="bg-white rounded-lg p-4">
                         <div class="flex items-center gap-2 mb-2">
                             <i class="fas fa-info-circle text-gray-400 text-sm"></i>
-                            <h4 class="text-xs text-gray-600 font-medium">Cliques</h4>
+                            <h4 class="text-xs text-gray-600 font-medium">Alcance Total</h4>
                         </div>
                         <p class="text-2xl font-bold text-gray-900">${(blackMetrics.reach || 0).toLocaleString('pt-BR')}</p>
                         <p class="text-xs text-gray-500 mt-1">${(blackMetrics.previousReach || 0).toLocaleString('pt-BR')} no período anterior</p>
@@ -1190,7 +1190,7 @@ function renderBlackWhiteReport(metrics, blackMetrics) {
                     <div class="bg-white rounded-lg p-4">
                         <div class="flex items-center gap-2 mb-2">
                             <i class="fas fa-info-circle text-gray-400 text-sm"></i>
-                            <h4 class="text-xs text-gray-600 font-medium">Conversões</h4>
+                            <h4 class="text-xs text-gray-600 font-medium">Conversas iniciadas por mensagem</h4>
                         </div>
                         <p class="text-2xl font-bold text-gray-900">${blackMetrics.conversations || 0}</p>
                         <p class="text-xs text-gray-500 mt-1">${blackMetrics.previousConversations || 0} no período anterior</p>
@@ -1198,7 +1198,7 @@ function renderBlackWhiteReport(metrics, blackMetrics) {
                     <div class="bg-white rounded-lg p-4">
                         <div class="flex items-center gap-2 mb-2">
                             <i class="fas fa-info-circle text-gray-400 text-sm"></i>
-                            <h4 class="text-xs text-gray-600 font-medium">Custo por conversão</h4>
+                            <h4 class="text-xs text-gray-600 font-medium">Custo por conversas iniciadas por mensagem</h4>
                         </div>
                         <p class="text-2xl font-bold text-gray-900">${formatCurrencyBRL(blackMetrics.costPerConversation || 0)}</p>
                         <p class="text-xs text-gray-500 mt-1">${formatCurrencyBRL(blackMetrics.previousCostPerConversation || 0)} no período anterior</p>
@@ -1208,7 +1208,7 @@ function renderBlackWhiteReport(metrics, blackMetrics) {
     `;
 }
 
-function renderStandardReport(metrics, comparisonMetrics) {
+function renderStandardReport(metrics, comparisonMetrics, accountName = '') {
     // Helper para calcular variação percentual
     const calculateChange = (current, previous) => {
         if (!previous || previous === 0) return null;
@@ -1247,7 +1247,7 @@ function renderStandardReport(metrics, comparisonMetrics) {
                 <div class="flex items-center gap-3 mb-4">
                     <i class="fab fa-facebook text-white text-2xl"></i>
                     <h3 class="text-xl font-bold text-white">Meta Ads</h3>
-                    <span class="text-sm text-blue-100">CA - Oral Center Salinas</span>
+                    <span class="text-sm text-blue-100">${accountName || 'CA - Oral Center'}</span>
                 </div>
                 <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
                     <div class="bg-white rounded-lg p-4">
@@ -1351,9 +1351,9 @@ function renderBusinessResults(budgetsCompleted, salesCount, revenue, totalInves
         return '';
     }
 
-    // Calcular ROI
+    // Calcular ROI: (Faturamento x 0.25) / gasto total
     const roi = totalInvestment && totalInvestment > 0 && revenue > 0
-        ? ((revenue - totalInvestment) / totalInvestment) * 100
+        ? (revenue * 0.25) / totalInvestment
         : 0;
 
     return `
@@ -1405,17 +1405,16 @@ function renderBusinessResults(budgetsCompleted, salesCount, revenue, totalInves
                     <div class="flex items-center justify-between">
                         <div class="flex items-center gap-3">
                             <div class="w-12 h-12 bg-yellow-500 rounded-lg flex items-center justify-center">
-                                <i class="fas fa-percentage text-white text-xl"></i>
+                                <i class="fas fa-trophy text-white text-xl"></i>
                             </div>
                             <div>
                                 <p class="text-sm text-gray-600 font-medium">Retorno sobre Investimento (ROI)</p>
-                                <p class="text-4xl font-bold text-yellow-700">${roi.toFixed(2)}%</p>
+                                <p class="text-4xl font-bold text-yellow-700">${roi.toFixed(2)}</p>
                             </div>
                         </div>
                         <div class="text-right">
                             <p class="text-xs text-gray-600 mb-1">Investimento Total</p>
                             <p class="text-lg font-bold text-gray-900">${formatCurrencyBRL(totalInvestment || 0)}</p>
-                            <p class="text-xs text-green-600 font-semibold mt-1">▲ +18.24% vs período anterior</p>
                         </div>
                     </div>
                 </div>

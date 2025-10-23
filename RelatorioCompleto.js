@@ -1235,7 +1235,7 @@ function renderBlackWhiteReport(metrics, blackMetrics, accountName = '') {
                     </div>
                     <div class="bg-white rounded-lg p-4">
                         <div class="flex items-center gap-2 mb-2">
-                            ${createIconWithBackground('fas fa-users', '#10b981')}
+                            ${createIconWithBackgroundSVG('users', '#10b981')}
                             <h4 class="text-xs text-gray-600 font-medium">Alcance Total</h4>
                         </div>
                         <p class="text-2xl font-bold text-gray-900">
@@ -1246,7 +1246,7 @@ function renderBlackWhiteReport(metrics, blackMetrics, accountName = '') {
                     </div>
                     <div class="bg-white rounded-lg p-4">
                         <div class="flex items-center gap-2 mb-2">
-                            ${createIconWithBackground('fas fa-comments', '#8b5cf6')}
+                            ${createIconWithBackgroundSVG('comments', '#8b5cf6')}
                             <h4 class="text-xs text-gray-600 font-medium">Conversas iniciadas por mensagem</h4>
                         </div>
                         <p class="text-2xl font-bold text-gray-900">
@@ -1257,7 +1257,7 @@ function renderBlackWhiteReport(metrics, blackMetrics, accountName = '') {
                     </div>
                     <div class="bg-white rounded-lg p-4">
                         <div class="flex items-center gap-2 mb-2">
-                            ${createIconWithBackground('fas fa-chart-line', '#f59e0b')}
+                            ${createIconWithBackgroundSVG('chart-line', '#f59e0b')}
                             <h4 class="text-xs text-gray-600 font-medium">Custo por conversas iniciadas por mensagem</h4>
                         </div>
                         <p class="text-2xl font-bold text-gray-900">
@@ -1279,7 +1279,7 @@ function renderBlackWhiteReport(metrics, blackMetrics, accountName = '') {
                 <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
                     <div class="bg-white rounded-lg p-4">
                         <div class="flex items-center gap-2 mb-2">
-                            ${createIconWithBackground('fas fa-dollar-sign', '#3b82f6')}
+                            ${createIconWithBackgroundSVG('dollar', '#3b82f6')}
                             <h4 class="text-xs text-gray-600 font-medium">Valor investido</h4>
                         </div>
                         <p class="text-2xl font-bold text-gray-900">
@@ -1290,7 +1290,7 @@ function renderBlackWhiteReport(metrics, blackMetrics, accountName = '') {
                     </div>
                     <div class="bg-white rounded-lg p-4">
                         <div class="flex items-center gap-2 mb-2">
-                            ${createIconWithBackground('fas fa-users', '#10b981')}
+                            ${createIconWithBackgroundSVG('users', '#10b981')}
                             <h4 class="text-xs text-gray-600 font-medium">Alcance Total</h4>
                         </div>
                         <p class="text-2xl font-bold text-gray-900">
@@ -1301,7 +1301,7 @@ function renderBlackWhiteReport(metrics, blackMetrics, accountName = '') {
                     </div>
                     <div class="bg-white rounded-lg p-4">
                         <div class="flex items-center gap-2 mb-2">
-                            ${createIconWithBackground('fas fa-comments', '#8b5cf6')}
+                            ${createIconWithBackgroundSVG('comments', '#8b5cf6')}
                             <h4 class="text-xs text-gray-600 font-medium">Conversas iniciadas por mensagem</h4>
                         </div>
                         <p class="text-2xl font-bold text-gray-900">
@@ -1312,7 +1312,7 @@ function renderBlackWhiteReport(metrics, blackMetrics, accountName = '') {
                     </div>
                     <div class="bg-white rounded-lg p-4">
                         <div class="flex items-center gap-2 mb-2">
-                            ${createIconWithBackground('fas fa-chart-line', '#f59e0b')}
+                            ${createIconWithBackgroundSVG('chart-line', '#f59e0b')}
                             <h4 class="text-xs text-gray-600 font-medium">Custo por conversas iniciadas por mensagem</h4>
                         </div>
                         <p class="text-2xl font-bold text-gray-900">
@@ -1377,7 +1377,7 @@ function renderStandardReport(metrics, comparisonMetrics, accountName = '') {
                 <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
                     <div class="bg-white rounded-lg p-4">
                         <div class="flex items-center gap-2 mb-2">
-                            <i class="fas fa-info-circle text-gray-400 text-sm report-card-icon"></i>
+                            ${createIconWithBackgroundSVG('dollar', '#3b82f6')}
                             <h4 class="text-xs text-gray-600 font-medium">Valor investido</h4>
                         </div>
                         <div class="flex items-center gap-2">
@@ -1388,7 +1388,7 @@ function renderStandardReport(metrics, comparisonMetrics, accountName = '') {
                     </div>
                     <div class="bg-white rounded-lg p-4">
                         <div class="flex items-center gap-2 mb-2">
-                            <i class="fas fa-info-circle text-gray-400 text-sm report-card-icon"></i>
+                            ${createIconWithBackgroundSVG('users', '#10b981')}
                             <h4 class="text-xs text-gray-600 font-medium">Alcance Total</h4>
                         </div>
                         <div class="flex items-center gap-2">
@@ -1399,7 +1399,7 @@ function renderStandardReport(metrics, comparisonMetrics, accountName = '') {
                     </div>
                     <div class="bg-white rounded-lg p-4">
                         <div class="flex items-center gap-2 mb-2">
-                            <i class="fas fa-info-circle text-gray-400 text-sm report-card-icon"></i>
+                            ${createIconWithBackgroundSVG('comments', '#8b5cf6')}
                             <h4 class="text-xs text-gray-600 font-medium">Conversas iniciadas por mensagem</h4>
                         </div>
                         <div class="flex items-center gap-2">
@@ -1410,7 +1410,7 @@ function renderStandardReport(metrics, comparisonMetrics, accountName = '') {
                     </div>
                     <div class="bg-white rounded-lg p-4">
                         <div class="flex items-center gap-2 mb-2">
-                            <i class="fas fa-info-circle text-gray-400 text-sm report-card-icon"></i>
+                            ${createIconWithBackgroundSVG('chart-line', '#f59e0b')}
                             <h4 class="text-xs text-gray-600 font-medium">Custo por conversas iniciadas por mensagem</h4>
                         </div>
                         <div class="flex items-center gap-2">
@@ -1492,7 +1492,7 @@ function renderBusinessResults(budgetsCompleted, salesCount, revenue, totalInves
                     <div class="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
                         <div class="flex items-center gap-2 mb-2">
                             <div class="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
-                                <i class="fas fa-file-invoice text-white text-lg"></i>
+                                ${createIconWithBackgroundSVG('file-invoice', '#3b82f6', 'white', 16, 40)}
                             </div>
                             <div class="flex-1">
                                 <p class="text-xs text-gray-600">Orçamentos Concluídos</p>
@@ -1503,7 +1503,7 @@ function renderBusinessResults(budgetsCompleted, salesCount, revenue, totalInves
                     <div class="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
                         <div class="flex items-center gap-2 mb-2">
                             <div class="w-10 h-10 bg-green-600 rounded-lg flex items-center justify-center">
-                                <i class="fas fa-shopping-bag text-white text-lg"></i>
+                                ${createIconWithBackgroundSVG('shopping-bag', '#10b981', 'white', 16, 40)}
                             </div>
                             <div class="flex-1">
                                 <p class="text-xs text-gray-600">Número de Vendas</p>
@@ -1515,7 +1515,7 @@ function renderBusinessResults(budgetsCompleted, salesCount, revenue, totalInves
                     <div class="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
                         <div class="flex items-center gap-2 mb-2">
                             <div class="w-10 h-10 bg-purple-600 rounded-lg flex items-center justify-center">
-                                <i class="fas fa-dollar-sign text-white text-lg"></i>
+                                ${createIconWithBackgroundSVG('dollar', '#8b5cf6', 'white', 16, 40)}
                             </div>
                             <div class="flex-1">
                                 <p class="text-xs text-gray-600">Faturamento Total</p>
@@ -1530,7 +1530,7 @@ function renderBusinessResults(budgetsCompleted, salesCount, revenue, totalInves
                     <div class="flex items-center justify-between">
                         <div class="flex items-center gap-3">
                             <div class="w-12 h-12 bg-yellow-500 rounded-lg flex items-center justify-center">
-                                <i class="fas fa-trophy text-white text-xl"></i>
+                                ${createIconWithBackgroundSVG('trophy', '#eab308', 'white', 18, 48)}
                             </div>
                             <div>
                                 <p class="text-sm text-gray-600 font-medium">Retorno sobre Investimento (ROI)</p>

@@ -400,19 +400,19 @@
                     <div class="grid grid-cols-4 gap-4">
                         <div class="bg-white/10 backdrop-blur-sm rounded-lg p-4">
                             <p class="text-sm opacity-90 mb-1">INVESTIMENTO</p>
-                            <p class="text-2xl font-bold">R$ ${metrics.spend.toFixed(2)}</p>
+                            <p class="text-2xl font-bold">R$ ${(metrics.spend || 0).toFixed(2)}</p>
                         </div>
                         <div class="bg-white/10 backdrop-blur-sm rounded-lg p-4">
                             <p class="text-sm opacity-90 mb-1">ALCANCE</p>
-                            <p class="text-2xl font-bold">${metrics.reach.toLocaleString('pt-BR')}</p>
+                            <p class="text-2xl font-bold">${(metrics.reach || 0).toLocaleString('pt-BR')}</p>
                         </div>
                         <div class="bg-white/10 backdrop-blur-sm rounded-lg p-4">
                             <p class="text-sm opacity-90 mb-1">CONVERSAS INICIADAS</p>
-                            <p class="text-2xl font-bold">${metrics.conversations}</p>
+                            <p class="text-2xl font-bold">${metrics.conversations || 0}</p>
                         </div>
                         <div class="bg-white/10 backdrop-blur-sm rounded-lg p-4">
                             <p class="text-sm opacity-90 mb-1">CUSTO POR CONVERSA</p>
-                            <p class="text-2xl font-bold">R$ ${cpm.toFixed(2)}</p>
+                            <p class="text-2xl font-bold">R$ ${(cpm || 0).toFixed(2)}</p>
                         </div>
                     </div>
                 </div>
@@ -427,19 +427,19 @@
                     <div class="grid grid-cols-4 gap-4">
                         <div class="bg-white/10 backdrop-blur-sm rounded-lg p-4">
                             <p class="text-sm opacity-90 mb-1">INVESTIMENTO</p>
-                            <p class="text-2xl font-bold">R$ ${blackMetrics.spend.toFixed(2)}</p>
+                            <p class="text-2xl font-bold">R$ ${(blackMetrics.spend || 0).toFixed(2)}</p>
                         </div>
                         <div class="bg-white/10 backdrop-blur-sm rounded-lg p-4">
                             <p class="text-sm opacity-90 mb-1">ALCANCE</p>
-                            <p class="text-2xl font-bold">${blackMetrics.reach.toLocaleString('pt-BR')}</p>
+                            <p class="text-2xl font-bold">${(blackMetrics.reach || 0).toLocaleString('pt-BR')}</p>
                         </div>
                         <div class="bg-white/10 backdrop-blur-sm rounded-lg p-4">
                             <p class="text-sm opacity-90 mb-1">CONVERSAS INICIADAS</p>
-                            <p class="text-2xl font-bold">${blackMetrics.conversations}</p>
+                            <p class="text-2xl font-bold">${blackMetrics.conversations || 0}</p>
                         </div>
                         <div class="bg-white/10 backdrop-blur-sm rounded-lg p-4">
                             <p class="text-sm opacity-90 mb-1">CUSTO POR CONVERSA</p>
-                            <p class="text-2xl font-bold">R$ ${blackCpm.toFixed(2)}</p>
+                            <p class="text-2xl font-bold">R$ ${(blackCpm || 0).toFixed(2)}</p>
                         </div>
                     </div>
                 </div>

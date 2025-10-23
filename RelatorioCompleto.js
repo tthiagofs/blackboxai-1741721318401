@@ -238,6 +238,10 @@ let reportMetrics = null;      // Para armazenar as métricas (metrics)
 let reportBlackMetrics = null; // Para armazenar as métricas Black (blackMetrics)
 let reportBestAds = null;      // Para armazenar os melhores anúncios (bestAds)
 let reportComparisonMetrics = null; // Para armazenar os dados de comparação
+let reportHasMultiplePlatforms = false; // Flag para saber se tem múltiplas plataformas
+let reportSeparateMetaMetrics = null; // Métricas Meta separadas
+let reportSeparateGoogleMetrics = null; // Métricas Google separadas
+let reportSeparateBlackMetrics = null; // Métricas Black separadas
 let lastFormState = {
     unitId: null,
     startDate: null,
@@ -1043,12 +1047,18 @@ async function generateCompleteReport() {
             alert('Faça login com Google Ads para gerar o relatório.');
         }
 
-        // Combinar métricas ou usar apenas uma plataforma
+        // Determinar tipo de relatório e preparar métricas
         let metrics, blackMetrics;
         let accountName = 'Relatório';
+        let hasMultiplePlatforms = false; // Flag para saber se precisa mostrar total
+        
+        // Armazenar métricas separadas para renderização
+        let separateMetaMetrics = metaMetrics;
+        let separateGoogleMetrics = googleMetrics;
+        let separateBlackMetrics = metaBlackMetrics;
         
         if (metaMetrics && googleMetrics) {
-            // Combinar métricas das duas plataformas
+            // Combinar métricas das duas plataformas APENAS para cálculos gerais
             const totalSpend = parseFloat(metaMetrics.spend) + parseFloat(googleMetrics.spend);
             const totalConversations = metaMetrics.conversations + googleMetrics.conversations;
             
@@ -1060,10 +1070,15 @@ async function generateCompleteReport() {
             };
             blackMetrics = metaBlackMetrics; // Black só existe no Meta
             accountName = 'Meta + Google Ads';
+            hasMultiplePlatforms = true; // Ativar flag
         } else if (metaMetrics) {
             metrics = metaMetrics;
             blackMetrics = metaBlackMetrics;
             accountName = adAccountsMap[unitId] || 'Meta Ads';
+            // Se tem Black, também é múltiplo
+            if (metaBlackMetrics) {
+                hasMultiplePlatforms = true;
+            }
         } else if (googleMetrics) {
             metrics = googleMetrics;
             blackMetrics = null;
@@ -1137,9 +1152,13 @@ async function generateCompleteReport() {
         reportBlackMetrics = blackMetrics;
     reportBestAds = bestAds;
         reportComparisonMetrics = comparisonMetrics;
+        reportHasMultiplePlatforms = hasMultiplePlatforms;
+        reportSeparateMetaMetrics = separateMetaMetrics;
+        reportSeparateGoogleMetrics = separateGoogleMetrics;
+        reportSeparateBlackMetrics = separateBlackMetrics;
 
         // Renderizar relatório COM dados de negócio, mas SEM análise de texto ainda
-        renderCompleteReport(accountName, startDate, endDate, metrics, blackMetrics, bestAds, comparisonMetrics, budgetsCompleted, salesCount, revenue, '', currentProjectLogo);
+        renderCompleteReport(accountName, startDate, endDate, metrics, blackMetrics, bestAds, comparisonMetrics, budgetsCompleted, salesCount, revenue, '', currentProjectLogo, hasMultiplePlatforms);
         
         // Mostrar seção de análise
         const analysisSection = document.getElementById('analysisSection');
@@ -1272,7 +1291,7 @@ function extractMessages(actions) {
     return totalMessages;
 }
 
-function renderCompleteReport(unitName, startDate, endDate, metrics, blackMetrics, bestAds, comparisonMetrics, budgetsCompleted = 0, salesCount = 0, revenue = 0, performanceAnalysis = '', projectLogoUrl = '') {
+function renderCompleteReport(unitName, startDate, endDate, metrics, blackMetrics, bestAds, comparisonMetrics, budgetsCompleted = 0, salesCount = 0, revenue = 0, performanceAnalysis = '', projectLogoUrl = '', hasMultiplePlatforms = false) {
     const formattedStartDate = formatDateISOToBR(startDate);
     const formattedEndDate = formatDateISOToBR(endDate);
     
@@ -1332,6 +1351,8 @@ function renderCompleteReport(unitName, startDate, endDate, metrics, blackMetric
             <!-- Conteúdo do Relatório -->
             <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
                 ${hasBlack ? renderBlackWhiteReport(metrics, blackMetrics, unitName) : renderStandardReport(metrics, comparisonMetrics, unitName)}
+                
+                ${hasMultiplePlatforms ? renderTotalLeads(metrics, blackMetrics) : ''}
             
                 ${renderBestAds(bestAds)}
                 
@@ -1346,6 +1367,45 @@ function renderCompleteReport(unitName, startDate, endDate, metrics, blackMetric
     reportContainer.innerHTML = '';
     reportContainer.insertAdjacentHTML('beforeend', reportHTML);
     shareWhatsAppBtn.classList.remove('hidden');
+}
+
+function renderTotalLeads(metrics, blackMetrics) {
+    // Calcular variação percentual
+    const renderMetricChange = (current, previous) => {
+        if (!previous || previous === 0) return '';
+        const change = ((current - previous) / previous) * 100;
+        const isPositive = change > 0;
+        const color = isPositive ? 'text-green-600' : 'text-red-600';
+        const arrow = isPositive ? '▲' : '▼';
+        return `<span class="${color} text-sm font-semibold ml-2">${arrow} ${Math.abs(change).toFixed(2)}%</span>`;
+    };
+
+    // Calcular totais
+    const currentTotal = (metrics?.conversations || 0) + (blackMetrics?.conversations || 0);
+    const previousTotal = (metrics?.previousConversations || 0) + (blackMetrics?.previousConversations || 0);
+
+    return `
+        <!-- Número Total de Leads -->
+        <div class="bg-gradient-to-r from-purple-50 to-indigo-50 rounded-xl p-5 mb-6 shadow-sm border-2 border-purple-200">
+            <div class="flex items-center justify-center gap-3 mb-3">
+                <i class="fas fa-calculator text-purple-600 text-xl"></i>
+                <h3 class="text-lg font-bold text-purple-900">Número Total de Leads</h3>
+            </div>
+            <div class="bg-white rounded-lg p-6 text-center">
+                <div class="flex items-center justify-center gap-2 mb-2">
+                    ${createIconWithBackgroundSVG('comments', '#8b5cf6')}
+                    <h4 class="text-sm text-gray-600 font-medium">Conversas Totais (Todas as Fontes)</h4>
+                </div>
+                <p class="text-4xl font-bold text-purple-900">
+                    ${currentTotal}
+                    ${renderMetricChange(currentTotal, previousTotal)}
+                </p>
+                <p class="text-sm text-gray-500 mt-2">
+                    ${previousTotal} no período anterior
+                </p>
+            </div>
+        </div>
+    `;
 }
 
 function renderBlackWhiteReport(metrics, blackMetrics, accountName = '') {
@@ -1484,27 +1544,6 @@ function renderBlackWhiteReport(metrics, blackMetrics, accountName = '') {
                         </p>
                         <p class="text-xs text-gray-500 mt-1">${formatCurrencyBRL(blackMetrics.previousCostPerConversation || 0)} no período anterior</p>
                     </div>
-                </div>
-            </div>
-
-            <!-- Número Total de Leads (White + Black) -->
-            <div class="bg-gradient-to-r from-purple-50 to-indigo-50 rounded-xl p-5 mb-6 shadow-sm border-2 border-purple-200">
-                <div class="flex items-center justify-center gap-3 mb-3">
-                    <i class="fas fa-calculator text-purple-600 text-xl"></i>
-                    <h3 class="text-lg font-bold text-purple-900">Número Total de Leads</h3>
-                </div>
-                <div class="bg-white rounded-lg p-6 text-center">
-                    <div class="flex items-center justify-center gap-2 mb-2">
-                        ${createIconWithBackgroundSVG('comments', '#8b5cf6')}
-                        <h4 class="text-sm text-gray-600 font-medium">Conversas Totais (White + Black)</h4>
-                    </div>
-                    <p class="text-4xl font-bold text-purple-900">
-                        ${(metrics.conversations || 0) + (blackMetrics.conversations || 0)}
-                        ${renderMetricChange((metrics.conversations || 0) + (blackMetrics.conversations || 0), (metrics.previousConversations || 0) + (blackMetrics.previousConversations || 0))}
-                    </p>
-                    <p class="text-sm text-gray-500 mt-2">
-                        ${(metrics.previousConversations || 0) + (blackMetrics.previousConversations || 0)} no período anterior
-                    </p>
                 </div>
             </div>
     `;
@@ -1874,7 +1913,8 @@ if (generateFinalReportBtn) {
             salesCount, 
             revenue, 
             performanceAnalysis, 
-            currentProjectLogo
+            currentProjectLogo,
+            reportHasMultiplePlatforms // Passar a flag
         );
         
         // Atualizar dados para salvamento

@@ -56,7 +56,7 @@
     <script src="https://accounts.google.com/gsi/client" async defer></script>
     
     <script type="module">
-        // VERSION: 2.0 - Debug detalhado
+        // VERSION: 3.0 - Try-catch na renderização
         import { auth } from './config/firebase.js';
         import { onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
         import { reportsService } from './services/reportsService.js?v=1.0';
@@ -65,7 +65,7 @@
         import { exportToPDF } from './exportPDF.js';
 
         console.log('🔥 Firebase inicializado com sucesso!');
-        console.log('📌 VERSÃO: 2.0 - Debug detalhado ativado!');
+        console.log('📌 VERSÃO: 3.0 - Try-catch na renderização!');
 
         let reportData = null;
         let generatedMetrics = null;
@@ -264,7 +264,17 @@
                 console.log('📊 Dados regenerados, renderizando...');
                 console.log('- Metrics:', metrics);
                 console.log('- Best Ads:', bestAds?.length);
-                renderCompleteReport();
+                
+                try {
+                    renderCompleteReport();
+                    console.log('✅ Renderização concluída com sucesso!');
+                } catch (renderError) {
+                    console.error('❌ ERRO NA RENDERIZAÇÃO:', renderError);
+                    console.error('Tipo:', typeof renderError);
+                    console.error('Mensagem:', renderError?.message);
+                    console.error('Stack:', renderError?.stack);
+                    throw renderError;
+                }
                 
             } catch (error) {
                 console.error('❌ Erro ao regenerar métricas:', error);

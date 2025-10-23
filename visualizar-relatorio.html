@@ -331,22 +331,24 @@
             const formattedEndDate = formatDateISOToBR(reportData.analysisEnd);
             
             reportContainer.innerHTML = `
-                <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
-                    <h2 class="text-2xl font-semibold text-primary mb-4">Relatório Completo - ${reportData.reportName}</h2>
-                    <button id="exportPDFBtn" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition mb-4">
-                        <i class="fas fa-file-pdf mr-2"></i>Exportar para PDF
-                    </button>
-                    <p class="text-gray-600 text-base mb-4">
-                        <i class="fas fa-calendar-alt mr-2"></i>Período Analisado: ${formattedStartDate} a ${formattedEndDate}
-                    </p>
-                    
-                    ${hasBlack ? renderBlackWhiteReport(savedMetrics, savedBlackMetrics) : renderStandardReport(savedMetrics)}
+                <div class="max-w-4xl mx-auto">
+                    <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
+                        <h2 class="text-2xl font-semibold text-primary mb-4">Relatório Completo - ${reportData.reportName}</h2>
+                        <button id="exportPDFBtn" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition mb-4">
+                            <i class="fas fa-file-pdf mr-2"></i>Exportar para PDF
+                        </button>
+                        <p class="text-gray-600 text-base mb-4">
+                            <i class="fas fa-calendar-alt mr-2"></i>Período Analisado: ${formattedStartDate} a ${formattedEndDate}
+                        </p>
+                        
+                        ${hasBlack ? renderBlackWhiteReport(savedMetrics, savedBlackMetrics) : renderStandardReport(savedMetrics)}
                     
                     ${renderBestAds(savedBestAds)}
                     
                     ${renderBusinessResults(md.budgets || 0, md.sales || 0, md.revenue || 0)}
                     
                     ${renderPerformanceAnalysis(md.analysis || '')}
+                    </div>
                 </div>
             `;
 

@@ -1001,22 +1001,24 @@ function renderCompleteReport(unitName, startDate, endDate, metrics, blackMetric
     
     // Lógica de renderização do relatório (similar ao original, mas otimizada)
     const reportHTML = `
-        <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
-            <h2 class="text-2xl font-semibold text-primary mb-4">Relatório Completo - ${unitName}</h2>
-<button id="exportPDFBtn" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition mb-4">
-    <i class="fas fa-file-pdf mr-2"></i>Exportar para PDF
-</button>
-            <p class="text-gray-600 text-base mb-4">
-                <i class="fas fa-calendar-alt mr-2"></i>Período Analisado: ${formattedStartDate} a ${formattedEndDate}
-            </p>
-            
-            ${hasBlack ? renderBlackWhiteReport(metrics, blackMetrics) : renderStandardReport(metrics, comparisonMetrics)}
+        <div class="max-w-4xl mx-auto">
+            <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
+                <h2 class="text-2xl font-semibold text-primary mb-4">Relatório Completo - ${unitName}</h2>
+    <button id="exportPDFBtn" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition mb-4">
+        <i class="fas fa-file-pdf mr-2"></i>Exportar para PDF
+    </button>
+                <p class="text-gray-600 text-base mb-4">
+                    <i class="fas fa-calendar-alt mr-2"></i>Período Analisado: ${formattedStartDate} a ${formattedEndDate}
+                </p>
+                
+                ${hasBlack ? renderBlackWhiteReport(metrics, blackMetrics) : renderStandardReport(metrics, comparisonMetrics)}
             
             ${renderBestAds(bestAds)}
             
             ${renderBusinessResults(budgetsCompleted, salesCount, revenue)}
             
             ${renderPerformanceAnalysis(performanceAnalysis)}
+            </div>
         </div>
     `;
 

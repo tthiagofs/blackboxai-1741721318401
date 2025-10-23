@@ -20,7 +20,8 @@ export async function exportToPDF(
     const formattedEndDate = endDate.split('-').reverse().join('/');
 
     // Selecionar o elemento do relatório no DOM
-    const reportElement = document.querySelector('#reportContainer .bg-white');
+    const reportElement = document.querySelector('#reportContainer .max-w-4xl') || 
+                          document.querySelector('#reportContainer .bg-white');
     if (!reportElement) {
         alert('Não foi possível encontrar o relatório para exportar. Por favor, gere o relatório primeiro.');
         return;

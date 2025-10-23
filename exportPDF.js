@@ -114,8 +114,8 @@ export async function exportToPDF(
         exportButton.style.display = 'block';
     }
 
-    // Gerar o nome do arquivo
-    const fileName = `${unitName}_${formattedStartDate.replace(/\//g, '-')}_${formattedEndDate.replace(/\//g, '-')}.pdf`;
+    // Gerar o nome do arquivo (apenas o nome da conta)
+    const fileName = `${unitName}.pdf`;
 
     // Baixar o PDF
     doc.save(fileName);

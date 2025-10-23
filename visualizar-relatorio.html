@@ -585,41 +585,96 @@
                 const btn = document.getElementById('exportPDFBtn');
                 if (btn) btn.style.display = 'none';
 
-                // Capturar como imagem
-                const canvas = await html2canvas(reportContent, {
-                    scale: 2,
-                    useCORS: true,
-                    logging: false
+                // Identificar as seções principais do relatório
+                const sections = [];
+                
+                // 1. Header (logo + título)
+                const header = reportContent.querySelector('.bg-white.rounded-xl.shadow-sm.border.border-gray-200.p-6.mb-6');
+                if (header) sections.push(header);
+                
+                // 2. Conteúdo do relatório (todas as seções dentro do bg-white principal)
+                const mainContent = reportContent.querySelector('.bg-white.rounded-xl.shadow-sm.border.border-gray-200.p-6:not(.mb-6)');
+                if (mainContent) {
+                    // Pegar todas as seções filhas diretas
+                    const children = Array.from(mainContent.children);
+                    children.forEach(child => {
+                        // Cada seção (Meta Ads White, Black, Google, Anúncios, Resultados, Análise)
+                        if (child.classList.contains('bg-blue-600') || 
+                            child.classList.contains('bg-gray-900') || 
+                            child.classList.contains('bg-red-600') ||
+                            child.classList.contains('mt-6') ||
+                            child.tagName === 'P') {
+                            sections.push(child);
+                        }
+                    });
+                }
+
+                // Criar o PDF
+                const doc = new jsPDF({
+                    orientation: 'portrait',
+                    unit: 'mm',
+                    format: 'a4',
                 });
+
+                const pdfWidth = 210;
+                const pdfHeight = 297;
+                const margin = 10;
+                const usableWidth = pdfWidth - (margin * 2);
+                const usableHeight = pdfHeight - (margin * 2);
+                
+                let currentY = margin;
+                let currentPage = 1;
+
+                // Processar cada seção
+                for (let i = 0; i < sections.length; i++) {
+                    const section = sections[i];
+                    
+                    // Capturar a seção como imagem
+                    const canvas = await html2canvas(section, {
+                        scale: 2,
+                        useCORS: true,
+                        logging: false,
+                        backgroundColor: '#ffffff'
+                    });
+
+                    const imgData = canvas.toDataURL('image/png');
+                    const imgWidth = canvas.width;
+                    const imgHeight = canvas.height;
+
+                    // Calcular dimensões para o PDF mantendo a proporção
+                    const ratio = usableWidth / (imgWidth * 0.264583); // 0.264583 mm per pixel at 96 DPI
+                    const scaledWidth = usableWidth;
+                    const scaledHeight = (imgHeight * 0.264583) * ratio;
+
+                    // Verificar se a seção cabe na página atual
+                    if (currentY + scaledHeight > pdfHeight - margin) {
+                        // Não cabe, criar nova página
+                        doc.addPage();
+                        currentPage++;
+                        currentY = margin;
+                    }
+
+                    // Adicionar a imagem na posição atual
+                    doc.addImage(imgData, 'PNG', margin, currentY, scaledWidth, scaledHeight);
+                    
+                    // Atualizar a posição Y para a próxima seção
+                    currentY += scaledHeight + 5; // 5mm de espaçamento entre seções
+                }
 
                 // Restaurar botão
                 if (btn) btn.style.display = 'inline-flex';
 
-                // Criar PDF
-                const imgData = canvas.toDataURL('image/png');
-                const imgWidth = canvas.width;
-                const imgHeight = canvas.height;
-                const pdfWidth = 210;
-                const pdfHeight = 297;
-                const imgWidthInMm = imgWidth * 0.0353;
-                const imgHeightInMm = imgHeight * 0.0353;
-                const ratio = pdfWidth / imgWidthInMm;
-                const scaledWidth = imgWidthInMm * ratio;
-                const scaledHeight = imgHeightInMm * ratio;
-
-                const doc = new jsPDF({
-                    orientation: 'portrait',
-                    unit: 'mm',
-                    format: 'a4'
-                });
-
-                doc.addImage(imgData, 'PNG', 0, 10, scaledWidth, scaledHeight);
+                // Salvar PDF
                 doc.save(`${reportData.reportName || 'Relatorio'}.pdf`);
                 
                 console.log('✅ PDF exportado!');
             } catch (error) {
                 console.error('❌ Erro ao exportar PDF:', error);
                 alert('Erro ao exportar PDF. Tente novamente.');
+                
+                // Restaurar botão em caso de erro
+                const btn = document.getElementById('exportPDFBtn');
+                if (btn) btn.style.display = 'inline-flex';
             }
         }
     </script>

@@ -235,7 +235,7 @@ function enableButtons() {
 disableButtons();
 
 // Funções de Modal
-function toggleModal(modalId, show) {
+async function toggleModal(modalId, show) {
     const modal = document.getElementById(modalId);
     if (!modal) {
         console.error(`Modal com ID "${modalId}" não encontrado no DOM.`);
@@ -254,16 +254,68 @@ function toggleModal(modalId, show) {
         
         // Verificar se campanhas foram carregadas
         if ((modalId.includes('campaign') || modalId.includes('Campaigns')) && !campaignsMap[unitId]) {
-            console.warn('Campanhas ainda não carregadas, aguarde...');
-            alert('Aguarde o carregamento dos dados...');
-            return;
+            console.warn('❌ Campanhas ainda não carregadas para unitId:', unitId);
+            console.log('📊 campaignsMap atual:', campaignsMap);
+            console.log('🔄 Tentando carregar agora...');
+            
+            // Tentar carregar agora se não estiver carregando
+            if (!isLoadingData) {
+                const startDate = document.getElementById('startDate').value;
+                const endDate = document.getElementById('endDate').value;
+                
+                if (startDate && endDate) {
+                    isLoadingData = true;
+                    try {
+                        await loadCampaigns(unitId, startDate, endDate);
+                        console.log('✅ Campanhas carregadas com sucesso!');
+                    } catch (error) {
+                        console.error('❌ Erro ao carregar campanhas:', error);
+                        alert('Erro ao carregar campanhas. Tente novamente.');
+                        return;
+                    } finally {
+                        isLoadingData = false;
+                    }
+                } else {
+                    alert('Por favor, selecione o período primeiro');
+                    return;
+                }
+            } else {
+                alert('Aguarde o carregamento dos dados...');
+                return;
+            }
         }
         
         // Verificar se ad sets foram carregados
         if ((modalId.includes('adSet') || modalId.includes('AdSets')) && !adSetsMap[unitId]) {
-            console.warn('Ad Sets ainda não carregados, aguarde...');
-            alert('Aguarde o carregamento dos dados...');
-            return;
+            console.warn('❌ Ad Sets ainda não carregados para unitId:', unitId);
+            console.log('📊 adSetsMap atual:', adSetsMap);
+            console.log('🔄 Tentando carregar agora...');
+            
+            // Tentar carregar agora se não estiver carregando
+            if (!isLoadingData) {
+                const startDate = document.getElementById('startDate').value;
+                const endDate = document.getElementById('endDate').value;
+                
+                if (startDate && endDate) {
+                    isLoadingData = true;
+                    try {
+                        await loadAdSets(unitId, startDate, endDate);
+                        console.log('✅ Ad Sets carregados com sucesso!');
+                    } catch (error) {
+                        console.error('❌ Erro ao carregar ad sets:', error);
+                        alert('Erro ao carregar ad sets. Tente novamente.');
+                        return;
+                    } finally {
+                        isLoadingData = false;
+                    }
+                } else {
+                    alert('Por favor, selecione o período primeiro');
+                    return;
+                }
+            } else {
+                alert('Aguarde o carregamento dos dados...');
+                return;
+            }
         }
         
         modal.classList.remove('hidden');

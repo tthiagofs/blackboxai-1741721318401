@@ -57,6 +57,8 @@
     <!-- Scripts -->
     <script src="https://connect.facebook.net/en_US/sdk.js"></script>
     <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     
     <script type="module">
         // VERSION: 4.1 - Force reload se versão antiga
@@ -241,11 +243,16 @@
                     const insightsService = new FacebookInsightsService(connections.meta.token);
 
                     // Buscar métricas
+                    console.log('📊 Buscando métricas...');
                     metrics = await insightsService.getAccountInsights(
                         metaAccount.id,
                         reportData.analysisStart,
                         reportData.analysisEnd
                     );
+                    console.log('✅ Métricas obtidas:', metrics);
+                    console.log('- Spend:', metrics.spend);
+                    console.log('- Reach:', metrics.reach);
+                    console.log('- Conversations:', metrics.conversations);
 
                     // Se tem Black, buscar também
                     if (reportData.manualData.hasBlack) {

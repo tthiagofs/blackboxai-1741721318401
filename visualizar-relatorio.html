@@ -3,7 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Visualizar Relatório - Insightflow</title>
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>Visualizar Relatório - Insightflow v3.0</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="style.css">
@@ -56,7 +59,8 @@
     <script src="https://accounts.google.com/gsi/client" async defer></script>
     
     <script type="module">
-        // VERSION: 3.0 - Try-catch na renderização
+        // VERSION: 3.1 - Cache break timestamp
+        const V = '3.1.1741721900000'; // Timestamp para quebrar cache
         import { auth } from './config/firebase.js';
         import { onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
         import { reportsService } from './services/reportsService.js?v=1.0';
@@ -65,7 +69,8 @@
         import { exportToPDF } from './exportPDF.js';
 
         console.log('🔥 Firebase inicializado com sucesso!');
-        console.log('📌 VERSÃO: 3.0 - Try-catch na renderização!');
+        console.log('📌 VERSÃO: 3.1 - Cache break ativado!');
+        console.log('🕐 Build:', V);
 
         let reportData = null;
         let generatedMetrics = null;

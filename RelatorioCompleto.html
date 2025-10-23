@@ -369,15 +369,41 @@ ul.list-disc li br {
                 <h3 class="text-lg font-semibold text-gray-800 mb-4">
                     <i class="fas fa-comment-dots mr-2 text-purple-600"></i>Análise do Relatório
                 </h3>
+                
+                <!-- Sugestões Automáticas -->
+                <div id="analysisSuggestions" style="display: none;" class="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                    <p class="text-sm font-semibold text-blue-900 mb-3">
+                        <i class="fas fa-lightbulb mr-2"></i>Sugestões (clique para adicionar):
+                    </p>
+                    
+                    <!-- Tráfego -->
+                    <div id="trafficSuggestions" class="mb-3">
+                        <p class="text-xs font-medium text-gray-600 mb-2">🎯 Tráfego:</p>
+                        <div id="trafficSuggestionsContainer" class="space-y-2"></div>
+                    </div>
+                    
+                    <!-- Negócio -->
+                    <div id="businessSuggestions" style="display: none;">
+                        <p class="text-xs font-medium text-gray-600 mb-2">💼 Negócio:</p>
+                        <div id="businessSuggestionsContainer" class="space-y-2"></div>
+                    </div>
+                    
+                    <!-- Especiais -->
+                    <div id="specialSuggestions" style="display: none;">
+                        <p class="text-xs font-medium text-gray-600 mb-2 mt-3">🔧 Especiais:</p>
+                        <div id="specialSuggestionsContainer" class="space-y-2"></div>
+                    </div>
+                </div>
+                
                 <textarea
                     id="performanceAnalysis"
                     name="performanceAnalysis"
-                    rows="5"
+                    rows="8"
                     class="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition resize-none"
                     placeholder="Digite sua análise de desempenho e pontos de melhoria aqui. Separe os parágrafos com uma linha em branco."
                 ></textarea>
                 <p class="text-xs text-gray-500 mt-2">
-                    <i class="fas fa-info-circle mr-1"></i>Campo opcional. Use para adicionar insights e recomendações.
+                    <i class="fas fa-info-circle mr-1"></i>Campo opcional. Use para adicionar insights e recomendações. Dica: Pressione Enter 2x para criar um novo parágrafo com marcador.
                 </p>
             </div>
 

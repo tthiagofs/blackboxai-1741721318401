@@ -7,6 +7,12 @@ service cloud.firestore {
     match /users/{userId} {
       // Permitir leitura e escrita apenas para o próprio usuário autenticado
       allow read, write: if request.auth != null && request.auth.uid == userId;
+      
+      // Regras para subcoleção de templates de análise
+      match /analysisTemplates/{templateId} {
+        // Permitir CRUD completo apenas para o próprio usuário
+        allow read, write, create, update, delete: if request.auth != null && request.auth.uid == userId;
+      }
     }
     
     // Regras para coleção de projetos

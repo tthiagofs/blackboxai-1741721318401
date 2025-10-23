@@ -7,6 +7,12 @@ import { GoogleAdsService } from './services/googleAds.js?v=3.0';
 import { googleAuth } from './authGoogle.js?v=3.0';
 import { projectsService } from './services/projects.js?v=1.3';
 import { createIconWithBackgroundSVG } from './iconsSVG.js';
+import { 
+    getTemplatesByCategory, 
+    detectCategory, 
+    generateBusinessText,
+    ANALYSIS_CATEGORIES 
+} from './services/analysisTemplates.js';
 
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -27,6 +33,107 @@ async function loadProjectLogo() {
     } catch (error) {
         console.warn('⚠️ Não foi possível carregar a logo do projeto:', error.message);
     }
+}
+
+// Exibir sugestões de análise
+async function displayAnalysisSuggestions(currentConversations, previousConversations, budgets, sales) {
+    const userId = fbAuth.currentUser?.uid;
+    if (!userId) return;
+
+    try {
+        const suggestionsDiv = document.getElementById('analysisSuggestions');
+        const trafficContainer = document.getElementById('trafficSuggestionsContainer');
+        const businessContainer = document.getElementById('businessSuggestionsContainer');
+        const specialContainer = document.getElementById('specialSuggestionsContainer');
+        const businessSection = document.getElementById('businessSuggestions');
+        const specialSection = document.getElementById('specialSuggestions');
+
+        // Limpar containers
+        trafficContainer.innerHTML = '';
+        businessContainer.innerHTML = '';
+        specialContainer.innerHTML = '';
+
+        // 1. Detectar categoria de tráfego
+        const category = detectCategory(currentConversations, previousConversations);
+        
+        if (!category) {
+            console.log('⚠️ Sem dados de comparação, não exibindo sugestões de tráfego');
+        } else {
+            // Buscar templates da categoria
+            const templates = await getTemplatesByCategory(userId, category);
+            
+            if (templates.length > 0) {
+                templates.forEach(template => {
+                    const btn = document.createElement('button');
+                    btn.type = 'button';
+                    btn.className = 'w-full text-left px-3 py-2 bg-white border border-blue-200 rounded-lg hover:bg-blue-100 transition text-sm text-gray-700';
+                    btn.innerHTML = `<i class="fas fa-plus-circle mr-2 text-blue-600"></i>${template.text}`;
+                    btn.onclick = () => addTextToAnalysis(template.text);
+                    trafficContainer.appendChild(btn);
+                });
+            }
+        }
+
+        // 2. Gerar texto de negócio (se houver dados)
+        if (budgets > 0) {
+            const businessText = generateBusinessText(budgets, sales);
+            if (businessText) {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'w-full text-left px-3 py-2 bg-white border border-green-200 rounded-lg hover:bg-green-100 transition text-sm text-gray-700';
+                btn.innerHTML = `<i class="fas fa-plus-circle mr-2 text-green-600"></i>${businessText}`;
+                btn.onclick = () => addTextToAnalysis(businessText);
+                businessContainer.appendChild(btn);
+                businessSection.style.display = 'block';
+            }
+        }
+
+        // 3. Buscar casos especiais
+        const specialTemplates = await getTemplatesByCategory(userId, ANALYSIS_CATEGORIES.ESPECIAL);
+        if (specialTemplates.length > 0) {
+            specialTemplates.forEach(template => {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'w-full text-left px-3 py-2 bg-white border border-yellow-200 rounded-lg hover:bg-yellow-100 transition text-sm text-gray-700';
+                btn.innerHTML = `<i class="fas fa-plus-circle mr-2 text-yellow-600"></i>${template.text}`;
+                btn.onclick = () => addTextToAnalysis(template.text);
+                specialContainer.appendChild(btn);
+            });
+            specialSection.style.display = 'block';
+        }
+
+        // Mostrar seção de sugestões se houver alguma sugestão
+        if (trafficContainer.children.length > 0 || businessContainer.children.length > 0 || specialContainer.children.length > 0) {
+            suggestionsDiv.style.display = 'block';
+        } else {
+            suggestionsDiv.style.display = 'none';
+        }
+
+    } catch (error) {
+        console.error('❌ Erro ao carregar sugestões:', error);
+    }
+}
+
+// Adicionar texto à análise
+function addTextToAnalysis(text) {
+    const textarea = document.getElementById('performanceAnalysis');
+    const currentValue = textarea.value.trim();
+    
+    if (currentValue === '') {
+        textarea.value = text;
+    } else {
+        // Adiciona com quebra de linha dupla (cria bullet point no relatório)
+        textarea.value = currentValue + '\n\n' + text;
+    }
+    
+    // Scroll para o final do textarea
+    textarea.scrollTop = textarea.scrollHeight;
+    
+    // Feedback visual
+    textarea.classList.add('ring-2', 'ring-green-500');
+    setTimeout(() => {
+        textarea.classList.remove('ring-2', 'ring-green-500');
+    }, 500);
 }
 
 // Carregar logo ao iniciar
@@ -997,6 +1104,11 @@ async function generateCompleteReport() {
         // Renderizar relatório
         renderCompleteReport(accountName, startDate, endDate, metrics, blackMetrics, bestAds, comparisonMetrics, budgetsCompleted, salesCount, revenue, performanceAnalysis, currentProjectLogo);
         
+        // Exibir sugestões de análise
+        const currentConversations = metrics.conversations + (blackMetrics ? blackMetrics.conversations : 0);
+        const previousConversations = metrics.previousConversations + (blackMetrics ? blackMetrics.previousConversations : 0);
+        await displayAnalysisSuggestions(currentConversations, previousConversations, budgetsCompleted, salesCount);
+        
         // Preparar dados para salvamento (⭐ ADICIONADO bestAds)
         prepareReportDataForSaving(accountName, startDate, endDate, unitId, googleAccountId, metrics, blackMetrics, bestAds, comparisonMetrics, budgetsCompleted, salesCount, revenue, performanceAnalysis);
         
@@ -1633,6 +1745,26 @@ form.addEventListener('submit', async (e) => {
         submitButton.innerHTML = originalText;
     }
 });
+
+// Event listeners para campos de negócio (atualizar sugestões)
+const budgetsInput = document.getElementById('budgetsCompleted');
+const salesInput = document.getElementById('salesCount');
+
+if (budgetsInput && salesInput) {
+    const updateBusinessSuggestions = debounce(async () => {
+        // Só atualiza se o relatório já foi gerado
+        if (reportMetrics) {
+            const budgets = parseInt(budgetsInput.value) || 0;
+            const sales = parseInt(salesInput.value) || 0;
+            const currentConversations = reportMetrics.conversations + (reportBlackMetrics ? reportBlackMetrics.conversations : 0);
+            const previousConversations = reportMetrics.previousConversations + (reportBlackMetrics ? reportBlackMetrics.previousConversations : 0);
+            await displayAnalysisSuggestions(currentConversations, previousConversations, budgets, sales);
+        }
+    }, 500);
+
+    budgetsInput.addEventListener('input', updateBusinessSuggestions);
+    salesInput.addEventListener('input', updateBusinessSuggestions);
+}
 
 // Event listeners para filtros
 if (filterCampaignsBtn) {

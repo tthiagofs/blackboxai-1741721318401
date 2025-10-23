@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Análises Pré-Definidas - InsightFlow</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: #f8f9fa;
+        }
+
+        .sidebar {
+            background: white;
+            border-right: 1px solid #e5e7eb;
+            height: 100vh;
+            position: fixed;
+            left: 0;
+            top: 0;
+            width: 250px;
+            display: flex;
+            flex-direction: column;
+            transition: transform 0.3s ease;
+            z-index: 50;
+        }
+
+        .sidebar-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .sidebar-menu {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1rem 0;
+        }
+
+        .menu-item {
+            display: flex;
+            align-items: center;
+            padding: 0.75rem 1.5rem;
+            color: #6b7280;
+            text-decoration: none;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+
+        .menu-item:hover {
+            background: #f3f4f6;
+            color: #3b82f6;
+        }
+
+        .menu-item.active {
+            background: #eff6ff;
+            color: #3b82f6;
+            border-right: 3px solid #3b82f6;
+        }
+
+        .menu-item i {
+            width: 20px;
+            margin-right: 0.75rem;
+        }
+
+        .main-content {
+            margin-left: 250px;
+            min-height: 100vh;
+            background: #f8f9fa;
+        }
+
+        .template-card {
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 0.75rem;
+            transition: all 0.2s;
+        }
+
+        .template-card:hover {
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .template-textarea {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #e5e7eb;
+            border-radius: 6px;
+            resize: vertical;
+            min-height: 80px;
+            font-size: 14px;
+        }
+
+        .template-textarea:focus {
+            outline: none;
+            border-color: #3b82f6;
+            ring: 2px;
+            ring-color: rgba(59, 130, 246, 0.1);
+        }
+
+        .btn {
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-primary {
+            background: #3b82f6;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #2563eb;
+        }
+
+        .btn-danger {
+            background: #ef4444;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #dc2626;
+        }
+
+        .btn-secondary {
+            background: #f3f4f6;
+            color: #6b7280;
+        }
+
+        .btn-secondary:hover {
+            background: #e5e7eb;
+        }
+
+        .category-section {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            border: 1px solid #e5e7eb;
+        }
+
+        .category-header {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid #f3f4f6;
+        }
+
+        .category-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+        }
+
+        .icon-melhorou { background: #dcfce7; color: #16a34a; }
+        .icon-piorou { background: #fee2e2; color: #dc2626; }
+        .icon-estavel { background: #dbeafe; color: #2563eb; }
+        .icon-especial { background: #fef3c7; color: #d97706; }
+
+        .empty-state {
+            text-align: center;
+            padding: 2rem;
+            color: #9ca3af;
+        }
+
+        .loading {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 400px;
+        }
+
+        .spinner {
+            border: 3px solid #f3f4f6;
+            border-top: 3px solid #3b82f6;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .alert {
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: start;
+            gap: 0.75rem;
+        }
+
+        .alert-info {
+            background: #eff6ff;
+            border: 1px solid #bfdbfe;
+            color: #1e40af;
+        }
+
+        .alert-success {
+            background: #dcfce7;
+            border: 1px solid #bbf7d0;
+            color: #166534;
+        }
+    </style>
+</head>
+<body>
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <h1 class="text-xl font-bold text-gray-800">InsightFlow</h1>
+        </div>
+        <nav class="sidebar-menu">
+            <a href="dashboard.html" class="menu-item">
+                <i class="fas fa-th-large"></i>
+                <span>Dashboard</span>
+            </a>
+            <a href="conexoes.html" class="menu-item">
+                <i class="fas fa-plug"></i>
+                <span>Conexões</span>
+            </a>
+            <a href="minha-conta.html" class="menu-item">
+                <i class="fas fa-user"></i>
+                <span>Minha Conta</span>
+            </a>
+            <a href="usuarios.html" class="menu-item" id="usuariosMenu" style="display: none;">
+                <i class="fas fa-users"></i>
+                <span>Usuários</span>
+            </a>
+            <a href="analises-predefinidas.html" class="menu-item active">
+                <i class="fas fa-comments"></i>
+                <span>Análises Pré-Definidas</span>
+            </a>
+        </nav>
+        <div class="p-4 border-t border-gray-200">
+            <button id="logoutBtn" class="menu-item w-full text-left text-red-600 hover:bg-red-50">
+                <i class="fas fa-sign-out-alt"></i>
+                <span>Sair</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <div class="max-w-5xl mx-auto p-6">
+            <!-- Header -->
+            <div class="mb-6">
+                <h1 class="text-2xl font-bold text-gray-800 mb-2">💬 Análises Pré-Definidas</h1>
+                <p class="text-gray-600">
+                    Configure textos que serão sugeridos automaticamente ao gerar relatórios, baseados nas métricas do período.
+                </p>
+            </div>
+
+            <!-- Alert Info -->
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle"></i>
+                <div>
+                    <strong>Como funciona:</strong> Ao gerar um relatório, o sistema analisa automaticamente as métricas 
+                    e sugere 3 textos de tráfego + 1 texto de negócio que você pode adicionar com 1 clique. 
+                    Você pode ter até <strong>3 textos por categoria</strong>.
+                </div>
+            </div>
+
+            <!-- Loading -->
+            <div id="loadingSection" class="loading">
+                <div class="spinner"></div>
+            </div>
+
+            <!-- Success Message -->
+            <div id="successMessage" class="alert alert-success" style="display: none;">
+                <i class="fas fa-check-circle"></i>
+                <div>Configurações salvas com sucesso!</div>
+            </div>
+
+            <!-- Content -->
+            <div id="contentSection" style="display: none;">
+                <!-- Piorou -->
+                <div class="category-section">
+                    <div class="category-header">
+                        <div class="category-icon icon-piorou">
+                            <i class="fas fa-arrow-down"></i>
+                        </div>
+                        <div>
+                            <h2 class="text-lg font-bold text-gray-800">Quando Volume de Leads PIOROU (&gt;10%)</h2>
+                            <p class="text-sm text-gray-500">Textos sugeridos quando houver redução significativa</p>
+                        </div>
+                    </div>
+                    <div id="templates-PIOROU"></div>
+                    <button class="btn btn-secondary mt-2" onclick="addTemplate('PIOROU')" id="addBtn-PIOROU">
+                        <i class="fas fa-plus"></i> Adicionar Opção
+                    </button>
+                </div>
+
+                <!-- Melhorou -->
+                <div class="category-section">
+                    <div class="category-header">
+                        <div class="category-icon icon-melhorou">
+                            <i class="fas fa-arrow-up"></i>
+                        </div>
+                        <div>
+                            <h2 class="text-lg font-bold text-gray-800">Quando Volume de Leads MELHOROU (&gt;10%)</h2>
+                            <p class="text-sm text-gray-500">Textos sugeridos quando houver aumento significativo</p>
+                        </div>
+                    </div>
+                    <div id="templates-MELHOROU"></div>
+                    <button class="btn btn-secondary mt-2" onclick="addTemplate('MELHOROU')" id="addBtn-MELHOROU">
+                        <i class="fas fa-plus"></i> Adicionar Opção
+                    </button>
+                </div>
+
+                <!-- Estável -->
+                <div class="category-section">
+                    <div class="category-header">
+                        <div class="category-icon icon-estavel">
+                            <i class="fas fa-minus"></i>
+                        </div>
+                        <div>
+                            <h2 class="text-lg font-bold text-gray-800">Quando Volume de Leads NÃO VARIOU (&lt;10%)</h2>
+                            <p class="text-sm text-gray-500">Textos sugeridos quando não houver variação significativa</p>
+                        </div>
+                    </div>
+                    <div id="templates-ESTAVEL"></div>
+                    <button class="btn btn-secondary mt-2" onclick="addTemplate('ESTAVEL')" id="addBtn-ESTAVEL">
+                        <i class="fas fa-plus"></i> Adicionar Opção
+                    </button>
+                </div>
+
+                <!-- Especial -->
+                <div class="category-section">
+                    <div class="category-header">
+                        <div class="category-icon icon-especial">
+                            <i class="fas fa-star"></i>
+                        </div>
+                        <div>
+                            <h2 class="text-lg font-bold text-gray-800">Casos Especiais (sempre disponíveis)</h2>
+                            <p class="text-sm text-gray-500">Textos para situações específicas, disponíveis em qualquer relatório</p>
+                        </div>
+                    </div>
+                    <div id="templates-ESPECIAL"></div>
+                    <button class="btn btn-secondary mt-2" onclick="addTemplate('ESPECIAL')" id="addBtn-ESPECIAL">
+                        <i class="fas fa-plus"></i> Adicionar Opção
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { auth } from './config/firebase.js';
+        import { onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+        import { 
+            initializeDefaultTemplates, 
+            listTemplates, 
+            addTemplate as addTemplateService,
+            updateTemplate,
+            deleteTemplate,
+            ANALYSIS_CATEGORIES 
+        } from './services/analysisTemplates.js';
+
+        let currentUser = null;
+        let templates = {};
+
+        // Auth
+        onAuthStateChanged(auth, async (user) => {
+            if (!user) {
+                window.location.href = 'index.html';
+                return;
+            }
+
+            currentUser = user;
+
+            // Mostra menu de usuários para admin
+            if (user.email === 'thiagofelipefreire0810@gmail.com') {
+                document.getElementById('usuariosMenu').style.display = 'flex';
+            }
+
+            await loadTemplates();
+        });
+
+        // Logout
+        document.getElementById('logoutBtn').addEventListener('click', async () => {
+            try {
+                await signOut(auth);
+                window.location.href = 'index.html';
+            } catch (error) {
+                console.error('Erro ao fazer logout:', error);
+            }
+        });
+
+        // Carrega templates
+        async function loadTemplates() {
+            try {
+                document.getElementById('loadingSection').style.display = 'flex';
+                document.getElementById('contentSection').style.display = 'none';
+
+                // Inicializa templates padrão se for primeira vez
+                await initializeDefaultTemplates(currentUser.uid);
+
+                // Carrega templates do usuário
+                templates = await listTemplates(currentUser.uid);
+
+                // Renderiza cada categoria
+                renderCategory('PIOROU', templates.PIOROU || []);
+                renderCategory('MELHOROU', templates.MELHOROU || []);
+                renderCategory('ESTAVEL', templates.ESTAVEL || []);
+                renderCategory('ESPECIAL', templates.ESPECIAL || []);
+
+                document.getElementById('loadingSection').style.display = 'none';
+                document.getElementById('contentSection').style.display = 'block';
+            } catch (error) {
+                console.error('Erro ao carregar templates:', error);
+                alert('Erro ao carregar templates. Tente novamente.');
+            }
+        }
+
+        // Renderiza categoria
+        function renderCategory(category, items) {
+            const container = document.getElementById(`templates-${category}`);
+            const addBtn = document.getElementById(`addBtn-${category}`);
+
+            if (items.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-inbox text-4xl mb-2"></i>
+                        <p>Nenhum texto cadastrado ainda</p>
+                        <p class="text-sm">Clique em "Adicionar Opção" para começar</p>
+                    </div>
+                `;
+                addBtn.style.display = 'inline-flex';
+                return;
+            }
+
+            container.innerHTML = items.map((item, index) => `
+                <div class="template-card" data-id="${item.id}">
+                    <div class="flex items-start gap-3">
+                        <div class="flex-1">
+                            <label class="text-xs font-medium text-gray-500 mb-1 block">Opção ${index + 1}:</label>
+                            <textarea 
+                                class="template-textarea" 
+                                data-id="${item.id}"
+                                placeholder="Digite o texto da análise..."
+                            >${item.text}</textarea>
+                        </div>
+                        <div class="flex gap-2">
+                            <button 
+                                class="btn btn-primary" 
+                                onclick="saveTemplate('${item.id}', '${category}')"
+                                title="Salvar alterações"
+                            >
+                                <i class="fas fa-save"></i>
+                            </button>
+                            <button 
+                                class="btn btn-danger" 
+                                onclick="removeTemplate('${item.id}', '${category}')"
+                                title="Excluir texto"
+                            >
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+
+            // Mostra/oculta botão de adicionar (limite de 3)
+            addBtn.style.display = items.length < 3 ? 'inline-flex' : 'none';
+        }
+
+        // Adiciona template
+        window.addTemplate = async function(category) {
+            try {
+                const currentItems = templates[category] || [];
+                if (currentItems.length >= 3) {
+                    alert('Você pode ter no máximo 3 textos por categoria.');
+                    return;
+                }
+
+                const order = currentItems.length + 1;
+                await addTemplateService(currentUser.uid, category, '', order);
+                
+                showSuccess();
+                await loadTemplates();
+            } catch (error) {
+                console.error('Erro ao adicionar template:', error);
+                alert('Erro ao adicionar texto. Tente novamente.');
+            }
+        };
+
+        // Salva template
+        window.saveTemplate = async function(templateId, category) {
+            try {
+                const textarea = document.querySelector(`textarea[data-id="${templateId}"]`);
+                const text = textarea.value.trim();
+
+                if (!text) {
+                    alert('O texto não pode estar vazio.');
+                    return;
+                }
+
+                await updateTemplate(currentUser.uid, templateId, text);
+                showSuccess();
+            } catch (error) {
+                console.error('Erro ao salvar template:', error);
+                alert('Erro ao salvar texto. Tente novamente.');
+            }
+        };
+
+        // Remove template
+        window.removeTemplate = async function(templateId, category) {
+            if (!confirm('Tem certeza que deseja excluir este texto?')) {
+                return;
+            }
+
+            try {
+                await deleteTemplate(currentUser.uid, templateId);
+                showSuccess();
+                await loadTemplates();
+            } catch (error) {
+                console.error('Erro ao excluir template:', error);
+                alert('Erro ao excluir texto. Tente novamente.');
+            }
+        };
+
+        // Mostra mensagem de sucesso
+        function showSuccess() {
+            const msg = document.getElementById('successMessage');
+            msg.style.display = 'flex';
+            setTimeout(() => {
+                msg.style.display = 'none';
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
+

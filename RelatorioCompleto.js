@@ -37,8 +37,14 @@ async function loadProjectLogo() {
 
 // Exibir sugestões de análise
 async function displayAnalysisSuggestions(currentConversations, previousConversations, budgets, sales) {
+    console.log('🎯 [displayAnalysisSuggestions] Iniciando...');
+    
     const userId = fbAuth.currentUser?.uid;
-    if (!userId) return;
+    if (!userId) {
+        console.error('❌ [displayAnalysisSuggestions] Usuário não autenticado!');
+        return;
+    }
+    console.log('✅ [displayAnalysisSuggestions] User ID:', userId);
 
     try {
         const suggestionsDiv = document.getElementById('analysisSuggestions');
@@ -48,6 +54,13 @@ async function displayAnalysisSuggestions(currentConversations, previousConversa
         const businessSection = document.getElementById('businessSuggestions');
         const specialSection = document.getElementById('specialSuggestions');
 
+        console.log('✅ [displayAnalysisSuggestions] Elementos encontrados:', {
+            suggestionsDiv: !!suggestionsDiv,
+            trafficContainer: !!trafficContainer,
+            businessContainer: !!businessContainer,
+            specialContainer: !!specialContainer
+        });
+
         // Limpar containers
         trafficContainer.innerHTML = '';
         businessContainer.innerHTML = '';
@@ -55,12 +68,15 @@ async function displayAnalysisSuggestions(currentConversations, previousConversa
 
         // 1. Detectar categoria de tráfego
         const category = detectCategory(currentConversations, previousConversations);
+        console.log('📊 [displayAnalysisSuggestions] Categoria detectada:', category);
         
         if (!category) {
             console.log('⚠️ Sem dados de comparação, não exibindo sugestões de tráfego');
         } else {
             // Buscar templates da categoria
+            console.log('🔍 Buscando templates para categoria:', category);
             const templates = await getTemplatesByCategory(userId, category);
+            console.log('📝 Templates encontrados:', templates.length, templates);
             
             if (templates.length > 0) {
                 templates.forEach(template => {
@@ -70,13 +86,16 @@ async function displayAnalysisSuggestions(currentConversations, previousConversa
                     btn.innerHTML = `<i class="fas fa-plus-circle mr-2 text-blue-600"></i>${template.text}`;
                     btn.onclick = () => addTextToAnalysis(template.text);
                     trafficContainer.appendChild(btn);
+                    console.log('✅ Adicionado botão de tráfego:', template.text.substring(0, 50) + '...');
                 });
             }
         }
 
         // 2. Gerar texto de negócio (se houver dados)
+        console.log('💼 Verificando dados de negócio:', { budgets, sales });
         if (budgets > 0) {
             const businessText = generateBusinessText(budgets, sales);
+            console.log('💼 Texto de negócio gerado:', businessText);
             if (businessText) {
                 const btn = document.createElement('button');
                 btn.type = 'button';
@@ -85,11 +104,15 @@ async function displayAnalysisSuggestions(currentConversations, previousConversa
                 btn.onclick = () => addTextToAnalysis(businessText);
                 businessContainer.appendChild(btn);
                 businessSection.style.display = 'block';
+                console.log('✅ Adicionado botão de negócio');
             }
         }
 
         // 3. Buscar casos especiais
+        console.log('🔧 Buscando casos especiais...');
         const specialTemplates = await getTemplatesByCategory(userId, ANALYSIS_CATEGORIES.ESPECIAL);
+        console.log('🔧 Templates especiais encontrados:', specialTemplates.length, specialTemplates);
+        
         if (specialTemplates.length > 0) {
             specialTemplates.forEach(template => {
                 const btn = document.createElement('button');
@@ -98,19 +121,26 @@ async function displayAnalysisSuggestions(currentConversations, previousConversa
                 btn.innerHTML = `<i class="fas fa-plus-circle mr-2 text-yellow-600"></i>${template.text}`;
                 btn.onclick = () => addTextToAnalysis(template.text);
                 specialContainer.appendChild(btn);
+                console.log('✅ Adicionado botão especial:', template.text.substring(0, 50) + '...');
             });
             specialSection.style.display = 'block';
         }
 
         // Mostrar seção de sugestões se houver alguma sugestão
-        if (trafficContainer.children.length > 0 || businessContainer.children.length > 0 || specialContainer.children.length > 0) {
+        const totalSuggestions = trafficContainer.children.length + businessContainer.children.length + specialContainer.children.length;
+        console.log('📊 Total de sugestões:', totalSuggestions);
+        
+        if (totalSuggestions > 0) {
             suggestionsDiv.style.display = 'block';
+            console.log('✅ Seção de sugestões MOSTRADA');
         } else {
             suggestionsDiv.style.display = 'none';
+            console.log('⚠️ Nenhuma sugestão, seção OCULTA');
         }
 
     } catch (error) {
         console.error('❌ Erro ao carregar sugestões:', error);
+        console.error('Stack:', error.stack);
     }
 }
 
@@ -1101,12 +1131,26 @@ async function generateCompleteReport() {
         reportBlackMetrics = blackMetrics;
     reportBestAds = bestAds;
 
-        // Renderizar relatório
-        renderCompleteReport(accountName, startDate, endDate, metrics, blackMetrics, bestAds, comparisonMetrics, budgetsCompleted, salesCount, revenue, performanceAnalysis, currentProjectLogo);
+        // Renderizar relatório (SEM análise ainda)
+        renderCompleteReport(accountName, startDate, endDate, metrics, blackMetrics, bestAds, comparisonMetrics, 0, 0, 0, '', currentProjectLogo);
+        
+        // Mostrar seção de análise
+        const analysisSection = document.getElementById('analysisSection');
+        if (analysisSection) {
+            analysisSection.style.display = 'block';
+            // Scroll suave para a seção
+            setTimeout(() => {
+                analysisSection.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }, 500);
+        }
         
         // Exibir sugestões de análise
+        console.log('🔍 [SUGESTÕES] Iniciando cálculo...');
         const currentConversations = metrics.conversations + (blackMetrics ? blackMetrics.conversations : 0);
         const previousConversations = metrics.previousConversations + (blackMetrics ? blackMetrics.previousConversations : 0);
+        console.log('🔍 [SUGESTÕES] Conversas:', { atual: currentConversations, anterior: previousConversations });
+        console.log('🔍 [SUGESTÕES] Negócio:', { orçamentos: budgetsCompleted, vendas: salesCount });
+        
         await displayAnalysisSuggestions(currentConversations, previousConversations, budgetsCompleted, salesCount);
         
         // Preparar dados para salvamento (⭐ ADICIONADO bestAds)
@@ -1764,6 +1808,67 @@ if (budgetsInput && salesInput) {
 
     budgetsInput.addEventListener('input', updateBusinessSuggestions);
     salesInput.addEventListener('input', updateBusinessSuggestions);
+}
+
+// Event listener para "Incluir Análise e Gerar Relatório Final"
+const generateFinalReportBtn = document.getElementById('generateFinalReportBtn');
+if (generateFinalReportBtn) {
+    generateFinalReportBtn.addEventListener('click', async () => {
+        console.log('🎯 Regenerando relatório com análise...');
+        
+        if (!reportMetrics) {
+            alert('Erro: Métricas do relatório não encontradas. Gere o relatório novamente.');
+            return;
+        }
+        
+        // Pegar valores atualizados dos campos
+        const budgetsCompleted = parseInt(document.getElementById('budgetsCompleted').value) || 0;
+        const salesCount = parseInt(document.getElementById('salesCount').value) || 0;
+        const revenue = parseFloat(document.getElementById('revenue').value) || 0;
+        const performanceAnalysis = document.getElementById('performanceAnalysis').value || '';
+        
+        // Pegar dados originais do relatório
+        const unitId = document.getElementById('unitId').value;
+        const accountName = adAccountsMap[unitId] || 'Unidade Desconhecida';
+        const startDate = document.getElementById('startDate').value;
+        const endDate = document.getElementById('endDate').value;
+        
+        // Renderizar relatório COM análise
+        renderCompleteReport(
+            accountName, 
+            startDate, 
+            endDate, 
+            reportMetrics, 
+            reportBlackMetrics, 
+            reportBestAds, 
+            null, // comparisonMetrics (já está no reportMetrics)
+            budgetsCompleted, 
+            salesCount, 
+            revenue, 
+            performanceAnalysis, 
+            currentProjectLogo
+        );
+        
+        // Atualizar dados para salvamento
+        if (window.currentReportData) {
+            window.currentReportData.manualData = {
+                revenue: revenue,
+                sales: salesCount,
+                budgets: budgetsCompleted,
+                analysis: performanceAnalysis,
+                hasBlack: hasBlack || false
+            };
+        }
+        
+        // Scroll para o topo do relatório
+        const reportContainer = document.getElementById('reportContainer');
+        if (reportContainer) {
+            reportContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+        
+        console.log('✅ Relatório regenerado com sucesso!');
+        alert('✅ Relatório atualizado com sua análise!');
+    });
 }
 
 // Event listeners para filtros

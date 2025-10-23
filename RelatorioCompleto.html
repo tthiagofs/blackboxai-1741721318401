@@ -364,8 +364,38 @@ ul.list-disc li br {
                 </div>
             </div>
 
-            <!-- Card: Análise do Relatório -->
-            <div class="bg-white rounded-2xl shadow-md p-6 border border-gray-100">
+
+            <!-- Botões Gerar e Salvar Relatório -->
+            <div class="flex gap-4">
+            <button type="submit"
+                    class="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-bold py-4 px-6 rounded-xl transition duration-300 transform hover:scale-[1.02] shadow-lg flex items-center justify-center">
+                    <i class="fas fa-chart-bar mr-3 text-xl"></i>
+                    <span class="text-lg">Gerar Relatório</span>
+                </button>
+                
+                <!-- Botão Salvar Relatório (aparece após gerar) -->
+                <button type="button" id="saveReportBtn" style="display: none;"
+                    class="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold py-4 px-6 rounded-xl transition duration-300 transform hover:scale-[1.02] shadow-lg flex items-center justify-center">
+                    <i class="fas fa-save mr-3 text-xl"></i>
+                    <span class="text-lg">Salvar Relatório</span>
+            </button>
+            </div>
+        </form>
+
+            <!-- Container de Loading -->
+            <div id="loadingIndicator" class="hidden">
+                <div class="bg-blue-50 border border-blue-200 rounded-xl p-6 text-center">
+                    <div class="animate-spin inline-block w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full mb-4"></div>
+                    <p class="text-blue-800 font-semibold text-lg">Gerando relatório...</p>
+                    <p class="text-blue-600 text-sm mt-2">Isso pode levar alguns segundos</p>
+                </div>
+            </div>
+
+            <!-- Container do Relatório Gerado -->
+        <div id="reportContainer" class="mt-8 space-y-8"></div>
+
+            <!-- Card: Análise do Relatório (aparece após gerar) -->
+            <div id="analysisSection" style="display: none;" class="mt-8 bg-white rounded-2xl shadow-md p-6 border border-gray-100">
                 <h3 class="text-lg font-semibold text-gray-800 mb-4">
                     <i class="fas fa-comment-dots mr-2 text-purple-600"></i>Análise do Relatório
                 </h3>
@@ -400,41 +430,19 @@ ul.list-disc li br {
                     name="performanceAnalysis"
                     rows="8"
                     class="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition resize-none"
-                    placeholder="Digite sua análise de desempenho e pontos de melhoria aqui. Separe os parágrafos com uma linha em branco."
+                    placeholder="Suas análises aparecerão aqui. Clique nas sugestões acima para adicioná-las automaticamente."
                 ></textarea>
                 <p class="text-xs text-gray-500 mt-2">
-                    <i class="fas fa-info-circle mr-1"></i>Campo opcional. Use para adicionar insights e recomendações. Dica: Pressione Enter 2x para criar um novo parágrafo com marcador.
+                    <i class="fas fa-info-circle mr-1"></i>Campo opcional. Clique nas sugestões acima ou digite sua própria análise. Pressione Enter 2x para criar novo parágrafo com marcador.
                 </p>
-            </div>
-
-            <!-- Botões Gerar e Salvar Relatório -->
-            <div class="flex gap-4">
-            <button type="submit"
-                    class="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-bold py-4 px-6 rounded-xl transition duration-300 transform hover:scale-[1.02] shadow-lg flex items-center justify-center">
-                    <i class="fas fa-chart-bar mr-3 text-xl"></i>
-                    <span class="text-lg">Gerar Relatório</span>
-                </button>
                 
-                <!-- Botão Salvar Relatório (aparece após gerar) -->
-                <button type="button" id="saveReportBtn" style="display: none;"
-                    class="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold py-4 px-6 rounded-xl transition duration-300 transform hover:scale-[1.02] shadow-lg flex items-center justify-center">
-                    <i class="fas fa-save mr-3 text-xl"></i>
-                    <span class="text-lg">Salvar Relatório</span>
-            </button>
+                <!-- Botão Gerar Relatório Final -->
+                <button type="button" id="generateFinalReportBtn"
+                    class="mt-4 w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-bold py-3 px-6 rounded-xl transition duration-300 transform hover:scale-[1.02] shadow-lg flex items-center justify-center">
+                    <i class="fas fa-check-circle mr-3 text-xl"></i>
+                    <span class="text-lg">Incluir Análise e Gerar Relatório Final</span>
+                </button>
             </div>
-        </form>
-
-            <!-- Container de Loading -->
-            <div id="loadingIndicator" class="hidden">
-                <div class="bg-blue-50 border border-blue-200 rounded-xl p-6 text-center">
-                    <div class="animate-spin inline-block w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full mb-4"></div>
-                    <p class="text-blue-800 font-semibold text-lg">Gerando relatório...</p>
-                    <p class="text-blue-600 text-sm mt-2">Isso pode levar alguns segundos</p>
-                </div>
-            </div>
-
-            <!-- Container do Relatório Gerado -->
-        <div id="reportContainer" class="mt-8 space-y-8"></div>
 
             <!-- Botões de Ação -->
             <div class="flex flex-wrap gap-3 mt-6">

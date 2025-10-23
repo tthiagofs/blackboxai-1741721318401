@@ -1,0 +1,4 @@
+Deploy forçado em: 2025-01-08 15:30:00
+Último commit: 857a058
+Versão: 4.1
+

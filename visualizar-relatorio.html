@@ -6,7 +6,7 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <title>Visualizar Relatório - Insightflow v4.0</title>
+    <title>Visualizar Relatório - Insightflow v4.1</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="style.css">
@@ -59,8 +59,19 @@
     <script src="https://accounts.google.com/gsi/client" async defer></script>
     
     <script type="module">
-        // VERSION: 4.0 - Sem alerts, erro na tela
-        const V = '4.0.1741722500000'; // Timestamp para quebrar cache
+        // VERSION: 4.1 - Force reload se versão antiga
+        const V = '4.1.1741722800000'; // Timestamp para quebrar cache
+        
+        // Verificar se é a versão correta
+        const EXPECTED_VERSION = '4.1';
+        const storedVersion = sessionStorage.getItem('visualizar_version');
+        
+        if (storedVersion !== EXPECTED_VERSION) {
+            console.log('⚠️ VERSÃO ANTIGA DETECTADA! Forçando reload...');
+            sessionStorage.setItem('visualizar_version', EXPECTED_VERSION);
+            location.reload(true); // Force reload ignorando cache
+        }
+        
         import { auth } from './config/firebase.js';
         import { onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
         import { reportsService } from './services/reportsService.js?v=1.0';
@@ -69,8 +80,9 @@
         import { exportToPDF } from './exportPDF.js';
 
         console.log('🔥 Firebase inicializado com sucesso!');
-        console.log('📌 VERSÃO: 4.0 - SEM ALERTS, ERRO NA TELA!');
+        console.log('📌 VERSÃO: 4.1 - FORCE RELOAD ATIVO!');
         console.log('🕐 Build:', V);
+        console.log('✅ Versão correta carregada!');
 
         let reportData = null;
         let generatedMetrics = null;

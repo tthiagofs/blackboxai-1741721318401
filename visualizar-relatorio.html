@@ -373,7 +373,7 @@
                                         <p class="text-2xl font-bold text-gray-900">${salesCount.toLocaleString('pt-BR')}</p>
                                     </div>
                                 </div>
-                                <p class="text-xs text-gray-500 mt-1">50% convertido</p>
+                                <p class="text-xs text-gray-500 mt-1">${budgetsCompleted > 0 ? ((salesCount / budgetsCompleted) * 100).toFixed(1) : 0}% convertido</p>
                             </div>
                             <div class="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
                                 <div class="flex items-center gap-2 mb-2">

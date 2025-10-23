@@ -33,29 +33,13 @@ export async function exportToPDF(
         exportButton.style.display = 'none';
     }
 
-    // Ajustar o layout para exibir métricas lado a lado como no site
-    const campaignSections = reportElement.querySelectorAll('.campaign-section');
-    campaignSections.forEach(section => {
-        const metricCards = section.querySelectorAll('.metric-card');
-        const gridContainer = document.createElement('div');
-        gridContainer.className = 'grid grid-cols-1 md:grid-cols-4 gap-4';
-        metricCards.forEach(card => gridContainer.appendChild(card));
-        section.innerHTML = '';
-        section.appendChild(gridContainer);
-    });
-
     // Capturar o relatório como imagem usando html2canvas
     const canvas = await html2canvas(reportElement, {
         scale: 2, // Aumentar a resolução para melhor qualidade
         useCORS: true, // Permitir carregar imagens externas (como as dos anúncios)
-        logging: true, // Para depuração, pode desativar depois
-    });
-
-    // Restaurar o layout original após a captura
-    campaignSections.forEach(section => {
-        const metricCards = section.querySelectorAll('.metric-card');
-        section.innerHTML = '';
-        metricCards.forEach(card => section.appendChild(card));
+        logging: false,
+        windowWidth: reportElement.scrollWidth,
+        windowHeight: reportElement.scrollHeight
     });
 
     // Restaurar o botão "Exportar para PDF"
@@ -66,26 +50,23 @@ export async function exportToPDF(
     // Obter a imagem como data URL
     const imgData = canvas.toDataURL('image/png');
 
-    // Dimensões do canvas
-    const imgWidth = canvas.width;
-    const imgHeight = canvas.height;
-
     // Dimensões da página A4 em mm (210mm x 297mm)
     const pdfWidth = 210;
     const pdfHeight = 297;
+    
+    // Margens
+    const marginTop = 10;
+    const marginBottom = 10;
+    const usableHeight = pdfHeight - marginTop - marginBottom;
 
-    // Converter dimensões de pixels para mm (1 pixel = 0.0353 mm em 72 DPI)
-    const imgWidthInMm = imgWidth * 0.0353;
-    const imgHeightInMm = imgHeight * 0.0353;
-
-    // Calcular a proporção para ajustar a imagem à largura da página A4
-    const ratio = pdfWidth / imgWidthInMm;
-    const scaledWidth = imgWidthInMm * ratio;
-    const scaledHeight = imgHeightInMm * ratio;
-
-    // Ajustar o posicionamento
-    const xOffset = 0; // Alinhar à esquerda (0 mm de margem à esquerda)
-    const yOffset = 10; // Começar a 10 mm do topo da página (margem superior mínima)
+    // Converter dimensões de pixels para mm
+    const imgWidth = canvas.width;
+    const imgHeight = canvas.height;
+    
+    // Calcular a escala para ajustar à largura da página
+    const scale = pdfWidth / (imgWidth * 0.264583); // 0.264583 mm per pixel at 96 DPI
+    const scaledWidth = pdfWidth;
+    const scaledHeight = (imgHeight * 0.264583) * (pdfWidth / (imgWidth * 0.264583));
 
     // Criar o PDF
     const doc = new jsPDF({
@@ -94,11 +75,54 @@ export async function exportToPDF(
         format: 'a4',
     });
 
-    // Adicionar a imagem ao PDF
-    doc.addImage(imgData, 'PNG', xOffset, yOffset, scaledWidth, scaledHeight);
+    // Se o conteúdo cabe em uma página
+    if (scaledHeight <= usableHeight) {
+        doc.addImage(imgData, 'PNG', 0, marginTop, scaledWidth, scaledHeight);
+    } else {
+        // Conteúdo precisa de múltiplas páginas
+        let heightLeft = scaledHeight;
+        let position = 0;
+        let pageNumber = 0;
+
+        while (heightLeft > 0) {
+            if (pageNumber > 0) {
+                doc.addPage();
+            }
+
+            // Calcular quanto da imagem vai nesta página
+            const pageHeight = Math.min(usableHeight, heightLeft);
+            
+            // Recortar a parte da imagem para esta página
+            const sourceY = position * (imgHeight / scaledHeight);
+            const sourceHeight = pageHeight * (imgHeight / scaledHeight);
+            
+            // Criar canvas temporário para a seção atual
+            const tempCanvas = document.createElement('canvas');
+            tempCanvas.width = imgWidth;
+            tempCanvas.height = sourceHeight;
+            const tempCtx = tempCanvas.getContext('2d');
+            
+            // Desenhar a seção da imagem
+            tempCtx.drawImage(
+                canvas,
+                0, sourceY,           // Posição de origem
+                imgWidth, sourceHeight,  // Tamanho de origem
+                0, 0,                 // Posição de destino
+                imgWidth, sourceHeight   // Tamanho de destino
+            );
+            
+            // Adicionar ao PDF
+            const sectionData = tempCanvas.toDataURL('image/png');
+            doc.addImage(sectionData, 'PNG', 0, marginTop, scaledWidth, pageHeight);
+
+            heightLeft -= usableHeight;
+            position += usableHeight;
+            pageNumber++;
+        }
+    }
 
     // Gerar o nome do arquivo
-    const fileName = `${unitName}.pdf`;
+    const fileName = `${unitName}_${formattedStartDate.replace(/\//g, '-')}_${formattedEndDate.replace(/\//g, '-')}.pdf`;
 
     // Baixar o PDF
     doc.save(fileName);

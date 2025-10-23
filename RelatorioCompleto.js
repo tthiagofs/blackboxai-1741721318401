@@ -1185,6 +1185,13 @@ function renderCompleteReport(unitName, startDate, endDate, metrics, blackMetric
 }
 
 function renderBlackWhiteReport(metrics, blackMetrics, accountName = '') {
+    // Helper para criar ícone com fundo colorido (melhor para PDF)
+    const createIconWithBackground = (iconClass, bgColor) => {
+        return `<div style="width: 16px; height: 16px; min-width: 16px; min-height: 16px; background-color: ${bgColor}; border-radius: 4px; display: flex; align-items: center; justify-content: center;">
+            <i class="${iconClass}" style="font-size: 10px; color: white;"></i>
+        </div>`;
+    };
+
     // Calcular variações se houver período anterior
     const renderMetricChange = (current, previous) => {
         if (!previous || previous === 0) return '';
@@ -1216,7 +1223,9 @@ function renderBlackWhiteReport(metrics, blackMetrics, accountName = '') {
                 <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
                     <div class="bg-white rounded-lg p-4">
                         <div class="flex items-center gap-2 mb-2">
-                            <i class="fas fa-info-circle text-gray-400 text-sm report-card-icon"></i>
+                            <div style="width: 16px; height: 16px; min-width: 16px; min-height: 16px; background-color: #3b82f6; border-radius: 4px; display: flex; align-items: center; justify-content: center;">
+                                <i class="fas fa-dollar-sign" style="font-size: 10px; color: white;"></i>
+                            </div>
                             <h4 class="text-xs text-gray-600 font-medium">Valor investido</h4>
                         </div>
                         <p class="text-2xl font-bold text-gray-900">
@@ -1227,7 +1236,7 @@ function renderBlackWhiteReport(metrics, blackMetrics, accountName = '') {
                     </div>
                     <div class="bg-white rounded-lg p-4">
                         <div class="flex items-center gap-2 mb-2">
-                            <i class="fas fa-info-circle text-gray-400 text-sm report-card-icon"></i>
+                            ${createIconWithBackground('fas fa-users', '#10b981')}
                             <h4 class="text-xs text-gray-600 font-medium">Alcance Total</h4>
                         </div>
                         <p class="text-2xl font-bold text-gray-900">
@@ -1238,7 +1247,7 @@ function renderBlackWhiteReport(metrics, blackMetrics, accountName = '') {
                     </div>
                     <div class="bg-white rounded-lg p-4">
                         <div class="flex items-center gap-2 mb-2">
-                            <i class="fas fa-info-circle text-gray-400 text-sm report-card-icon"></i>
+                            ${createIconWithBackground('fas fa-comments', '#8b5cf6')}
                             <h4 class="text-xs text-gray-600 font-medium">Conversas iniciadas por mensagem</h4>
                         </div>
                         <p class="text-2xl font-bold text-gray-900">
@@ -1249,7 +1258,7 @@ function renderBlackWhiteReport(metrics, blackMetrics, accountName = '') {
                     </div>
                     <div class="bg-white rounded-lg p-4">
                         <div class="flex items-center gap-2 mb-2">
-                            <i class="fas fa-info-circle text-gray-400 text-sm report-card-icon"></i>
+                            ${createIconWithBackground('fas fa-chart-line', '#f59e0b')}
                             <h4 class="text-xs text-gray-600 font-medium">Custo por conversas iniciadas por mensagem</h4>
                         </div>
                         <p class="text-2xl font-bold text-gray-900">
@@ -1271,7 +1280,7 @@ function renderBlackWhiteReport(metrics, blackMetrics, accountName = '') {
                 <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
                     <div class="bg-white rounded-lg p-4">
                         <div class="flex items-center gap-2 mb-2">
-                            <i class="fas fa-info-circle text-gray-400 text-sm report-card-icon"></i>
+                            ${createIconWithBackground('fas fa-dollar-sign', '#3b82f6')}
                             <h4 class="text-xs text-gray-600 font-medium">Valor investido</h4>
                         </div>
                         <p class="text-2xl font-bold text-gray-900">
@@ -1282,7 +1291,7 @@ function renderBlackWhiteReport(metrics, blackMetrics, accountName = '') {
                     </div>
                     <div class="bg-white rounded-lg p-4">
                         <div class="flex items-center gap-2 mb-2">
-                            <i class="fas fa-info-circle text-gray-400 text-sm report-card-icon"></i>
+                            ${createIconWithBackground('fas fa-users', '#10b981')}
                             <h4 class="text-xs text-gray-600 font-medium">Alcance Total</h4>
                         </div>
                         <p class="text-2xl font-bold text-gray-900">
@@ -1293,7 +1302,7 @@ function renderBlackWhiteReport(metrics, blackMetrics, accountName = '') {
                     </div>
                     <div class="bg-white rounded-lg p-4">
                         <div class="flex items-center gap-2 mb-2">
-                            <i class="fas fa-info-circle text-gray-400 text-sm report-card-icon"></i>
+                            ${createIconWithBackground('fas fa-comments', '#8b5cf6')}
                             <h4 class="text-xs text-gray-600 font-medium">Conversas iniciadas por mensagem</h4>
                         </div>
                         <p class="text-2xl font-bold text-gray-900">
@@ -1304,7 +1313,7 @@ function renderBlackWhiteReport(metrics, blackMetrics, accountName = '') {
                     </div>
                     <div class="bg-white rounded-lg p-4">
                         <div class="flex items-center gap-2 mb-2">
-                            <i class="fas fa-info-circle text-gray-400 text-sm report-card-icon"></i>
+                            ${createIconWithBackground('fas fa-chart-line', '#f59e0b')}
                             <h4 class="text-xs text-gray-600 font-medium">Custo por conversas iniciadas por mensagem</h4>
                         </div>
                         <p class="text-2xl font-bold text-gray-900">

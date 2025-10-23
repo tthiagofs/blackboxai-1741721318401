@@ -352,11 +352,10 @@
     </div>
 
     <script type="module">
-        import { auth } from './config/firebase.js';
+        import { auth, db, storage } from './config/firebase.js';
         import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
-        import { getStorage, ref, uploadBytes, getDownloadURL } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js';
+        import { ref, uploadBytes, getDownloadURL } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js';
         import { doc, updateDoc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
-        import { db } from './config/firebase.js';
         import { authService } from './services/authService.js?v=1.4';
         import { projectsService } from './services/projects.js?v=1.3';
         import { reportsService } from './services/reportsService.js?v=1.0';
@@ -453,10 +452,9 @@
                 reader.readAsDataURL(file);
 
                 // Upload para Firebase Storage
-                const storage = getStorage();
                 const storageRef = ref(storage, `projects/${currentProjectId}/logo.${file.name.split('.').pop()}`);
                 
-                console.log('📤 Fazendo upload da logo...');
+                console.log('📤 Fazendo upload da logo...', { projectId: currentProjectId, fileName: file.name });
                 await uploadBytes(storageRef, file);
                 const downloadURL = await getDownloadURL(storageRef);
                 console.log('✅ Upload concluído:', downloadURL);

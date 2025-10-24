@@ -1206,15 +1206,34 @@ async function generateCompleteReport() {
             }
         } else if (googleMetrics) {
             metrics = googleMetrics;
+            metrics.platform = 'google'; // Marcar explicitamente como Google Ads
             blackMetrics = null;
             // Pegar nome da conta selecionada do select
             const selectedOption = googleAdsAccountSelect.options[googleAdsAccountSelect.selectedIndex];
             accountName = selectedOption ? selectedOption.textContent : 'Google Ads';
         }
 
-        // Buscar dados de comparação se solicitado (para Meta)
+        // Buscar dados de comparação se solicitado (para Meta ou Google)
     let comparisonMetrics = null;
     let comparisonBlackMetrics = null;
+        
+        // Comparação para Google Ads
+        if (comparisonData && googleAccountId && !unitId) {
+            try {
+                console.log('📊 Buscando dados de comparação Google Ads...');
+                const googleService = new GoogleAdsService(googleAccountId, googleAuth.getAccessToken());
+                const comparison = await googleService.getComparison(startDate, endDate);
+                
+                if (comparison) {
+                    comparisonMetrics = comparison;
+                    console.log('✓ Dados de comparação Google Ads carregados', comparison);
+                }
+            } catch (error) {
+                console.warn('Erro ao carregar dados de comparação Google Ads:', error);
+            }
+        }
+        
+        // Comparação para Meta
         if (comparisonData && unitId && insightsService) {
             try {
                 if (hasBlack) {

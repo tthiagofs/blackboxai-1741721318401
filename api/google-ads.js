@@ -93,14 +93,93 @@ async function listAccounts(accessToken, res) {
     );
 
     const validAccounts = accountsDetails.filter(acc => !acc.error);
-    console.log(`✅ ${validAccounts.length} contas válidas encontradas`);
+    
+    // Buscar contas gerenciadas (via MCC) para cada conta encontrada
+    const allAccounts = [...validAccounts];
+    
+    for (const account of validAccounts) {
+      try {
+        const managedAccounts = await getManagedAccounts(account.customerId, accessToken);
+        if (managedAccounts && managedAccounts.length > 0) {
+          console.log(`📂 ${managedAccounts.length} contas gerenciadas encontradas para ${account.customerId}`);
+          allAccounts.push(...managedAccounts);
+        }
+      } catch (error) {
+        console.warn(`⚠️ Erro ao buscar contas gerenciadas para ${account.customerId}:`, error.message);
+      }
+    }
+    
+    // Remover duplicatas baseado no customerId
+    const uniqueAccounts = Array.from(
+      new Map(allAccounts.map(acc => [acc.customerId, acc])).values()
+    );
+    
+    console.log(`✅ ${uniqueAccounts.length} contas únicas encontradas (diretas + MCC)`);
 
     return res.status(200).json({ 
-      accounts: validAccounts
+      accounts: uniqueAccounts
     });
   } catch (error) {
     console.error('❌ Erro ao listar contas:', error.message);
     throw error;
+  }
+}
+
+// Buscar contas gerenciadas (MCC)
+async function getManagedAccounts(managerCustomerId, accessToken) {
+  try {
+    const query = `
+      SELECT
+        customer_client.id,
+        customer_client.descriptive_name,
+        customer_client.currency_code,
+        customer_client.manager
+      FROM customer_client
+      WHERE customer_client.status = 'ENABLED'
+        AND customer_client.manager = FALSE
+    `;
+
+    const response = await fetch(
+      `https://googleads.googleapis.com/v19/customers/${managerCustomerId}/googleAds:searchStream`,
+      {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'developer-token': process.env.GOOGLE_ADS_DEVELOPER_TOKEN,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ query }),
+      }
+    );
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      // Se der erro de permissão, retornar array vazio (não é MCC ou sem permissão)
+      if (response.status === 403 || response.status === 400) {
+        return [];
+      }
+      throw new Error(`${response.status} - ${errorText}`);
+    }
+
+    const data = await response.json();
+    
+    if (data && data.length > 0 && data[0].results) {
+      const accounts = data[0].results
+        .filter(result => result.customerClient && !result.customerClient.manager)
+        .map(result => ({
+          customerId: result.customerClient.id.toString(),
+          name: result.customerClient.descriptiveName || `Conta ${result.customerClient.id}`,
+          currency: result.customerClient.currencyCode || 'BRL',
+          managedBy: managerCustomerId
+        }));
+      
+      return accounts;
+    }
+
+    return [];
+  } catch (error) {
+    console.warn(`⚠️ Erro ao buscar contas gerenciadas para ${managerCustomerId}:`, error.message);
+    return [];
   }
 }
 

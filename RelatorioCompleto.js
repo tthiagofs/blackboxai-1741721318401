@@ -6,6 +6,7 @@ import { FacebookInsightsService } from './services/facebookInsights.js?v=3.0';
 import { GoogleAdsService } from './services/googleAds.js?v=3.0';
 import { googleAuth } from './authGoogle.js?v=3.0';
 import { projectsService } from './services/projects.js?v=1.3';
+import { listUnits } from './services/unitsService.js';
 import { createIconWithBackgroundSVG } from './iconsSVG.js';
 import { 
     getTemplatesByCategory, 
@@ -33,6 +34,115 @@ async function loadProjectLogo() {
     } catch (error) {
         console.warn('⚠️ Não foi possível carregar a logo do projeto:', error.message);
     }
+}
+
+// Carregar unidades do projeto
+async function loadUnits() {
+    try {
+        const projectId = localStorage.getItem('currentProject');
+        if (!projectId) return;
+        
+        const units = await listUnits(projectId);
+        const unitSelect = document.getElementById('unitSelect');
+        
+        if (units.length === 0) {
+            unitSelect.innerHTML = '<option value="">Nenhuma unidade cadastrada</option>';
+            unitSelect.disabled = true;
+            return;
+        }
+        
+        // Preencher dropdown
+        unitSelect.innerHTML = '<option value="">Selecione uma unidade (opcional)</option>';
+        units.forEach(unit => {
+            const option = document.createElement('option');
+            option.value = unit.id;
+            option.textContent = unit.name;
+            option.dataset.unit = JSON.stringify(unit);
+            unitSelect.appendChild(option);
+        });
+        
+        // Event listener para quando selecionar uma unidade
+        unitSelect.addEventListener('change', onUnitSelected);
+        
+        console.log(`✅ ${units.length} unidades carregadas`);
+    } catch (error) {
+        console.error('❌ Erro ao carregar unidades:', error);
+    }
+}
+
+// Quando uma unidade é selecionada
+function onUnitSelected(event) {
+    const selectedOption = event.target.selectedOptions[0];
+    
+    if (!selectedOption || !selectedOption.dataset.unit) {
+        // Limpar campos
+        document.getElementById('budgetsCompleted').value = '';
+        document.getElementById('salesCount').value = '';
+        document.getElementById('revenue').value = '';
+        return;
+    }
+    
+    const unit = JSON.parse(selectedOption.dataset.unit);
+    
+    if (!unit.budgetData || !unit.budgetData.rawData) {
+        alert('⚠️ Esta unidade não possui planilha importada.');
+        document.getElementById('budgetsCompleted').value = '';
+        document.getElementById('salesCount').value = '';
+        document.getElementById('revenue').value = '';
+        return;
+    }
+    
+    // Pegar datas do relatório
+    const startDate = document.getElementById('startDate').value;
+    const endDate = document.getElementById('endDate').value;
+    
+    if (!startDate || !endDate) {
+        alert('⚠️ Selecione primeiro o período do relatório para preencher os dados automaticamente.');
+        return;
+    }
+    
+    // Filtrar dados por período
+    const filteredData = filterUnitDataByPeriod(unit.budgetData.rawData, startDate, endDate);
+    
+    // Verificar se tem dados no período
+    if (filteredData.totalBudgets === 0) {
+        const confirmation = confirm(
+            `⚠️ Não há dados nesta unidade para o período selecionado (${startDate} a ${endDate}).\n\n` +
+            `Deseja preencher com zeros e inserir manualmente?`
+        );
+        
+        if (confirmation) {
+            document.getElementById('budgetsCompleted').value = '0';
+            document.getElementById('salesCount').value = '0';
+            document.getElementById('revenue').value = '0';
+        }
+        return;
+    }
+    
+    // Preencher campos
+    document.getElementById('budgetsCompleted').value = filteredData.totalBudgets;
+    document.getElementById('salesCount').value = filteredData.totalSales;
+    document.getElementById('revenue').value = filteredData.totalRevenue.toFixed(2);
+    
+    console.log(`✅ Dados da unidade "${unit.name}" preenchidos:`, filteredData);
+}
+
+// Filtrar dados da unidade por período
+function filterUnitDataByPeriod(rawData, startDate, endDate) {
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    
+    const filtered = rawData.filter(item => {
+        const itemDate = new Date(item.date);
+        return itemDate >= start && itemDate <= end;
+    });
+    
+    return {
+        totalBudgets: filtered.length,
+        totalSales: filtered.filter(r => r.status === "APPROVED").length,
+        totalRevenue: filtered.filter(r => r.status === "APPROVED")
+                            .reduce((sum, r) => sum + r.value, 0)
+    };
 }
 
 // Exibir sugestões de análise
@@ -171,8 +281,9 @@ function addTextToAnalysis(text) {
     }, 500);
 }
 
-// Carregar logo ao iniciar
+// Carregar logo e unidades ao iniciar
 loadProjectLogo();
+loadUnits();
 
 // Verificar autenticação Facebook (não obrigatório, pois pode gerar só Google Ads)
 const currentAccessToken = fbAuth.getAccessToken();

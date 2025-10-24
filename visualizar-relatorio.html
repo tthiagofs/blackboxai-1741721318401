@@ -506,6 +506,85 @@
             `;
         }
         
+        /**
+         * Renderizar métricas das plataformas (Meta, Google, ou ambas)
+         */
+        function renderPlatformMetrics(metaMetrics, googleMetrics, blackMetrics, accountName) {
+            let html = '';
+            
+            // Cenário 1: Meta White + Black
+            if (metaMetrics && blackMetrics && !googleMetrics) {
+                html += renderBlackWhiteReport(metaMetrics, blackMetrics, accountName);
+            }
+            // Cenário 2: Apenas Meta (sem Black)
+            else if (metaMetrics && !blackMetrics && !googleMetrics) {
+                html += renderStandardReport(metaMetrics, accountName);
+            }
+            // Cenário 3: Meta + Google (com ou sem Black)
+            else if (metaMetrics && googleMetrics) {
+                // Renderizar Meta (White + Black se existir)
+                if (blackMetrics) {
+                    html += renderBlackWhiteReport(metaMetrics, blackMetrics, accountName);
+                } else {
+                    html += renderStandardReport(metaMetrics, accountName);
+                }
+                
+                // Renderizar Google separadamente
+                html += renderStandardReport(googleMetrics, 'Google Ads');
+            }
+            // Cenário 4: Apenas Google
+            else if (!metaMetrics && googleMetrics) {
+                html += renderStandardReport(googleMetrics, accountName);
+            }
+            
+            return html;
+        }
+        
+        /**
+         * Renderizar Número Total de Leads
+         */
+        function renderTotalLeads(metaMetrics, blackMetrics, googleMetrics = null) {
+            // Calcular variação percentual
+            const renderMetricChange = (current, previous) => {
+                if (!previous || previous === 0) return '';
+                const change = ((current - previous) / previous) * 100;
+                const isPositive = change > 0;
+                const color = isPositive ? 'text-green-600' : 'text-red-600';
+                const arrow = isPositive ? '▲' : '▼';
+                return `<span class="${color} text-xs font-semibold block mt-1">${arrow} ${Math.abs(change).toFixed(2)}%</span>`;
+            };
+
+            // Calcular totais (Meta White + Black + Google)
+            const currentTotal = (metaMetrics?.conversations || 0) + 
+                                (blackMetrics?.conversations || 0) + 
+                                (googleMetrics?.conversations || 0);
+            
+            const previousTotal = (metaMetrics?.previousConversations || 0) + 
+                                 (blackMetrics?.previousConversations || 0) + 
+                                 (googleMetrics?.previousConversations || 0);
+
+            return `
+                <!-- Número Total de Leads -->
+                <div class="bg-gradient-to-r from-purple-50 to-indigo-50 rounded-xl p-5 mb-6 shadow-sm border-2 border-purple-200">
+                    <div class="flex items-center justify-center gap-3 mb-3">
+                        <i class="fas fa-calculator text-purple-600 text-xl"></i>
+                        <h3 class="text-lg font-bold text-purple-900">Número Total de Leads</h3>
+                    </div>
+                    <div class="bg-white rounded-lg p-6 text-center">
+                        <div class="flex items-center justify-center gap-2 mb-2">
+                            ${createIconWithBackgroundSVG('comments', '#8b5cf6')}
+                            <h4 class="text-sm text-gray-600 font-medium">Conversas Totais (Todas as Fontes)</h4>
+                        </div>
+                        <p class="text-4xl font-bold text-purple-900">
+                            ${currentTotal}
+                            ${renderMetricChange(currentTotal, previousTotal)}
+                        </p>
+                        ${previousTotal > 0 ? `<p class="text-sm text-gray-500 mt-2">${previousTotal} no período anterior</p>` : ''}
+                    </div>
+                </div>
+            `;
+        }
+        
         // ========== RENDERIZAR RELATÓRIO ==========
         function renderReport() {
             console.log('🎨 Renderizando relatório...');
@@ -519,23 +598,31 @@
             const md = reportData.manualData || {};
             const savedMetrics = reportData.savedMetrics || {};
             const savedBlackMetrics = reportData.savedBlackMetrics || {};
+            const savedGoogleMetrics = reportData.savedGoogleMetrics || null; // ⭐ NOVO
             const savedBestAds = reportData.savedBestAds || [];
             const hasBlack = md.hasBlack || false;
+            const hasMultiplePlatforms = !!(savedMetrics && savedGoogleMetrics) || !!(savedMetrics && savedBlackMetrics); // ⭐ NOVO
 
             // Adicionar costPerConversation às métricas
-            savedMetrics.costPerConversation = savedMetrics.conversations > 0 ? savedMetrics.spend / savedMetrics.conversations : 0;
-            if (hasBlack) {
+            if (savedMetrics.conversations) {
+                savedMetrics.costPerConversation = savedMetrics.conversations > 0 ? savedMetrics.spend / savedMetrics.conversations : 0;
+            }
+            if (hasBlack && savedBlackMetrics.conversations) {
                 savedBlackMetrics.costPerConversation = savedBlackMetrics.conversations > 0 ? savedBlackMetrics.spend / savedBlackMetrics.conversations : 0;
+            }
+            if (savedGoogleMetrics && savedGoogleMetrics.conversations) {
+                savedGoogleMetrics.costPerConversation = savedGoogleMetrics.conversations > 0 ? savedGoogleMetrics.spend / savedGoogleMetrics.conversations : 0;
+                savedGoogleMetrics.platform = 'google'; // Marcar como Google
             }
 
             // Usar o MESMO HTML/CSS do RelatorioCompleto.js
             const formattedStartDate = formatDateISOToBR(reportData.analysisStart);
             const formattedEndDate = formatDateISOToBR(reportData.analysisEnd);
             
-            // Calcular investimento total para o ROI
-            const totalInvestment = hasBlack 
-                ? (parseFloat(savedMetrics?.spend || 0) + parseFloat(savedBlackMetrics?.spend || 0))
-                : parseFloat(savedMetrics?.spend || 0);
+            // Calcular investimento total para o ROI (incluir Google)
+            const totalInvestment = (parseFloat(savedMetrics?.spend || 0) + 
+                                   parseFloat(savedBlackMetrics?.spend || 0) + 
+                                   parseFloat(savedGoogleMetrics?.spend || 0));
 
             reportContainer.innerHTML = `
                 <style>
@@ -586,7 +673,9 @@
 
                     <!-- Conteúdo do Relatório -->
                     <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                        ${hasBlack ? renderBlackWhiteReport(savedMetrics, savedBlackMetrics, reportData.reportName) : renderStandardReport(savedMetrics, reportData.reportName)}
+                        ${renderPlatformMetrics(savedMetrics, savedGoogleMetrics, savedBlackMetrics, reportData.reportName)}
+                        
+                        ${hasMultiplePlatforms ? renderTotalLeads(savedMetrics, savedBlackMetrics, savedGoogleMetrics) : ''}
                     
                         ${renderBestAds(savedBestAds)}
                         

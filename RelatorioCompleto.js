@@ -2508,8 +2508,9 @@ function prepareReportDataForSaving(accountName, startDate, endDate, metaAccount
         googleAccount: googleAccount,
         
         // ⭐ MÉTRICAS SALVAS (para visualização offline)
-        savedMetrics: metrics || { spend: 0, reach: 0, conversations: 0 },
-        savedBlackMetrics: blackMetrics || { spend: 0, reach: 0, conversations: 0 },
+        savedMetrics: reportSeparateMetaMetrics || metrics || { spend: 0, reach: 0, conversations: 0 },
+        savedBlackMetrics: reportSeparateBlackMetrics || blackMetrics || { spend: 0, reach: 0, conversations: 0 },
+        savedGoogleMetrics: reportSeparateGoogleMetrics || null, // ⭐ NOVO
         savedBestAds: bestAds || [],
         savedComparisonMetrics: comparisonMetrics || null,
         

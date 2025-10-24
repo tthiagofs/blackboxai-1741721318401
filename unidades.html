@@ -196,20 +196,29 @@
 
         // Carregar unidades
         async function loadUnits() {
+            console.log('🔍 Tentando carregar unidades do projeto:', currentProjectId);
+            console.log('👤 Usuário autenticado:', currentUser.uid);
+            
+            // DEBUG: Verificar dados do projeto PRIMEIRO
             try {
-                console.log('🔍 Tentando carregar unidades do projeto:', currentProjectId);
-                console.log('👤 Usuário autenticado:', currentUser.uid);
-                
-                // DEBUG: Verificar dados do projeto
                 const projectDoc = await getDoc(doc(db, 'projects', currentProjectId));
                 if (projectDoc.exists()) {
                     console.log('📊 Dados do projeto:', projectDoc.data());
                     console.log('🔑 ownerId:', projectDoc.data().ownerId);
                     console.log('🔑 userId:', projectDoc.data().userId);
+                    console.log('🆔 currentUser.uid:', currentUser.uid);
+                    console.log('✅ Projeto carregado, tentando buscar unidades...');
                 } else {
                     console.error('❌ Projeto não encontrado!');
+                    return;
                 }
-                
+            } catch (projectError) {
+                console.error('❌ Erro ao buscar projeto:', projectError);
+                return;
+            }
+            
+            // Agora sim tentar carregar unidades
+            try {
                 const units = await listUnits(currentProjectId);
                 
                 console.log('✅ Unidades carregadas:', units);

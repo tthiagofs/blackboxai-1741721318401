@@ -25,8 +25,8 @@ export async function createUnit(projectId, unitData) {
         const unitRef = await addDoc(collection(db, `projects/${projectId}/units`), {
             name: unitData.name,
             trafficSources: unitData.trafficSources || {
-                facebook: true,
-                instagram: false,
+                facebook: true,      // ✅ Facebook ativado por padrão
+                instagram: true,     // ✅ Instagram ativado por padrão
                 google: false,
                 placa: false
             },
@@ -34,7 +34,7 @@ export async function createUnit(projectId, unitData) {
                 enabled: true,
                 terms: ['Tráfego', 'Tráfego Pago', 'trafego', 'trafego pago']
             },
-            excludeMaintenance: false,
+            excludeMaintenance: true, // ✅ Excluir manutenções ativado por padrão
             budgetData: null, // Será preenchido no upload
             createdAt: serverTimestamp(),
             updatedAt: serverTimestamp()

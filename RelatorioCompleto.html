@@ -331,9 +331,15 @@ ul.list-disc li br {
             <!-- Card: Período de Comparação -->
             <div id="comparisonFilter" class="bg-white rounded-2xl shadow-md p-6 border border-gray-100">
                 <h3 class="text-lg font-semibold text-gray-800 mb-4">Período de Comparação</h3>
+                <div class="bg-green-50 border-2 border-green-500 rounded-lg p-3 mb-3">
+                    <p class="text-green-700 text-sm font-medium flex items-center">
+                        <i class="fas fa-check-circle mr-2"></i>
+                        Ativado: Mesmo período anterior
+                    </p>
+                </div>
                 <button type="button" id="comparePeriods"
                     class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-lg transition duration-300 flex items-center justify-center">
-                    <i class="fas fa-calendar-week mr-2"></i>Ativar Comparação de Período
+                    <i class="fas fa-cog mr-2"></i>Configurar Período de Comparação
                 </button>
             </div>
             
@@ -622,8 +628,8 @@ ul.list-disc li br {
                 
                 <!-- Mesmo período anterior -->
                 <label class="block cursor-pointer">
-                    <div class="flex items-center p-4 border-2 border-gray-200 rounded-xl hover:border-blue-500 transition">
-                    <input type="radio" name="comparisonOption" value="previous"
+                    <div class="flex items-center p-4 border-2 border-blue-500 rounded-xl hover:border-blue-600 transition bg-blue-50">
+                    <input type="radio" name="comparisonOption" value="previous" checked
                             class="w-5 h-5 text-blue-600 focus:ring-2 focus:ring-blue-500">
                         <span class="ml-3 font-semibold text-gray-800">Mesmo período anterior</span>
                     </div>

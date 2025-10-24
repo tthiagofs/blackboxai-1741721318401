@@ -443,15 +443,16 @@
                 await createUnit(currentProjectId, {
                     name: name,
                     trafficSources: {
-                        facebook: true,
-                        instagram: false,
+                        facebook: true,      // ✅ Pré-definido
+                        instagram: true,     // ✅ Pré-definido
                         google: false,
                         placa: false
                     },
                     customKeywords: {
                         enabled: true,
                         terms: ['Tráfego', 'Tráfego Pago', 'trafego', 'trafego pago']
-                    }
+                    },
+                    excludeMaintenance: true  // ✅ Pré-definido: Excluir manutenções
                 });
                 
                 hideAddUnitModal();

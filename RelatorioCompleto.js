@@ -343,7 +343,7 @@ let selectedBlackAdSets = new Set();
 let isCampaignFilterActive = false;
 let isAdSetFilterActive = false;
 let isFilterActivated = false;
-let comparisonData = null;
+let comparisonData = { isPrevious: true }; // ⭐ PRÉ-DEFINIDO: Mesmo período anterior
 let hasBlack = null; // null (não respondido), true (Sim), false (Não)
 let reportMetrics = null;      // Para armazenar as métricas (metrics)
 let reportBlackMetrics = null; // Para armazenar as métricas Black (blackMetrics)
@@ -650,7 +650,8 @@ function setupComparisonModal() {
             document.querySelector('input[name="comparisonOption"][value="none"]').checked = true;
         }
     } else {
-        document.querySelector('input[name="comparisonOption"][value="none"]').checked = true;
+        // ⭐ Se não houver comparisonData, marcar "previous" por padrão
+        document.querySelector('input[name="comparisonOption"][value="previous"]').checked = true;
     }
 }
 
@@ -1330,9 +1331,16 @@ async function generateCompleteReport() {
         reportComparisonMetrics = comparisonMetrics;
         reportComparisonGoogleMetrics = comparisonGoogleMetrics; // Salvar comparação do Google
         reportHasMultiplePlatforms = hasMultiplePlatforms;
+        // Garantir que só salve as métricas corretas
         reportSeparateMetaMetrics = separateMetaMetrics;
         reportSeparateGoogleMetrics = separateGoogleMetrics;
         reportSeparateBlackMetrics = separateBlackMetrics;
+        
+        console.log('💾 Salvando métricas:', {
+            meta: reportSeparateMetaMetrics ? 'SIM' : 'NÃO',
+            google: reportSeparateGoogleMetrics ? 'SIM' : 'NÃO',
+            black: reportSeparateBlackMetrics ? 'SIM' : 'NÃO'
+        });
 
         // Renderizar relatório COM dados de negócio, mas SEM análise de texto ainda
         renderCompleteReport(accountName, startDate, endDate, metrics, blackMetrics, bestAds, comparisonMetrics, budgetsCompleted, salesCount, revenue, '', currentProjectLogo, hasMultiplePlatforms, separateMetaMetrics, separateGoogleMetrics, separateBlackMetrics, comparisonGoogleMetrics);
@@ -2271,6 +2279,7 @@ if (comparePeriodsBtn) {
 if (confirmComparisonBtn) {
     confirmComparisonBtn.addEventListener('click', () => {
         const selectedOption = document.querySelector('input[name="comparisonOption"]:checked').value;
+        const statusElement = document.querySelector('#comparisonFilter .bg-green-50');
         
         if (selectedOption === 'custom') {
             const startDate = document.getElementById('compareStartDate').value;
@@ -2280,10 +2289,41 @@ if (confirmComparisonBtn) {
                 return;
             }
             comparisonData = { startDate, endDate };
+            
+            // Atualizar status
+            if (statusElement) {
+                statusElement.innerHTML = `
+                    <p class="text-green-700 text-sm font-medium flex items-center">
+                        <i class="fas fa-check-circle mr-2"></i>
+                        Ativado: Período personalizado (${startDate.split('-').reverse().join('/')} - ${endDate.split('-').reverse().join('/')})
+                    </p>
+                `;
+            }
         } else if (selectedOption === 'previous') {
             comparisonData = { isPrevious: true };
+            
+            // Atualizar status
+            if (statusElement) {
+                statusElement.innerHTML = `
+                    <p class="text-green-700 text-sm font-medium flex items-center">
+                        <i class="fas fa-check-circle mr-2"></i>
+                        Ativado: Mesmo período anterior
+                    </p>
+                `;
+            }
         } else {
             comparisonData = null;
+            
+            // Atualizar status (desativado)
+            if (statusElement) {
+                statusElement.className = 'bg-gray-50 border-2 border-gray-300 rounded-lg p-3 mb-3';
+                statusElement.innerHTML = `
+                    <p class="text-gray-600 text-sm font-medium flex items-center">
+                        <i class="fas fa-times-circle mr-2"></i>
+                        Desativado
+                    </p>
+                `;
+            }
         }
         
         toggleModal('comparisonModal', false);
@@ -2413,7 +2453,7 @@ refreshBtn.addEventListener('click', () => {
     selectedWhiteAdSets.clear();
     selectedBlackCampaigns.clear();
     selectedBlackAdSets.clear();
-    comparisonData = null;
+    comparisonData = { isPrevious: true }; // ✅ Resetar para padrão (Mesmo período anterior)
     hasBlack = null;
     reportMetrics = null;
     reportBlackMetrics = null;
@@ -2521,9 +2561,9 @@ function prepareReportDataForSaving(accountName, startDate, endDate, metaAccount
         googleAccount: googleAccount,
         
         // ⭐ MÉTRICAS SALVAS (para visualização offline)
-        savedMetrics: reportSeparateMetaMetrics || metrics || null,
+        savedMetrics: reportSeparateMetaMetrics || null, // SÓ SALVAR META, NÃO GOOGLE
         savedBlackMetrics: reportSeparateBlackMetrics || null, // SÓ SALVAR SE REALMENTE HOUVER BLACK
-        savedGoogleMetrics: reportSeparateGoogleMetrics || null,
+        savedGoogleMetrics: reportSeparateGoogleMetrics || null, // SÓ SALVAR GOOGLE
         savedBestAds: bestAds || [],
         savedComparisonMetrics: comparisonMetrics || null,
         

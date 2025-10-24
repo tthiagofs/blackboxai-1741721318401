@@ -156,7 +156,7 @@
                 const isPositive = change > 0;
                 const color = isPositive ? 'text-green-600' : 'text-red-600';
                 const arrow = isPositive ? '▲' : '▼';
-                return `<span class="${color} text-sm font-semibold ml-2">${arrow} ${Math.abs(change).toFixed(2)}%</span>`;
+                return `<span class="${color} text-xs font-semibold block mt-1">${arrow} ${Math.abs(change).toFixed(2)}%</span>`;
             };
 
             return `
@@ -270,6 +270,26 @@
         }
         
         function renderStandardReport(metrics, accountName = '') {
+            // Helper para calcular variação percentual
+            const renderMetricChange = (current, previous) => {
+                if (!previous || previous === 0) return '';
+                const change = ((current - previous) / previous) * 100;
+                const isPositive = change > 0;
+                const color = isPositive ? 'text-green-600' : 'text-red-600';
+                const arrow = isPositive ? '▲' : '▼';
+                return `<span class="${color} text-xs font-semibold block mt-1">${arrow} ${Math.abs(change).toFixed(2)}%</span>`;
+            };
+
+            // Helper para variação de custo (invertido: menos é melhor)
+            const renderCostChange = (current, previous) => {
+                if (!previous || previous === 0) return '';
+                const change = ((current - previous) / previous) * 100;
+                const isPositive = change > 0;
+                const color = isPositive ? 'text-red-600' : 'text-green-600'; // Invertido
+                const arrow = isPositive ? '▲' : '▼';
+                return `<span class="${color} text-xs font-semibold block mt-1">${arrow} ${Math.abs(change).toFixed(2)}%</span>`;
+            };
+
             return `
                 <div class="bg-blue-600 rounded-xl p-5 mb-6 shadow-sm">
                     <div class="flex items-center gap-3 mb-4">
@@ -283,32 +303,44 @@
                                 ${createIconWithBackgroundSVG('dollar', '#3b82f6')}
                                 <h4 class="text-xs text-gray-600 font-medium">Valor investido</h4>
                             </div>
-                            <p class="text-2xl font-bold text-gray-900">${formatCurrencyBRL(metrics.spend || 0)}</p>
-                            <p class="text-xs text-gray-500 mt-1">R$ 0,00 no período anterior</p>
+                            <p class="text-2xl font-bold text-gray-900">
+                                ${formatCurrencyBRL(metrics.spend || 0)}
+                                ${renderCostChange(parseFloat(metrics.spend || 0), parseFloat(metrics.previousSpend || 0))}
+                            </p>
+                            <p class="text-xs text-gray-500 mt-1">${formatCurrencyBRL(metrics.previousSpend || 0)} no período anterior</p>
                         </div>
                         <div class="bg-white rounded-lg p-4">
                             <div class="flex items-center gap-2 mb-2">
                                 ${createIconWithBackgroundSVG('users', '#10b981')}
                                 <h4 class="text-xs text-gray-600 font-medium">Alcance Total</h4>
                             </div>
-                            <p class="text-2xl font-bold text-gray-900">${(metrics.reach || 0).toLocaleString('pt-BR')}</p>
-                            <p class="text-xs text-gray-500 mt-1">0 no período anterior</p>
+                            <p class="text-2xl font-bold text-gray-900">
+                                ${(metrics.reach || 0).toLocaleString('pt-BR')}
+                                ${renderMetricChange(metrics.reach || 0, metrics.previousReach || 0)}
+                            </p>
+                            <p class="text-xs text-gray-500 mt-1">${(metrics.previousReach || 0).toLocaleString('pt-BR')} no período anterior</p>
                         </div>
                         <div class="bg-white rounded-lg p-4">
                             <div class="flex items-center gap-2 mb-2">
                                 ${createIconWithBackgroundSVG('comments', '#8b5cf6')}
                                 <h4 class="text-xs text-gray-600 font-medium">Conversas iniciadas por mensagem</h4>
                             </div>
-                            <p class="text-2xl font-bold text-gray-900">${metrics.conversations || 0}</p>
-                            <p class="text-xs text-gray-500 mt-1">0 no período anterior</p>
+                            <p class="text-2xl font-bold text-gray-900">
+                                ${metrics.conversations || 0}
+                                ${renderMetricChange(metrics.conversations || 0, metrics.previousConversations || 0)}
+                            </p>
+                            <p class="text-xs text-gray-500 mt-1">${metrics.previousConversations || 0} no período anterior</p>
                         </div>
                         <div class="bg-white rounded-lg p-4">
                             <div class="flex items-center gap-2 mb-2">
                                 ${createIconWithBackgroundSVG('chart-line', '#f59e0b')}
                                 <h4 class="text-xs text-gray-600 font-medium">Custo por conversas iniciadas por mensagem</h4>
                             </div>
-                            <p class="text-2xl font-bold text-gray-900">${formatCurrencyBRL(metrics.costPerConversation || 0)}</p>
-                            <p class="text-xs text-gray-500 mt-1">R$ 0,00 no período anterior</p>
+                            <p class="text-2xl font-bold text-gray-900">
+                                ${formatCurrencyBRL(metrics.costPerConversation || 0)}
+                                ${renderCostChange(parseFloat(metrics.costPerConversation || 0), parseFloat(metrics.previousCostPerConversation || 0))}
+                            </p>
+                            <p class="text-xs text-gray-500 mt-1">${formatCurrencyBRL(metrics.previousCostPerConversation || 0)} no período anterior</p>
                         </div>
                     </div>
                 </div>
@@ -336,9 +368,6 @@
                                                  alt="Anúncio" 
                                                  class="w-20 h-20 object-cover rounded-lg border border-gray-300" 
                                                  onerror="this.src='https://dummyimage.com/150x150/2563eb/fff&text=AD'">
-                                            <div class="absolute -top-2 -right-2 bg-blue-600 text-white text-xs font-bold px-2 py-1 rounded-full">
-                                                Meta
-                                            </div>
                                         </div>
                                         <div class="flex-1">
                                             <div class="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-3 mb-2 border border-blue-200">

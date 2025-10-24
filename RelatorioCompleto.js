@@ -1377,7 +1377,7 @@ function renderTotalLeads(metrics, blackMetrics) {
         const isPositive = change > 0;
         const color = isPositive ? 'text-green-600' : 'text-red-600';
         const arrow = isPositive ? '▲' : '▼';
-        return `<span class="${color} text-sm font-semibold ml-2">${arrow} ${Math.abs(change).toFixed(2)}%</span>`;
+        return `<span class="${color} text-xs font-semibold block mt-1">${arrow} ${Math.abs(change).toFixed(2)}%</span>`;
     };
 
     // Calcular totais
@@ -1423,7 +1423,7 @@ function renderBlackWhiteReport(metrics, blackMetrics, accountName = '') {
         const isPositive = change > 0;
         const color = isPositive ? 'text-green-600' : 'text-red-600';
         const arrow = isPositive ? '▲' : '▼';
-        return `<span class="${color} text-sm font-semibold ml-2">${arrow} ${Math.abs(change).toFixed(2)}%</span>`;
+        return `<span class="${color} text-xs font-semibold block mt-1">${arrow} ${Math.abs(change).toFixed(2)}%</span>`;
     };
 
     const renderCostChange = (current, previous) => {
@@ -1433,7 +1433,7 @@ function renderBlackWhiteReport(metrics, blackMetrics, accountName = '') {
         // Custo: diminuir é bom (verde), aumentar é ruim (vermelho)
         const color = isPositive ? 'text-red-600' : 'text-green-600';
         const arrow = isPositive ? '▲' : '▼';
-        return `<span class="${color} text-sm font-semibold ml-2">${arrow} ${Math.abs(change).toFixed(2)}%</span>`;
+        return `<span class="${color} text-xs font-semibold block mt-1">${arrow} ${Math.abs(change).toFixed(2)}%</span>`;
     };
 
     return `
@@ -1665,9 +1665,6 @@ function renderBestAds(bestAds) {
                             <div class="flex items-start gap-3">
                                 <div class="relative">
                                     <img src="${ad.imageUrl}" alt="Anúncio" class="w-20 h-20 object-cover rounded-lg border border-gray-300" onerror="this.src='https://dummyimage.com/150x150/2563eb/fff&text=AD'">
-                                    <div class="absolute -top-2 -right-2 bg-blue-600 text-white text-xs font-bold px-2 py-1 rounded-full">
-                                        Meta
-                                    </div>
                                 </div>
                                 <div class="flex-1">
                                     <div class="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-3 mb-2 border border-blue-200">

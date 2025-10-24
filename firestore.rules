@@ -88,10 +88,15 @@ service cloud.firestore {
       }
     }
     
-    // Regras para coleção de convites (apenas para admin)
+    // Regras para coleção de convites
     match /invites/{inviteId} {
-      // Apenas admin pode criar/deletar convites
-      allow read, delete: if request.auth != null;
+      // Permitir leitura para qualquer pessoa (para verificar convite na tela de cadastro)
+      allow read: if true;
+      
+      // Apenas usuários autenticados podem deletar convites
+      allow delete: if request.auth != null;
+      
+      // Apenas admin pode criar novos convites
       allow create: if request.auth != null && 
                       get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
     }

@@ -59,8 +59,8 @@ service cloud.firestore {
                request.auth.token.email == 'thiagofelipefreire0810@gmail.com';
       }
       
-      // Permitir leitura apenas para o dono do projeto
-      allow read: if isOwner();
+      // Permitir leitura para o dono do projeto ou admin
+      allow read: if isOwner() || isAdmin();
       
       // Permitir criação se o ownerId/userId for o usuário autenticado
       allow create: if isCreator();
@@ -71,16 +71,20 @@ service cloud.firestore {
       // Permitir exclusão para o dono ou admin (para exclusão em cascata)
       allow delete: if isOwner() || isAdmin();
       
-      // Permitir listar todos os projetos (a query filtra por userId)
+      // Permitir listar projetos do próprio usuário ou admin pode listar tudo
       allow list: if request.auth != null;
       
       // Regras para subcoleção de relatórios dentro de projetos
       match /reports/{reportId} {
-        // Permitir CRUD completo para o dono do projeto
-        allow read, write, create, update: if isProjectOwner();
+        // Permitir CRUD completo para o dono do projeto ou admin
+        allow read: if isProjectOwner() || isAdmin();
+        allow write, create, update: if isProjectOwner();
         
         // Permitir deletar para dono do projeto ou admin
         allow delete: if isProjectOwner() || isAdmin();
+        
+        // Permitir admin listar todos os relatórios
+        allow list: if isAdmin();
       }
     }
     

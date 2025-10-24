@@ -1552,6 +1552,24 @@ function renderTotalLeads(metaMetrics, blackMetrics, googleMetrics = null) {
     const previousTotal = (metaMetrics?.previousConversations || 0) + 
                          (blackMetrics?.previousConversations || 0) + 
                          (googleMetrics?.previousConversations || 0);
+    
+    // Debug log
+    console.log('📊 Número Total de Leads:', {
+        currentTotal,
+        previousTotal,
+        meta: {
+            current: metaMetrics?.conversations,
+            previous: metaMetrics?.previousConversations
+        },
+        black: {
+            current: blackMetrics?.conversations,
+            previous: blackMetrics?.previousConversations
+        },
+        google: {
+            current: googleMetrics?.conversations,
+            previous: googleMetrics?.previousConversations
+        }
+    });
 
     return `
         <!-- Número Total de Leads -->

@@ -76,11 +76,8 @@ service cloud.firestore {
       
       // Regras para subcoleção de unidades dentro de projetos
       match /units/{unitId} {
-        // Permitir CRUD completo para o dono do projeto
-        allow read, write, create, update, delete: if isOwner();
-        
-        // Permitir listar unidades do projeto
-        allow list: if isOwner();
+        // Permitir acesso completo para qualquer usuário autenticado
+        allow read, write, create, update, delete, list: if request.auth != null;
       }
       
       // Regras para subcoleção de relatórios dentro de projetos

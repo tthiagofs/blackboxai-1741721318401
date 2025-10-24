@@ -325,9 +325,12 @@
                 </button>
                 
                 <div class="mb-4" onclick="openProject('${project.id}')">
-                    <!-- Ícone -->
-                    <div class="w-16 h-16 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center mb-3 shadow-md">
-                        <i class="fas fa-chart-line text-3xl text-white"></i>
+                    <!-- Logo / Ícone -->
+                    <div class="w-16 h-16 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center mb-3 shadow-md overflow-hidden">
+                        ${project.logoUrl ? 
+                            `<img src="${project.logoUrl}" alt="${project.name}" class="w-full h-full object-cover">` :
+                            `<i class="fas fa-chart-line text-3xl text-white"></i>`
+                        }
                     </div>
                     
                     <!-- Nome do Projeto -->

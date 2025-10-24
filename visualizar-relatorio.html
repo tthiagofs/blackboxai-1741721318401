@@ -519,18 +519,21 @@
         function renderPlatformMetrics(metaMetrics, googleMetrics, blackMetrics, accountName) {
             let html = '';
             
-            // Cenário 1: Meta White + Black
-            if (metaMetrics && blackMetrics && !googleMetrics) {
+            // Verificar se Black realmente existe (não null e com conversações > 0)
+            const hasRealBlack = blackMetrics && (blackMetrics.conversations > 0 || blackMetrics.spend > 0);
+            
+            // Cenário 1: Meta White + Black (SEM Google)
+            if (metaMetrics && hasRealBlack && !googleMetrics) {
                 html += renderBlackWhiteReport(metaMetrics, blackMetrics, accountName);
             }
-            // Cenário 2: Apenas Meta (sem Black)
-            else if (metaMetrics && !blackMetrics && !googleMetrics) {
+            // Cenário 2: Apenas Meta (sem Black, sem Google)
+            else if (metaMetrics && !hasRealBlack && !googleMetrics) {
                 html += renderStandardReport(metaMetrics, accountName);
             }
             // Cenário 3: Meta + Google (com ou sem Black)
             else if (metaMetrics && googleMetrics) {
                 // Renderizar Meta (White + Black se existir)
-                if (blackMetrics) {
+                if (hasRealBlack) {
                     html += renderBlackWhiteReport(metaMetrics, blackMetrics, accountName);
                 } else {
                     html += renderStandardReport(metaMetrics, accountName);
@@ -561,13 +564,16 @@
                 return `<span class="${color} text-xs font-semibold block mt-1">${arrow} ${Math.abs(change).toFixed(2)}%</span>`;
             };
 
-            // Calcular totais (Meta White + Black + Google)
+            // Verificar se Black realmente existe
+            const hasRealBlack = blackMetrics && (blackMetrics.conversations > 0 || blackMetrics.spend > 0);
+
+            // Calcular totais (Meta White + Black (se existir) + Google)
             const currentTotal = (metaMetrics?.conversations || 0) + 
-                                (blackMetrics?.conversations || 0) + 
+                                (hasRealBlack ? (blackMetrics?.conversations || 0) : 0) + 
                                 (googleMetrics?.conversations || 0);
             
             const previousTotal = (metaMetrics?.previousConversations || 0) + 
-                                 (blackMetrics?.previousConversations || 0) + 
+                                 (hasRealBlack ? (blackMetrics?.previousConversations || 0) : 0) + 
                                  (googleMetrics?.previousConversations || 0);
 
             return `

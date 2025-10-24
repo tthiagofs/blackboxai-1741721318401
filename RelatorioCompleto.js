@@ -1216,6 +1216,7 @@ async function generateCompleteReport() {
             metrics = googleMetrics;
             metrics.platform = 'google'; // Marcar explicitamente como Google Ads
             blackMetrics = null;
+            separateMetaMetrics = null; // ⭐ LIMPAR Meta quando for só Google
             // Pegar nome da conta selecionada do select
             const selectedOption = googleAdsAccountSelect.options[googleAdsAccountSelect.selectedIndex];
             accountName = selectedOption ? selectedOption.textContent : 'Google Ads';

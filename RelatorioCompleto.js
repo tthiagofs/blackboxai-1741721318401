@@ -524,7 +524,21 @@ async function toggleModal(modalId, show) {
         return;
     }
     if (show) {
-        // Verificar se os dados foram carregados
+        // Para modal de comparação, não precisa validar conta (funciona com Google Ads também)
+        if (modalId === 'comparisonModal') {
+            const startDate = document.getElementById('startDate').value;
+            const endDate = document.getElementById('endDate').value;
+            
+            if (!startDate || !endDate) {
+                alert('Por favor, selecione o período do relatório primeiro');
+                return;
+            }
+            // Comparação pode ser usada com Meta ou Google Ads
+            modal.classList.remove('hidden');
+            return;
+        }
+        
+        // Verificar se os dados foram carregados (apenas para modais Meta)
         const unitId = document.getElementById('unitId').value;
         const startDate = document.getElementById('startDate').value;
         const endDate = document.getElementById('endDate').value;
@@ -1698,13 +1712,20 @@ function renderStandardReport(metrics, comparisonMetrics, accountName = '') {
     const conversationsChange = comparisonMetrics ? calculateChange(metrics.conversations, comparisonMetrics.previous.conversations) : null;
     const costChange = comparisonMetrics ? calculateChange(parseFloat(metrics.costPerConversation), parseFloat(comparisonMetrics.previous.costPerConversation)) : null;
     
+    // Detectar se é Google Ads ou Meta Ads baseado nos dados
+    const isGoogleAds = metrics.hasOwnProperty('clicks') || metrics.platform === 'google';
+    const platformName = isGoogleAds ? 'Google Ads' : 'Meta Ads';
+    const platformIcon = isGoogleAds ? 'fab fa-google' : 'fab fa-facebook';
+    const platformColor = isGoogleAds ? 'bg-red-600' : 'bg-blue-600';
+    const platformLightColor = isGoogleAds ? 'text-red-100' : 'text-blue-100';
+    
     return `
             <!-- Meta Ads / Google Ads (quando não tem Black) -->
-            <div class="bg-blue-600 rounded-xl p-5 mb-6 shadow-sm">
+            <div class="${platformColor} rounded-xl p-5 mb-6 shadow-sm">
                 <div class="flex items-center gap-3 mb-4">
-                    <i class="fab fa-facebook text-white text-2xl"></i>
-                    <h3 class="text-xl font-bold text-white">Meta Ads</h3>
-                    <span class="text-sm text-blue-100">${accountName || 'CA - Oral Center'}</span>
+                    <i class="${platformIcon} text-white text-2xl"></i>
+                    <h3 class="text-xl font-bold text-white">${platformName}</h3>
+                    <span class="text-sm ${platformLightColor}">${accountName || (isGoogleAds ? 'Google Ads' : 'CA - Oral Center')}</span>
                 </div>
                 <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
                     <div class="bg-white rounded-lg p-4">

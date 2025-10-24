@@ -348,7 +348,8 @@ let hasBlack = null; // null (não respondido), true (Sim), false (Não)
 let reportMetrics = null;      // Para armazenar as métricas (metrics)
 let reportBlackMetrics = null; // Para armazenar as métricas Black (blackMetrics)
 let reportBestAds = null;      // Para armazenar os melhores anúncios (bestAds)
-let reportComparisonMetrics = null; // Para armazenar os dados de comparação
+let reportComparisonMetrics = null; // Para armazenar os dados de comparação (Meta)
+let reportComparisonGoogleMetrics = null; // Para armazenar os dados de comparação (Google)
 let reportHasMultiplePlatforms = false; // Flag para saber se tem múltiplas plataformas
 let reportSeparateMetaMetrics = null; // Métricas Meta separadas
 let reportSeparateGoogleMetrics = null; // Métricas Google separadas
@@ -1223,9 +1224,10 @@ async function generateCompleteReport() {
         // Buscar dados de comparação se solicitado (para Meta ou Google)
     let comparisonMetrics = null;
     let comparisonBlackMetrics = null;
+    let comparisonGoogleMetrics = null; // Nova variável para comparação do Google
         
-        // Comparação para Google Ads
-        if (comparisonData && googleAccountId && !unitId) {
+        // Comparação para Google Ads (sempre buscar se tiver Google selecionado)
+        if (comparisonData && googleAccountId) {
             try {
                 console.log('📊 Buscando dados de comparação Google Ads...');
                 // Pegar managedBy (MCC ID) se a conta for gerenciada
@@ -1235,7 +1237,7 @@ async function generateCompleteReport() {
                 const comparison = await googleService.getComparison(startDate, endDate);
                 
                 if (comparison) {
-                    comparisonMetrics = comparison;
+                    comparisonGoogleMetrics = comparison; // Salvar separadamente
                     console.log('✓ Dados de comparação Google Ads carregados', comparison);
                 }
             } catch (error) {
@@ -1286,19 +1288,26 @@ async function generateCompleteReport() {
             }
         }
 
-        // Adicionar dados de comparação às métricas (se existirem)
-        if (comparisonMetrics) {
-            metrics.previousSpend = comparisonMetrics.previous.spend;
-            metrics.previousReach = comparisonMetrics.previous.impressions;
-            metrics.previousConversations = comparisonMetrics.previous.conversations;
-            metrics.previousCostPerConversation = comparisonMetrics.previous.costPerConversation;
+        // Adicionar dados de comparação às métricas SEPARADAS (para renderização correta)
+        if (comparisonMetrics && separateMetaMetrics) {
+            separateMetaMetrics.previousSpend = comparisonMetrics.previous.spend;
+            separateMetaMetrics.previousReach = comparisonMetrics.previous.impressions;
+            separateMetaMetrics.previousConversations = comparisonMetrics.previous.conversations;
+            separateMetaMetrics.previousCostPerConversation = comparisonMetrics.previous.costPerConversation;
         }
         
-        if (comparisonBlackMetrics && blackMetrics) {
-            blackMetrics.previousSpend = comparisonBlackMetrics.previous.spend;
-            blackMetrics.previousReach = comparisonBlackMetrics.previous.impressions;
-            blackMetrics.previousConversations = comparisonBlackMetrics.previous.conversations;
-            blackMetrics.previousCostPerConversation = comparisonBlackMetrics.previous.costPerConversation;
+        if (comparisonBlackMetrics && separateBlackMetrics) {
+            separateBlackMetrics.previousSpend = comparisonBlackMetrics.previous.spend;
+            separateBlackMetrics.previousReach = comparisonBlackMetrics.previous.impressions;
+            separateBlackMetrics.previousConversations = comparisonBlackMetrics.previous.conversations;
+            separateBlackMetrics.previousCostPerConversation = comparisonBlackMetrics.previous.costPerConversation;
+        }
+        
+        if (comparisonGoogleMetrics && separateGoogleMetrics) {
+            separateGoogleMetrics.previousSpend = comparisonGoogleMetrics.previous.spend;
+            separateGoogleMetrics.previousReach = comparisonGoogleMetrics.previous.impressions;
+            separateGoogleMetrics.previousConversations = comparisonGoogleMetrics.previous.conversations;
+            separateGoogleMetrics.previousCostPerConversation = comparisonGoogleMetrics.previous.costPerConversation;
         }
 
         // Armazenar métricas globalmente
@@ -1306,13 +1315,14 @@ async function generateCompleteReport() {
         reportBlackMetrics = blackMetrics;
     reportBestAds = bestAds;
         reportComparisonMetrics = comparisonMetrics;
+        reportComparisonGoogleMetrics = comparisonGoogleMetrics; // Salvar comparação do Google
         reportHasMultiplePlatforms = hasMultiplePlatforms;
         reportSeparateMetaMetrics = separateMetaMetrics;
         reportSeparateGoogleMetrics = separateGoogleMetrics;
         reportSeparateBlackMetrics = separateBlackMetrics;
 
         // Renderizar relatório COM dados de negócio, mas SEM análise de texto ainda
-        renderCompleteReport(accountName, startDate, endDate, metrics, blackMetrics, bestAds, comparisonMetrics, budgetsCompleted, salesCount, revenue, '', currentProjectLogo, hasMultiplePlatforms, separateMetaMetrics, separateGoogleMetrics, separateBlackMetrics);
+        renderCompleteReport(accountName, startDate, endDate, metrics, blackMetrics, bestAds, comparisonMetrics, budgetsCompleted, salesCount, revenue, '', currentProjectLogo, hasMultiplePlatforms, separateMetaMetrics, separateGoogleMetrics, separateBlackMetrics, comparisonGoogleMetrics);
         
         // Mostrar seção de análise
         const analysisSection = document.getElementById('analysisSection');
@@ -1445,7 +1455,7 @@ function extractMessages(actions) {
     return totalMessages;
 }
 
-function renderCompleteReport(unitName, startDate, endDate, metrics, blackMetrics, bestAds, comparisonMetrics, budgetsCompleted = 0, salesCount = 0, revenue = 0, performanceAnalysis = '', projectLogoUrl = '', hasMultiplePlatforms = false, separateMetaMetrics = null, separateGoogleMetrics = null, separateBlackMetrics = null) {
+function renderCompleteReport(unitName, startDate, endDate, metrics, blackMetrics, bestAds, comparisonMetrics, budgetsCompleted = 0, salesCount = 0, revenue = 0, performanceAnalysis = '', projectLogoUrl = '', hasMultiplePlatforms = false, separateMetaMetrics = null, separateGoogleMetrics = null, separateBlackMetrics = null, comparisonGoogleMetrics = null) {
     const formattedStartDate = formatDateISOToBR(startDate);
     const formattedEndDate = formatDateISOToBR(endDate);
     
@@ -1504,7 +1514,7 @@ function renderCompleteReport(unitName, startDate, endDate, metrics, blackMetric
 
             <!-- Conteúdo do Relatório -->
             <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                ${renderPlatformMetrics(separateMetaMetrics, separateGoogleMetrics, separateBlackMetrics, hasMultiplePlatforms, comparisonMetrics, unitName)}
+                ${renderPlatformMetrics(separateMetaMetrics, separateGoogleMetrics, separateBlackMetrics, hasMultiplePlatforms, comparisonMetrics, comparisonGoogleMetrics, unitName)}
                 
                 ${hasMultiplePlatforms ? renderTotalLeads(separateMetaMetrics, separateBlackMetrics, separateGoogleMetrics) : ''}
             
@@ -1709,7 +1719,7 @@ function renderBlackWhiteReport(metrics, blackMetrics, accountName = '') {
 /**
  * Renderizar métricas das plataformas (Meta, Google, ou ambas)
  */
-function renderPlatformMetrics(metaMetrics, googleMetrics, blackMetrics, hasMultiplePlatforms, comparisonMetrics, accountName) {
+function renderPlatformMetrics(metaMetrics, googleMetrics, blackMetrics, hasMultiplePlatforms, comparisonMetaMetrics, comparisonGoogleMetrics, accountName) {
     let html = '';
     
     // Cenário 1: Meta White + Black
@@ -1718,7 +1728,7 @@ function renderPlatformMetrics(metaMetrics, googleMetrics, blackMetrics, hasMult
     }
     // Cenário 2: Apenas Meta (sem Black)
     else if (metaMetrics && !blackMetrics && !googleMetrics) {
-        html += renderStandardReport(metaMetrics, comparisonMetrics, accountName);
+        html += renderStandardReport(metaMetrics, comparisonMetaMetrics, accountName);
     }
     // Cenário 3: Meta + Google (com ou sem Black)
     else if (metaMetrics && googleMetrics) {
@@ -1726,19 +1736,19 @@ function renderPlatformMetrics(metaMetrics, googleMetrics, blackMetrics, hasMult
         if (blackMetrics) {
             html += renderBlackWhiteReport(metaMetrics, blackMetrics, accountName);
         } else {
-            html += renderStandardReport(metaMetrics, comparisonMetrics, accountName);
+            html += renderStandardReport(metaMetrics, comparisonMetaMetrics, accountName);
         }
         
-        // Renderizar Google separadamente
+        // Renderizar Google separadamente COM COMPARAÇÃO
         const googleAccountSelect = document.getElementById('googleAdsAccountSelect');
         const googleAccountName = googleAccountSelect?.options[googleAccountSelect.selectedIndex]?.textContent || 'Google Ads';
         googleMetrics.platform = 'google'; // Marcar como Google
-        html += renderStandardReport(googleMetrics, null, googleAccountName); // Google não tem comparison ainda
+        html += renderStandardReport(googleMetrics, comparisonGoogleMetrics, googleAccountName); // Passar comparação do Google
     }
     // Cenário 4: Apenas Google
     else if (!metaMetrics && googleMetrics) {
         googleMetrics.platform = 'google';
-        html += renderStandardReport(googleMetrics, comparisonMetrics, accountName);
+        html += renderStandardReport(googleMetrics, comparisonGoogleMetrics, accountName);
     }
     
     return html;
@@ -2109,7 +2119,8 @@ if (generateFinalReportBtn) {
             reportHasMultiplePlatforms, // Passar a flag
             reportSeparateMetaMetrics, // Métricas separadas
             reportSeparateGoogleMetrics,
-            reportSeparateBlackMetrics
+            reportSeparateBlackMetrics,
+            reportComparisonGoogleMetrics // Comparação do Google
         );
         
         // Atualizar dados para salvamento

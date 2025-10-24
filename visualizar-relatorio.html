@@ -174,7 +174,7 @@
                                 <h4 class="text-xs text-gray-600 font-medium">Valor investido</h4>
                             </div>
                             <p class="text-2xl font-bold text-gray-900">${formatCurrencyBRL(metrics.spend || 0)}</p>
-                            <p class="text-xs text-gray-500 mt-1">${formatCurrencyBRL((metrics.previousSpend || 0))} no período anterior</p>
+                            ${metrics.previousSpend ? `<p class="text-xs text-gray-500 mt-1">${formatCurrencyBRL(metrics.previousSpend)} no período anterior</p>` : ''}
                         </div>
                         <div class="bg-white rounded-lg p-4">
                             <div class="flex items-center gap-2 mb-2">
@@ -182,7 +182,7 @@
                                 <h4 class="text-xs text-gray-600 font-medium">Alcance Total</h4>
                             </div>
                             <p class="text-2xl font-bold text-gray-900">${(metrics.reach || 0).toLocaleString('pt-BR')}</p>
-                            <p class="text-xs text-gray-500 mt-1">${(metrics.previousReach || 0).toLocaleString('pt-BR')} no período anterior</p>
+                            ${metrics.previousReach ? `<p class="text-xs text-gray-500 mt-1">${metrics.previousReach.toLocaleString('pt-BR')} no período anterior</p>` : ''}
                         </div>
                         <div class="bg-white rounded-lg p-4">
                             <div class="flex items-center gap-2 mb-2">
@@ -190,7 +190,7 @@
                                 <h4 class="text-xs text-gray-600 font-medium">Conversas iniciadas por mensagem</h4>
                             </div>
                             <p class="text-2xl font-bold text-gray-900">${metrics.conversations || 0}</p>
-                            <p class="text-xs text-gray-500 mt-1">${metrics.previousConversations || 0} no período anterior</p>
+                            ${metrics.previousConversations ? `<p class="text-xs text-gray-500 mt-1">${metrics.previousConversations} no período anterior</p>` : ''}
                         </div>
                         <div class="bg-white rounded-lg p-4">
                             <div class="flex items-center gap-2 mb-2">
@@ -198,7 +198,7 @@
                                 <h4 class="text-xs text-gray-600 font-medium">Custo por conversas iniciadas por mensagem</h4>
                             </div>
                             <p class="text-2xl font-bold text-gray-900">${formatCurrencyBRL(metrics.costPerConversation || 0)}</p>
-                            <p class="text-xs text-gray-500 mt-1">${formatCurrencyBRL(metrics.previousCostPerConversation || 0)} no período anterior</p>
+                            ${metrics.previousCostPerConversation ? `<p class="text-xs text-gray-500 mt-1">${formatCurrencyBRL(metrics.previousCostPerConversation)} no período anterior</p>` : ''}
                         </div>
                     </div>
                 </div>
@@ -217,7 +217,7 @@
                                 <h4 class="text-xs text-gray-600 font-medium">Valor investido</h4>
                             </div>
                             <p class="text-2xl font-bold text-gray-900">${formatCurrencyBRL(blackMetrics.spend || 0)}</p>
-                            <p class="text-xs text-gray-500 mt-1">${formatCurrencyBRL((blackMetrics.previousSpend || 0))} no período anterior</p>
+                            ${blackMetrics.previousSpend ? `<p class="text-xs text-gray-500 mt-1">${formatCurrencyBRL(blackMetrics.previousSpend)} no período anterior</p>` : ''}
                         </div>
                         <div class="bg-white rounded-lg p-4">
                             <div class="flex items-center gap-2 mb-2">
@@ -225,7 +225,7 @@
                                 <h4 class="text-xs text-gray-600 font-medium">Alcance Total</h4>
                             </div>
                             <p class="text-2xl font-bold text-gray-900">${(blackMetrics.reach || 0).toLocaleString('pt-BR')}</p>
-                            <p class="text-xs text-gray-500 mt-1">${(blackMetrics.previousReach || 0).toLocaleString('pt-BR')} no período anterior</p>
+                            ${blackMetrics.previousReach ? `<p class="text-xs text-gray-500 mt-1">${blackMetrics.previousReach.toLocaleString('pt-BR')} no período anterior</p>` : ''}
                         </div>
                         <div class="bg-white rounded-lg p-4">
                             <div class="flex items-center gap-2 mb-2">
@@ -233,7 +233,7 @@
                                 <h4 class="text-xs text-gray-600 font-medium">Conversas iniciadas por mensagem</h4>
                             </div>
                             <p class="text-2xl font-bold text-gray-900">${blackMetrics.conversations || 0}</p>
-                            <p class="text-xs text-gray-500 mt-1">${blackMetrics.previousConversations || 0} no período anterior</p>
+                            ${blackMetrics.previousConversations ? `<p class="text-xs text-gray-500 mt-1">${blackMetrics.previousConversations} no período anterior</p>` : ''}
                         </div>
                         <div class="bg-white rounded-lg p-4">
                             <div class="flex items-center gap-2 mb-2">
@@ -241,7 +241,7 @@
                                 <h4 class="text-xs text-gray-600 font-medium">Custo por conversas iniciadas por mensagem</h4>
                             </div>
                             <p class="text-2xl font-bold text-gray-900">${formatCurrencyBRL(blackMetrics.costPerConversation || 0)}</p>
-                            <p class="text-xs text-gray-500 mt-1">${formatCurrencyBRL(blackMetrics.previousCostPerConversation || 0)} no período anterior</p>
+                            ${blackMetrics.previousCostPerConversation ? `<p class="text-xs text-gray-500 mt-1">${formatCurrencyBRL(blackMetrics.previousCostPerConversation)} no período anterior</p>` : ''}
                         </div>
                     </div>
                 </div>
@@ -261,9 +261,7 @@
                             ${(metrics.conversations || 0) + (blackMetrics.conversations || 0)}
                             ${renderMetricChange((metrics.conversations || 0) + (blackMetrics.conversations || 0), (metrics.previousConversations || 0) + (blackMetrics.previousConversations || 0))}
                         </p>
-                        <p class="text-sm text-gray-500 mt-2">
-                            ${(metrics.previousConversations || 0) + (blackMetrics.previousConversations || 0)} no período anterior
-                        </p>
+                        ${((metrics.previousConversations || 0) + (blackMetrics.previousConversations || 0)) > 0 ? `<p class="text-sm text-gray-500 mt-2">${(metrics.previousConversations || 0) + (blackMetrics.previousConversations || 0)} no período anterior</p>` : ''}
                     </div>
                 </div>
             `;
@@ -307,7 +305,7 @@
                                 ${formatCurrencyBRL(metrics.spend || 0)}
                                 ${renderCostChange(parseFloat(metrics.spend || 0), parseFloat(metrics.previousSpend || 0))}
                             </p>
-                            <p class="text-xs text-gray-500 mt-1">${formatCurrencyBRL(metrics.previousSpend || 0)} no período anterior</p>
+                            ${metrics.previousSpend ? `<p class="text-xs text-gray-500 mt-1">${formatCurrencyBRL(metrics.previousSpend)} no período anterior</p>` : ''}
                         </div>
                         <div class="bg-white rounded-lg p-4">
                             <div class="flex items-center gap-2 mb-2">
@@ -318,7 +316,7 @@
                                 ${(metrics.reach || 0).toLocaleString('pt-BR')}
                                 ${renderMetricChange(metrics.reach || 0, metrics.previousReach || 0)}
                             </p>
-                            <p class="text-xs text-gray-500 mt-1">${(metrics.previousReach || 0).toLocaleString('pt-BR')} no período anterior</p>
+                            ${metrics.previousReach ? `<p class="text-xs text-gray-500 mt-1">${metrics.previousReach.toLocaleString('pt-BR')} no período anterior</p>` : ''}
                         </div>
                         <div class="bg-white rounded-lg p-4">
                             <div class="flex items-center gap-2 mb-2">
@@ -329,7 +327,7 @@
                                 ${metrics.conversations || 0}
                                 ${renderMetricChange(metrics.conversations || 0, metrics.previousConversations || 0)}
                             </p>
-                            <p class="text-xs text-gray-500 mt-1">${metrics.previousConversations || 0} no período anterior</p>
+                            ${metrics.previousConversations ? `<p class="text-xs text-gray-500 mt-1">${metrics.previousConversations} no período anterior</p>` : ''}
                         </div>
                         <div class="bg-white rounded-lg p-4">
                             <div class="flex items-center gap-2 mb-2">
@@ -340,7 +338,7 @@
                                 ${formatCurrencyBRL(metrics.costPerConversation || 0)}
                                 ${renderCostChange(parseFloat(metrics.costPerConversation || 0), parseFloat(metrics.previousCostPerConversation || 0))}
                             </p>
-                            <p class="text-xs text-gray-500 mt-1">${formatCurrencyBRL(metrics.previousCostPerConversation || 0)} no período anterior</p>
+                            ${metrics.previousCostPerConversation ? `<p class="text-xs text-gray-500 mt-1">${formatCurrencyBRL(metrics.previousCostPerConversation)} no período anterior</p>` : ''}
                         </div>
                     </div>
                 </div>

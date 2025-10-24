@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Unidade - Insightflow</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- XLSX.js -->
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+</head>
+<body class="bg-white min-h-screen">
+    <div class="flex min-h-screen w-full">
+        
+        <!-- Sidebar (mesma estrutura) -->
+        <aside id="sidebar" class="w-56 bg-white flex flex-col border-r border-gray-200">
+            <div class="p-6">
+                <h1 class="text-xl font-bold text-gray-800">Relatórios</h1>
+            </div>
+
+            <nav class="flex-1 px-3">
+                <a href="#" id="telaInicialLink" class="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors">
+                    <i class="fas fa-home"></i>
+                    <span>Tela Inicial</span>
+                </a>
+
+                <a href="#" id="unidadesLink" class="flex items-center gap-3 px-4 py-3 rounded-lg bg-blue-50 text-blue-600 border-l-4 border-blue-600 transition-colors">
+                    <i class="fas fa-building"></i>
+                    <span>Unidades</span>
+                </a>
+
+                <a href="conexoes.html" class="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors">
+                    <i class="fas fa-plug"></i>
+                    <span>Conexões</span>
+                </a>
+
+                <a href="minha-conta.html" class="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors">
+                    <i class="fas fa-user"></i>
+                    <span>Minha Conta</span>
+                </a>
+
+                <a href="usuarios.html" id="adminLink" class="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors hidden">
+                    <i class="fas fa-users"></i>
+                    <span>Usuários</span>
+                </a>
+
+                <a href="analises-predefinidas.html" id="analysisLink" class="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors hidden">
+                    <i class="fas fa-comments"></i>
+                    <span>Análises Pré-Definidas</span>
+                </a>
+            </nav>
+
+            <div class="p-4 border-t border-gray-200">
+                <button id="logoutBtn" class="w-full flex items-center justify-center gap-2 px-4 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors">
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span>Sair</span>
+                </button>
+            </div>
+        </aside>
+
+        <!-- Conteúdo Principal -->
+        <main class="flex-1 p-8 overflow-auto">
+            <div class="max-w-4xl mx-auto">
+                
+                <!-- Breadcrumb -->
+                <div class="mb-6">
+                    <a href="#" id="backLink" class="text-blue-600 hover:text-blue-700 flex items-center gap-2">
+                        <i class="fas fa-arrow-left"></i>
+                        <span>Voltar para Unidades</span>
+                    </a>
+                </div>
+
+                <!-- Header -->
+                <div class="mb-8">
+                    <h1 id="unitTitle" class="text-3xl font-bold text-gray-900 mb-2">
+                        <i class="fas fa-building text-blue-600"></i>
+                        <span id="unitName">Carregando...</span>
+                    </h1>
+                </div>
+
+                <!-- Dashboard da Unidade -->
+                <div id="dataCards" class="grid grid-cols-3 gap-6 mb-8 hidden">
+                    <div class="bg-blue-50 border-2 border-blue-200 rounded-xl p-6">
+                        <div class="text-sm text-gray-600 mb-1">📋 Orçamentos</div>
+                        <div id="totalBudgets" class="text-3xl font-bold text-blue-600">-</div>
+                    </div>
+                    <div class="bg-green-50 border-2 border-green-200 rounded-xl p-6">
+                        <div class="text-sm text-gray-600 mb-1">✅ Vendas</div>
+                        <div id="totalSales" class="text-3xl font-bold text-green-600">-</div>
+                    </div>
+                    <div class="bg-purple-50 border-2 border-purple-200 rounded-xl p-6">
+                        <div class="text-sm text-gray-600 mb-1">💰 Faturamento</div>
+                        <div id="totalRevenue" class="text-3xl font-bold text-purple-600">-</div>
+                    </div>
+                </div>
+
+                <!-- Importar Planilha -->
+                <div class="bg-white border-2 border-gray-200 rounded-xl p-6 mb-8">
+                    <h2 class="text-xl font-bold text-gray-900 mb-4">
+                        <i class="fas fa-file-excel text-green-600"></i>
+                        Importar Planilha de Orçamentos
+                    </h2>
+                    
+                    <div id="dropZone" 
+                         class="border-4 border-dashed border-gray-300 rounded-xl p-12 text-center hover:border-blue-400 hover:bg-blue-50 transition-colors cursor-pointer">
+                        <div class="text-6xl mb-4">📥</div>
+                        <h3 class="text-lg font-semibold text-gray-900 mb-2">
+                            Arraste a planilha aqui
+                        </h3>
+                        <p class="text-gray-600 mb-4">
+                            ou clique para selecionar
+                        </p>
+                        <p class="text-sm text-gray-500">
+                            Formatos aceitos: .xlsx, .xls | Tamanho máximo: 10MB
+                        </p>
+                        <input type="file" id="fileInput" accept=".xlsx,.xls" class="hidden">
+                    </div>
+
+                    <div id="fileInfo" class="mt-4 hidden bg-green-50 border border-green-200 rounded-lg p-4">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-3">
+                                <i class="fas fa-file-excel text-2xl text-green-600"></i>
+                                <div>
+                                    <p id="fileName" class="font-semibold text-gray-900"></p>
+                                    <p id="fileDate" class="text-sm text-gray-600"></p>
+                                </div>
+                            </div>
+                            <button onclick="removeSpreadsheet()" class="px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors">
+                                <i class="fas fa-trash"></i> Remover
+                            </button>
+                        </div>
+                    </div>
+
+                    <div id="uploadProgress" class="mt-4 hidden">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-sm font-semibold text-gray-700">Processando planilha...</span>
+                            <span id="progressPercent" class="text-sm text-gray-600">0%</span>
+                        </div>
+                        <div class="w-full bg-gray-200 rounded-full h-2">
+                            <div id="progressBar" class="bg-blue-600 h-2 rounded-full transition-all" style="width: 0%"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Configurações de Filtro -->
+                <div class="bg-white border-2 border-gray-200 rounded-xl p-6">
+                    <h2 class="text-xl font-bold text-gray-900 mb-4">
+                        <i class="fas fa-filter text-blue-600"></i>
+                        Configurações de Filtro
+                    </h2>
+                    
+                    <div class="space-y-4 mb-6">
+                        <div>
+                            <h3 class="font-semibold text-gray-900 mb-3">Fontes de Tráfego Pago</h3>
+                            <div class="space-y-2">
+                                <label class="flex items-center gap-3 p-3 border-2 border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+                                    <input type="checkbox" id="cbFacebook" class="w-5 h-5 text-blue-600">
+                                    <i class="fab fa-facebook text-blue-600"></i>
+                                    <span>Facebook</span>
+                                </label>
+                                <label class="flex items-center gap-3 p-3 border-2 border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+                                    <input type="checkbox" id="cbInstagram" class="w-5 h-5 text-pink-600">
+                                    <i class="fab fa-instagram text-pink-600"></i>
+                                    <span>Instagram</span>
+                                </label>
+                                <label class="flex items-center gap-3 p-3 border-2 border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+                                    <input type="checkbox" id="cbGoogle" class="w-5 h-5 text-red-600">
+                                    <i class="fab fa-google text-red-600"></i>
+                                    <span>Google Ads</span>
+                                </label>
+                                <label class="flex items-center gap-3 p-3 border-2 border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+                                    <input type="checkbox" id="cbPlaca" class="w-5 h-5 text-gray-600">
+                                    <i class="fas fa-store text-gray-600"></i>
+                                    <span>Placa (campanhas black)</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="flex items-center gap-3 p-3 border-2 border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer mb-3">
+                                <input type="checkbox" id="cbCustomKeywords" class="w-5 h-5 text-blue-600">
+                                <i class="fas fa-search text-blue-600"></i>
+                                <span class="font-semibold">Busca em "Outros" + Observações</span>
+                            </label>
+                            
+                            <div id="keywordsSection" class="hidden">
+                                <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                    Palavras-chave (uma por linha):
+                                </label>
+                                <textarea 
+                                    id="customKeywords"
+                                    rows="5"
+                                    placeholder="Tráfego&#10;Tráfego Pago&#10;trafego face&#10;facebook ads"
+                                    class="w-full border-2 border-gray-200 rounded-lg p-3 font-mono text-sm focus:outline-none focus:border-blue-500"
+                                >Tráfego
+Tráfego Pago
+trafego
+trafego pago</textarea>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button id="saveConfigBtn" class="w-full px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold">
+                        <i class="fas fa-save mr-2"></i>
+                        Salvar Configurações
+                    </button>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Scripts -->
+    <script type="module">
+        import { auth, db } from './config/firebase.js';
+        import { onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+        import { getUnit, updateUnit, updateBudgetData, removeBudgetData } from './services/unitsService.js';
+        import { processSpreadsheet, validateSpreadsheet } from './services/spreadsheetProcessor.js';
+
+        let currentProjectId = null;
+        let currentUnitId = null;
+        let currentUnit = null;
+
+        // Auth check
+        onAuthStateChanged(auth, async (user) => {
+            if (!user) {
+                window.location.href = '/login.html';
+                return;
+            }
+            
+            console.log('✅ Usuário autenticado:', user.email);
+            
+            // Mostrar links de admin
+            if (user.email === 'thiagofelipefreire0810@gmail.com') {
+                document.getElementById('adminLink').classList.remove('hidden');
+                document.getElementById('analysisLink').classList.remove('hidden');
+            }
+            
+            // Pegar IDs da URL
+            const urlParams = new URLSearchParams(window.location.search);
+            currentProjectId = urlParams.get('projectId');
+            currentUnitId = urlParams.get('unitId');
+            
+            if (!currentProjectId || !currentUnitId) {
+                alert('❌ Parâmetros inválidos');
+                window.location.href = '/dashboard.html';
+                return;
+            }
+            
+            // Atualizar links
+            document.getElementById('telaInicialLink').href = `projeto.html?id=${currentProjectId}`;
+            document.getElementById('unidadesLink').href = `unidades.html?projectId=${currentProjectId}`;
+            document.getElementById('backLink').href = `unidades.html?projectId=${currentProjectId}`;
+            
+            // Carregar dados da unidade
+            await loadUnit();
+        });
+
+        // Logout
+        document.getElementById('logoutBtn').addEventListener('click', async () => {
+            try {
+                await signOut(auth);
+                window.location.href = '/login.html';
+            } catch (error) {
+                console.error('Erro ao fazer logout:', error);
+            }
+        });
+
+        // Carregar unidade
+        async function loadUnit() {
+            try {
+                currentUnit = await getUnit(currentProjectId, currentUnitId);
+                
+                // Atualizar UI
+                document.getElementById('unitName').textContent = currentUnit.name;
+                
+                // Carregar configurações
+                document.getElementById('cbFacebook').checked = currentUnit.trafficSources.facebook;
+                document.getElementById('cbInstagram').checked = currentUnit.trafficSources.instagram;
+                document.getElementById('cbGoogle').checked = currentUnit.trafficSources.google;
+                document.getElementById('cbPlaca').checked = currentUnit.trafficSources.placa;
+                
+                document.getElementById('cbCustomKeywords').checked = currentUnit.customKeywords.enabled;
+                document.getElementById('customKeywords').value = currentUnit.customKeywords.terms.join('\n');
+                
+                toggleKeywordsSection();
+                
+                // Mostrar dados da planilha se existir
+                if (currentUnit.budgetData) {
+                    showBudgetData();
+                }
+                
+            } catch (error) {
+                console.error('Erro ao carregar unidade:', error);
+                alert('Erro ao carregar dados da unidade');
+            }
+        }
+
+        // Mostrar/ocultar seção de palavras-chave
+        document.getElementById('cbCustomKeywords').addEventListener('change', toggleKeywordsSection);
+        
+        function toggleKeywordsSection() {
+            const section = document.getElementById('keywordsSection');
+            if (document.getElementById('cbCustomKeywords').checked) {
+                section.classList.remove('hidden');
+            } else {
+                section.classList.add('hidden');
+            }
+        }
+
+        // Salvar configurações
+        document.getElementById('saveConfigBtn').addEventListener('click', async () => {
+            try {
+                const trafficSources = {
+                    facebook: document.getElementById('cbFacebook').checked,
+                    instagram: document.getElementById('cbInstagram').checked,
+                    google: document.getElementById('cbGoogle').checked,
+                    placa: document.getElementById('cbPlaca').checked
+                };
+                
+                const customKeywords = {
+                    enabled: document.getElementById('cbCustomKeywords').checked,
+                    terms: document.getElementById('customKeywords').value
+                        .split('\n')
+                        .map(t => t.trim())
+                        .filter(t => t.length > 0)
+                };
+                
+                await updateUnit(currentProjectId, currentUnitId, {
+                    trafficSources,
+                    customKeywords
+                });
+                
+                alert('✅ Configurações salvas com sucesso!');
+            } catch (error) {
+                console.error('Erro ao salvar configurações:', error);
+                alert('Erro ao salvar configurações');
+            }
+        });
+
+        // Drag & Drop
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+
+        dropZone.addEventListener('click', () => {
+            fileInput.click();
+        });
+
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('border-blue-500', 'bg-blue-100');
+        });
+
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('border-blue-500', 'bg-blue-100');
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('border-blue-500', 'bg-blue-100');
+            
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                handleFile(files[0]);
+            }
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                handleFile(e.target.files[0]);
+            }
+        });
+
+        // Processar arquivo
+        async function handleFile(file) {
+            try {
+                // Validar
+                validateSpreadsheet(file);
+                
+                console.log('📊 Processando arquivo:', file.name);
+                
+                // Mostrar progress
+                document.getElementById('uploadProgress').classList.remove('hidden');
+                updateProgress(0);
+                
+                // Atualizar unidade para pegar configurações mais recentes
+                currentUnit = await getUnit(currentProjectId, currentUnitId);
+                
+                updateProgress(30);
+                
+                // Processar planilha
+                const budgetData = await processSpreadsheet(
+                    file, 
+                    currentUnit.trafficSources, 
+                    currentUnit.customKeywords
+                );
+                
+                updateProgress(70);
+                
+                // Salvar no Firestore
+                await updateBudgetData(currentProjectId, currentUnitId, budgetData);
+                
+                updateProgress(100);
+                
+                // Atualizar currentUnit
+                currentUnit.budgetData = budgetData;
+                
+                // Mostrar dados
+                showBudgetData();
+                
+                // Ocultar progress
+                setTimeout(() => {
+                    document.getElementById('uploadProgress').classList.add('hidden');
+                    alert('✅ Planilha importada com sucesso!');
+                }, 500);
+                
+            } catch (error) {
+                console.error('Erro ao processar planilha:', error);
+                document.getElementById('uploadProgress').classList.add('hidden');
+                alert(`❌ Erro: ${error.message}`);
+            }
+        }
+
+        function updateProgress(percent) {
+            document.getElementById('progressBar').style.width = `${percent}%`;
+            document.getElementById('progressPercent').textContent = `${percent}%`;
+        }
+
+        // Mostrar dados da planilha
+        function showBudgetData() {
+            const data = currentUnit.budgetData;
+            
+            if (!data) return;
+            
+            // Cards
+            document.getElementById('dataCards').classList.remove('hidden');
+            document.getElementById('totalBudgets').textContent = data.totalBudgets;
+            document.getElementById('totalSales').textContent = data.totalSales;
+            document.getElementById('totalRevenue').textContent = `R$ ${data.totalRevenue.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`;
+            
+            // File info
+            document.getElementById('fileInfo').classList.remove('hidden');
+            document.getElementById('fileName').textContent = data.fileName;
+            document.getElementById('fileDate').textContent = `Período: ${formatDate(data.periodStart)} a ${formatDate(data.periodEnd)}`;
+        }
+
+        // Remover planilha
+        window.removeSpreadsheet = async () => {
+            if (!confirm('Tem certeza que deseja remover a planilha atual?')) {
+                return;
+            }
+            
+            try {
+                await removeBudgetData(currentProjectId, currentUnitId);
+                
+                currentUnit.budgetData = null;
+                
+                document.getElementById('dataCards').classList.add('hidden');
+                document.getElementById('fileInfo').classList.add('hidden');
+                
+                alert('✅ Planilha removida!');
+            } catch (error) {
+                console.error('Erro ao remover planilha:', error);
+                alert('Erro ao remover planilha');
+            }
+        };
+
+        function formatDate(dateStr) {
+            if (!dateStr) return '-';
+            const date = new Date(dateStr);
+            return date.toLocaleDateString('pt-BR');
+        }
+    </script>
+</body>
+</html>
+

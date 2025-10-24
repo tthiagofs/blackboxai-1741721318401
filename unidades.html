@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerenciar Unidades - Insightflow</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-white min-h-screen">
+    <div class="flex min-h-screen w-full">
+        
+        <!-- Sidebar -->
+        <aside id="sidebar" class="w-56 bg-white flex flex-col border-r border-gray-200">
+            <!-- Logo -->
+            <div class="p-6">
+                <h1 class="text-xl font-bold text-gray-800">Relatórios</h1>
+            </div>
+
+            <!-- Navegação -->
+            <nav class="flex-1 px-3">
+                <a href="#" id="telaInicialLink" class="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors">
+                    <i class="fas fa-home"></i>
+                    <span>Tela Inicial</span>
+                </a>
+
+                <a href="#" class="flex items-center gap-3 px-4 py-3 rounded-lg bg-blue-50 text-blue-600 border-l-4 border-blue-600 transition-colors">
+                    <i class="fas fa-building"></i>
+                    <span>Unidades</span>
+                </a>
+
+                <a href="conexoes.html" class="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors">
+                    <i class="fas fa-plug"></i>
+                    <span>Conexões</span>
+                </a>
+
+                <a href="minha-conta.html" class="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors">
+                    <i class="fas fa-user"></i>
+                    <span>Minha Conta</span>
+                </a>
+
+                <!-- Link Admin (oculto por padrão) -->
+                <a href="usuarios.html" id="adminLink" class="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors hidden">
+                    <i class="fas fa-users"></i>
+                    <span>Usuários</span>
+                </a>
+
+                <a href="analises-predefinidas.html" id="analysisLink" class="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors hidden">
+                    <i class="fas fa-comments"></i>
+                    <span>Análises Pré-Definidas</span>
+                </a>
+            </nav>
+
+            <!-- Logout -->
+            <div class="p-4 border-t border-gray-200">
+                <button id="logoutBtn" class="w-full flex items-center justify-center gap-2 px-4 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors">
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span>Sair</span>
+                </button>
+            </div>
+        </aside>
+
+        <!-- Conteúdo Principal -->
+        <main class="flex-1 p-8 overflow-auto">
+            <div class="max-w-7xl mx-auto">
+                
+                <!-- Header -->
+                <div class="mb-8">
+                    <h1 class="text-3xl font-bold text-gray-900 mb-2">
+                        Gerenciar Unidades
+                    </h1>
+                    <p class="text-gray-600">
+                        Configure e importe planilhas de orçamentos para cada unidade
+                    </p>
+                </div>
+
+                <!-- Loading -->
+                <div id="loadingSection" class="flex items-center justify-center py-12">
+                    <div class="text-center">
+                        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                        <p class="text-gray-600">Carregando unidades...</p>
+                    </div>
+                </div>
+
+                <!-- Grid de Unidades -->
+                <div id="unitsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 hidden">
+                    <!-- Cards serão inseridos aqui via JavaScript -->
+                </div>
+
+                <!-- Empty State -->
+                <div id="emptyState" class="hidden text-center py-12">
+                    <div class="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <i class="fas fa-building text-4xl text-gray-400"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold text-gray-900 mb-2">Nenhuma unidade cadastrada</h3>
+                    <p class="text-gray-600 mb-6">Comece adicionando sua primeira unidade</p>
+                    <button onclick="showAddUnitModal()" class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                        <i class="fas fa-plus mr-2"></i>
+                        Adicionar Unidade
+                    </button>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modal: Adicionar Unidade -->
+    <div id="addUnitModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div class="bg-white rounded-xl p-8 max-w-md w-full mx-4">
+            <h2 class="text-2xl font-bold text-gray-900 mb-6">Nova Unidade</h2>
+            
+            <form id="addUnitForm">
+                <div class="mb-6">
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">
+                        Nome da Unidade
+                    </label>
+                    <input 
+                        type="text" 
+                        id="unitName" 
+                        required
+                        placeholder="Ex: Oral Centter Janaúba"
+                        class="w-full border-2 border-gray-200 rounded-lg px-4 py-3 focus:outline-none focus:border-blue-500"
+                    >
+                </div>
+
+                <div class="flex gap-3">
+                    <button 
+                        type="button"
+                        onclick="hideAddUnitModal()"
+                        class="flex-1 px-4 py-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+                    >
+                        Cancelar
+                    </button>
+                    <button 
+                        type="submit"
+                        class="flex-1 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                    >
+                        Criar Unidade
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script type="module">
+        import { auth, db } from './config/firebase.js';
+        import { onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+        import { listUnits, createUnit } from './services/unitsService.js';
+
+        let currentProjectId = null;
+        let currentUser = null;
+
+        // Auth check
+        onAuthStateChanged(auth, (user) => {
+            if (!user) {
+                window.location.href = '/login.html';
+                return;
+            }
+            
+            currentUser = user;
+            console.log('✅ Usuário autenticado:', user.email);
+            
+            // Mostrar links de admin se for admin
+            if (user.email === 'thiagofelipefreire0810@gmail.com') {
+                document.getElementById('adminLink').classList.remove('hidden');
+                document.getElementById('analysisLink').classList.remove('hidden');
+            }
+            
+            // Pegar projectId da URL
+            const urlParams = new URLSearchParams(window.location.search);
+            currentProjectId = urlParams.get('projectId');
+            
+            if (!currentProjectId) {
+                alert('❌ Projeto não encontrado');
+                window.location.href = '/dashboard.html';
+                return;
+            }
+            
+            // Atualizar link Tela Inicial
+            document.getElementById('telaInicialLink').href = `projeto.html?id=${currentProjectId}`;
+            
+            // Carregar unidades
+            loadUnits();
+        });
+
+        // Logout
+        document.getElementById('logoutBtn').addEventListener('click', async () => {
+            try {
+                await signOut(auth);
+                window.location.href = '/login.html';
+            } catch (error) {
+                console.error('Erro ao fazer logout:', error);
+            }
+        });
+
+        // Carregar unidades
+        async function loadUnits() {
+            try {
+                const units = await listUnits(currentProjectId);
+                
+                document.getElementById('loadingSection').classList.add('hidden');
+                
+                if (units.length === 0) {
+                    document.getElementById('emptyState').classList.remove('hidden');
+                } else {
+                    renderUnits(units);
+                }
+            } catch (error) {
+                console.error('Erro ao carregar unidades:', error);
+                alert('Erro ao carregar unidades');
+            }
+        }
+
+        // Renderizar unidades
+        function renderUnits(units) {
+            const grid = document.getElementById('unitsGrid');
+            grid.classList.remove('hidden');
+            
+            grid.innerHTML = units.map(unit => {
+                const hasData = unit.budgetData && unit.budgetData.totalBudgets > 0;
+                
+                return `
+                    <div class="bg-white border-2 border-gray-200 rounded-xl p-6 hover:shadow-lg transition-shadow">
+                        <div class="flex items-center gap-3 mb-4">
+                            <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+                                <i class="fas fa-building text-2xl text-blue-600"></i>
+                            </div>
+                            <h3 class="text-lg font-bold text-gray-900 flex-1 truncate">
+                                ${unit.name}
+                            </h3>
+                        </div>
+                        
+                        ${hasData ? `
+                            <div class="space-y-2 mb-4">
+                                <div class="flex justify-between text-sm">
+                                    <span class="text-gray-600">📋 Orçamentos:</span>
+                                    <span class="font-semibold">${unit.budgetData.totalBudgets}</span>
+                                </div>
+                                <div class="flex justify-between text-sm">
+                                    <span class="text-gray-600">✅ Vendas:</span>
+                                    <span class="font-semibold">${unit.budgetData.totalSales}</span>
+                                </div>
+                                <div class="flex justify-between text-sm">
+                                    <span class="text-gray-600">💰 Faturamento:</span>
+                                    <span class="font-semibold">R$ ${unit.budgetData.totalRevenue.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</span>
+                                </div>
+                                <div class="flex justify-between text-sm">
+                                    <span class="text-gray-600">📅 Período:</span>
+                                    <span class="text-gray-500 text-xs">${formatDate(unit.budgetData.periodStart)} a ${formatDate(unit.budgetData.periodEnd)}</span>
+                                </div>
+                            </div>
+                        ` : `
+                            <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
+                                <p class="text-xs text-yellow-700">
+                                    ⚠️ Nenhuma planilha importada
+                                </p>
+                            </div>
+                        `}
+                        
+                        <div class="flex gap-2">
+                            <button onclick="openUnit('${unit.id}')" 
+                                class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium">
+                                <i class="fas fa-folder-open mr-1"></i> Abrir
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            
+            // Card: Adicionar Nova Unidade
+            grid.innerHTML += `
+                <div class="bg-gray-50 border-2 border-dashed border-gray-300 rounded-xl p-6 flex flex-col items-center justify-center hover:border-blue-400 hover:bg-blue-50 transition-colors cursor-pointer min-h-[250px]"
+                     onclick="showAddUnitModal()">
+                    <div class="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mb-4">
+                        <i class="fas fa-plus text-3xl text-blue-600"></i>
+                    </div>
+                    <h3 class="text-lg font-semibold text-gray-700">
+                        Adicionar Nova Unidade
+                    </h3>
+                </div>
+            `;
+        }
+
+        // Formatar data
+        function formatDate(dateStr) {
+            if (!dateStr) return '-';
+            const date = new Date(dateStr);
+            return date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+        }
+
+        // Abrir unidade
+        window.openUnit = (unitId) => {
+            window.location.href = `unidade-detalhes.html?projectId=${currentProjectId}&unitId=${unitId}`;
+        };
+
+        // Modal
+        window.showAddUnitModal = () => {
+            document.getElementById('addUnitModal').classList.remove('hidden');
+        };
+
+        window.hideAddUnitModal = () => {
+            document.getElementById('addUnitModal').classList.add('hidden');
+            document.getElementById('unitName').value = '';
+        };
+
+        // Criar unidade
+        document.getElementById('addUnitForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const name = document.getElementById('unitName').value.trim();
+            
+            if (!name) {
+                alert('Por favor, insira um nome para a unidade');
+                return;
+            }
+            
+            try {
+                await createUnit(currentProjectId, {
+                    name: name,
+                    trafficSources: {
+                        facebook: true,
+                        instagram: false,
+                        google: false,
+                        placa: false
+                    },
+                    customKeywords: {
+                        enabled: true,
+                        terms: ['Tráfego', 'Tráfego Pago', 'trafego', 'trafego pago']
+                    }
+                });
+                
+                hideAddUnitModal();
+                alert('✅ Unidade criada com sucesso!');
+                loadUnits();
+            } catch (error) {
+                console.error('Erro ao criar unidade:', error);
+                alert('Erro ao criar unidade');
+            }
+        });
+    </script>
+</body>
+</html>
+

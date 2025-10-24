@@ -74,6 +74,15 @@ service cloud.firestore {
       // Permitir listar projetos do próprio usuário ou admin pode listar tudo
       allow list: if request.auth != null;
       
+      // Regras para subcoleção de unidades dentro de projetos
+      match /units/{unitId} {
+        // Permitir CRUD completo para o dono do projeto
+        allow read, write, create, update, delete: if isProjectOwner();
+        
+        // Permitir listar unidades do projeto
+        allow list: if isProjectOwner();
+      }
+      
       // Regras para subcoleção de relatórios dentro de projetos
       match /reports/{reportId} {
         // Permitir CRUD completo para o dono do projeto ou admin

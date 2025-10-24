@@ -64,10 +64,12 @@ function matchesTrafficRules(row, trafficSources, customKeywords) {
 }
 
 /**
- * Verificar se linha é manutenção ortodôntica (para exclusão)
+ * Verificar se linha é SOMENTE manutenção ortodôntica (para exclusão)
+ * Exclui apenas se for SOMENTE manutenção, sem outros procedimentos
  */
 function isMaintenanceProcedure(row) {
-    const colH = (row.H || "").toString().toLowerCase();
+    const colH = (row.H || "").toString().trim();
+    const colHLower = colH.toLowerCase();
     
     const maintenanceTerms = [
         "manutenção aparelho móvel",
@@ -76,7 +78,27 @@ function isMaintenanceProcedure(row) {
         "manutenção ortodôntica mensal"
     ];
     
-    return maintenanceTerms.some(term => colH.includes(term.toLowerCase()));
+    // Verificar se contém algum termo de manutenção
+    const hasMaintenance = maintenanceTerms.some(term => colHLower.includes(term));
+    
+    if (!hasMaintenance) {
+        return false; // Não tem manutenção, não excluir
+    }
+    
+    // Verificar se tem vírgula (múltiplos procedimentos)
+    if (colH.includes(',')) {
+        return false; // Tem outros procedimentos junto, não excluir
+    }
+    
+    // Verificar se o texto é exatamente igual a algum termo de manutenção (sem outros textos)
+    const isOnlyMaintenance = maintenanceTerms.some(term => {
+        // Remove espaços extras e compara
+        const cleanedH = colHLower.replace(/\s+/g, ' ').trim();
+        const cleanedTerm = term.replace(/\s+/g, ' ').trim();
+        return cleanedH === cleanedTerm;
+    });
+    
+    return isOnlyMaintenance;
 }
 
 /**

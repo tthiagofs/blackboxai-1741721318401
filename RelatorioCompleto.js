@@ -1570,7 +1570,7 @@ function renderStandardReport(metrics, comparisonMetrics, accountName = '') {
         const isPositive = change > 0;
         const color = isPositive ? 'text-green-600' : 'text-red-600';
         const arrow = isPositive ? '▲' : '▼';
-        return `<span class="${color} text-sm font-semibold">${arrow} ${Math.abs(change).toFixed(2)}%</span>`;
+        return `<span class="${color} text-xs font-semibold block mt-1">${arrow} ${Math.abs(change).toFixed(2)}%</span>`;
     };
     
     // Helper especial para custo (diminuir é bom, então cores invertidas)
@@ -1580,7 +1580,7 @@ function renderStandardReport(metrics, comparisonMetrics, accountName = '') {
         // Se aumentou = vermelho (ruim), se diminuiu = verde (bom)
         const color = isPositive ? 'text-red-600' : 'text-green-600';
         const arrow = isPositive ? '▲' : '▼';
-        return `<span class="${color} text-sm font-semibold">${arrow} ${Math.abs(change).toFixed(2)}%</span>`;
+        return `<span class="${color} text-xs font-semibold block mt-1">${arrow} ${Math.abs(change).toFixed(2)}%</span>`;
     };
     
     // Calcular mudanças usando comparisonMetrics.previous (agora tem conversations e costPerConversation)
@@ -1603,10 +1603,8 @@ function renderStandardReport(metrics, comparisonMetrics, accountName = '') {
                             ${createIconWithBackgroundSVG('dollar', '#3b82f6')}
                             <h4 class="text-xs text-gray-600 font-medium">Valor investido</h4>
                         </div>
-                        <div class="flex items-center gap-2">
-                            <p class="text-2xl font-bold text-gray-900">${formatCurrencyBRL(metrics.spend || 0)}</p>
-                            ${renderChangeBadge(spendChange)}
-                        </div>
+                        <p class="text-2xl font-bold text-gray-900">${formatCurrencyBRL(metrics.spend || 0)}</p>
+                        ${renderChangeBadge(spendChange)}
                         <p class="text-xs text-gray-500 mt-1">${comparisonMetrics ? formatCurrencyBRL(comparisonMetrics.previous.spend || 0) : '0'} no período anterior</p>
                     </div>
                     <div class="bg-white rounded-lg p-4">
@@ -1614,10 +1612,8 @@ function renderStandardReport(metrics, comparisonMetrics, accountName = '') {
                             ${createIconWithBackgroundSVG('users', '#10b981')}
                             <h4 class="text-xs text-gray-600 font-medium">Alcance Total</h4>
                         </div>
-                        <div class="flex items-center gap-2">
-                            <p class="text-2xl font-bold text-gray-900">${(metrics.reach || 0).toLocaleString('pt-BR')}</p>
-                            ${renderChangeBadge(reachChange)}
-                        </div>
+                        <p class="text-2xl font-bold text-gray-900">${(metrics.reach || 0).toLocaleString('pt-BR')}</p>
+                        ${renderChangeBadge(reachChange)}
                         <p class="text-xs text-gray-500 mt-1">${comparisonMetrics ? (comparisonMetrics.previous.impressions || 0).toLocaleString('pt-BR') : '0'} no período anterior</p>
                     </div>
                     <div class="bg-white rounded-lg p-4">
@@ -1625,10 +1621,8 @@ function renderStandardReport(metrics, comparisonMetrics, accountName = '') {
                             ${createIconWithBackgroundSVG('comments', '#8b5cf6')}
                             <h4 class="text-xs text-gray-600 font-medium">Conversas iniciadas por mensagem</h4>
                         </div>
-                        <div class="flex items-center gap-2">
-                            <p class="text-2xl font-bold text-gray-900">${metrics.conversations || 0}</p>
-                            ${renderChangeBadge(conversationsChange)}
-                        </div>
+                        <p class="text-2xl font-bold text-gray-900">${metrics.conversations || 0}</p>
+                        ${renderChangeBadge(conversationsChange)}
                         <p class="text-xs text-gray-500 mt-1">${comparisonMetrics ? (comparisonMetrics.previous.conversations || 0) : '0'} no período anterior</p>
                     </div>
                     <div class="bg-white rounded-lg p-4">
@@ -1636,10 +1630,8 @@ function renderStandardReport(metrics, comparisonMetrics, accountName = '') {
                             ${createIconWithBackgroundSVG('chart-line', '#f59e0b')}
                             <h4 class="text-xs text-gray-600 font-medium">Custo por conversas iniciadas por mensagem</h4>
                         </div>
-                        <div class="flex items-center gap-2">
-                            <p class="text-2xl font-bold text-gray-900">${formatCurrencyBRL(metrics.costPerConversation || 0)}</p>
-                            ${renderCostChangeBadge(costChange)}
-                        </div>
+                        <p class="text-2xl font-bold text-gray-900">${formatCurrencyBRL(metrics.costPerConversation || 0)}</p>
+                        ${renderCostChangeBadge(costChange)}
                         <p class="text-xs text-gray-500 mt-1">${comparisonMetrics ? formatCurrencyBRL(comparisonMetrics.previous.costPerConversation || 0) : '0'} no período anterior</p>
                     </div>
                 </div>

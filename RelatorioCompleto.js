@@ -1312,7 +1312,7 @@ async function generateCompleteReport() {
         reportSeparateBlackMetrics = separateBlackMetrics;
 
         // Renderizar relatório COM dados de negócio, mas SEM análise de texto ainda
-        renderCompleteReport(accountName, startDate, endDate, metrics, blackMetrics, bestAds, comparisonMetrics, budgetsCompleted, salesCount, revenue, '', currentProjectLogo, hasMultiplePlatforms);
+        renderCompleteReport(accountName, startDate, endDate, metrics, blackMetrics, bestAds, comparisonMetrics, budgetsCompleted, salesCount, revenue, '', currentProjectLogo, hasMultiplePlatforms, separateMetaMetrics, separateGoogleMetrics, separateBlackMetrics);
         
         // Mostrar seção de análise
         const analysisSection = document.getElementById('analysisSection');
@@ -1445,7 +1445,7 @@ function extractMessages(actions) {
     return totalMessages;
 }
 
-function renderCompleteReport(unitName, startDate, endDate, metrics, blackMetrics, bestAds, comparisonMetrics, budgetsCompleted = 0, salesCount = 0, revenue = 0, performanceAnalysis = '', projectLogoUrl = '', hasMultiplePlatforms = false) {
+function renderCompleteReport(unitName, startDate, endDate, metrics, blackMetrics, bestAds, comparisonMetrics, budgetsCompleted = 0, salesCount = 0, revenue = 0, performanceAnalysis = '', projectLogoUrl = '', hasMultiplePlatforms = false, separateMetaMetrics = null, separateGoogleMetrics = null, separateBlackMetrics = null) {
     const formattedStartDate = formatDateISOToBR(startDate);
     const formattedEndDate = formatDateISOToBR(endDate);
     
@@ -1504,11 +1504,11 @@ function renderCompleteReport(unitName, startDate, endDate, metrics, blackMetric
 
             <!-- Conteúdo do Relatório -->
             <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                ${hasBlack ? renderBlackWhiteReport(metrics, blackMetrics, unitName) : renderStandardReport(metrics, comparisonMetrics, unitName)}
+                ${renderPlatformMetrics(separateMetaMetrics, separateGoogleMetrics, separateBlackMetrics, hasMultiplePlatforms, comparisonMetrics, unitName)}
                 
-                ${hasMultiplePlatforms ? renderTotalLeads(metrics, blackMetrics) : ''}
+                ${hasMultiplePlatforms ? renderTotalLeads(separateMetaMetrics, separateBlackMetrics, separateGoogleMetrics) : ''}
             
-                ${renderBestAds(bestAds, metrics.platform === 'google')}
+                ${renderBestAds(bestAds, !separateMetaMetrics && separateGoogleMetrics)}
                 
                 ${renderBusinessResults(budgetsCompleted, salesCount, revenue, totalInvestment)}
                 
@@ -1523,7 +1523,7 @@ function renderCompleteReport(unitName, startDate, endDate, metrics, blackMetric
     shareWhatsAppBtn.classList.remove('hidden');
 }
 
-function renderTotalLeads(metrics, blackMetrics) {
+function renderTotalLeads(metaMetrics, blackMetrics, googleMetrics = null) {
     // Calcular variação percentual
     const renderMetricChange = (current, previous) => {
         if (!previous || previous === 0) return '';
@@ -1534,9 +1534,14 @@ function renderTotalLeads(metrics, blackMetrics) {
         return `<span class="${color} text-xs font-semibold block mt-1">${arrow} ${Math.abs(change).toFixed(2)}%</span>`;
     };
 
-    // Calcular totais
-    const currentTotal = (metrics?.conversations || 0) + (blackMetrics?.conversations || 0);
-    const previousTotal = (metrics?.previousConversations || 0) + (blackMetrics?.previousConversations || 0);
+    // Calcular totais (Meta White + Black + Google)
+    const currentTotal = (metaMetrics?.conversations || 0) + 
+                        (blackMetrics?.conversations || 0) + 
+                        (googleMetrics?.conversations || 0);
+    
+    const previousTotal = (metaMetrics?.previousConversations || 0) + 
+                         (blackMetrics?.previousConversations || 0) + 
+                         (googleMetrics?.previousConversations || 0);
 
     return `
         <!-- Número Total de Leads -->
@@ -1699,6 +1704,44 @@ function renderBlackWhiteReport(metrics, blackMetrics, accountName = '') {
                 </div>
             </div>
     `;
+}
+
+/**
+ * Renderizar métricas das plataformas (Meta, Google, ou ambas)
+ */
+function renderPlatformMetrics(metaMetrics, googleMetrics, blackMetrics, hasMultiplePlatforms, comparisonMetrics, accountName) {
+    let html = '';
+    
+    // Cenário 1: Meta White + Black
+    if (metaMetrics && blackMetrics && !googleMetrics) {
+        html += renderBlackWhiteReport(metaMetrics, blackMetrics, accountName);
+    }
+    // Cenário 2: Apenas Meta (sem Black)
+    else if (metaMetrics && !blackMetrics && !googleMetrics) {
+        html += renderStandardReport(metaMetrics, comparisonMetrics, accountName);
+    }
+    // Cenário 3: Meta + Google (com ou sem Black)
+    else if (metaMetrics && googleMetrics) {
+        // Renderizar Meta (White + Black se existir)
+        if (blackMetrics) {
+            html += renderBlackWhiteReport(metaMetrics, blackMetrics, accountName);
+        } else {
+            html += renderStandardReport(metaMetrics, comparisonMetrics, accountName);
+        }
+        
+        // Renderizar Google separadamente
+        const googleAccountSelect = document.getElementById('googleAdsAccountSelect');
+        const googleAccountName = googleAccountSelect?.options[googleAccountSelect.selectedIndex]?.textContent || 'Google Ads';
+        googleMetrics.platform = 'google'; // Marcar como Google
+        html += renderStandardReport(googleMetrics, null, googleAccountName); // Google não tem comparison ainda
+    }
+    // Cenário 4: Apenas Google
+    else if (!metaMetrics && googleMetrics) {
+        googleMetrics.platform = 'google';
+        html += renderStandardReport(googleMetrics, comparisonMetrics, accountName);
+    }
+    
+    return html;
 }
 
 function renderStandardReport(metrics, comparisonMetrics, accountName = '') {
@@ -2063,7 +2106,10 @@ if (generateFinalReportBtn) {
             revenue, 
             performanceAnalysis, 
             currentProjectLogo,
-            reportHasMultiplePlatforms // Passar a flag
+            reportHasMultiplePlatforms, // Passar a flag
+            reportSeparateMetaMetrics, // Métricas separadas
+            reportSeparateGoogleMetrics,
+            reportSeparateBlackMetrics
         );
         
         // Atualizar dados para salvamento

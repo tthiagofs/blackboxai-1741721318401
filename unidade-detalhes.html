@@ -287,14 +287,32 @@ trafego pago</textarea>
             try {
                 currentUnit = await getUnit(currentProjectId, currentUnitId);
                 
+                // ⭐ MIGRAÇÃO AUTOMÁTICA: Corrigir unidades antigas
+                let needsUpdate = false;
+                
+                // Se customKeywords.enabled não existe ou é undefined, forçar para false
+                if (currentUnit.customKeywords && currentUnit.customKeywords.enabled !== false && currentUnit.customKeywords.enabled !== true) {
+                    console.log('🔄 [MIGRAÇÃO] Corrigindo customKeywords.enabled de undefined para false');
+                    currentUnit.customKeywords.enabled = false;
+                    needsUpdate = true;
+                }
+                
+                // Aplicar migração no Firestore
+                if (needsUpdate) {
+                    await updateUnit(currentProjectId, currentUnitId, {
+                        customKeywords: currentUnit.customKeywords
+                    });
+                    console.log('✅ [MIGRAÇÃO] Unidade atualizada no Firestore');
+                }
+                
                 // Atualizar UI
                 document.getElementById('unitName').textContent = currentUnit.name;
                 
                 // Carregar configurações
-                document.getElementById('cbFacebook').checked = currentUnit.trafficSources.facebook || false;
-                document.getElementById('cbInstagram').checked = currentUnit.trafficSources.instagram || false;
-                document.getElementById('cbGoogle').checked = currentUnit.trafficSources.google || false;
-                document.getElementById('cbPlaca').checked = currentUnit.trafficSources.placa || false;
+                document.getElementById('cbFacebook').checked = currentUnit.trafficSources?.facebook === true;
+                document.getElementById('cbInstagram').checked = currentUnit.trafficSources?.instagram === true;
+                document.getElementById('cbGoogle').checked = currentUnit.trafficSources?.google === true;
+                document.getElementById('cbPlaca').checked = currentUnit.trafficSources?.placa === true;
                 
                 // ⭐ SEMPRE false por padrão (para unidades antigas sem o campo)
                 const customKeywordsEnabled = currentUnit.customKeywords?.enabled === true;

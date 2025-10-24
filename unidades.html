@@ -320,11 +320,13 @@
             const name = document.getElementById('unitName').value.trim();
             
             if (!name) {
-                alert('Por favor, insira um nome para a unidade');
+                console.warn('⚠️ Nome vazio');
                 return;
             }
             
             try {
+                console.log('📝 Criando unidade:', name);
+                
                 await createUnit(currentProjectId, {
                     name: name,
                     trafficSources: {
@@ -339,12 +341,33 @@
                     }
                 });
                 
+                console.log('✅ Unidade criada!');
                 hideAddUnitModal();
-                alert('✅ Unidade criada com sucesso!');
                 loadUnits();
             } catch (error) {
-                console.error('Erro ao criar unidade:', error);
-                alert('Erro ao criar unidade');
+                console.error('❌ Erro ao criar unidade:', error);
+                console.error('❌ Código:', error.code);
+                console.error('❌ Mensagem:', error.message);
+                
+                // Mostrar erro na UI sem popup
+                const errorDiv = document.createElement('div');
+                errorDiv.className = 'fixed top-4 right-4 bg-red-100 border-2 border-red-400 text-red-800 px-6 py-4 rounded-lg shadow-lg z-50';
+                errorDiv.innerHTML = `
+                    <div class="flex items-start gap-3">
+                        <i class="fas fa-exclamation-circle text-2xl"></i>
+                        <div>
+                            <p class="font-bold">Erro ao criar unidade</p>
+                            <p class="text-sm">Verifique as permissões do Firestore</p>
+                        </div>
+                        <button onclick="this.parentElement.parentElement.remove()" class="ml-4 text-red-600 hover:text-red-800">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                `;
+                document.body.appendChild(errorDiv);
+                
+                // Auto-remover após 5 segundos
+                setTimeout(() => errorDiv.remove(), 5000);
             }
         });
     </script>

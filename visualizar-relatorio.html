@@ -597,14 +597,30 @@
 
             const md = reportData.manualData || {};
             const savedMetrics = reportData.savedMetrics || {};
-            const savedBlackMetrics = reportData.savedBlackMetrics || {};
-            const savedGoogleMetrics = reportData.savedGoogleMetrics || null; // ⭐ NOVO
+            const savedBlackMetrics = reportData.savedBlackMetrics || null;
+            const savedGoogleMetrics = reportData.savedGoogleMetrics || null;
             const savedBestAds = reportData.savedBestAds || [];
-            const hasBlack = md.hasBlack || false;
-            const hasMultiplePlatforms = !!(savedMetrics && savedGoogleMetrics) || !!(savedMetrics && savedBlackMetrics); // ⭐ NOVO
+            
+            // Detectar se tem Black (só se tiver conversações reais)
+            const hasBlack = savedBlackMetrics && savedBlackMetrics.conversations > 0;
+            
+            // Detectar múltiplas plataformas
+            const hasMetrics = savedMetrics && savedMetrics.conversations > 0;
+            const hasGoogle = savedGoogleMetrics && savedGoogleMetrics.conversations > 0;
+            const hasMultiplePlatforms = (hasMetrics && hasGoogle) || (hasMetrics && hasBlack);
+            
+            console.log('📊 Dados carregados:', {
+                hasMetrics,
+                hasBlack,
+                hasGoogle,
+                hasMultiplePlatforms,
+                savedMetrics,
+                savedBlackMetrics,
+                savedGoogleMetrics
+            });
 
             // Adicionar costPerConversation às métricas
-            if (savedMetrics.conversations) {
+            if (savedMetrics && savedMetrics.conversations) {
                 savedMetrics.costPerConversation = savedMetrics.conversations > 0 ? savedMetrics.spend / savedMetrics.conversations : 0;
             }
             if (hasBlack && savedBlackMetrics.conversations) {

@@ -65,13 +65,37 @@
             <div class="max-w-7xl mx-auto">
                 
                 <!-- Header -->
-                <div class="mb-8">
-                    <h1 class="text-3xl font-bold text-gray-900 mb-2">
-                        Gerenciar Unidades
-                    </h1>
-                    <p class="text-gray-600">
-                        Configure e importe planilhas de orçamentos para cada unidade
-                    </p>
+                <div class="mb-8 flex items-center justify-between">
+                    <div>
+                        <h1 class="text-3xl font-bold text-gray-900 mb-2">
+                            Gerenciar Unidades
+                        </h1>
+                        <p class="text-gray-600">
+                            Configure e importe planilhas de orçamentos para cada unidade
+                        </p>
+                    </div>
+                    
+                    <!-- Filtro de Período -->
+                    <div class="flex items-center gap-2 bg-white rounded-lg border-2 border-gray-200 p-1">
+                        <button 
+                            id="periodLast7Days" 
+                            class="px-4 py-2 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors"
+                            onclick="setPeriod('last7days')">
+                            Últimos 7 dias
+                        </button>
+                        <button 
+                            id="periodThisMonth" 
+                            class="px-4 py-2 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors"
+                            onclick="setPeriod('thismonth')">
+                            Este mês
+                        </button>
+                        <button 
+                            id="periodTotal" 
+                            class="px-4 py-2 rounded-md text-sm font-medium bg-blue-600 text-white"
+                            onclick="setPeriod('total')">
+                            Total
+                        </button>
+                    </div>
                 </div>
 
                 <!-- Loading -->
@@ -150,6 +174,8 @@
 
         let currentProjectId = null;
         let currentUser = null;
+        let currentPeriod = 'total'; // 'last7days', 'thismonth', 'total'
+        let allUnits = [];  // Cache de todas as unidades
 
         // Auth check
         onAuthStateChanged(auth, (user) => {
@@ -192,10 +218,64 @@
             }
         });
 
+        // Calcular dados filtrados por período
+        function filterDataByPeriod(rawData, period) {
+            if (!rawData || rawData.length === 0) {
+                return { totalBudgets: 0, totalSales: 0, totalRevenue: 0 };
+            }
+            
+            const today = new Date();
+            let startDate = null;
+            
+            if (period === 'last7days') {
+                // Últimos 7 dias (ex: 17/10 a 23/10 se hoje é 24/10)
+                startDate = new Date(today);
+                startDate.setDate(today.getDate() - 8); // -8 para pegar do dia 17
+                const endDate = new Date(today);
+                endDate.setDate(today.getDate() - 1); // Até ontem (23)
+                
+                const filtered = rawData.filter(item => {
+                    const itemDate = new Date(item.date);
+                    return itemDate >= startDate && itemDate <= endDate;
+                });
+                
+                return {
+                    totalBudgets: filtered.length,
+                    totalSales: filtered.filter(r => r.status === "APPROVED").length,
+                    totalRevenue: filtered.filter(r => r.status === "APPROVED")
+                                        .reduce((sum, r) => sum + r.value, 0)
+                };
+            } else if (period === 'thismonth') {
+                // Este mês
+                const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+                
+                const filtered = rawData.filter(item => {
+                    const itemDate = new Date(item.date);
+                    return itemDate >= firstDay && itemDate <= today;
+                });
+                
+                return {
+                    totalBudgets: filtered.length,
+                    totalSales: filtered.filter(r => r.status === "APPROVED").length,
+                    totalRevenue: filtered.filter(r => r.status === "APPROVED")
+                                        .reduce((sum, r) => sum + r.value, 0)
+                };
+            } else {
+                // Total
+                return {
+                    totalBudgets: rawData.length,
+                    totalSales: rawData.filter(r => r.status === "APPROVED").length,
+                    totalRevenue: rawData.filter(r => r.status === "APPROVED")
+                                        .reduce((sum, r) => sum + r.value, 0)
+                };
+            }
+        }
+
         // Carregar unidades
         async function loadUnits() {
             try {
                 const units = await listUnits(currentProjectId);
+                allUnits = units; // Salvar cache
                 
                 document.getElementById('loadingSection').classList.add('hidden');
                 
@@ -217,7 +297,13 @@
             grid.classList.remove('hidden');
             
             grid.innerHTML = units.map(unit => {
-                const hasData = unit.budgetData && unit.budgetData.totalBudgets > 0;
+                // Calcular dados filtrados por período
+                let displayData = { totalBudgets: 0, totalSales: 0, totalRevenue: 0 };
+                const hasData = unit.budgetData && unit.budgetData.rawData && unit.budgetData.rawData.length > 0;
+                
+                if (hasData) {
+                    displayData = filterDataByPeriod(unit.budgetData.rawData, currentPeriod);
+                }
                 
                 return `
                     <div class="bg-white border-2 border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow group relative">
@@ -242,15 +328,15 @@
                             <div class="space-y-1 mb-3">
                                 <div class="flex justify-between text-xs">
                                     <span class="text-gray-600">Orçamentos:</span>
-                                    <span class="font-semibold">${unit.budgetData.totalBudgets}</span>
+                                    <span class="font-semibold">${displayData.totalBudgets}</span>
                                 </div>
                                 <div class="flex justify-between text-xs">
                                     <span class="text-gray-600">Vendas:</span>
-                                    <span class="font-semibold text-green-600">${unit.budgetData.totalSales}</span>
+                                    <span class="font-semibold text-green-600">${displayData.totalSales}</span>
                                 </div>
                                 <div class="flex justify-between text-xs">
                                     <span class="text-gray-600">Faturamento:</span>
-                                    <span class="font-semibold text-purple-600">R$ ${unit.budgetData.totalRevenue.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</span>
+                                    <span class="font-semibold text-purple-600">R$ ${displayData.totalRevenue.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</span>
                                 </div>
                             </div>
                         ` : `
@@ -289,6 +375,27 @@
             const date = new Date(dateStr);
             return date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
         }
+
+        // Mudar período
+        window.setPeriod = (period) => {
+            currentPeriod = period;
+            
+            // Atualizar botões
+            document.getElementById('periodLast7Days').className = 'px-4 py-2 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors';
+            document.getElementById('periodThisMonth').className = 'px-4 py-2 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors';
+            document.getElementById('periodTotal').className = 'px-4 py-2 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors';
+            
+            if (period === 'last7days') {
+                document.getElementById('periodLast7Days').className = 'px-4 py-2 rounded-md text-sm font-medium bg-blue-600 text-white';
+            } else if (period === 'thismonth') {
+                document.getElementById('periodThisMonth').className = 'px-4 py-2 rounded-md text-sm font-medium bg-blue-600 text-white';
+            } else {
+                document.getElementById('periodTotal').className = 'px-4 py-2 rounded-md text-sm font-medium bg-blue-600 text-white';
+            }
+            
+            // Re-renderizar unidades com novo período
+            renderUnits(allUnits);
+        };
 
         // Abrir unidade
         window.openUnit = (unitId) => {

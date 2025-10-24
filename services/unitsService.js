@@ -34,6 +34,7 @@ export async function createUnit(projectId, unitData) {
                 enabled: true,
                 terms: ['Tráfego', 'Tráfego Pago', 'trafego', 'trafego pago']
             },
+            excludeMaintenance: false,
             budgetData: null, // Será preenchido no upload
             createdAt: serverTimestamp(),
             updatedAt: serverTimestamp()

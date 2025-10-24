@@ -64,14 +64,31 @@ function matchesTrafficRules(row, trafficSources, customKeywords) {
 }
 
 /**
+ * Verificar se linha é manutenção ortodôntica (para exclusão)
+ */
+function isMaintenanceProcedure(row) {
+    const colH = (row.H || "").toString().toLowerCase();
+    
+    const maintenanceTerms = [
+        "manutenção aparelho móvel",
+        "manutenção aparelho ortodôntico autoligado",
+        "manutenção aparelho ortodôntico safira",
+        "manutenção ortodôntica mensal"
+    ];
+    
+    return maintenanceTerms.some(term => colH.includes(term.toLowerCase()));
+}
+
+/**
  * Processar planilha Excel
  */
-export async function processSpreadsheet(file, trafficSources, customKeywords) {
+export async function processSpreadsheet(file, trafficSources, customKeywords, excludeMaintenance = false) {
     return new Promise((resolve, reject) => {
         console.log('📊 [processSpreadsheet] Iniciando processamento...');
         console.log('📋 Arquivo:', file.name);
         console.log('⚙️ Fontes de tráfego:', trafficSources);
         console.log('🔍 Palavras-chave:', customKeywords);
+        console.log('🚫 Excluir manutenção:', excludeMaintenance);
         
         const reader = new FileReader();
         
@@ -109,6 +126,12 @@ export async function processSpreadsheet(file, trafficSources, customKeywords) {
                     
                     // Verificar se atende regras de tráfego
                     if (matchesTrafficRules(row, trafficSources, customKeywords)) {
+                        // Excluir manutenções se opção estiver ativada
+                        if (excludeMaintenance && isMaintenanceProcedure(row)) {
+                            console.log('🚫 Excluindo manutenção:', row.H);
+                            return;
+                        }
+                        
                         // Extrair valor da coluna J
                         // Pode estar como número direto do Excel ou string formatada
                         let value = 0;
@@ -130,7 +153,8 @@ export async function processSpreadsheet(file, trafficSources, customKeywords) {
                             status: (row.C || "").toString().toUpperCase().trim(),
                             value: value,
                             source: (row.L || "").toString().trim(),
-                            observations: (row.K || "").toString().trim()
+                            observations: (row.K || "").toString().trim(),
+                            procedure: (row.H || "").toString().trim()
                         });
                     }
                 });

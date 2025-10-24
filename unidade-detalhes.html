@@ -200,6 +200,23 @@ trafego pago</textarea>
                         </div>
                     </div>
 
+                    <!-- Exclusão de Manutenções -->
+                    <div class="bg-white rounded-xl border-2 border-gray-200 p-6">
+                        <h3 class="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+                            <i class="fas fa-filter text-red-600"></i>
+                            Filtros de Exclusão
+                        </h3>
+                        
+                        <label class="flex items-center gap-3 p-3 border-2 border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+                            <input type="checkbox" id="cbExcludeMaintenance" class="w-5 h-5 text-red-600">
+                            <i class="fas fa-ban text-red-600"></i>
+                            <div>
+                                <span class="font-semibold">Excluir Manutenções Ortodônticas</span>
+                                <p class="text-xs text-gray-600 mt-1">Remove da contagem: Manutenção Aparelho Móvel, Manutenção Aparelho Ortodôntico (Autoligado/Safira), Manutenção Ortodôntica Mensal</p>
+                            </div>
+                        </label>
+                    </div>
+
                     <button id="saveConfigBtn" class="w-full px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold">
                         <i class="fas fa-save mr-2"></i>
                         Salvar Configurações
@@ -282,6 +299,8 @@ trafego pago</textarea>
                 document.getElementById('cbCustomKeywords').checked = currentUnit.customKeywords.enabled;
                 document.getElementById('customKeywords').value = currentUnit.customKeywords.terms.join('\n');
                 
+                document.getElementById('cbExcludeMaintenance').checked = currentUnit.excludeMaintenance || false;
+                
                 toggleKeywordsSection();
                 
                 // Mostrar dados da planilha se existir
@@ -317,6 +336,8 @@ trafego pago</textarea>
                     placa: document.getElementById('cbPlaca').checked
                 };
                 
+                const excludeMaintenance = document.getElementById('cbExcludeMaintenance').checked;
+                
                 const customKeywords = {
                     enabled: document.getElementById('cbCustomKeywords').checked,
                     terms: document.getElementById('customKeywords').value
@@ -327,7 +348,8 @@ trafego pago</textarea>
                 
                 await updateUnit(currentProjectId, currentUnitId, {
                     trafficSources,
-                    customKeywords
+                    customKeywords,
+                    excludeMaintenance
                 });
                 
                 alert('✅ Configurações salvas com sucesso!');
@@ -391,7 +413,8 @@ trafego pago</textarea>
                 const budgetData = await processSpreadsheet(
                     file, 
                     currentUnit.trafficSources, 
-                    currentUnit.customKeywords
+                    currentUnit.customKeywords,
+                    currentUnit.excludeMaintenance || false
                 );
                 
                 updateProgress(70);

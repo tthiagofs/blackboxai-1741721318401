@@ -158,6 +158,16 @@
                 const arrow = isPositive ? '▲' : '▼';
                 return `<span class="${color} text-xs font-semibold block mt-1">${arrow} ${Math.abs(change).toFixed(2)}%</span>`;
             };
+            
+            // Helper para custo (invertido)
+            const renderCostChange = (current, previous) => {
+                if (!previous || previous === 0) return '';
+                const change = ((current - previous) / previous) * 100;
+                const isPositive = change > 0;
+                const color = isPositive ? 'text-red-600' : 'text-green-600'; // Invertido
+                const arrow = isPositive ? '▲' : '▼';
+                return `<span class="${color} text-xs font-semibold block mt-1">${arrow} ${Math.abs(change).toFixed(2)}%</span>`;
+            };
 
             return `
                 <!-- Campanhas White -->
@@ -173,7 +183,10 @@
                                 ${createIconWithBackgroundSVG('dollar', '#3b82f6')}
                                 <h4 class="text-xs text-gray-600 font-medium">Valor investido</h4>
                             </div>
-                            <p class="text-2xl font-bold text-gray-900">${formatCurrencyBRL(metrics.spend || 0)}</p>
+                            <p class="text-2xl font-bold text-gray-900">
+                                ${formatCurrencyBRL(metrics.spend || 0)}
+                                ${renderCostChange(parseFloat(metrics.spend || 0), parseFloat(metrics.previousSpend || 0))}
+                            </p>
                             ${metrics.previousSpend ? `<p class="text-xs text-gray-500 mt-1">${formatCurrencyBRL(metrics.previousSpend)} no período anterior</p>` : ''}
                         </div>
                         <div class="bg-white rounded-lg p-4">
@@ -181,7 +194,10 @@
                                 ${createIconWithBackgroundSVG('users', '#10b981')}
                                 <h4 class="text-xs text-gray-600 font-medium">Alcance Total</h4>
                             </div>
-                            <p class="text-2xl font-bold text-gray-900">${(metrics.reach || 0).toLocaleString('pt-BR')}</p>
+                            <p class="text-2xl font-bold text-gray-900">
+                                ${(metrics.reach || 0).toLocaleString('pt-BR')}
+                                ${renderMetricChange(metrics.reach || 0, metrics.previousReach || 0)}
+                            </p>
                             ${metrics.previousReach ? `<p class="text-xs text-gray-500 mt-1">${metrics.previousReach.toLocaleString('pt-BR')} no período anterior</p>` : ''}
                         </div>
                         <div class="bg-white rounded-lg p-4">
@@ -189,7 +205,10 @@
                                 ${createIconWithBackgroundSVG('comments', '#8b5cf6')}
                                 <h4 class="text-xs text-gray-600 font-medium">Conversas iniciadas por mensagem</h4>
                             </div>
-                            <p class="text-2xl font-bold text-gray-900">${metrics.conversations || 0}</p>
+                            <p class="text-2xl font-bold text-gray-900">
+                                ${metrics.conversations || 0}
+                                ${renderMetricChange(metrics.conversations || 0, metrics.previousConversations || 0)}
+                            </p>
                             ${metrics.previousConversations ? `<p class="text-xs text-gray-500 mt-1">${metrics.previousConversations} no período anterior</p>` : ''}
                         </div>
                         <div class="bg-white rounded-lg p-4">
@@ -197,7 +216,10 @@
                                 ${createIconWithBackgroundSVG('chart-line', '#f59e0b')}
                                 <h4 class="text-xs text-gray-600 font-medium">Custo por conversas iniciadas por mensagem</h4>
                             </div>
-                            <p class="text-2xl font-bold text-gray-900">${formatCurrencyBRL(metrics.costPerConversation || 0)}</p>
+                            <p class="text-2xl font-bold text-gray-900">
+                                ${formatCurrencyBRL(metrics.costPerConversation || 0)}
+                                ${renderCostChange(parseFloat(metrics.costPerConversation || 0), parseFloat(metrics.previousCostPerConversation || 0))}
+                            </p>
                             ${metrics.previousCostPerConversation ? `<p class="text-xs text-gray-500 mt-1">${formatCurrencyBRL(metrics.previousCostPerConversation)} no período anterior</p>` : ''}
                         </div>
                     </div>
@@ -216,7 +238,10 @@
                                 ${createIconWithBackgroundSVG('dollar', '#3b82f6')}
                                 <h4 class="text-xs text-gray-600 font-medium">Valor investido</h4>
                             </div>
-                            <p class="text-2xl font-bold text-gray-900">${formatCurrencyBRL(blackMetrics.spend || 0)}</p>
+                            <p class="text-2xl font-bold text-gray-900">
+                                ${formatCurrencyBRL(blackMetrics.spend || 0)}
+                                ${renderCostChange(parseFloat(blackMetrics.spend || 0), parseFloat(blackMetrics.previousSpend || 0))}
+                            </p>
                             ${blackMetrics.previousSpend ? `<p class="text-xs text-gray-500 mt-1">${formatCurrencyBRL(blackMetrics.previousSpend)} no período anterior</p>` : ''}
                         </div>
                         <div class="bg-white rounded-lg p-4">
@@ -224,7 +249,10 @@
                                 ${createIconWithBackgroundSVG('users', '#10b981')}
                                 <h4 class="text-xs text-gray-600 font-medium">Alcance Total</h4>
                             </div>
-                            <p class="text-2xl font-bold text-gray-900">${(blackMetrics.reach || 0).toLocaleString('pt-BR')}</p>
+                            <p class="text-2xl font-bold text-gray-900">
+                                ${(blackMetrics.reach || 0).toLocaleString('pt-BR')}
+                                ${renderMetricChange(blackMetrics.reach || 0, blackMetrics.previousReach || 0)}
+                            </p>
                             ${blackMetrics.previousReach ? `<p class="text-xs text-gray-500 mt-1">${blackMetrics.previousReach.toLocaleString('pt-BR')} no período anterior</p>` : ''}
                         </div>
                         <div class="bg-white rounded-lg p-4">
@@ -232,7 +260,10 @@
                                 ${createIconWithBackgroundSVG('comments', '#8b5cf6')}
                                 <h4 class="text-xs text-gray-600 font-medium">Conversas iniciadas por mensagem</h4>
                             </div>
-                            <p class="text-2xl font-bold text-gray-900">${blackMetrics.conversations || 0}</p>
+                            <p class="text-2xl font-bold text-gray-900">
+                                ${blackMetrics.conversations || 0}
+                                ${renderMetricChange(blackMetrics.conversations || 0, blackMetrics.previousConversations || 0)}
+                            </p>
                             ${blackMetrics.previousConversations ? `<p class="text-xs text-gray-500 mt-1">${blackMetrics.previousConversations} no período anterior</p>` : ''}
                         </div>
                         <div class="bg-white rounded-lg p-4">
@@ -240,7 +271,10 @@
                                 ${createIconWithBackgroundSVG('chart-line', '#f59e0b')}
                                 <h4 class="text-xs text-gray-600 font-medium">Custo por conversas iniciadas por mensagem</h4>
                             </div>
-                            <p class="text-2xl font-bold text-gray-900">${formatCurrencyBRL(blackMetrics.costPerConversation || 0)}</p>
+                            <p class="text-2xl font-bold text-gray-900">
+                                ${formatCurrencyBRL(blackMetrics.costPerConversation || 0)}
+                                ${renderCostChange(parseFloat(blackMetrics.costPerConversation || 0), parseFloat(blackMetrics.previousCostPerConversation || 0))}
+                            </p>
                             ${blackMetrics.previousCostPerConversation ? `<p class="text-xs text-gray-500 mt-1">${formatCurrencyBRL(blackMetrics.previousCostPerConversation)} no período anterior</p>` : ''}
                         </div>
                     </div>

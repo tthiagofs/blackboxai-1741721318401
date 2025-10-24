@@ -469,15 +469,18 @@
         }
 
         function renderInvites(invites) {
-            document.getElementById('invitesLoading').classList.add('hidden');
+            const loadingEl = document.getElementById('invitesLoading');
+            const emptyEl = document.getElementById('invitesEmpty');
+            
+            if (loadingEl) loadingEl.classList.add('hidden');
             
             if (invites.length === 0) {
-                document.getElementById('invitesEmpty').classList.remove('hidden');
+                if (emptyEl) emptyEl.classList.remove('hidden');
                 invitesTableBody.innerHTML = '';
                 return;
             }
 
-            document.getElementById('invitesEmpty').classList.add('hidden');
+            if (emptyEl) emptyEl.classList.add('hidden');
             
             invitesTableBody.innerHTML = invites.map(invite => {
                 const createdAt = new Date(invite.createdAt).toLocaleString('pt-BR');
@@ -501,13 +504,24 @@
                             </span>
                         </td>
                         <td class="px-6 py-3 text-right">
-                            <button 
-                                onclick="deleteInvite('${invite.id}')"
-                                class="text-red-600 hover:text-red-800 transition-colors"
-                                title="Excluir convite"
-                            >
-                                <i class="fas fa-trash"></i>
-                            </button>
+                            <div class="flex items-center justify-end gap-2">
+                                ${isExpired ? `
+                                    <button 
+                                        onclick="resendInvite('${invite.id}', '${invite.email.replace(/'/g, "\\'")}')"
+                                        class="text-blue-600 hover:text-blue-800 transition-colors"
+                                        title="Reenviar convite"
+                                    >
+                                        <i class="fas fa-redo"></i>
+                                    </button>
+                                ` : ''}
+                                <button 
+                                    onclick="deleteInvite('${invite.id}')"
+                                    class="text-red-600 hover:text-red-800 transition-colors"
+                                    title="Excluir convite"
+                                >
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
                         </td>
                     </tr>
                 `;
@@ -527,6 +541,60 @@
             } catch (error) {
                 console.error('Erro ao excluir convite:', error);
                 alert('Erro ao excluir convite. Tente novamente.');
+            }
+        };
+
+        // Reenviar convite
+        window.resendInvite = async (inviteId, email) => {
+            if (!confirm(`Deseja reenviar o convite para ${email}?\n\nO convite antigo será substituído por um novo com validade de 24 horas.`)) {
+                return;
+            }
+
+            try {
+                // 1. Deletar o convite antigo
+                await deleteDoc(doc(db, 'invites', inviteId));
+                
+                // 2. Criar novo convite
+                const expiresAt = new Date();
+                expiresAt.setHours(expiresAt.getHours() + 24);
+
+                await addDoc(collection(db, 'invites'), {
+                    email: email,
+                    createdAt: new Date().toISOString(),
+                    expiresAt: expiresAt.toISOString(),
+                    createdBy: auth.currentUser.uid
+                });
+
+                // 3. Enviar email
+                const inviteLink = `${window.location.origin}/cadastro.html?email=${encodeURIComponent(email)}`;
+                
+                try {
+                    const response = await fetch('/api/send-invite', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            email: email,
+                            inviteLink: inviteLink
+                        }),
+                    });
+
+                    if (response.ok) {
+                        console.log('✅ Email de convite reenviado');
+                    } else {
+                        console.warn('⚠️ Erro ao enviar email, mas convite foi criado');
+                    }
+                } catch (emailError) {
+                    console.warn('⚠️ Erro ao enviar email:', emailError);
+                }
+
+                alert(`✅ Convite reenviado com sucesso para ${email}!`);
+                loadInvites();
+                
+            } catch (error) {
+                console.error('Erro ao reenviar convite:', error);
+                alert('Erro ao reenviar convite. Tente novamente.');
             }
         };
 

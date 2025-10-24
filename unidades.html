@@ -154,12 +154,15 @@
         // Auth check
         onAuthStateChanged(auth, (user) => {
             if (!user) {
-                window.location.href = '/login.html';
+                console.warn('⚠️ Usuário não autenticado, redirecionando...');
+                // TEMPORARIAMENTE DESABILITADO PARA DEBUG
+                // window.location.href = '/login.html';
                 return;
             }
             
             currentUser = user;
             console.log('✅ Usuário autenticado:', user.email);
+            console.log('🆔 UID:', user.uid);
             
             // Mostrar links de admin se for admin
             if (user.email === 'thiagofelipefreire0810@gmail.com') {
@@ -171,14 +174,20 @@
             const urlParams = new URLSearchParams(window.location.search);
             currentProjectId = urlParams.get('projectId');
             
+            console.log('📂 Project ID da URL:', currentProjectId);
+            
             if (!currentProjectId) {
+                console.error('❌ Projeto não encontrado na URL');
                 alert('❌ Projeto não encontrado');
-                window.location.href = '/dashboard.html';
+                // TEMPORARIAMENTE DESABILITADO PARA DEBUG
+                // window.location.href = '/dashboard.html';
                 return;
             }
             
             // Atualizar link Tela Inicial
             document.getElementById('telaInicialLink').href = `projeto.html?id=${currentProjectId}`;
+            
+            console.log('🚀 Iniciando carregamento de unidades...');
             
             // Carregar unidades
             loadUnits();

@@ -31,7 +31,7 @@ export async function createUnit(projectId, unitData) {
                 placa: false
             },
             customKeywords: unitData.customKeywords || {
-                enabled: true,
+                enabled: false, // ❌ Busca em "Outros" desativada por padrão
                 terms: ['Tráfego', 'Tráfego Pago', 'trafego', 'trafego pago']
             },
             excludeMaintenance: true, // ✅ Excluir manutenções ativado por padrão

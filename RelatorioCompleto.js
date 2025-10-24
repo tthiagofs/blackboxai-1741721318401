@@ -454,6 +454,10 @@ function renderGoogleAccounts(accounts) {
         const option = document.createElement('option');
         option.value = account.customerId;
         option.textContent = account.name;
+        // Armazenar managedBy como data attribute para usar ao criar o serviço
+        if (account.managedBy) {
+            option.dataset.managedBy = account.managedBy;
+        }
         googleAdsAccountSelect.appendChild(option);
     });
 }
@@ -1159,7 +1163,10 @@ async function generateCompleteReport() {
             try {
                 // Usar o accessToken do Google Auth
                 const accessToken = googleAuth.getAccessToken();
-                const googleService = new GoogleAdsService(googleAccountId, accessToken);
+                // Pegar managedBy (MCC ID) se a conta for gerenciada
+                const selectedOption = googleAdsAccountSelect.options[googleAdsAccountSelect.selectedIndex];
+                const managedBy = selectedOption?.dataset?.managedBy || null;
+                const googleService = new GoogleAdsService(googleAccountId, accessToken, managedBy);
                 const googleInsights = await googleService.getAccountInsights(startDate, endDate);
                 googleMetrics = googleService.calculateMetrics(googleInsights);
                 
@@ -1221,7 +1228,10 @@ async function generateCompleteReport() {
         if (comparisonData && googleAccountId && !unitId) {
             try {
                 console.log('📊 Buscando dados de comparação Google Ads...');
-                const googleService = new GoogleAdsService(googleAccountId, googleAuth.getAccessToken());
+                // Pegar managedBy (MCC ID) se a conta for gerenciada
+                const selectedOption = googleAdsAccountSelect.options[googleAdsAccountSelect.selectedIndex];
+                const managedBy = selectedOption?.dataset?.managedBy || null;
+                const googleService = new GoogleAdsService(googleAccountId, googleAuth.getAccessToken(), managedBy);
                 const comparison = await googleService.getComparison(startDate, endDate);
                 
                 if (comparison) {

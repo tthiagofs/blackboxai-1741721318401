@@ -12,19 +12,22 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { action, customerId, startDate, endDate, accessToken } = req.body;
+    const { action, customerId, startDate, endDate, accessToken, loginCustomerId } = req.body;
 
     console.log('📥 Ação recebida:', action);
+    if (loginCustomerId) {
+      console.log('🔐 Login Customer ID (MCC):', loginCustomerId);
+    }
 
     switch (action) {
       case 'listAccounts':
         return await listAccounts(accessToken, res);
       
       case 'getAccountInsights':
-        return await getAccountInsights(customerId, startDate, endDate, accessToken, res);
+        return await getAccountInsights(customerId, startDate, endDate, accessToken, res, loginCustomerId);
       
       case 'getComparison':
-        return await getComparison(customerId, startDate, endDate, accessToken, res);
+        return await getComparison(customerId, startDate, endDate, accessToken, res, loginCustomerId);
       
       default:
         return res.status(400).json({ error: 'Ação inválida' });
@@ -235,7 +238,7 @@ async function getAccountInfo(customerId, accessToken) {
 }
 
 // Buscar insights da conta
-async function getAccountInsights(customerId, startDate, endDate, accessToken, res) {
+async function getAccountInsights(customerId, startDate, endDate, accessToken, res, loginCustomerId = null) {
   try {
     if (!customerId || !startDate || !endDate) {
       throw new Error('customerId, startDate e endDate são obrigatórios');
@@ -256,16 +259,24 @@ async function getAccountInsights(customerId, startDate, endDate, accessToken, r
     `;
 
     console.log('🔍 Query:', query);
+    console.log(`📊 Buscando insights para conta ${customerId}${loginCustomerId ? ` via MCC ${loginCustomerId}` : ''}`);
+
+    const headers = {
+      'Authorization': `Bearer ${accessToken}`,
+      'developer-token': process.env.GOOGLE_ADS_DEVELOPER_TOKEN,
+      'Content-Type': 'application/json',
+    };
+    
+    // Adicionar login-customer-id se a conta for acessada via MCC
+    if (loginCustomerId) {
+      headers['login-customer-id'] = loginCustomerId;
+    }
 
     const response = await fetch(
       `https://googleads.googleapis.com/v19/customers/${customerId}/googleAds:searchStream`,
       {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${accessToken}`,
-          'developer-token': process.env.GOOGLE_ADS_DEVELOPER_TOKEN,
-          'Content-Type': 'application/json',
-        },
+        headers,
         body: JSON.stringify({ query }),
       }
     );
@@ -325,7 +336,7 @@ async function getAccountInsights(customerId, startDate, endDate, accessToken, r
 }
 
 // Buscar dados de comparação
-async function getComparison(customerId, startDate, endDate, accessToken, res) {
+async function getComparison(customerId, startDate, endDate, accessToken, res, loginCustomerId = null) {
   try {
     // Calcular período anterior
     const start = new Date(startDate);
@@ -342,16 +353,31 @@ async function getComparison(customerId, startDate, endDate, accessToken, res) {
 
     // Buscar dados dos dois períodos
     const [currentData, previousData] = await Promise.all([
-      getAccountInsights(customerId, startDate, endDate, accessToken, null),
-      getAccountInsights(customerId, previousStartDate, previousEndDate, accessToken, null),
+      getAccountInsights(customerId, startDate, endDate, accessToken, null, loginCustomerId),
+      getAccountInsights(customerId, previousStartDate, previousEndDate, accessToken, null, loginCustomerId),
     ]);
 
     const current = currentData.insights;
     const previous = previousData.insights;
+    
+    // Normalizar nomes para compatibilidade com renderização Meta
+    const normalizedCurrent = {
+      spend: current.cost,
+      impressions: current.impressions,
+      conversations: current.conversions,
+      costPerConversation: current.costPerConversion
+    };
+    
+    const normalizedPrevious = {
+      spend: previous.cost,
+      impressions: previous.impressions,
+      conversations: previous.conversions,
+      costPerConversation: previous.costPerConversion
+    };
 
     return res.status(200).json({
-      current,
-      previous,
+      current: normalizedCurrent,
+      previous: normalizedPrevious,
     });
   } catch (error) {
     console.error('❌ Erro ao buscar comparação:', error);

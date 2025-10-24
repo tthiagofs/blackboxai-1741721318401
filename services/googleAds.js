@@ -1,8 +1,9 @@
 // Serviço para Google Ads via Vercel Serverless Functions
 export class GoogleAdsService {
-    constructor(customerId, accessToken = null) {
+    constructor(customerId, accessToken = null, loginCustomerId = null) {
         this.customerId = customerId;
         this.accessToken = accessToken;
+        this.loginCustomerId = loginCustomerId; // ID da MCC se a conta for gerenciada
         // URL da Vercel Function (funciona com ambos os caminhos graças ao vercel.json)
         this.apiUrl = '/api/google-ads';
     }
@@ -13,6 +14,7 @@ export class GoogleAdsService {
                 action,
                 customerId: this.customerId,
                 accessToken: this.accessToken,
+                loginCustomerId: this.loginCustomerId, // Incluir MCC ID se existir
                 ...params,
             };
 

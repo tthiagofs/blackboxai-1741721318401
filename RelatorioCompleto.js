@@ -1508,7 +1508,7 @@ function renderCompleteReport(unitName, startDate, endDate, metrics, blackMetric
                 
                 ${hasMultiplePlatforms ? renderTotalLeads(metrics, blackMetrics) : ''}
             
-                ${renderBestAds(bestAds)}
+                ${renderBestAds(bestAds, metrics.platform === 'google')}
                 
                 ${renderBusinessResults(budgetsCompleted, salesCount, revenue, totalInvestment)}
                 
@@ -1798,9 +1798,10 @@ function renderStandardReport(metrics, comparisonMetrics, accountName = '') {
     `;
 }
 
-function renderBestAds(bestAds) {
-    if (bestAds.length === 0) {
-        return '<p class="text-gray-600 text-base">Nenhum anúncio com dados (leads ou investimento) encontrado para este período.</p>';
+function renderBestAds(bestAds, isGoogleAds = false) {
+    // Se for Google Ads, não mostrar nada (Google não tem imagens de anúncios)
+    if (isGoogleAds || !bestAds || bestAds.length === 0) {
+        return '';
     }
 
     return `

@@ -196,7 +196,12 @@
         // Carregar unidades
         async function loadUnits() {
             try {
+                console.log('🔍 Tentando carregar unidades do projeto:', currentProjectId);
+                console.log('👤 Usuário autenticado:', currentUser.uid);
+                
                 const units = await listUnits(currentProjectId);
+                
+                console.log('✅ Unidades carregadas:', units);
                 
                 document.getElementById('loadingSection').classList.add('hidden');
                 
@@ -206,8 +211,13 @@
                     renderUnits(units);
                 }
             } catch (error) {
-                console.error('Erro ao carregar unidades:', error);
-                alert('Erro ao carregar unidades');
+                console.error('❌ Erro ao carregar unidades:', error);
+                console.error('❌ Detalhes:', error.message);
+                console.error('❌ Stack:', error.stack);
+                
+                // Mostrar erro no console mas não bloquear a UI
+                document.getElementById('loadingSection').classList.add('hidden');
+                document.getElementById('emptyState').classList.remove('hidden');
             }
         }
 

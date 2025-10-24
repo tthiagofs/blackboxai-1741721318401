@@ -12,9 +12,6 @@ import {
     getDocs, 
     updateDoc, 
     deleteDoc,
-    query,
-    where,
-    orderBy,
     serverTimestamp 
 } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 
@@ -57,21 +54,23 @@ export async function listUnits(projectId) {
     try {
         console.log('📋 [listUnits] Buscando unidades do projeto:', projectId);
         
-        const unitsQuery = query(
-            collection(db, `projects/${projectId}/units`),
-            orderBy('name', 'asc')
-        );
+        // Sem orderBy para evitar erro de permissões
+        const snapshot = await getDocs(collection(db, `projects/${projectId}/units`));
         
-        const snapshot = await getDocs(unitsQuery);
         const units = snapshot.docs.map(doc => ({
             id: doc.id,
             ...doc.data()
         }));
         
+        // Ordenar manualmente
+        units.sort((a, b) => a.name.localeCompare(b.name));
+        
         console.log(`✅ [listUnits] ${units.length} unidades encontradas`);
         return units;
     } catch (error) {
         console.error('❌ [listUnits] Erro:', error);
+        console.error('❌ Código:', error.code);
+        console.error('❌ Mensagem:', error.message);
         throw error;
     }
 }

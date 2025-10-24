@@ -650,48 +650,77 @@
                 console.log('🔄 [deleteUser] Iniciando processo de exclusão...');
                 
                 // 1. Buscar todos os projetos do usuário
-                console.log('📁 [deleteUser] Buscando projetos do usuário...');
-                const projectsQuery = query(
-                    collection(db, 'projects'), 
-                    where('ownerId', '==', userId)
-                );
-                const projectsSnapshot = await getDocs(projectsQuery);
-                
-                console.log(`📊 [deleteUser] Encontrados ${projectsSnapshot.size} projetos`);
-                
-                // 2. Deletar cada projeto e seus relatórios
-                for (const projectDoc of projectsSnapshot.docs) {
-                    const projectId = projectDoc.id;
-                    console.log(`🗑️ [deleteUser] Deletando projeto: ${projectId}`);
+                try {
+                    console.log('📁 [deleteUser] Buscando projetos do usuário...');
+                    const projectsQuery = query(
+                        collection(db, 'projects'), 
+                        where('ownerId', '==', userId)
+                    );
+                    const projectsSnapshot = await getDocs(projectsQuery);
                     
-                    // 2.1. Deletar relatórios do projeto
-                    const reportsQuery = query(collection(db, `projects/${projectId}/reports`));
-                    const reportsSnapshot = await getDocs(reportsQuery);
+                    console.log(`📊 [deleteUser] Encontrados ${projectsSnapshot.size} projetos`);
                     
-                    console.log(`  📄 [deleteUser] Deletando ${reportsSnapshot.size} relatórios do projeto`);
-                    
-                    for (const reportDoc of reportsSnapshot.docs) {
-                        await deleteDoc(doc(db, `projects/${projectId}/reports/${reportDoc.id}`));
+                    // 2. Deletar cada projeto e seus relatórios
+                    for (const projectDoc of projectsSnapshot.docs) {
+                        const projectId = projectDoc.id;
+                        console.log(`🗑️ [deleteUser] Deletando projeto: ${projectId}`);
+                        
+                        try {
+                            // 2.1. Deletar relatórios do projeto
+                            const reportsQuery = query(collection(db, `projects/${projectId}/reports`));
+                            const reportsSnapshot = await getDocs(reportsQuery);
+                            
+                            console.log(`  📄 [deleteUser] Deletando ${reportsSnapshot.size} relatórios do projeto`);
+                            
+                            for (const reportDoc of reportsSnapshot.docs) {
+                                try {
+                                    await deleteDoc(doc(db, `projects/${projectId}/reports/${reportDoc.id}`));
+                                    console.log(`    ✅ Relatório ${reportDoc.id} deletado`);
+                                } catch (reportError) {
+                                    console.error(`    ❌ Erro ao deletar relatório ${reportDoc.id}:`, reportError.message);
+                                    throw reportError;
+                                }
+                            }
+                            
+                            // 2.2. Deletar o projeto
+                            await deleteDoc(doc(db, 'projects', projectId));
+                            console.log(`  ✅ Projeto ${projectId} deletado`);
+                        } catch (projectError) {
+                            console.error(`  ❌ Erro ao deletar projeto ${projectId}:`, projectError.message);
+                            throw projectError;
+                        }
                     }
-                    
-                    // 2.2. Deletar o projeto
-                    await deleteDoc(doc(db, 'projects', projectId));
+                } catch (projectsError) {
+                    console.error('❌ [deleteUser] Erro ao processar projetos:', projectsError.message);
+                    throw projectsError;
                 }
                 
                 // 3. Deletar templates de análise do usuário
-                console.log('💬 [deleteUser] Deletando templates de análise...');
-                const templatesQuery = query(collection(db, `users/${userId}/analysisTemplates`));
-                const templatesSnapshot = await getDocs(templatesQuery);
-                
-                console.log(`  📝 [deleteUser] Deletando ${templatesSnapshot.size} templates`);
-                
-                for (const templateDoc of templatesSnapshot.docs) {
-                    await deleteDoc(doc(db, `users/${userId}/analysisTemplates/${templateDoc.id}`));
+                try {
+                    console.log('💬 [deleteUser] Deletando templates de análise...');
+                    const templatesQuery = query(collection(db, `users/${userId}/analysisTemplates`));
+                    const templatesSnapshot = await getDocs(templatesQuery);
+                    
+                    console.log(`  📝 [deleteUser] Deletando ${templatesSnapshot.size} templates`);
+                    
+                    for (const templateDoc of templatesSnapshot.docs) {
+                        await deleteDoc(doc(db, `users/${userId}/analysisTemplates/${templateDoc.id}`));
+                    }
+                    console.log('  ✅ Templates deletados');
+                } catch (templatesError) {
+                    console.error('❌ [deleteUser] Erro ao deletar templates:', templatesError.message);
+                    throw templatesError;
                 }
                 
                 // 4. Deletar o documento do usuário
-                console.log('👤 [deleteUser] Deletando documento do usuário...');
-                await deleteDoc(doc(db, 'users', userId));
+                try {
+                    console.log('👤 [deleteUser] Deletando documento do usuário...');
+                    await deleteDoc(doc(db, 'users', userId));
+                    console.log('  ✅ Usuário deletado');
+                } catch (userError) {
+                    console.error('❌ [deleteUser] Erro ao deletar usuário:', userError.message);
+                    throw userError;
+                }
                 
                 console.log('✅ [deleteUser] Usuário excluído com sucesso!');
                 alert(`✅ Usuário ${userEmail} foi excluído com sucesso!\n\nTodos os seus dados foram removidos do sistema.\n\nVocê pode convidá-lo novamente se desejar.`);
@@ -701,7 +730,8 @@
                 
             } catch (error) {
                 console.error('❌ [deleteUser] Erro ao excluir usuário:', error);
-                alert(`❌ Erro ao excluir usuário:\n\n${error.message}\n\nTente novamente ou contate o suporte.`);
+                console.error('❌ [deleteUser] Stack:', error.stack);
+                alert(`❌ Erro ao excluir usuário:\n\n${error.message}\n\nVerifique o console para mais detalhes.`);
             }
         };
 

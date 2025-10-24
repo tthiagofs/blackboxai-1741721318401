@@ -72,7 +72,7 @@
                 </div>
 
             <!-- Grid de Projetos -->
-            <div id="projectsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            <div id="projectsGrid" class="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <!-- Loading State -->
                 <div id="projectsLoading" class="col-span-full flex items-center justify-center py-12">
                     <div class="text-center">
@@ -309,26 +309,61 @@
         // Criar card de projeto
         function createProjectCard(project) {
             const card = document.createElement('div');
-            card.className = 'project-card bg-white rounded-lg p-4 border border-gray-200 hover:shadow-lg transition-all';
+            card.className = 'project-card bg-gradient-to-br from-white to-blue-50 rounded-2xl p-8 border-2 border-blue-200 hover:shadow-2xl hover:scale-105 transition-all cursor-pointer group relative';
             
             const date = project.createdAt?.toDate ? project.createdAt.toDate() : new Date(project.createdAt);
-            const formattedDate = date.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+            const formattedDate = date.toLocaleDateString('pt-BR', { day: 'numeric', month: 'long', year: 'numeric' });
             
             card.innerHTML = `
-                <div class="mb-3">
-                    <h4 class="text-sm font-bold text-gray-900 mb-1">${project.name}</h4>
-                    <p class="text-xs text-gray-500">${formattedDate}</p>
+                <!-- Botão Excluir (canto superior direito) -->
+                <button 
+                    onclick="deleteProject('${project.id}', event)" 
+                    class="absolute top-3 right-3 w-9 h-9 bg-red-100 text-red-600 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-200 flex items-center justify-center z-10"
+                    title="Excluir projeto">
+                    <i class="fas fa-trash text-sm"></i>
+                </button>
+                
+                <div class="mb-6" onclick="openProject('${project.id}')">
+                    <!-- Ícone Grande -->
+                    <div class="w-20 h-20 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-2xl flex items-center justify-center mb-4 shadow-lg">
+                        <i class="fas fa-chart-line text-4xl text-white"></i>
+                    </div>
+                    
+                    <!-- Nome do Projeto -->
+                    <h4 class="text-2xl font-bold text-gray-900 mb-2">${project.name}</h4>
+                    
+                    <!-- Data -->
+                    <div class="flex items-center gap-2 text-gray-600 mb-4">
+                        <i class="fas fa-calendar-alt text-sm"></i>
+                        <p class="text-sm">Criado em ${formattedDate}</p>
+                    </div>
+                    
+                    <!-- Informações Rápidas (se houver) -->
+                    <div class="grid grid-cols-2 gap-3 mb-6">
+                        <div class="bg-white bg-opacity-60 rounded-lg p-3 backdrop-blur-sm">
+                            <div class="flex items-center gap-2 mb-1">
+                                <i class="fas fa-file-alt text-blue-600 text-sm"></i>
+                                <span class="text-xs text-gray-600">Relatórios</span>
+                            </div>
+                            <p class="text-lg font-bold text-gray-900">-</p>
+                        </div>
+                        <div class="bg-white bg-opacity-60 rounded-lg p-3 backdrop-blur-sm">
+                            <div class="flex items-center gap-2 mb-1">
+                                <i class="fas fa-building text-purple-600 text-sm"></i>
+                                <span class="text-xs text-gray-600">Unidades</span>
+                            </div>
+                            <p class="text-lg font-bold text-gray-900">-</p>
+                        </div>
+                    </div>
                 </div>
                 
-                <div class="flex gap-2">
-                    <button onclick="openProject('${project.id}')" class="flex items-center justify-center bg-blue-600 text-white px-3 py-1.5 rounded text-xs font-medium hover:bg-blue-700 transition-all">
-                        <i class="fas fa-arrow-right mr-1"></i>
-                        Acessar
-                    </button>
-                    <button onclick="deleteProject('${project.id}', event)" class="px-2.5 py-1.5 bg-red-600 text-white rounded text-xs hover:bg-red-700 transition-all">
-                        <i class="fas fa-trash"></i>
-                    </button>
-                </div>
+                <!-- Botão Acessar -->
+                <button 
+                    onclick="openProject('${project.id}')" 
+                    class="w-full flex items-center justify-center bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-6 py-3 rounded-xl text-base font-semibold hover:from-blue-700 hover:to-indigo-700 transition-all shadow-lg">
+                    <i class="fas fa-arrow-right mr-2"></i>
+                    Acessar Projeto
+                </button>
             `;
             
             return card;

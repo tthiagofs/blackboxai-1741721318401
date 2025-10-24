@@ -109,11 +109,20 @@ export async function processSpreadsheet(file, trafficSources, customKeywords) {
                     
                     // Verificar se atende regras de tráfego
                     if (matchesTrafficRules(row, trafficSources, customKeywords)) {
-                        // Extrair valor da coluna J (pode estar como string com vírgula)
+                        // Extrair valor da coluna J
+                        // Pode estar como número direto do Excel ou string formatada
                         let value = 0;
                         if (row.J) {
-                            const valueStr = row.J.toString().replace(',', '.');
-                            value = parseFloat(valueStr) || 0;
+                            if (typeof row.J === 'number') {
+                                // Já é número (Excel)
+                                value = row.J;
+                            } else {
+                                // É string: remover pontos (milhares) e trocar vírgula por ponto
+                                const valueStr = row.J.toString()
+                                    .replace(/\./g, '')  // Remove pontos (milhares)
+                                    .replace(',', '.');  // Troca vírgula por ponto (decimal)
+                                value = parseFloat(valueStr) || 0;
+                            }
                         }
                         
                         rawData.push({

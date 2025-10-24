@@ -332,29 +332,39 @@
         // Carregar usuários
         async function loadUsers() {
             try {
+                console.log('🔍 [Usuários] Iniciando carregamento...');
                 const usersQuery = query(collection(db, 'users'), orderBy('createdAt', 'desc'));
                 const snapshot = await getDocs(usersQuery);
                 
-                allUsers = snapshot.docs.map(doc => ({
-                    id: doc.id,
-                    ...doc.data()
-                }));
+                console.log('📊 [Usuários] Documentos encontrados:', snapshot.size);
+                
+                allUsers = snapshot.docs.map(doc => {
+                    const data = doc.data();
+                    console.log('👤 [Usuário]', doc.id, ':', data);
+                    return {
+                        id: doc.id,
+                        ...data
+                    };
+                });
 
+                console.log('✅ [Usuários] Total de usuários:', allUsers.length);
                 renderUsers(allUsers);
                 
                 // Atualizar contador na aba
                 usersTab.innerHTML = `Usuários (${allUsers.length})`;
             } catch (error) {
-                console.error('Erro ao carregar usuários:', error);
+                console.error('❌ [Usuários] Erro ao carregar:', error);
                 document.getElementById('usersLoading').classList.add('hidden');
                 document.getElementById('usersEmpty').classList.remove('hidden');
             }
         }
 
         function renderUsers(users) {
+            console.log('🎨 [renderUsers] Renderizando', users.length, 'usuários');
             document.getElementById('usersLoading').classList.add('hidden');
             
             if (users.length === 0) {
+                console.log('⚠️ [renderUsers] Nenhum usuário para renderizar');
                 document.getElementById('usersEmpty').classList.remove('hidden');
                 usersTableBody.innerHTML = '';
                 return;
@@ -362,8 +372,30 @@
 
             document.getElementById('usersEmpty').classList.add('hidden');
             
-            usersTableBody.innerHTML = users.map(user => {
-                const date = user.createdAt ? new Date(user.createdAt).toLocaleDateString('pt-BR') : 'N/A';
+            const rowsHTML = users.map(user => {
+                console.log('🔧 [renderUsers] Processando usuário:', user.email);
+                
+                // Converter createdAt para data
+                let date = 'N/A';
+                if (user.createdAt) {
+                    try {
+                        // Se for Timestamp do Firestore
+                        if (user.createdAt.toDate) {
+                            date = user.createdAt.toDate().toLocaleDateString('pt-BR');
+                        } 
+                        // Se for string ISO
+                        else if (typeof user.createdAt === 'string') {
+                            date = new Date(user.createdAt).toLocaleDateString('pt-BR');
+                        }
+                        // Se for número (timestamp)
+                        else if (typeof user.createdAt === 'number') {
+                            date = new Date(user.createdAt).toLocaleDateString('pt-BR');
+                        }
+                    } catch (error) {
+                        console.error('❌ Erro ao converter data:', error, user.createdAt);
+                    }
+                }
+                
                 const roleClass = user.role === 'admin' ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800';
                 const roleText = user.role === 'admin' ? 'Administrador' : 'Usuário';
 
@@ -391,6 +423,9 @@
                     </tr>
                 `;
             }).join('');
+            
+            console.log('✅ [renderUsers] HTML gerado com sucesso');
+            usersTableBody.innerHTML = rowsHTML;
         }
 
         // Carregar convites

@@ -145,6 +145,7 @@
     <script type="module">
         import { auth, db } from './config/firebase.js';
         import { onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+        import { doc, getDoc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
         import { listUnits, createUnit } from './services/unitsService.js';
 
         let currentProjectId = null;
@@ -198,6 +199,16 @@
             try {
                 console.log('🔍 Tentando carregar unidades do projeto:', currentProjectId);
                 console.log('👤 Usuário autenticado:', currentUser.uid);
+                
+                // DEBUG: Verificar dados do projeto
+                const projectDoc = await getDoc(doc(db, 'projects', currentProjectId));
+                if (projectDoc.exists()) {
+                    console.log('📊 Dados do projeto:', projectDoc.data());
+                    console.log('🔑 ownerId:', projectDoc.data().ownerId);
+                    console.log('🔑 userId:', projectDoc.data().userId);
+                } else {
+                    console.error('❌ Projeto não encontrado!');
+                }
                 
                 const units = await listUnits(currentProjectId);
                 

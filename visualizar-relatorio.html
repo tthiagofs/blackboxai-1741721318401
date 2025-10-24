@@ -534,19 +534,27 @@
         function renderPlatformMetrics(metaMetrics, googleMetrics, blackMetrics, accountName) {
             let html = '';
             
-            // Verificar se Black realmente existe (não null e com conversações > 0)
+            // Verificar se realmente existem (não null/undefined e com dados)
+            const hasRealMeta = metaMetrics && (metaMetrics.conversations > 0 || metaMetrics.spend > 0);
             const hasRealBlack = blackMetrics && (blackMetrics.conversations > 0 || blackMetrics.spend > 0);
+            const hasRealGoogle = googleMetrics && (googleMetrics.conversations > 0 || googleMetrics.spend > 0);
+            
+            console.log('🎨 [renderPlatformMetrics] Detecção:', {
+                hasRealMeta,
+                hasRealBlack,
+                hasRealGoogle
+            });
             
             // Cenário 1: Meta White + Black (SEM Google)
-            if (metaMetrics && hasRealBlack && !googleMetrics) {
+            if (hasRealMeta && hasRealBlack && !hasRealGoogle) {
                 html += renderBlackWhiteReport(metaMetrics, blackMetrics, accountName);
             }
             // Cenário 2: Apenas Meta (sem Black, sem Google)
-            else if (metaMetrics && !hasRealBlack && !googleMetrics) {
+            else if (hasRealMeta && !hasRealBlack && !hasRealGoogle) {
                 html += renderStandardReport(metaMetrics, accountName);
             }
             // Cenário 3: Meta + Google (com ou sem Black)
-            else if (metaMetrics && googleMetrics) {
+            else if (hasRealMeta && hasRealGoogle) {
                 // Renderizar Meta (White + Black se existir)
                 if (hasRealBlack) {
                     html += renderBlackWhiteReport(metaMetrics, blackMetrics, accountName);
@@ -558,7 +566,8 @@
                 html += renderStandardReport(googleMetrics, 'Google Ads');
             }
             // Cenário 4: Apenas Google
-            else if (!metaMetrics && googleMetrics) {
+            else if (!hasRealMeta && hasRealGoogle) {
+                console.log('🎨 Renderizando APENAS Google');
                 html += renderStandardReport(googleMetrics, accountName);
             }
             
@@ -642,8 +651,9 @@
             const hasBlackMetrics = separateBlackMetrics && (separateBlackMetrics.conversations > 0 || separateBlackMetrics.spend > 0);
             const hasGoogleMetrics = separateGoogleMetrics && (separateGoogleMetrics.conversations > 0 || separateGoogleMetrics.spend > 0);
             
-            // Detectar múltiplas plataformas
-            const hasMultiplePlatforms = (hasMetaMetrics && hasGoogleMetrics) || (hasMetaMetrics && hasBlackMetrics);
+            // Detectar múltiplas plataformas (2 ou mais fontes de dados)
+            const platformCount = (hasMetaMetrics ? 1 : 0) + (hasBlackMetrics ? 1 : 0) + (hasGoogleMetrics ? 1 : 0);
+            const hasMultiplePlatforms = platformCount >= 2;
             
             console.log('📊 Detecção de plataformas:', {
                 hasMetaMetrics,

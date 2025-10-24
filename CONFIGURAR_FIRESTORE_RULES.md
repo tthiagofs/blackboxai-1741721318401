@@ -32,8 +32,26 @@ service cloud.firestore {
     
     // Regras para coleção de usuários
     match /users/{userId} {
-      // Permitir leitura e escrita apenas para o próprio usuário autenticado
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+      // Função para verificar se é admin (pelo email)
+      function isAdmin() {
+        return request.auth != null && 
+               request.auth.token.email == 'thiagofelipefreire0810@gmail.com';
+      }
+      
+      // Permitir leitura individual apenas para o próprio usuário ou admin
+      allow read: if request.auth != null && (request.auth.uid == userId || isAdmin());
+      
+      // Permitir escrita apenas para o próprio usuário
+      allow write: if request.auth != null && request.auth.uid == userId;
+      
+      // Permitir listar todos os usuários apenas para admin
+      allow list: if isAdmin();
+      
+      // Regras para subcoleção de templates de análise
+      match /analysisTemplates/{templateId} {
+        // Permitir CRUD completo apenas para o próprio usuário
+        allow read, write, create, update, delete: if request.auth != null && request.auth.uid == userId;
+      }
     }
     
     // Regras para coleção de projetos
@@ -116,7 +134,9 @@ service cloud.firestore {
 ### 👤 Coleção `users`
 - ✅ Cada usuário pode **ler e editar** apenas seus próprios dados
 - ✅ Inclui dados do perfil e **conexões Meta/Google**
-- ❌ Um usuário **não pode ver** dados de outros usuários
+- ✅ O **administrador** (thiagofelipefreire0810@gmail.com) pode **listar todos os usuários**
+- ✅ Inclui subcoleção `analysisTemplates` para textos pré-definidos de análise
+- ❌ Um usuário **não pode ver** dados de outros usuários (exceto admin)
 
 ### 📁 Coleção `projects`
 - ✅ Cada usuário pode **criar, ler, editar e deletar** apenas seus próprios projetos

@@ -1334,11 +1334,27 @@ async function generateCompleteReport() {
             }, 500);
         }
         
-        // Exibir sugestões de análise
+        // Exibir sugestões de análise (SOMAR TODAS AS PLATAFORMAS)
         console.log('🔍 [SUGESTÕES] Iniciando cálculo...');
-        const currentConversations = metrics.conversations + (blackMetrics ? blackMetrics.conversations : 0);
-        const previousConversations = metrics.previousConversations + (blackMetrics ? blackMetrics.previousConversations : 0);
-        console.log('🔍 [SUGESTÕES] Conversas:', { atual: currentConversations, anterior: previousConversations });
+        
+        // Calcular leads totais (Meta White + Black + Google)
+        const currentConversations = (separateMetaMetrics?.conversations || 0) + 
+                                     (separateBlackMetrics?.conversations || 0) + 
+                                     (separateGoogleMetrics?.conversations || 0);
+        
+        const previousConversations = (separateMetaMetrics?.previousConversations || 0) + 
+                                      (separateBlackMetrics?.previousConversations || 0) + 
+                                      (separateGoogleMetrics?.previousConversations || 0);
+        
+        console.log('🔍 [SUGESTÕES] Conversas:', { 
+            atual: currentConversations, 
+            anterior: previousConversations,
+            detalhes: {
+                meta: { atual: separateMetaMetrics?.conversations, anterior: separateMetaMetrics?.previousConversations },
+                black: { atual: separateBlackMetrics?.conversations, anterior: separateBlackMetrics?.previousConversations },
+                google: { atual: separateGoogleMetrics?.conversations, anterior: separateGoogleMetrics?.previousConversations }
+            }
+        });
         console.log('🔍 [SUGESTÕES] Negócio:', { orçamentos: budgetsCompleted, vendas: salesCount });
         
         await displayAnalysisSuggestions(currentConversations, previousConversations, budgetsCompleted, salesCount);
@@ -2087,8 +2103,16 @@ if (budgetsInput && salesInput) {
         if (reportMetrics) {
             const budgets = parseInt(budgetsInput.value) || 0;
             const sales = parseInt(salesInput.value) || 0;
-            const currentConversations = reportMetrics.conversations + (reportBlackMetrics ? reportBlackMetrics.conversations : 0);
-            const previousConversations = reportMetrics.previousConversations + (reportBlackMetrics ? reportBlackMetrics.previousConversations : 0);
+            
+            // Calcular leads totais (Meta White + Black + Google)
+            const currentConversations = (reportSeparateMetaMetrics?.conversations || 0) + 
+                                         (reportSeparateBlackMetrics?.conversations || 0) + 
+                                         (reportSeparateGoogleMetrics?.conversations || 0);
+            
+            const previousConversations = (reportSeparateMetaMetrics?.previousConversations || 0) + 
+                                          (reportSeparateBlackMetrics?.previousConversations || 0) + 
+                                          (reportSeparateGoogleMetrics?.previousConversations || 0);
+            
             await displayAnalysisSuggestions(currentConversations, previousConversations, budgets, sales);
         }
     }, 500);

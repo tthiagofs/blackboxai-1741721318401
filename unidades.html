@@ -83,7 +83,7 @@
                 </div>
 
                 <!-- Grid de Unidades -->
-                <div id="unitsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 hidden">
+                <div id="unitsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 hidden">
                     <!-- Cards serão inseridos aqui via JavaScript -->
                 </div>
 
@@ -145,7 +145,7 @@
     <script type="module">
         import { auth, db } from './config/firebase.js';
         import { onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
-        import { doc, getDoc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+        import { doc, getDoc, deleteDoc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
         import { listUnits, createUnit } from './services/unitsService.js';
 
         let currentProjectId = null;
@@ -220,62 +220,64 @@
                 const hasData = unit.budgetData && unit.budgetData.totalBudgets > 0;
                 
                 return `
-                    <div class="bg-white border-2 border-gray-200 rounded-xl p-6 hover:shadow-lg transition-shadow">
-                        <div class="flex items-center gap-3 mb-4">
-                            <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-                                <i class="fas fa-building text-2xl text-blue-600"></i>
+                    <div class="bg-white border-2 border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow group relative">
+                        <!-- Botão Excluir (canto superior direito) -->
+                        <button 
+                            onclick="deleteUnit('${unit.id}', '${unit.name.replace(/'/g, "\\'")}')" 
+                            class="absolute top-2 right-2 w-7 h-7 bg-red-100 text-red-600 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-200 flex items-center justify-center"
+                            title="Excluir unidade">
+                            <i class="fas fa-trash text-xs"></i>
+                        </button>
+                        
+                        <div class="flex items-center gap-2 mb-3">
+                            <div class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
+                                <i class="fas fa-building text-blue-600"></i>
                             </div>
-                            <h3 class="text-lg font-bold text-gray-900 flex-1 truncate">
+                            <h3 class="text-sm font-bold text-gray-900 truncate flex-1" title="${unit.name}">
                                 ${unit.name}
                             </h3>
                         </div>
                         
                         ${hasData ? `
-                            <div class="space-y-2 mb-4">
-                                <div class="flex justify-between text-sm">
-                                    <span class="text-gray-600">📋 Orçamentos:</span>
+                            <div class="space-y-1 mb-3">
+                                <div class="flex justify-between text-xs">
+                                    <span class="text-gray-600">Orçamentos:</span>
                                     <span class="font-semibold">${unit.budgetData.totalBudgets}</span>
                                 </div>
-                                <div class="flex justify-between text-sm">
-                                    <span class="text-gray-600">✅ Vendas:</span>
-                                    <span class="font-semibold">${unit.budgetData.totalSales}</span>
+                                <div class="flex justify-between text-xs">
+                                    <span class="text-gray-600">Vendas:</span>
+                                    <span class="font-semibold text-green-600">${unit.budgetData.totalSales}</span>
                                 </div>
-                                <div class="flex justify-between text-sm">
-                                    <span class="text-gray-600">💰 Faturamento:</span>
-                                    <span class="font-semibold">R$ ${unit.budgetData.totalRevenue.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</span>
-                                </div>
-                                <div class="flex justify-between text-sm">
-                                    <span class="text-gray-600">📅 Período:</span>
-                                    <span class="text-gray-500 text-xs">${formatDate(unit.budgetData.periodStart)} a ${formatDate(unit.budgetData.periodEnd)}</span>
+                                <div class="flex justify-between text-xs">
+                                    <span class="text-gray-600">Faturamento:</span>
+                                    <span class="font-semibold text-purple-600">R$ ${unit.budgetData.totalRevenue.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</span>
                                 </div>
                             </div>
                         ` : `
-                            <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
-                                <p class="text-xs text-yellow-700">
-                                    ⚠️ Nenhuma planilha importada
+                            <div class="bg-yellow-50 rounded p-2 mb-3">
+                                <p class="text-xs text-yellow-700 text-center">
+                                    Sem planilha
                                 </p>
                             </div>
                         `}
                         
-                        <div class="flex gap-2">
-                            <button onclick="openUnit('${unit.id}')" 
-                                class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium">
-                                <i class="fas fa-folder-open mr-1"></i> Abrir
-                            </button>
-                        </div>
+                        <button onclick="openUnit('${unit.id}')" 
+                            class="w-full px-3 py-1.5 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors text-xs font-medium">
+                            <i class="fas fa-folder-open mr-1"></i> Abrir
+                        </button>
                     </div>
                 `;
             }).join('');
             
             // Card: Adicionar Nova Unidade
             grid.innerHTML += `
-                <div class="bg-gray-50 border-2 border-dashed border-gray-300 rounded-xl p-6 flex flex-col items-center justify-center hover:border-blue-400 hover:bg-blue-50 transition-colors cursor-pointer min-h-[250px]"
+                <div class="bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg p-4 flex flex-col items-center justify-center hover:border-blue-400 hover:bg-blue-50 transition-colors cursor-pointer"
                      onclick="showAddUnitModal()">
-                    <div class="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mb-4">
-                        <i class="fas fa-plus text-3xl text-blue-600"></i>
+                    <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mb-2">
+                        <i class="fas fa-plus text-2xl text-blue-600"></i>
                     </div>
-                    <h3 class="text-lg font-semibold text-gray-700">
-                        Adicionar Nova Unidade
+                    <h3 class="text-sm font-semibold text-gray-700 text-center">
+                        Nova Unidade
                     </h3>
                 </div>
             `;
@@ -291,6 +293,20 @@
         // Abrir unidade
         window.openUnit = (unitId) => {
             window.location.href = `unidade-detalhes.html?projectId=${currentProjectId}&unitId=${unitId}`;
+        };
+
+        // Excluir unidade
+        window.deleteUnit = async (unitId, unitName) => {
+            if (!confirm(`Tem certeza que deseja excluir a unidade "${unitName}"?\n\nIsso não pode ser desfeito.`)) {
+                return;
+            }
+            
+            try {
+                await deleteDoc(doc(db, `projects/${currentProjectId}/units/${unitId}`));
+                loadUnits();
+            } catch (error) {
+                console.error('Erro ao excluir unidade:', error);
+            }
         };
 
         // Modal

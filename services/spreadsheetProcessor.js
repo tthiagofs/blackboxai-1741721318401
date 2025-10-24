@@ -109,10 +109,17 @@ export async function processSpreadsheet(file, trafficSources, customKeywords) {
                     
                     // Verificar se atende regras de tráfego
                     if (matchesTrafficRules(row, trafficSources, customKeywords)) {
+                        // Extrair valor da coluna J (pode estar como string com vírgula)
+                        let value = 0;
+                        if (row.J) {
+                            const valueStr = row.J.toString().replace(',', '.');
+                            value = parseFloat(valueStr) || 0;
+                        }
+                        
                         rawData.push({
                             date: dateStr,
                             status: (row.C || "").toString().toUpperCase().trim(),
-                            value: parseFloat(row.J) || 0,
+                            value: value,
                             source: (row.L || "").toString().trim(),
                             observations: (row.K || "").toString().trim()
                         });

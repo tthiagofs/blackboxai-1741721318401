@@ -28,8 +28,8 @@ service cloud.firestore {
         // Permitir CRUD completo apenas para o próprio usuário
         allow read, write, create, update, delete: if request.auth != null && request.auth.uid == userId;
         
-        // Permitir admin deletar tudo (para exclusão em cascata)
-        allow delete: if isAdmin();
+        // Permitir admin ler, listar e deletar tudo (para exclusão em cascata)
+        allow read, list, delete: if isAdmin();
       }
     }
     

@@ -1294,6 +1294,10 @@ async function generateCompleteReport() {
             separateMetaMetrics.previousReach = comparisonMetrics.previous.impressions;
             separateMetaMetrics.previousConversations = comparisonMetrics.previous.conversations;
             separateMetaMetrics.previousCostPerConversation = comparisonMetrics.previous.costPerConversation;
+            console.log('✅ Dados de comparação adicionados ao Meta White:', {
+                previousSpend: separateMetaMetrics.previousSpend,
+                previousConversations: separateMetaMetrics.previousConversations
+            });
         }
         
         if (comparisonBlackMetrics && separateBlackMetrics) {
@@ -1301,6 +1305,10 @@ async function generateCompleteReport() {
             separateBlackMetrics.previousReach = comparisonBlackMetrics.previous.impressions;
             separateBlackMetrics.previousConversations = comparisonBlackMetrics.previous.conversations;
             separateBlackMetrics.previousCostPerConversation = comparisonBlackMetrics.previous.costPerConversation;
+            console.log('✅ Dados de comparação adicionados ao Meta Black:', {
+                previousSpend: separateBlackMetrics.previousSpend,
+                previousConversations: separateBlackMetrics.previousConversations
+            });
         }
         
         if (comparisonGoogleMetrics && separateGoogleMetrics) {
@@ -1308,6 +1316,10 @@ async function generateCompleteReport() {
             separateGoogleMetrics.previousReach = comparisonGoogleMetrics.previous.impressions;
             separateGoogleMetrics.previousConversations = comparisonGoogleMetrics.previous.conversations;
             separateGoogleMetrics.previousCostPerConversation = comparisonGoogleMetrics.previous.costPerConversation;
+            console.log('✅ Dados de comparação adicionados ao Google:', {
+                previousSpend: separateGoogleMetrics.previousSpend,
+                previousConversations: separateGoogleMetrics.previousConversations
+            });
         }
 
         // Armazenar métricas globalmente

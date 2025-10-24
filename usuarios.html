@@ -791,7 +791,7 @@
                 }
                 
                 console.log('✅ [deleteUser] Usuário excluído com sucesso!');
-                alert(`✅ Usuário ${userEmail} foi excluído com sucesso!\n\nTodos os seus dados foram removidos do sistema.\n\nVocê pode convidá-lo novamente se desejar.`);
+                alert(`✅ Usuário ${userEmail} foi excluído com sucesso do Firestore!\n\n⚠️ ATENÇÃO IMPORTANTE:\nPara que este email possa ser usado novamente, você precisa deletar a conta do Firebase Authentication manualmente:\n\n1. Acesse: https://console.firebase.google.com\n2. Vá em Authentication → Users\n3. Encontre ${userEmail}\n4. Clique nos 3 pontinhos → Delete account\n\nSem isso, o email continuará "em uso" no sistema.`);
                 
                 // Recarregar lista de usuários
                 loadUsers();

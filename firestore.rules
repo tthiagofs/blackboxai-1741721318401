@@ -15,15 +15,21 @@ service cloud.firestore {
       allow read: if request.auth != null && (request.auth.uid == userId || isAdmin());
       
       // Permitir escrita apenas para o próprio usuário
-      allow write: if request.auth != null && request.auth.uid == userId;
+      allow write, update: if request.auth != null && request.auth.uid == userId;
       
       // Permitir listar todos os usuários apenas para admin
       allow list: if isAdmin();
+      
+      // Permitir deletar apenas para admin
+      allow delete: if isAdmin();
       
       // Regras para subcoleção de templates de análise
       match /analysisTemplates/{templateId} {
         // Permitir CRUD completo apenas para o próprio usuário
         allow read, write, create, update, delete: if request.auth != null && request.auth.uid == userId;
+        
+        // Permitir admin deletar tudo (para exclusão em cascata)
+        allow delete: if isAdmin();
       }
     }
     
@@ -48,14 +54,22 @@ service cloud.firestore {
                 get(/databases/$(database)/documents/projects/$(projectId)).data.userId == request.auth.uid);
       }
       
+      function isAdmin() {
+        return request.auth != null && 
+               request.auth.token.email == 'thiagofelipefreire0810@gmail.com';
+      }
+      
       // Permitir leitura apenas para o dono do projeto
       allow read: if isOwner();
       
       // Permitir criação se o ownerId/userId for o usuário autenticado
       allow create: if isCreator();
       
-      // Permitir atualização e exclusão apenas para o dono
-      allow update, delete: if isOwner();
+      // Permitir atualização apenas para o dono
+      allow update: if isOwner();
+      
+      // Permitir exclusão para o dono ou admin (para exclusão em cascata)
+      allow delete: if isOwner() || isAdmin();
       
       // Permitir listar todos os projetos (a query filtra por userId)
       allow list: if request.auth != null;
@@ -63,7 +77,10 @@ service cloud.firestore {
       // Regras para subcoleção de relatórios dentro de projetos
       match /reports/{reportId} {
         // Permitir CRUD completo para o dono do projeto
-        allow read, write, create, update, delete: if isProjectOwner();
+        allow read, write, create, update: if isProjectOwner();
+        
+        // Permitir deletar para dono do projeto ou admin
+        allow delete: if isProjectOwner() || isAdmin();
       }
     }
     

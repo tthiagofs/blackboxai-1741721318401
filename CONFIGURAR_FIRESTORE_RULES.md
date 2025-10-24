@@ -135,11 +135,13 @@ service cloud.firestore {
 - ✅ Cada usuário pode **ler e editar** apenas seus próprios dados
 - ✅ Inclui dados do perfil e **conexões Meta/Google**
 - ✅ O **administrador** (thiagofelipefreire0810@gmail.com) pode **listar todos os usuários**
+- ✅ O **administrador** pode **deletar usuários** e todos os seus dados
 - ✅ Inclui subcoleção `analysisTemplates` para textos pré-definidos de análise
 - ❌ Um usuário **não pode ver** dados de outros usuários (exceto admin)
 
 ### 📁 Coleção `projects`
 - ✅ Cada usuário pode **criar, ler, editar e deletar** apenas seus próprios projetos
+- ✅ O **administrador** pode **deletar projetos** de qualquer usuário (para exclusão em cascata)
 - ❌ Um usuário **não pode ver** projetos de outros usuários
 
 ### 📧 Coleção `invites`

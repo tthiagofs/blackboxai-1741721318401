@@ -1193,9 +1193,9 @@ async function generateCompleteReport() {
         } else if (googleMetrics) {
             metrics = googleMetrics;
             blackMetrics = null;
-            const accounts = googleAccountManager.loadAccounts();
-            const googleAccount = accounts.find(acc => acc.customerId === googleAccountId);
-            accountName = googleAccount ? googleAccount.name : 'Google Ads';
+            // Pegar nome da conta selecionada do select
+            const selectedOption = googleAdsAccountSelect.options[googleAdsAccountSelect.selectedIndex];
+            accountName = selectedOption ? selectedOption.textContent : 'Google Ads';
         }
 
         // Buscar dados de comparação se solicitado (para Meta)

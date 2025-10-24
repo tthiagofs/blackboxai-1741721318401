@@ -303,7 +303,12 @@
             
             try {
                 await deleteDoc(doc(db, `projects/${currentProjectId}/units/${unitId}`));
-                loadUnits();
+                
+                // Forçar recarregamento completo
+                document.getElementById('unitsGrid').classList.add('hidden');
+                document.getElementById('loadingSection').classList.remove('hidden');
+                
+                await loadUnits();
             } catch (error) {
                 console.error('Erro ao excluir unidade:', error);
             }

@@ -6,6 +6,26 @@
     <title>Gerenciar Unidades - Insightflow</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- XLSX.js -->
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+    <style>
+        /* Animação de drag over */
+        .drag-over {
+            border-color: #3b82f6 !important;
+            background-color: #eff6ff !important;
+            transform: scale(1.02);
+        }
+        
+        /* Animação de processamento */
+        @keyframes pulse-slow {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .processing-overlay {
+            animation: pulse-slow 1.5s ease-in-out infinite;
+        }
+    </style>
 </head>
 <body class="bg-white min-h-screen">
     <div class="flex min-h-screen w-full">
@@ -170,7 +190,8 @@
         import { auth, db } from './config/firebase.js';
         import { onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
         import { doc, getDoc, deleteDoc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
-        import { listUnits, createUnit } from './services/unitsService.js';
+        import { listUnits, createUnit, getUnit, updateBudgetData } from './services/unitsService.js';
+        import { processSpreadsheet, validateSpreadsheet } from './services/spreadsheetProcessor.js';
 
         let currentProjectId = null;
         let currentUser = null;
@@ -306,11 +327,22 @@
                 }
                 
                 return `
-                    <div class="bg-white border-2 border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow group relative">
+                    <div id="unit-${unit.id}" 
+                         data-unit-id="${unit.id}" 
+                         class="unit-card bg-white border-2 border-gray-200 rounded-lg p-4 hover:shadow-md transition-all group relative cursor-pointer">
+                        
+                        <!-- Overlay de processamento (inicialmente oculto) -->
+                        <div id="processing-${unit.id}" class="hidden absolute inset-0 bg-blue-600 rounded-lg flex flex-col items-center justify-center z-10 processing-overlay">
+                            <div class="text-white text-center">
+                                <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-white mx-auto mb-2"></div>
+                                <p class="text-sm font-semibold">${hasData ? 'Substituindo dados...' : 'Processando...'}</p>
+                            </div>
+                        </div>
+                        
                         <!-- Botão Excluir (canto superior direito) -->
                         <button 
                             onclick="deleteUnit('${unit.id}', '${unit.name.replace(/'/g, "\\'")}')" 
-                            class="absolute top-2 right-2 w-7 h-7 bg-red-100 text-red-600 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-200 flex items-center justify-center"
+                            class="absolute top-2 right-2 w-7 h-7 bg-red-100 text-red-600 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-200 flex items-center justify-center z-20"
                             title="Excluir unidade">
                             <i class="fas fa-trash text-xs"></i>
                         </button>
@@ -342,7 +374,8 @@
                         ` : `
                             <div class="bg-yellow-50 rounded p-2 mb-3">
                                 <p class="text-xs text-yellow-700 text-center">
-                                    Sem planilha
+                                    <i class="fas fa-file-upload mr-1"></i>
+                                    Arraste uma planilha aqui
                                 </p>
                             </div>
                         `}
@@ -354,6 +387,9 @@
                     </div>
                 `;
             }).join('');
+            
+            // Adicionar drag & drop events para cada card
+            setupDragAndDrop();
             
             // Card: Adicionar Nova Unidade
             grid.innerHTML += `
@@ -446,10 +482,12 @@
                         facebook: true,      // ✅ Pré-definido
                         instagram: true,     // ✅ Pré-definido
                         google: false,
-                        placa: false
+                        revista: false,
+                        empty: false,
+                        dots: false
                     },
                     customKeywords: {
-                        enabled: true,
+                        enabled: false, // ✅ Desativado por padrão
                         terms: ['Tráfego', 'Tráfego Pago', 'trafego', 'trafego pago']
                     },
                     excludeMaintenance: true  // ✅ Pré-definido: Excluir manutenções
@@ -461,6 +499,94 @@
                 console.error('Erro ao criar unidade:', error);
             }
         });
+
+        // ===== DRAG & DROP =====
+        
+        function setupDragAndDrop() {
+            const unitCards = document.querySelectorAll('.unit-card');
+            
+            unitCards.forEach(card => {
+                // Prevenir comportamento padrão
+                card.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    card.classList.add('drag-over');
+                });
+                
+                card.addEventListener('dragleave', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    card.classList.remove('drag-over');
+                });
+                
+                card.addEventListener('drop', async (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    card.classList.remove('drag-over');
+                    
+                    const unitId = card.getAttribute('data-unit-id');
+                    const files = e.dataTransfer.files;
+                    
+                    if (files.length > 0) {
+                        await handleFileUpload(unitId, files[0]);
+                    }
+                });
+            });
+        }
+        
+        async function handleFileUpload(unitId, file) {
+            try {
+                console.log('📊 Upload para unidade:', unitId);
+                console.log('📄 Arquivo:', file.name);
+                
+                // Validar arquivo
+                validateSpreadsheet(file);
+                
+                // Mostrar overlay de processamento
+                const processingOverlay = document.getElementById(`processing-${unitId}`);
+                if (processingOverlay) {
+                    processingOverlay.classList.remove('hidden');
+                }
+                
+                // Buscar configurações da unidade
+                const unit = await getUnit(currentProjectId, unitId);
+                
+                // Processar planilha
+                const budgetData = await processSpreadsheet(
+                    file,
+                    unit.trafficSources,
+                    unit.customKeywords,
+                    unit.excludeMaintenance || false
+                );
+                
+                // Salvar no Firestore
+                await updateBudgetData(currentProjectId, unitId, budgetData);
+                
+                console.log('✅ Planilha processada e salva!');
+                
+                // Ocultar overlay
+                if (processingOverlay) {
+                    processingOverlay.classList.add('hidden');
+                }
+                
+                // Recarregar unidades para atualizar os cards
+                await loadUnits();
+                
+                // Feedback visual
+                alert('✅ Planilha importada com sucesso!');
+                
+            } catch (error) {
+                console.error('❌ Erro ao processar planilha:', error);
+                
+                // Ocultar overlay em caso de erro
+                const processingOverlay = document.getElementById(`processing-${unitId}`);
+                if (processingOverlay) {
+                    processingOverlay.classList.add('hidden');
+                }
+                
+                alert(`❌ Erro: ${error.message}`);
+            }
+        }
     </script>
 </body>
 </html>

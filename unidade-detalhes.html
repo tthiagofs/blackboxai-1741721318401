@@ -546,15 +546,26 @@ trafego pago</textarea>
         
         // Verificar períodos sem dados
         function checkMissingPeriods(data) {
-            if (!data || !data.rawData || !data.periodStart || !data.periodEnd) {
+            if (!data || !data.periodStart || !data.periodEnd) {
                 return;
             }
             
             console.log('🔍 [checkMissingPeriods] Verificando períodos sem dados...');
             
-            // Criar set com todas as datas que temos dados
-            const existingDates = new Set(data.rawData.map(item => item.date));
-            console.log('📅 Total de datas com dados:', existingDates.size);
+            // Usar allData (TODOS orçamentos) para detectar gaps
+            const dataToCheck = data.allData || data.rawData || [];
+            
+            if (dataToCheck.length === 0) {
+                console.log('⚠️ Sem dados para verificar');
+                document.getElementById('missingPeriodsContainer').classList.add('hidden');
+                document.getElementById('noDuplicatesContainer').classList.add('hidden');
+                return;
+            }
+            
+            // Criar set com todas as datas que temos dados (QUALQUER orçamento)
+            const existingDates = new Set(dataToCheck.map(item => item.date));
+            console.log('📅 Total de datas com dados (geral):', existingDates.size);
+            console.log('📊 Orçamentos de tráfego:', data.rawData?.length || 0);
             
             // Gerar lista de TODAS as datas esperadas no período
             const startDate = new Date(data.periodStart + 'T00:00:00');
@@ -607,13 +618,28 @@ trafego pago</textarea>
             // Adicionar último período
             periods.push({ start: periodStart, end: periodEnd });
             
-            console.log('📊 Períodos sem dados:', periods);
+            // 🔥 FILTRAR: Apenas períodos com 5+ dias consecutivos
+            const significantPeriods = periods.filter(period => {
+                const start = new Date(period.start + 'T00:00:00');
+                const end = new Date(period.end + 'T00:00:00');
+                const days = Math.round((end - start) / (1000 * 60 * 60 * 24)) + 1;
+                return days >= 5;
+            });
             
-            // Renderizar lista
+            console.log('📊 Períodos SIGNIFICATIVOS (5+ dias):', significantPeriods);
+            
+            // Se não tem períodos significativos
+            if (significantPeriods.length === 0) {
+                document.getElementById('missingPeriodsContainer').classList.add('hidden');
+                document.getElementById('noDuplicatesContainer').classList.remove('hidden');
+                return;
+            }
+            
+            // Renderizar lista de períodos significativos
             const listEl = document.getElementById('missingPeriodsList');
             listEl.innerHTML = '';
             
-            periods.forEach(period => {
+            significantPeriods.forEach(period => {
                 const li = document.createElement('li');
                 
                 const start = new Date(period.start + 'T00:00:00');

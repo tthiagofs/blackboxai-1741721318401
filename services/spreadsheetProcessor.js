@@ -139,7 +139,8 @@ export async function processSpreadsheet(file, trafficSources, customKeywords, e
                 
                 console.log(`📄 ${rows.length} linhas encontradas`);
                 
-                const rawData = [];
+                const rawData = []; // Apenas tráfego (para métricas)
+                const allData = []; // Todos orçamentos (para análise de gaps)
                 let minDate = null;
                 let maxDate = null;
                 
@@ -157,7 +158,32 @@ export async function processSpreadsheet(file, trafficSources, customKeywords, e
                     if (!minDate || date < minDate) minDate = date;
                     if (!maxDate || date > maxDate) maxDate = date;
                     
-                    // Verificar se atende regras de tráfego
+                    // Extrair valor da coluna J
+                    let value = 0;
+                    if (row.J) {
+                        if (typeof row.J === 'number') {
+                            value = row.J;
+                        } else {
+                            const valueStr = row.J.toString()
+                                .replace(/\./g, '')
+                                .replace(',', '.');
+                            value = parseFloat(valueStr) || 0;
+                        }
+                    }
+                    
+                    const rowData = {
+                        date: dateStr,
+                        status: (row.C || "").toString().toUpperCase().trim(),
+                        value: value,
+                        source: (row.L || "").toString().trim(),
+                        observations: (row.K || "").toString().trim(),
+                        procedure: (row.H || "").toString().trim()
+                    };
+                    
+                    // Adicionar em allData (TODOS os orçamentos)
+                    allData.push(rowData);
+                    
+                    // Verificar se atende regras de tráfego (para rawData)
                     if (matchesTrafficRules(row, trafficSources, customKeywords)) {
                         // Excluir manutenções se opção estiver ativada
                         if (excludeMaintenance && isMaintenanceProcedure(row)) {
@@ -165,36 +191,14 @@ export async function processSpreadsheet(file, trafficSources, customKeywords, e
                             return;
                         }
                         
-                        // Extrair valor da coluna J
-                        // Pode estar como número direto do Excel ou string formatada
-                        let value = 0;
-                        if (row.J) {
-                            if (typeof row.J === 'number') {
-                                // Já é número (Excel)
-                                value = row.J;
-                            } else {
-                                // É string: remover pontos (milhares) e trocar vírgula por ponto
-                                const valueStr = row.J.toString()
-                                    .replace(/\./g, '')  // Remove pontos (milhares)
-                                    .replace(',', '.');  // Troca vírgula por ponto (decimal)
-                                value = parseFloat(valueStr) || 0;
-                            }
-                        }
-                        
-                        rawData.push({
-                            date: dateStr,
-                            status: (row.C || "").toString().toUpperCase().trim(),
-                            value: value,
-                            source: (row.L || "").toString().trim(),
-                            observations: (row.K || "").toString().trim(),
-                            procedure: (row.H || "").toString().trim()
-                        });
+                        rawData.push(rowData);
                     }
                 });
                 
                 const result = {
                     fileName: file.name,
-                    rawData: rawData,
+                    rawData: rawData, // Apenas tráfego
+                    allData: allData, // Todos orçamentos
                     periodStart: minDate ? minDate.toISOString().split('T')[0] : null,
                     periodEnd: maxDate ? maxDate.toISOString().split('T')[0] : null,
                     totalBudgets: rawData.length,
@@ -232,8 +236,8 @@ export async function processSpreadsheet(file, trafficSources, customKeywords, e
  */
 export function mergeSpreadsheetData(existingData, newData) {
     console.log('🔄 [mergeSpreadsheetData] Iniciando mesclagem...');
-    console.log('📊 Dados existentes:', existingData?.rawData?.length || 0, 'linhas');
-    console.log('📊 Dados novos:', newData?.rawData?.length || 0, 'linhas');
+    console.log('📊 Dados existentes:', existingData?.rawData?.length || 0, 'linhas de tráfego');
+    console.log('📊 Dados novos:', newData?.rawData?.length || 0, 'linhas de tráfego');
     
     // Se não tem dados existentes, retorna os novos
     if (!existingData || !existingData.rawData || existingData.rawData.length === 0) {
@@ -247,14 +251,13 @@ export function mergeSpreadsheetData(existingData, newData) {
         return existingData;
     }
     
-    // Criar mapa de dados existentes por data (para busca rápida)
+    // ========== MESCLAR rawData (apenas tráfego) ==========
     const existingMap = new Map();
     existingData.rawData.forEach(item => {
         const key = `${item.date}_${item.status}_${item.value}`;
         existingMap.set(key, item);
     });
     
-    // Processar dados novos
     const mergedRawData = [...existingData.rawData];
     let addedCount = 0;
     let updatedCount = 0;
@@ -263,28 +266,55 @@ export function mergeSpreadsheetData(existingData, newData) {
         const key = `${newItem.date}_${newItem.status}_${newItem.value}`;
         
         if (existingMap.has(key)) {
-            // Registro idêntico já existe, pular
             return;
         }
         
-        // Procurar por registro com mesma data para substituir
         const existingIndex = mergedRawData.findIndex(item => item.date === newItem.date);
         
         if (existingIndex >= 0) {
-            // Data existe, substituir
             mergedRawData[existingIndex] = newItem;
             updatedCount++;
         } else {
-            // Data não existe, adicionar
             mergedRawData.push(newItem);
             addedCount++;
         }
     });
     
-    // Ordenar por data
     mergedRawData.sort((a, b) => a.date.localeCompare(b.date));
     
-    // Recalcular estatísticas
+    // ========== MESCLAR allData (todos orçamentos) ==========
+    const existingAllMap = new Map();
+    (existingData.allData || []).forEach(item => {
+        const key = `${item.date}_${item.status}_${item.value}_${item.source}`;
+        existingAllMap.set(key, item);
+    });
+    
+    const mergedAllData = [...(existingData.allData || [])];
+    
+    (newData.allData || []).forEach(newItem => {
+        const key = `${newItem.date}_${newItem.status}_${newItem.value}_${newItem.source}`;
+        
+        if (existingAllMap.has(key)) {
+            return;
+        }
+        
+        const existingIndex = mergedAllData.findIndex(item => 
+            item.date === newItem.date && 
+            item.status === newItem.status && 
+            item.value === newItem.value &&
+            item.source === newItem.source
+        );
+        
+        if (existingIndex >= 0) {
+            mergedAllData[existingIndex] = newItem;
+        } else {
+            mergedAllData.push(newItem);
+        }
+    });
+    
+    mergedAllData.sort((a, b) => a.date.localeCompare(b.date));
+    
+    // ========== RECALCULAR ESTATÍSTICAS ==========
     const minDate = mergedRawData.reduce((min, item) => 
         !min || item.date < min ? item.date : min, null);
     const maxDate = mergedRawData.reduce((max, item) => 
@@ -297,7 +327,8 @@ export function mergeSpreadsheetData(existingData, newData) {
         .reduce((sum, r) => sum + r.value, 0);
     
     console.log(`✅ Mesclagem concluída:`);
-    console.log(`   📊 Total final: ${mergedRawData.length} linhas`);
+    console.log(`   📊 Tráfego: ${mergedRawData.length} linhas`);
+    console.log(`   📊 Total geral: ${mergedAllData.length} linhas`);
     console.log(`   ➕ Adicionadas: ${addedCount}`);
     console.log(`   🔄 Atualizadas: ${updatedCount}`);
     console.log(`   📅 Período: ${minDate} a ${maxDate}`);
@@ -305,6 +336,7 @@ export function mergeSpreadsheetData(existingData, newData) {
     return {
         fileName: newData.fileName,
         rawData: mergedRawData,
+        allData: mergedAllData,
         periodStart: minDate,
         periodEnd: maxDate,
         totalBudgets: totalBudgets,

@@ -2545,22 +2545,6 @@ function prepareReportDataForSaving(accountName, startDate, endDate, metaAccount
         }
     }
     
-    // Calcular investimento total
-    let totalInvestment = 0;
-    if (reportSeparateMetaMetrics && reportSeparateMetaMetrics.spend) {
-        totalInvestment += parseFloat(reportSeparateMetaMetrics.spend);
-    }
-    if (reportSeparateBlackMetrics && reportSeparateBlackMetrics.spend) {
-        totalInvestment += parseFloat(reportSeparateBlackMetrics.spend);
-    }
-    if (reportSeparateGoogleMetrics && reportSeparateGoogleMetrics.spend) {
-        totalInvestment += parseFloat(reportSeparateGoogleMetrics.spend);
-    }
-    
-    // Pegar unidade selecionada (se houver)
-    const selectedUnitElement = document.getElementById('unitSelect');
-    const selectedUnitId = selectedUnitElement ? selectedUnitElement.value : null;
-    
     // Criar objeto com todos os dados do relatório
     window.currentReportData = {
         reportName: reportName,
@@ -2571,8 +2555,6 @@ function prepareReportDataForSaving(accountName, startDate, endDate, metaAccount
         comparisonStart: comparisonStart,
         comparisonEnd: comparisonEnd,
         logoUrl: currentProjectLogo || '', // ⭐ Logo do projeto
-        totalInvestment: totalInvestment, // ⭐ Investimento total
-        selectedUnitId: selectedUnitId, // ⭐ Unidade selecionada (para atualizar lastInvestment)
         
         // Contas
         metaAccount: metaAccount,

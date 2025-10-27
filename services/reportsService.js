@@ -10,7 +10,6 @@ import {
     getDoc,
     deleteDoc, 
     doc, 
-    updateDoc,
     query, 
     orderBy,
     where 
@@ -39,23 +38,6 @@ class ReportsService {
             );
 
             console.log('✅ Relatório salvo com ID:', reportRef.id);
-            
-            // ⭐ Atualizar lastInvestment da unidade (se houver)
-            if (reportData.selectedUnitId && reportData.totalInvestment) {
-                try {
-                    await updateDoc(
-                        doc(db, 'projects', projectId, 'units', reportData.selectedUnitId),
-                        {
-                            lastInvestment: reportData.totalInvestment,
-                            lastInvestmentUpdatedAt: new Date().toISOString()
-                        }
-                    );
-                    console.log('✅ lastInvestment atualizado na unidade');
-                } catch (updateError) {
-                    console.warn('⚠️ Não foi possível atualizar lastInvestment:', updateError.message);
-                }
-            }
-            
             return { success: true, id: reportRef.id };
 
         } catch (error) {

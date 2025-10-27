@@ -247,6 +247,45 @@ trafego pago</textarea>
                         Salvar Configurações
                     </button>
                 </div>
+
+                <!-- Vincular Contas de Anúncios -->
+                <div class="bg-white border-2 border-gray-200 rounded-xl p-6">
+                    <h2 class="text-xl font-bold text-gray-900 mb-4">
+                        <i class="fas fa-link text-green-600"></i>
+                        Vincular Contas de Anúncios
+                    </h2>
+                    
+                    <div class="space-y-4">
+                        <!-- Meta Ads -->
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                <i class="fab fa-meta text-blue-600 mr-2"></i>
+                                Meta Ads
+                            </label>
+                            <select id="metaAccountSelect" class="w-full p-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none">
+                                <option value="">Selecione uma conta Meta...</option>
+                            </select>
+                            <div id="metaAccountStatus" class="mt-2 text-sm"></div>
+                        </div>
+
+                        <!-- Google Ads -->
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                <i class="fab fa-google text-red-600 mr-2"></i>
+                                Google Ads
+                            </label>
+                            <select id="googleAccountSelect" class="w-full p-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none">
+                                <option value="">Selecione uma conta Google...</option>
+                            </select>
+                            <div id="googleAccountStatus" class="mt-2 text-sm"></div>
+                        </div>
+
+                        <button id="saveLinkBtn" class="w-full px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-semibold">
+                            <i class="fas fa-save mr-2"></i>
+                            Salvar Vinculações
+                        </button>
+                    </div>
+                </div>
             </div>
         </main>
     </div>
@@ -257,6 +296,8 @@ trafego pago</textarea>
         import { onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
         import { getUnit, updateUnit, updateBudgetData } from './services/unitsService.js';
         import { processSpreadsheet, validateSpreadsheet, mergeSpreadsheetData } from './services/spreadsheetProcessor.js';
+        import fbAuth from './auth.js?v=3.0';
+        import googleAuth from './authGoogle.js?v=3.0';
 
         let currentProjectId = null;
         let currentUnitId = null;
@@ -356,6 +397,9 @@ trafego pago</textarea>
                     showBudgetData();
                 }
                 
+                // Carregar contas vinculadas
+                await loadLinkedAccounts();
+                
             } catch (error) {
                 console.error('Erro ao carregar unidade:', error);
                 alert('Erro ao carregar dados da unidade');
@@ -406,6 +450,122 @@ trafego pago</textarea>
             } catch (error) {
                 console.error('Erro ao salvar configurações:', error);
                 alert('Erro ao salvar configurações');
+            }
+        });
+
+        // ========== VINCULAR CONTAS DE ANÚNCIOS ==========
+        async function loadLinkedAccounts() {
+            try {
+                if (!currentUnit) return;
+                
+                const linkedAccounts = currentUnit.linkedAccounts || {};
+                
+                // Carregar contas disponíveis do Meta
+                const metaSelect = document.getElementById('metaAccountSelect');
+                const metaStatus = document.getElementById('metaAccountStatus');
+                
+                try {
+                    console.log('🔍 Buscando contas Meta...');
+                    const metaAccounts = await fbAuth.getAccounts();
+                    console.log('✅ Contas Meta:', metaAccounts);
+                    
+                    metaSelect.innerHTML = '<option value="">Nenhuma</option>';
+                    metaAccounts.forEach(acc => {
+                        const option = document.createElement('option');
+                        option.value = acc.id;
+                        option.textContent = acc.name;
+                        option.dataset.name = acc.name;
+                        metaSelect.appendChild(option);
+                    });
+                    
+                    if (linkedAccounts.meta) {
+                        metaSelect.value = linkedAccounts.meta.id;
+                        metaStatus.innerHTML = `<span class="text-green-600"><i class="fas fa-check-circle mr-1"></i>Vinculada: ${linkedAccounts.meta.name}</span>`;
+                    }
+                } catch (error) {
+                    console.error('❌ Erro Meta:', error);
+                    metaStatus.innerHTML = '<span class="text-red-600"><i class="fas fa-exclamation-circle mr-1"></i>Conecte-se ao Meta primeiro</span>';
+                }
+                
+                // Carregar contas disponíveis do Google
+                const googleSelect = document.getElementById('googleAccountSelect');
+                const googleStatus = document.getElementById('googleAccountStatus');
+                
+                try {
+                    console.log('🔍 Buscando contas Google...');
+                    const googleAccounts = await googleAuth.getAccessibleAccounts();
+                    console.log('✅ Contas Google:', googleAccounts);
+                    
+                    googleSelect.innerHTML = '<option value="">Nenhuma</option>';
+                    googleAccounts.forEach(acc => {
+                        const option = document.createElement('option');
+                        option.value = acc.id;
+                        option.textContent = acc.name;
+                        option.dataset.name = acc.name;
+                        googleSelect.appendChild(option);
+                    });
+                    
+                    if (linkedAccounts.google) {
+                        googleSelect.value = linkedAccounts.google.id;
+                        googleStatus.innerHTML = `<span class="text-green-600"><i class="fas fa-check-circle mr-1"></i>Vinculada: ${linkedAccounts.google.name}</span>`;
+                    }
+                } catch (error) {
+                    console.error('❌ Erro Google:', error);
+                    googleStatus.innerHTML = '<span class="text-red-600"><i class="fas fa-exclamation-circle mr-1"></i>Conecte-se ao Google primeiro</span>';
+                }
+            } catch (error) {
+                console.error('❌ Erro ao carregar contas vinculadas:', error);
+            }
+        }
+
+        // Salvar vinculações
+        document.getElementById('saveLinkBtn').addEventListener('click', async () => {
+            try {
+                const metaSelect = document.getElementById('metaAccountSelect');
+                const googleSelect = document.getElementById('googleAccountSelect');
+                
+                const linkedAccounts = {};
+                
+                if (metaSelect.value) {
+                    const selectedOption = metaSelect.options[metaSelect.selectedIndex];
+                    linkedAccounts.meta = {
+                        id: metaSelect.value,
+                        name: selectedOption.dataset.name || selectedOption.textContent
+                    };
+                }
+                
+                if (googleSelect.value) {
+                    const selectedOption = googleSelect.options[googleSelect.selectedIndex];
+                    linkedAccounts.google = {
+                        id: googleSelect.value,
+                        name: selectedOption.dataset.name || selectedOption.textContent
+                    };
+                }
+                
+                await updateUnit(currentProjectId, currentUnitId, { linkedAccounts });
+                
+                console.log('✅ Contas vinculadas com sucesso:', linkedAccounts);
+                
+                // Atualizar status
+                const metaStatus = document.getElementById('metaAccountStatus');
+                const googleStatus = document.getElementById('googleAccountStatus');
+                
+                if (linkedAccounts.meta) {
+                    metaStatus.innerHTML = `<span class="text-green-600"><i class="fas fa-check-circle mr-1"></i>Vinculada: ${linkedAccounts.meta.name}</span>`;
+                } else {
+                    metaStatus.innerHTML = '';
+                }
+                
+                if (linkedAccounts.google) {
+                    googleStatus.innerHTML = `<span class="text-green-600"><i class="fas fa-check-circle mr-1"></i>Vinculada: ${linkedAccounts.google.name}</span>`;
+                } else {
+                    googleStatus.innerHTML = '';
+                }
+                
+                alert('✅ Contas vinculadas com sucesso!');
+            } catch (error) {
+                console.error('❌ Erro ao salvar vinculações:', error);
+                alert('❌ Erro ao salvar vinculações');
             }
         });
 

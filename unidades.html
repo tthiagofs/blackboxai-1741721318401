@@ -727,10 +727,18 @@
             console.log('📋 Unit ID:', unitId);
             
             try {
+                // Verificar se connectionService está inicializado
+                if (!connectionService) {
+                    console.error('❌ connectionService não está disponível!');
+                    return;
+                }
+                
                 // Buscar conexões do connectionService (já inicializado)
                 const connections = connectionService.getAllConnections();
                 
                 console.log('✅ Conexões disponíveis:', connections);
+                console.log('🔵 Meta:', connections.meta);
+                console.log('🔴 Google:', connections.google);
                 
                 const metaSelect = document.getElementById('metaAccountSelect');
                 const googleSelect = document.getElementById('googleAccountSelect');
@@ -788,7 +796,7 @@
                 
             } catch (error) {
                 console.error('❌ Erro ao carregar contas:', error);
-                alert('Erro ao carregar contas. Verifique se você está conectado ao Meta/Google na tela de Conexões.');
+                console.error('Detalhes:', error.message, error.stack);
             }
         }
         

@@ -255,27 +255,39 @@
 
         // Mostrar mensagem de erro
         function showErrorMessage(platform, message) {
+            // Tratamento especial para erros específicos
+            let displayMessage = message;
+            let isWarning = false;
+            
+            if (message.includes('DEVELOPER_TOKEN_INVALID') || message.includes('developer token')) {
+                displayMessage = 'O Developer Token do Google Ads está configurado para produção. Este é o ambiente de desenvolvimento/testes. Use o ambiente de produção para conectar ao Google Ads.';
+                isWarning = true;
+            }
+            
+            const colorClass = isWarning ? 'yellow' : 'red';
+            const icon = isWarning ? 'exclamation-triangle' : 'exclamation-circle';
+            
             const errorDiv = document.createElement('div');
-            errorDiv.className = 'fixed top-4 right-4 bg-red-50 border border-red-200 rounded-lg p-4 shadow-lg max-w-md z-50';
+            errorDiv.className = `fixed top-4 right-4 bg-${colorClass}-50 border border-${colorClass}-200 rounded-lg p-4 shadow-lg max-w-md z-50`;
             errorDiv.innerHTML = `
                 <div class="flex items-start gap-3">
-                    <i class="fas fa-exclamation-circle text-red-600 text-xl mt-0.5"></i>
+                    <i class="fas fa-${icon} text-${colorClass}-600 text-xl mt-0.5"></i>
                     <div class="flex-1">
-                        <h3 class="font-semibold text-red-900">Erro ao conectar ${platform}</h3>
-                        <p class="text-sm text-red-700 mt-1">${message}</p>
-                        <p class="text-xs text-red-600 mt-2">Verifique o console para mais detalhes (F12)</p>
+                        <h3 class="font-semibold text-${colorClass}-900">${isWarning ? 'Aviso' : 'Erro'} ao conectar ${platform}</h3>
+                        <p class="text-sm text-${colorClass}-700 mt-1">${displayMessage}</p>
+                        ${!isWarning ? '<p class="text-xs text-' + colorClass + '-600 mt-2">Verifique o console para mais detalhes (F12)</p>' : ''}
                     </div>
-                    <button onclick="this.parentElement.parentElement.remove()" class="text-red-400 hover:text-red-600">
+                    <button onclick="this.parentElement.parentElement.remove()" class="text-${colorClass}-400 hover:text-${colorClass}-600">
                         <i class="fas fa-times"></i>
                     </button>
                 </div>
             `;
             document.body.appendChild(errorDiv);
             
-            // Remover automaticamente após 10 segundos
+            // Remover automaticamente após 15 segundos
             setTimeout(() => {
                 errorDiv.remove();
-            }, 10000);
+            }, 15000);
         }
 
         // Event listeners

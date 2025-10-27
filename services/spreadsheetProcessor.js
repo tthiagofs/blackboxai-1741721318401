@@ -57,7 +57,7 @@ function matchesTrafficRules(row, trafficSources, customKeywords) {
     if (trafficSources.facebook) platforms.push("facebook");
     if (trafficSources.instagram) platforms.push("instagram");
     if (trafficSources.google) platforms.push("google");
-    if (trafficSources.placa) platforms.push("placa");
+    if (trafficSources.revista) platforms.push("revista");
     
     const matchesPlatform = platforms.some(platform => 
         colLLower.includes(platform)

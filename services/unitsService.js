@@ -28,7 +28,9 @@ export async function createUnit(projectId, unitData) {
                 facebook: true,      // ✅ Facebook ativado por padrão
                 instagram: true,     // ✅ Instagram ativado por padrão
                 google: false,
-                placa: false
+                revista: false,
+                empty: false,
+                dots: false
             },
             customKeywords: unitData.customKeywords || {
                 enabled: false, // ❌ Busca em "Outros" desativada por padrão

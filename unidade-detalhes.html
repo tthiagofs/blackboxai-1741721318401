@@ -169,9 +169,9 @@
                                     <span>Google Ads</span>
                                 </label>
                                 <label class="flex items-center gap-3 p-3 border-2 border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
-                                    <input type="checkbox" id="cbPlaca" class="w-5 h-5 text-gray-600">
-                                    <i class="fas fa-store text-gray-600"></i>
-                                    <span>Placa (campanhas black)</span>
+                                    <input type="checkbox" id="cbRevista" class="w-5 h-5 text-gray-600">
+                                    <i class="fas fa-book text-gray-600"></i>
+                                    <span>Revista (campanhas black)</span>
                                 </label>
                                 <label class="flex items-center gap-3 p-3 border-2 border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
                                     <input type="checkbox" id="cbEmpty" class="w-5 h-5 text-gray-400">
@@ -322,7 +322,7 @@ trafego pago</textarea>
                 document.getElementById('cbFacebook').checked = currentUnit.trafficSources?.facebook === true;
                 document.getElementById('cbInstagram').checked = currentUnit.trafficSources?.instagram === true;
                 document.getElementById('cbGoogle').checked = currentUnit.trafficSources?.google === true;
-                document.getElementById('cbPlaca').checked = currentUnit.trafficSources?.placa === true;
+                document.getElementById('cbRevista').checked = currentUnit.trafficSources?.revista === true;
                 document.getElementById('cbEmpty').checked = currentUnit.trafficSources?.empty === true;
                 document.getElementById('cbDots').checked = currentUnit.trafficSources?.dots === true;
                 
@@ -366,7 +366,7 @@ trafego pago</textarea>
                     facebook: document.getElementById('cbFacebook').checked,
                     instagram: document.getElementById('cbInstagram').checked,
                     google: document.getElementById('cbGoogle').checked,
-                    placa: document.getElementById('cbPlaca').checked,
+                    revista: document.getElementById('cbRevista').checked,
                     empty: document.getElementById('cbEmpty').checked,
                     dots: document.getElementById('cbDots').checked
                 };

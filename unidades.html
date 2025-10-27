@@ -721,28 +721,35 @@
             console.log('📋 Unit ID:', unitId);
             
             try {
+                console.log('STEP 1: Buscando elementos do DOM...');
                 const metaSelect = document.getElementById('metaAccountSelect');
                 const googleSelect = document.getElementById('googleAccountSelect');
+                console.log('✅ STEP 1 OK - Elementos encontrados');
                 
-                // Buscar unidade atual para pré-selecionar
+                console.log('STEP 2: Buscando unidade...');
                 const unit = units.find(u => u.id === unitId);
-                console.log('📊 Unidade encontrada:', unit?.name);
+                console.log('✅ STEP 2 OK - Unidade:', unit?.name);
+                
+                console.log('STEP 3: Extraindo vínculos atuais...');
                 const currentMeta = unit?.linkedAccounts?.meta?.accountId || '';
                 const currentGoogle = unit?.linkedAccounts?.google?.accountId || '';
-                console.log('🔗 Meta atual:', currentMeta);
-                console.log('🔗 Google atual:', currentGoogle);
+                console.log('✅ STEP 3 OK - Meta:', currentMeta, '| Google:', currentGoogle);
                 
-                // Limpar selects
+                console.log('STEP 4: Limpando selects...');
                 metaSelect.innerHTML = '<option value="">Não vincular</option>';
                 googleSelect.innerHTML = '<option value="">Não vincular</option>';
+                console.log('✅ STEP 4 OK');
                 
                 let metaCount = 0;
                 let googleCount = 0;
                 
-                // Meta Ads - usar fbAuth diretamente
-                console.log('🔵 Buscando contas Meta...');
+                console.log('STEP 5: Verificando fbAuth...');
+                console.log('fbAuth existe?', typeof fbAuth !== 'undefined');
+                console.log('fbAuth.getAccounts existe?', typeof fbAuth?.getAccounts === 'function');
+                
+                console.log('STEP 6: Chamando fbAuth.getAccounts()...');
                 const metaAccounts = fbAuth.getAccounts();
-                console.log('🔵 Meta accounts:', metaAccounts);
+                console.log('✅ STEP 6 OK - Meta accounts:', metaAccounts);
                 
                 if (metaAccounts && metaAccounts.length > 0) {
                     console.log('🔵 Processando', metaAccounts.length, 'contas Meta');

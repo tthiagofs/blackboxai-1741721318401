@@ -38,10 +38,21 @@ function parseDate(dateStr) {
  * Verificar se linha atende regras de tráfego
  */
 function matchesTrafficRules(row, trafficSources, customKeywords) {
-    const colL = (row.L || "").toString().toLowerCase();
+    const colL = (row.L || "").toString().trim();
+    const colLLower = colL.toLowerCase();
     const colK = (row.K || "").toString().toLowerCase();
     
-    // Regra 1: Fontes de tráfego padrão (coluna L)
+    // Regra 1: Células vazias (sem fonte definida)
+    if (trafficSources.empty && colL === "") {
+        return true;
+    }
+    
+    // Regra 2: Células com "..."
+    if (trafficSources.dots && colL === "...") {
+        return true;
+    }
+    
+    // Regra 3: Fontes de tráfego padrão (coluna L)
     const platforms = [];
     if (trafficSources.facebook) platforms.push("facebook");
     if (trafficSources.instagram) platforms.push("instagram");
@@ -49,12 +60,12 @@ function matchesTrafficRules(row, trafficSources, customKeywords) {
     if (trafficSources.placa) platforms.push("placa");
     
     const matchesPlatform = platforms.some(platform => 
-        colL.includes(platform)
+        colLLower.includes(platform)
     );
     
-    // Regra 2: "Outros" + palavras-chave personalizadas
+    // Regra 4: "Outros" + palavras-chave personalizadas
     let matchesCustom = false;
-    if (customKeywords && customKeywords.enabled && colL.includes("outros")) {
+    if (customKeywords && customKeywords.enabled && colLLower.includes("outros")) {
         matchesCustom = customKeywords.terms.some(term => 
             colK.includes(term.toLowerCase())
         );

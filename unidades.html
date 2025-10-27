@@ -240,9 +240,9 @@
         });
 
         // Calcular dados filtrados por período
-        function filterDataByPeriod(rawData, period) {
+        function filterDataByPeriod(rawData, period, investment = null) {
             if (!rawData || rawData.length === 0) {
-                return { totalBudgets: 0, totalSales: 0, totalRevenue: 0 };
+                return { totalBudgets: 0, totalSales: 0, totalRevenue: 0, roi: null };
             }
             
             console.log('🔍 [filterDataByPeriod] Período:', period);
@@ -250,11 +250,18 @@
             
             if (period === 'total') {
                 // Total - retorna todos os dados sem filtro
+                const totalRevenue = rawData.filter(r => r.status === "APPROVED")
+                                           .reduce((sum, r) => sum + r.value, 0);
+                
+                const roi = investment && investment > 0 && totalRevenue > 0
+                    ? (totalRevenue * 0.25) / investment
+                    : null;
+                
                 const result = {
                     totalBudgets: rawData.length,
                     totalSales: rawData.filter(r => r.status === "APPROVED").length,
-                    totalRevenue: rawData.filter(r => r.status === "APPROVED")
-                                        .reduce((sum, r) => sum + r.value, 0)
+                    totalRevenue: totalRevenue,
+                    roi: roi
                 };
                 console.log('✅ [filterDataByPeriod - TOTAL] Resultado:', result);
                 return result;
@@ -293,11 +300,18 @@
             
             console.log('✅ Registros filtrados:', filtered.length);
             
+            const totalRevenue = filtered.filter(r => r.status === "APPROVED")
+                                        .reduce((sum, r) => sum + r.value, 0);
+            
+            const roi = investment && investment > 0 && totalRevenue > 0
+                ? (totalRevenue * 0.25) / investment
+                : null;
+            
             const result = {
                 totalBudgets: filtered.length,
                 totalSales: filtered.filter(r => r.status === "APPROVED").length,
-                totalRevenue: filtered.filter(r => r.status === "APPROVED")
-                                    .reduce((sum, r) => sum + r.value, 0)
+                totalRevenue: totalRevenue,
+                roi: roi
             };
             
             console.log('✅ [filterDataByPeriod] Resultado:', result);
@@ -331,17 +345,19 @@
             
             grid.innerHTML = units.map(unit => {
                 // Calcular dados filtrados por período
-                let displayData = { totalBudgets: 0, totalSales: 0, totalRevenue: 0 };
+                let displayData = { totalBudgets: 0, totalSales: 0, totalRevenue: 0, roi: null };
                 const hasData = unit.budgetData && unit.budgetData.rawData && unit.budgetData.rawData.length > 0;
                 
                 if (hasData) {
-                    displayData = filterDataByPeriod(unit.budgetData.rawData, currentPeriod);
+                    // Pegar investimento salvo (se houver)
+                    const investment = unit.lastInvestment || null;
+                    displayData = filterDataByPeriod(unit.budgetData.rawData, currentPeriod, investment);
                 }
                 
                 return `
                     <div id="unit-${unit.id}" 
                          data-unit-id="${unit.id}" 
-                         class="unit-card bg-white border-2 border-gray-200 rounded-lg p-4 hover:shadow-md transition-all group relative cursor-pointer">
+                         class="unit-card bg-white border-2 border-gray-200 rounded-lg p-5 hover:shadow-md transition-all group relative cursor-pointer">
                         
                         <!-- Overlay de processamento (inicialmente oculto) -->
                         <div id="processing-${unit.id}" class="hidden absolute inset-0 bg-blue-600 rounded-lg flex flex-col items-center justify-center z-10 processing-overlay">
@@ -382,6 +398,12 @@
                                     <span class="text-gray-600">Faturamento:</span>
                                     <span class="font-semibold text-purple-600">R$ ${displayData.totalRevenue.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</span>
                                 </div>
+                                ${displayData.roi !== null && displayData.roi !== undefined ? `
+                                <div class="flex justify-between text-xs pt-1 border-t border-gray-200">
+                                    <span class="text-gray-600">ROI:</span>
+                                    <span class="font-bold text-yellow-600">${displayData.roi.toFixed(2)}</span>
+                                </div>
+                                ` : ''}
                             </div>
                         ` : `
                             <div class="bg-yellow-50 rounded p-2 mb-3">

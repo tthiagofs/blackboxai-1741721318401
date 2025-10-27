@@ -715,6 +715,10 @@
         };
         
         async function loadAvailableAccounts(unitId) {
+            console.log('🔄 [loadAvailableAccounts] Iniciando...');
+            console.log('📋 Unit ID:', unitId);
+            console.log('📋 Project ID:', currentProjectId);
+            
             try {
                 // Buscar conexões do projeto
                 const { collection: collectionRef, getDocs, query: queryRef, where } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
@@ -724,43 +728,60 @@
                     where('active', '==', true)
                 );
                 
+                console.log('🔍 Buscando conexões...');
                 const snapshot = await getDocs(connectionsQuery);
+                console.log('✅ Conexões encontradas:', snapshot.size);
                 
                 const metaSelect = document.getElementById('metaAccountSelect');
                 const googleSelect = document.getElementById('googleAccountSelect');
                 
                 // Buscar unidade atual para pré-selecionar
                 const unit = units.find(u => u.id === unitId);
+                console.log('📊 Unidade encontrada:', unit?.name);
                 const currentMeta = unit?.linkedAccounts?.meta?.accountId || '';
                 const currentGoogle = unit?.linkedAccounts?.google?.accountId || '';
+                console.log('🔗 Meta atual:', currentMeta);
+                console.log('🔗 Google atual:', currentGoogle);
                 
                 // Limpar e popular Meta
                 metaSelect.innerHTML = '<option value="">Não vincular</option>';
                 googleSelect.innerHTML = '<option value="">Não vincular</option>';
                 
+                let metaCount = 0;
+                let googleCount = 0;
+                
                 snapshot.forEach(doc => {
                     const conn = doc.data();
+                    console.log('📡 Conexão:', conn.type, '| Ativa:', conn.active, '| Contas:', conn.accounts?.length || 0);
                     
                     if (conn.type === 'meta' && conn.accounts) {
+                        console.log('🔵 Processando contas Meta:', conn.accounts);
                         conn.accounts.forEach(account => {
+                            console.log('  ➕ Adicionando conta Meta:', account.name, '| ID:', account.id);
                             const option = document.createElement('option');
                             option.value = account.id;
                             option.textContent = account.name;
                             option.setAttribute('data-name', account.name);
                             if (account.id === currentMeta) option.selected = true;
                             metaSelect.appendChild(option);
+                            metaCount++;
                         });
                     } else if (conn.type === 'google' && conn.accounts) {
+                        console.log('🔴 Processando contas Google:', conn.accounts);
                         conn.accounts.forEach(account => {
+                            console.log('  ➕ Adicionando conta Google:', account.descriptiveName, '| ID:', account.customerId);
                             const option = document.createElement('option');
                             option.value = account.customerId;
                             option.textContent = account.descriptiveName;
                             option.setAttribute('data-name', account.descriptiveName);
                             if (account.customerId === currentGoogle) option.selected = true;
                             googleSelect.appendChild(option);
+                            googleCount++;
                         });
                     }
                 });
+                
+                console.log('✅ Contas carregadas - Meta:', metaCount, '| Google:', googleCount);
                 
             } catch (error) {
                 console.error('❌ Erro ao carregar contas:', error);

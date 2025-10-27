@@ -399,9 +399,6 @@
                 `;
             }).join('');
             
-            // Adicionar drag & drop events para cada card
-            setupDragAndDrop();
-            
             // Card: Adicionar Nova Unidade
             grid.innerHTML += `
                 <div class="bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg p-4 flex flex-col items-center justify-center hover:border-blue-400 hover:bg-blue-50 transition-colors cursor-pointer"
@@ -414,6 +411,9 @@
                     </h3>
                 </div>
             `;
+            
+            // ⭐ Configurar drag & drop DEPOIS de renderizar HTML
+            setupDragAndDrop();
         }
 
         // Formatar data
@@ -514,47 +514,50 @@
         // ===== DRAG & DROP =====
         
         function setupDragAndDrop() {
-            const unitCards = document.querySelectorAll('.unit-card');
+            console.log('🎯 [setupDragAndDrop] Iniciando configuração...');
             
-            console.log(`🎯 [setupDragAndDrop] Configurando ${unitCards.length} cards`);
+            // Buscar todos os cards de unidades
+            const unitCards = document.querySelectorAll('.unit-card');
+            console.log(`📋 [setupDragAndDrop] Encontrados ${unitCards.length} cards`);
+            
+            if (unitCards.length === 0) {
+                console.warn('⚠️ [setupDragAndDrop] Nenhum card encontrado!');
+                return;
+            }
             
             unitCards.forEach((card, index) => {
                 const unitId = card.getAttribute('data-unit-id');
-                console.log(`📌 [setupDragAndDrop] Card ${index + 1}: unitId = ${unitId}`);
+                console.log(`✅ [setupDragAndDrop] Configurando card ${index + 1}: ${unitId}`);
                 
-                // Prevenir comportamento padrão
+                // DRAGOVER - Permitir drop e adicionar estilo
                 card.addEventListener('dragover', (e) => {
                     e.preventDefault();
-                    e.stopPropagation();
                     card.classList.add('drag-over');
-                    console.log('🎨 [dragover] Card:', unitId);
                 });
                 
+                // DRAGLEAVE - Remover estilo
                 card.addEventListener('dragleave', (e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
                     card.classList.remove('drag-over');
-                    console.log('👋 [dragleave] Card:', unitId);
                 });
                 
-                card.addEventListener('drop', async (e) => {
+                // DROP - Processar arquivo
+                card.addEventListener('drop', (e) => {
                     e.preventDefault();
-                    e.stopPropagation();
                     card.classList.remove('drag-over');
                     
-                    console.log('📥 [drop] Arquivo solto no card:', unitId);
+                    console.log('📥 [DROP] Evento disparado no card:', unitId);
                     
                     const files = e.dataTransfer.files;
-                    console.log('📄 [drop] Número de arquivos:', files.length);
+                    console.log('📄 [DROP] Arquivos:', files.length);
                     
                     if (files.length > 0) {
-                        console.log('✅ [drop] Iniciando upload...');
-                        await handleFileUpload(unitId, files[0]);
-                    } else {
-                        console.error('❌ [drop] Nenhum arquivo detectado!');
+                        console.log('✅ [DROP] Chamando handleFileUpload...');
+                        handleFileUpload(unitId, files[0]);
                     }
                 });
             });
+            
+            console.log('✅ [setupDragAndDrop] Configuração concluída!');
         }
         
         async function handleFileUpload(unitId, file) {

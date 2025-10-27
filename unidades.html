@@ -267,6 +267,7 @@
         import { doc, getDoc, deleteDoc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
         import { listUnits, createUnit, getUnit, updateBudgetData } from './services/unitsService.js';
         import { processSpreadsheet, validateSpreadsheet, mergeSpreadsheetData } from './services/spreadsheetProcessor.js';
+        import { connectionService } from './services/connectionService.js?v=1.1';
 
         let currentProjectId = null;
         let currentUser = null;
@@ -717,15 +718,13 @@
         async function loadAvailableAccounts(unitId) {
             console.log('🔄 [loadAvailableAccounts] Iniciando...');
             console.log('📋 Unit ID:', unitId);
-            console.log('📋 Project ID:', currentProjectId);
             
             try {
-                // Buscar conexões do projeto
-                const { collection: collectionRef, getDocs } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
+                // Inicializar connectionService
+                await connectionService.initialize();
+                const connections = connectionService.getAllConnections();
                 
-                console.log('🔍 Buscando conexões...');
-                const snapshot = await getDocs(collectionRef(db, `projects/${currentProjectId}/connections`));
-                console.log('✅ Conexões encontradas:', snapshot.size);
+                console.log('✅ Conexões carregadas:', connections);
                 
                 const metaSelect = document.getElementById('metaAccountSelect');
                 const googleSelect = document.getElementById('googleAccountSelect');
@@ -738,54 +737,52 @@
                 console.log('🔗 Meta atual:', currentMeta);
                 console.log('🔗 Google atual:', currentGoogle);
                 
-                // Limpar e popular Meta
+                // Limpar selects
                 metaSelect.innerHTML = '<option value="">Não vincular</option>';
                 googleSelect.innerHTML = '<option value="">Não vincular</option>';
                 
                 let metaCount = 0;
                 let googleCount = 0;
                 
-                snapshot.forEach(doc => {
-                    const conn = doc.data();
-                    console.log('📡 Conexão:', conn.type, '| Ativa:', conn.active, '| Contas:', conn.accounts?.length || 0);
-                    
-                    // Filtrar apenas conexões ativas
-                    if (!conn.active) {
-                        console.log('⏭️ Pulando conexão inativa');
-                        return;
-                    }
-                    
-                    if (conn.type === 'meta' && conn.accounts) {
-                        console.log('🔵 Processando contas Meta:', conn.accounts);
-                        conn.accounts.forEach(account => {
-                            console.log('  ➕ Adicionando conta Meta:', account.name, '| ID:', account.id);
-                            const option = document.createElement('option');
-                            option.value = account.id;
-                            option.textContent = account.name;
-                            option.setAttribute('data-name', account.name);
-                            if (account.id === currentMeta) option.selected = true;
-                            metaSelect.appendChild(option);
-                            metaCount++;
-                        });
-                    } else if (conn.type === 'google' && conn.accounts) {
-                        console.log('🔴 Processando contas Google:', conn.accounts);
-                        conn.accounts.forEach(account => {
-                            console.log('  ➕ Adicionando conta Google:', account.descriptiveName, '| ID:', account.customerId);
-                            const option = document.createElement('option');
-                            option.value = account.customerId;
-                            option.textContent = account.descriptiveName;
-                            option.setAttribute('data-name', account.descriptiveName);
-                            if (account.customerId === currentGoogle) option.selected = true;
-                            googleSelect.appendChild(option);
-                            googleCount++;
-                        });
-                    }
-                });
+                // Meta Ads
+                if (connections.meta?.active && connections.meta?.accounts) {
+                    console.log('🔵 Processando', connections.meta.accounts.length, 'contas Meta');
+                    connections.meta.accounts.forEach(account => {
+                        console.log('  ➕ Adicionando conta Meta:', account.name, '| ID:', account.id);
+                        const option = document.createElement('option');
+                        option.value = account.id;
+                        option.textContent = account.name;
+                        option.setAttribute('data-name', account.name);
+                        if (account.id === currentMeta) option.selected = true;
+                        metaSelect.appendChild(option);
+                        metaCount++;
+                    });
+                }
+                
+                // Google Ads
+                if (connections.google?.active && connections.google?.accounts) {
+                    console.log('🔴 Processando', connections.google.accounts.length, 'contas Google');
+                    connections.google.accounts.forEach(account => {
+                        console.log('  ➕ Adicionando conta Google:', account.descriptiveName, '| ID:', account.customerId);
+                        const option = document.createElement('option');
+                        option.value = account.customerId;
+                        option.textContent = account.descriptiveName;
+                        option.setAttribute('data-name', account.descriptiveName);
+                        if (account.customerId === currentGoogle) option.selected = true;
+                        googleSelect.appendChild(option);
+                        googleCount++;
+                    });
+                }
                 
                 console.log('✅ Contas carregadas - Meta:', metaCount, '| Google:', googleCount);
                 
+                if (metaCount === 0 && googleCount === 0) {
+                    console.log('⚠️ Nenhuma conta encontrada. Conecte contas na tela de Conexões.');
+                }
+                
             } catch (error) {
                 console.error('❌ Erro ao carregar contas:', error);
+                alert('Erro ao carregar contas. Verifique se você está conectado ao Meta/Google na tela de Conexões.');
             }
         }
         

@@ -727,18 +727,19 @@
             console.log('📋 Unit ID:', unitId);
             
             try {
-                // Verificar se connectionService está inicializado
-                if (!connectionService) {
-                    console.error('❌ connectionService não está disponível!');
-                    return;
-                }
+                // Garantir que connectionService está inicializado
+                console.log('⏳ Inicializando connectionService...');
+                await connectionService.initialize();
+                console.log('✅ ConnectionService pronto!');
                 
-                // Buscar conexões do connectionService (já inicializado)
+                // Buscar conexões
                 const connections = connectionService.getAllConnections();
                 
                 console.log('✅ Conexões disponíveis:', connections);
-                console.log('🔵 Meta:', connections.meta);
-                console.log('🔴 Google:', connections.google);
+                console.log('🔵 Meta conectado?', connections.meta?.active);
+                console.log('🔵 Meta contas:', connections.meta?.accounts?.length || 0);
+                console.log('🔴 Google conectado?', connections.google?.active);
+                console.log('🔴 Google contas:', connections.google?.accounts?.length || 0);
                 
                 const metaSelect = document.getElementById('metaAccountSelect');
                 const googleSelect = document.getElementById('googleAccountSelect');

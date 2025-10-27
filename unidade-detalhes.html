@@ -241,7 +241,7 @@ trafego pago</textarea>
         import { auth, db } from './config/firebase.js';
         import { onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
         import { getUnit, updateUnit, updateBudgetData, removeBudgetData } from './services/unitsService.js';
-        import { processSpreadsheet, validateSpreadsheet } from './services/spreadsheetProcessor.js';
+        import { processSpreadsheet, validateSpreadsheet, mergeSpreadsheetData } from './services/spreadsheetProcessor.js';
 
         let currentProjectId = null;
         let currentUnitId = null;
@@ -445,22 +445,47 @@ trafego pago</textarea>
                 updateProgress(30);
                 
                 // Processar planilha
-                const budgetData = await processSpreadsheet(
+                const newBudgetData = await processSpreadsheet(
                     file, 
                     currentUnit.trafficSources, 
                     currentUnit.customKeywords,
                     currentUnit.excludeMaintenance || false
                 );
                 
+                console.log('📊 [handleFile] Dados processados:', {
+                    arquivo: file.name,
+                    registros: newBudgetData.rawData?.length || 0,
+                    periodo: `${newBudgetData.periodStart} a ${newBudgetData.periodEnd}`,
+                    orcamentos: newBudgetData.totalBudgets,
+                    vendas: newBudgetData.totalSales,
+                    faturamento: newBudgetData.totalRevenue
+                });
+                
+                updateProgress(50);
+                
+                // 🔄 MESCLAR com dados existentes
+                console.log('🔄 [handleFile] Mesclando com dados existentes...');
+                const mergedData = mergeSpreadsheetData(currentUnit.budgetData, newBudgetData);
+                
+                console.log('✅ [handleFile] Mesclagem concluída!', {
+                    totalFinal: mergedData.rawData?.length || 0,
+                    periodo: `${mergedData.periodStart} a ${mergedData.periodEnd}`,
+                    orcamentos: mergedData.totalBudgets,
+                    vendas: mergedData.totalSales,
+                    faturamento: mergedData.totalRevenue
+                });
+                
                 updateProgress(70);
                 
                 // Salvar no Firestore
-                await updateBudgetData(currentProjectId, currentUnitId, budgetData);
+                console.log('💾 [handleFile] Salvando no Firestore...');
+                await updateBudgetData(currentProjectId, currentUnitId, mergedData);
+                console.log('✅ [handleFile] Dados salvos!');
                 
                 updateProgress(100);
                 
                 // Atualizar currentUnit
-                currentUnit.budgetData = budgetData;
+                currentUnit.budgetData = mergedData;
                 
                 // Mostrar dados
                 showBudgetData();

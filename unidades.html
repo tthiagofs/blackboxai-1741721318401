@@ -245,51 +245,62 @@
                 return { totalBudgets: 0, totalSales: 0, totalRevenue: 0 };
             }
             
-            const today = new Date();
-            let startDate = null;
+            console.log('🔍 [filterDataByPeriod] Período:', period);
+            console.log('🔍 [filterDataByPeriod] Total de registros:', rawData.length);
             
-            if (period === 'last7days') {
-                // Últimos 7 dias (ex: 17/10 a 23/10 se hoje é 24/10)
-                startDate = new Date(today);
-                startDate.setDate(today.getDate() - 8); // -8 para pegar do dia 17
-                const endDate = new Date(today);
-                endDate.setDate(today.getDate() - 1); // Até ontem (23)
-                
-                const filtered = rawData.filter(item => {
-                    const itemDate = new Date(item.date);
-                    return itemDate >= startDate && itemDate <= endDate;
-                });
-                
-                return {
-                    totalBudgets: filtered.length,
-                    totalSales: filtered.filter(r => r.status === "APPROVED").length,
-                    totalRevenue: filtered.filter(r => r.status === "APPROVED")
-                                        .reduce((sum, r) => sum + r.value, 0)
-                };
-            } else if (period === 'thismonth') {
-                // Este mês
-                const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
-                
-                const filtered = rawData.filter(item => {
-                    const itemDate = new Date(item.date);
-                    return itemDate >= firstDay && itemDate <= today;
-                });
-                
-                return {
-                    totalBudgets: filtered.length,
-                    totalSales: filtered.filter(r => r.status === "APPROVED").length,
-                    totalRevenue: filtered.filter(r => r.status === "APPROVED")
-                                        .reduce((sum, r) => sum + r.value, 0)
-                };
-            } else {
-                // Total
-                return {
+            if (period === 'total') {
+                // Total - retorna todos os dados sem filtro
+                const result = {
                     totalBudgets: rawData.length,
                     totalSales: rawData.filter(r => r.status === "APPROVED").length,
                     totalRevenue: rawData.filter(r => r.status === "APPROVED")
                                         .reduce((sum, r) => sum + r.value, 0)
                 };
+                console.log('✅ [filterDataByPeriod - TOTAL] Resultado:', result);
+                return result;
             }
+            
+            const today = new Date();
+            today.setHours(23, 59, 59, 999); // Fim do dia de hoje
+            
+            let startDate = null;
+            let endDate = today;
+            
+            if (period === 'last7days') {
+                // Últimos 7 dias (ex: 17/10 a 23/10 se hoje é 24/10)
+                startDate = new Date(today);
+                startDate.setDate(today.getDate() - 7); // Últimos 7 dias
+                startDate.setHours(0, 0, 0, 0);
+                endDate = new Date(today);
+                endDate.setDate(today.getDate() - 1); // Até ontem
+                endDate.setHours(23, 59, 59, 999);
+            } else if (period === 'thismonth') {
+                // Este mês - do dia 1 até hoje
+                startDate = new Date(today.getFullYear(), today.getMonth(), 1);
+                startDate.setHours(0, 0, 0, 0);
+                endDate = new Date(today); // Até hoje
+                endDate.setHours(23, 59, 59, 999);
+            }
+            
+            console.log('📅 Período de filtro:', startDate?.toISOString(), 'até', endDate?.toISOString());
+            
+            const filtered = rawData.filter(item => {
+                const itemDate = new Date(item.date);
+                const isInRange = itemDate >= startDate && itemDate <= endDate;
+                return isInRange;
+            });
+            
+            console.log('✅ Registros filtrados:', filtered.length);
+            
+            const result = {
+                totalBudgets: filtered.length,
+                totalSales: filtered.filter(r => r.status === "APPROVED").length,
+                totalRevenue: filtered.filter(r => r.status === "APPROVED")
+                                    .reduce((sum, r) => sum + r.value, 0)
+            };
+            
+            console.log('✅ [filterDataByPeriod] Resultado:', result);
+            return result;
         }
 
         // Carregar unidades
@@ -505,18 +516,25 @@
         function setupDragAndDrop() {
             const unitCards = document.querySelectorAll('.unit-card');
             
-            unitCards.forEach(card => {
+            console.log(`🎯 [setupDragAndDrop] Configurando ${unitCards.length} cards`);
+            
+            unitCards.forEach((card, index) => {
+                const unitId = card.getAttribute('data-unit-id');
+                console.log(`📌 [setupDragAndDrop] Card ${index + 1}: unitId = ${unitId}`);
+                
                 // Prevenir comportamento padrão
                 card.addEventListener('dragover', (e) => {
                     e.preventDefault();
                     e.stopPropagation();
                     card.classList.add('drag-over');
+                    console.log('🎨 [dragover] Card:', unitId);
                 });
                 
                 card.addEventListener('dragleave', (e) => {
                     e.preventDefault();
                     e.stopPropagation();
                     card.classList.remove('drag-over');
+                    console.log('👋 [dragleave] Card:', unitId);
                 });
                 
                 card.addEventListener('drop', async (e) => {
@@ -524,11 +542,16 @@
                     e.stopPropagation();
                     card.classList.remove('drag-over');
                     
-                    const unitId = card.getAttribute('data-unit-id');
+                    console.log('📥 [drop] Arquivo solto no card:', unitId);
+                    
                     const files = e.dataTransfer.files;
+                    console.log('📄 [drop] Número de arquivos:', files.length);
                     
                     if (files.length > 0) {
+                        console.log('✅ [drop] Iniciando upload...');
                         await handleFileUpload(unitId, files[0]);
+                    } else {
+                        console.error('❌ [drop] Nenhum arquivo detectado!');
                     }
                 });
             });
@@ -536,47 +559,65 @@
         
         async function handleFileUpload(unitId, file) {
             try {
-                console.log('📊 Upload para unidade:', unitId);
-                console.log('📄 Arquivo:', file.name);
+                console.log('📊 [handleFileUpload] INÍCIO');
+                console.log('📊 [handleFileUpload] Unidade:', unitId);
+                console.log('📄 [handleFileUpload] Arquivo:', file.name, '| Tamanho:', file.size, 'bytes');
                 
                 // Validar arquivo
+                console.log('🔍 [handleFileUpload] Validando arquivo...');
                 validateSpreadsheet(file);
+                console.log('✅ [handleFileUpload] Arquivo válido!');
                 
                 // Mostrar overlay de processamento
                 const processingOverlay = document.getElementById(`processing-${unitId}`);
+                console.log('🎨 [handleFileUpload] Overlay encontrado:', !!processingOverlay);
                 if (processingOverlay) {
                     processingOverlay.classList.remove('hidden');
+                    console.log('🎨 [handleFileUpload] Overlay exibido');
                 }
                 
                 // Buscar configurações da unidade
+                console.log('🔍 [handleFileUpload] Buscando configurações da unidade...');
                 const unit = await getUnit(currentProjectId, unitId);
+                console.log('✅ [handleFileUpload] Unidade carregada:', unit.name);
+                console.log('⚙️ [handleFileUpload] Fontes de tráfego:', unit.trafficSources);
                 
                 // Processar planilha
+                console.log('📊 [handleFileUpload] Processando planilha...');
                 const budgetData = await processSpreadsheet(
                     file,
                     unit.trafficSources,
                     unit.customKeywords,
                     unit.excludeMaintenance || false
                 );
+                console.log('✅ [handleFileUpload] Planilha processada!');
+                console.log('📋 [handleFileUpload] Orçamentos:', budgetData.totalBudgets);
+                console.log('✅ [handleFileUpload] Vendas:', budgetData.totalSales);
+                console.log('💰 [handleFileUpload] Faturamento:', budgetData.totalRevenue);
                 
                 // Salvar no Firestore
+                console.log('💾 [handleFileUpload] Salvando no Firestore...');
                 await updateBudgetData(currentProjectId, unitId, budgetData);
-                
-                console.log('✅ Planilha processada e salva!');
+                console.log('✅ [handleFileUpload] Dados salvos no Firestore!');
                 
                 // Ocultar overlay
                 if (processingOverlay) {
                     processingOverlay.classList.add('hidden');
+                    console.log('🎨 [handleFileUpload] Overlay ocultado');
                 }
                 
                 // Recarregar unidades para atualizar os cards
+                console.log('🔄 [handleFileUpload] Recarregando unidades...');
                 await loadUnits();
+                console.log('✅ [handleFileUpload] Unidades recarregadas!');
                 
                 // Feedback visual
                 alert('✅ Planilha importada com sucesso!');
+                console.log('🎉 [handleFileUpload] CONCLUÍDO COM SUCESSO!');
                 
             } catch (error) {
-                console.error('❌ Erro ao processar planilha:', error);
+                console.error('❌ [handleFileUpload] ERRO:', error);
+                console.error('❌ [handleFileUpload] Stack:', error.stack);
                 
                 // Ocultar overlay em caso de erro
                 const processingOverlay = document.getElementById(`processing-${unitId}`);

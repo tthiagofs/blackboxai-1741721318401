@@ -117,17 +117,32 @@
                     </div>
 
                     <div id="fileInfo" class="mt-4 hidden bg-green-50 border border-green-200 rounded-lg p-4">
-                        <div class="flex items-center justify-between">
-                            <div class="flex items-center gap-3">
-                                <i class="fas fa-file-excel text-2xl text-green-600"></i>
-                                <div>
-                                    <p id="fileName" class="font-semibold text-gray-900"></p>
-                                    <p id="fileDate" class="text-sm text-gray-600"></p>
+                        <div class="flex items-center gap-3">
+                            <i class="fas fa-file-excel text-2xl text-green-600"></i>
+                            <div class="flex-1">
+                                <p id="fileName" class="font-semibold text-gray-900"></p>
+                                <p id="fileDate" class="text-sm text-gray-600"></p>
+                            </div>
+                        </div>
+                        
+                        <!-- Períodos sem dados -->
+                        <div id="missingPeriodsContainer" class="mt-4 hidden">
+                            <div class="flex items-start gap-2 bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                                <i class="fas fa-exclamation-triangle text-yellow-600 mt-0.5"></i>
+                                <div class="flex-1">
+                                    <p class="text-sm font-semibold text-yellow-800 mb-1">⚠️ Períodos sem dados:</p>
+                                    <ul id="missingPeriodsList" class="text-sm text-yellow-700 space-y-1">
+                                        <!-- Preenchido dinamicamente -->
+                                    </ul>
                                 </div>
                             </div>
-                            <button onclick="removeSpreadsheet()" class="px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors">
-                                <i class="fas fa-trash"></i> Remover
-                            </button>
+                        </div>
+                        
+                        <div id="noDuplicatesContainer" class="mt-4 hidden">
+                            <div class="flex items-center gap-2 text-sm text-green-700">
+                                <i class="fas fa-check-circle"></i>
+                                <span>✅ Sem períodos faltando</span>
+                            </div>
                         </div>
                     </div>
 
@@ -240,7 +255,7 @@ trafego pago</textarea>
     <script type="module">
         import { auth, db } from './config/firebase.js';
         import { onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
-        import { getUnit, updateUnit, updateBudgetData, removeBudgetData } from './services/unitsService.js';
+        import { getUnit, updateUnit, updateBudgetData } from './services/unitsService.js';
         import { processSpreadsheet, validateSpreadsheet, mergeSpreadsheetData } from './services/spreadsheetProcessor.js';
 
         let currentProjectId = null;
@@ -524,28 +539,99 @@ trafego pago</textarea>
             document.getElementById('fileInfo').classList.remove('hidden');
             document.getElementById('fileName').textContent = data.fileName;
             document.getElementById('fileDate').textContent = `Período: ${formatDate(data.periodStart)} a ${formatDate(data.periodEnd)}`;
+            
+            // Verificar períodos sem dados
+            checkMissingPeriods(data);
         }
-
-        // Remover planilha
-        window.removeSpreadsheet = async () => {
-            if (!confirm('Tem certeza que deseja remover a planilha atual?')) {
+        
+        // Verificar períodos sem dados
+        function checkMissingPeriods(data) {
+            if (!data || !data.rawData || !data.periodStart || !data.periodEnd) {
                 return;
             }
             
-            try {
-                await removeBudgetData(currentProjectId, currentUnitId);
+            console.log('🔍 [checkMissingPeriods] Verificando períodos sem dados...');
+            
+            // Criar set com todas as datas que temos dados
+            const existingDates = new Set(data.rawData.map(item => item.date));
+            console.log('📅 Total de datas com dados:', existingDates.size);
+            
+            // Gerar lista de TODAS as datas esperadas no período
+            const startDate = new Date(data.periodStart + 'T00:00:00');
+            const endDate = new Date(data.periodEnd + 'T00:00:00');
+            
+            const missingDates = [];
+            const currentDate = new Date(startDate);
+            
+            while (currentDate <= endDate) {
+                const dateStr = currentDate.toISOString().split('T')[0];
                 
-                currentUnit.budgetData = null;
+                if (!existingDates.has(dateStr)) {
+                    missingDates.push(dateStr);
+                }
                 
-                document.getElementById('dataCards').classList.add('hidden');
-                document.getElementById('fileInfo').classList.add('hidden');
-                
-                alert('✅ Planilha removida!');
-            } catch (error) {
-                console.error('Erro ao remover planilha:', error);
-                alert('Erro ao remover planilha');
+                currentDate.setDate(currentDate.getDate() + 1);
             }
-        };
+            
+            console.log('❌ Datas faltando:', missingDates.length);
+            
+            // Se não tem datas faltando
+            if (missingDates.length === 0) {
+                document.getElementById('missingPeriodsContainer').classList.add('hidden');
+                document.getElementById('noDuplicatesContainer').classList.remove('hidden');
+                return;
+            }
+            
+            // Agrupar datas consecutivas em períodos
+            const periods = [];
+            let periodStart = missingDates[0];
+            let periodEnd = missingDates[0];
+            
+            for (let i = 1; i < missingDates.length; i++) {
+                const prevDate = new Date(missingDates[i - 1]);
+                const currDate = new Date(missingDates[i]);
+                
+                const dayDiff = (currDate - prevDate) / (1000 * 60 * 60 * 24);
+                
+                if (dayDiff === 1) {
+                    // Consecutivo
+                    periodEnd = missingDates[i];
+                } else {
+                    // Quebra - salvar período anterior
+                    periods.push({ start: periodStart, end: periodEnd });
+                    periodStart = missingDates[i];
+                    periodEnd = missingDates[i];
+                }
+            }
+            
+            // Adicionar último período
+            periods.push({ start: periodStart, end: periodEnd });
+            
+            console.log('📊 Períodos sem dados:', periods);
+            
+            // Renderizar lista
+            const listEl = document.getElementById('missingPeriodsList');
+            listEl.innerHTML = '';
+            
+            periods.forEach(period => {
+                const li = document.createElement('li');
+                
+                const start = new Date(period.start + 'T00:00:00');
+                const end = new Date(period.end + 'T00:00:00');
+                const days = Math.round((end - start) / (1000 * 60 * 60 * 24)) + 1;
+                
+                if (period.start === period.end) {
+                    li.textContent = `• ${formatDate(period.start)} (1 dia)`;
+                } else {
+                    li.textContent = `• ${formatDate(period.start)} a ${formatDate(period.end)} (${days} dias)`;
+                }
+                
+                listEl.appendChild(li);
+            });
+            
+            document.getElementById('missingPeriodsContainer').classList.remove('hidden');
+            document.getElementById('noDuplicatesContainer').classList.add('hidden');
+        }
 
         function formatDate(dateStr) {
             if (!dateStr) return '-';

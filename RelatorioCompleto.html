@@ -205,8 +205,34 @@ ul.list-disc li br {
 
             <div id="mainContent">
         <form id="form" class="space-y-6">
-            <!-- Card: Seleção de Contas -->
-            <div class="bg-white rounded-2xl shadow-md p-6 border border-gray-100">
+            <!-- Card: Seleção de Unidade -->
+            <div class="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl shadow-md p-6 border-2 border-blue-200">
+                <div class="flex items-center mb-4">
+                    <div class="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center mr-3">
+                        <i class="fas fa-building text-white"></i>
+                    </div>
+                    <h3 class="text-lg font-semibold text-gray-800">Selecionar Unidade</h3>
+                </div>
+                <select id="unitSelect"
+                    class="w-full px-4 py-3 border-2 border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition bg-white font-medium">
+                    <option value="">Selecione uma unidade...</option>
+                </select>
+                <div id="unitLinkedInfo" class="mt-3 hidden">
+                    <div class="bg-white rounded-lg p-3 border border-blue-200">
+                        <p class="text-xs text-gray-600 mb-2">Contas vinculadas:</p>
+                        <div id="linkedAccountsBadges" class="flex flex-wrap gap-2"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card: Seleção de Contas (HIDDEN - apenas para casos sem vinculação) -->
+            <div id="manualAccountSelection" class="bg-white rounded-2xl shadow-md p-6 border border-gray-100 hidden">
+                <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
+                    <p class="text-sm text-yellow-800">
+                        <i class="fas fa-exclamation-triangle mr-2"></i>
+                        Esta unidade não possui contas vinculadas. Selecione manualmente:
+                    </p>
+                </div>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <!-- Meta Ads -->
                     <div>
@@ -667,7 +693,11 @@ ul.list-disc li br {
         console.log('⏳ [RelatorioCompleto] Aguardando Firebase verificar autenticação...');
         
         // Aguardar Firebase estar pronto antes de verificar autenticação
-        onAuthStateChanged(auth, (user) => {
+        let currentUser = null;
+        let currentProjectId = null;
+        let allUnits = [];
+
+        onAuthStateChanged(auth, async (user) => {
             console.log('🔔 [RelatorioCompleto] onAuthStateChanged disparado - user:', user?.email || 'null');
             
             if (!user) {
@@ -677,6 +707,121 @@ ul.list-disc li br {
             }
             
             console.log('✅ [RelatorioCompleto] Usuário autenticado:', user.email);
+            currentUser = user;
+            
+            // Carregar projeto e unidades
+            await loadUserUnits();
+        });
+
+        // ========== CARREGAR UNIDADES DO USUÁRIO ==========
+        async function loadUserUnits() {
+            try {
+                console.log('🔍 [loadUserUnits] Buscando projetos...');
+                const projects = await projectsService.getAllProjects();
+                
+                if (!projects || projects.length === 0) {
+                    console.warn('⚠️ Nenhum projeto encontrado');
+                    return;
+                }
+                
+                // Pegar o primeiro projeto (assumindo que o usuário tem apenas 1)
+                currentProjectId = projects[0].id;
+                console.log('✅ Projeto ID:', currentProjectId);
+                
+                // Buscar unidades do projeto
+                const { getDocs, collection, query, orderBy } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
+                const { db } = await import('./config/firebase.js');
+                
+                const unitsRef = collection(db, 'projects', currentProjectId, 'units');
+                const q = query(unitsRef, orderBy('name'));
+                const snapshot = await getDocs(q);
+                
+                allUnits = snapshot.docs.map(doc => ({
+                    id: doc.id,
+                    ...doc.data()
+                }));
+                
+                console.log('✅ Unidades carregadas:', allUnits.length);
+                
+                // Popular o select de unidades
+                const unitSelect = document.getElementById('unitSelect');
+                unitSelect.innerHTML = '<option value="">Selecione uma unidade...</option>';
+                
+                allUnits.forEach(unit => {
+                    const option = document.createElement('option');
+                    option.value = unit.id;
+                    option.textContent = unit.name;
+                    option.dataset.unit = JSON.stringify(unit);
+                    unitSelect.appendChild(option);
+                });
+                
+            } catch (error) {
+                console.error('❌ Erro ao carregar unidades:', error);
+            }
+        }
+
+        // ========== EVENTO: SELEÇÃO DE UNIDADE ==========
+        document.getElementById('unitSelect').addEventListener('change', async (e) => {
+            const unitId = e.target.value;
+            
+            if (!unitId) {
+                document.getElementById('unitLinkedInfo').classList.add('hidden');
+                document.getElementById('manualAccountSelection').classList.add('hidden');
+                return;
+            }
+            
+            const selectedOption = e.target.options[e.target.selectedIndex];
+            const unit = JSON.parse(selectedOption.dataset.unit);
+            
+            console.log('📦 Unidade selecionada:', unit);
+            
+            const linkedAccounts = unit.linkedAccounts || {};
+            const linkedAccountsBadges = document.getElementById('linkedAccountsBadges');
+            const unitLinkedInfo = document.getElementById('unitLinkedInfo');
+            const manualAccountSelection = document.getElementById('manualAccountSelection');
+            
+            linkedAccountsBadges.innerHTML = '';
+            
+            // Verificar se tem contas vinculadas
+            const hasMeta = linkedAccounts.meta?.id;
+            const hasGoogle = linkedAccounts.google?.id;
+            
+            if (hasMeta || hasGoogle) {
+                console.log('✅ Unidade possui contas vinculadas:', linkedAccounts);
+                
+                // Mostrar badges
+                if (hasMeta) {
+                    linkedAccountsBadges.innerHTML += `
+                        <div class="flex items-center gap-2 bg-blue-100 px-3 py-1 rounded-full">
+                            <i class="fab fa-meta text-blue-600"></i>
+                            <span class="text-xs font-medium text-gray-700">${linkedAccounts.meta.name}</span>
+                        </div>
+                    `;
+                    
+                    // Pré-selecionar conta Meta
+                    document.getElementById('unitId').value = linkedAccounts.meta.id;
+                }
+                
+                if (hasGoogle) {
+                    linkedAccountsBadges.innerHTML += `
+                        <div class="flex items-center gap-2 bg-red-100 px-3 py-1 rounded-full">
+                            <i class="fab fa-google text-red-600"></i>
+                            <span class="text-xs font-medium text-gray-700">${linkedAccounts.google.name}</span>
+                        </div>
+                    `;
+                    
+                    // Pré-selecionar conta Google
+                    document.getElementById('googleAdsAccountId').value = linkedAccounts.google.id;
+                }
+                
+                unitLinkedInfo.classList.remove('hidden');
+                manualAccountSelection.classList.add('hidden');
+                
+            } else {
+                console.warn('⚠️ Unidade sem contas vinculadas - modo manual');
+                unitLinkedInfo.classList.add('hidden');
+                manualAccountSelection.classList.remove('hidden');
+            }
         });
         
         // Logout da sidebar

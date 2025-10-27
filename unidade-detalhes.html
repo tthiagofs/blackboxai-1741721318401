@@ -456,34 +456,56 @@ trafego pago</textarea>
         // ========== VINCULAR CONTAS DE ANÚNCIOS ==========
         async function loadLinkedAccounts() {
             try {
-                if (!currentUnit) return;
+                console.log('🚀 [loadLinkedAccounts] Iniciando...');
+                console.log('📦 [loadLinkedAccounts] currentUnit:', currentUnit);
+                
+                if (!currentUnit) {
+                    console.warn('⚠️ [loadLinkedAccounts] currentUnit está vazio!');
+                    return;
+                }
                 
                 const linkedAccounts = currentUnit.linkedAccounts || {};
+                console.log('🔗 [loadLinkedAccounts] Contas já vinculadas:', linkedAccounts);
                 
                 // Carregar contas disponíveis do Meta
                 const metaSelect = document.getElementById('metaAccountSelect');
                 const metaStatus = document.getElementById('metaAccountStatus');
                 
+                console.log('📍 [loadLinkedAccounts] Elements:', { metaSelect, metaStatus });
+                
                 try {
-                    console.log('🔍 Buscando contas Meta...');
+                    console.log('🔍 [META] Verificando fbAuth:', fbAuth);
+                    console.log('🔍 [META] Verificando fbAuth.getAccounts:', fbAuth.getAccounts);
+                    console.log('🔍 [META] Chamando fbAuth.getAccounts()...');
+                    
                     const metaAccounts = await fbAuth.getAccounts();
-                    console.log('✅ Contas Meta:', metaAccounts);
+                    console.log('✅ [META] Contas retornadas:', metaAccounts);
+                    console.log('✅ [META] Tipo:', typeof metaAccounts, 'Array?', Array.isArray(metaAccounts), 'Length:', metaAccounts?.length);
                     
                     metaSelect.innerHTML = '<option value="">Nenhuma</option>';
-                    metaAccounts.forEach(acc => {
-                        const option = document.createElement('option');
-                        option.value = acc.id;
-                        option.textContent = acc.name;
-                        option.dataset.name = acc.name;
-                        metaSelect.appendChild(option);
-                    });
+                    
+                    if (Array.isArray(metaAccounts) && metaAccounts.length > 0) {
+                        metaAccounts.forEach(acc => {
+                            console.log('➕ [META] Adicionando conta:', acc);
+                            const option = document.createElement('option');
+                            option.value = acc.id;
+                            option.textContent = acc.name;
+                            option.dataset.name = acc.name;
+                            metaSelect.appendChild(option);
+                        });
+                    } else {
+                        console.warn('⚠️ [META] Nenhuma conta disponível ou array vazio');
+                        metaStatus.innerHTML = '<span class="text-yellow-600"><i class="fas fa-exclamation-triangle mr-1"></i>Nenhuma conta Meta encontrada</span>';
+                    }
                     
                     if (linkedAccounts.meta) {
+                        console.log('🔗 [META] Selecionando conta vinculada:', linkedAccounts.meta);
                         metaSelect.value = linkedAccounts.meta.id;
                         metaStatus.innerHTML = `<span class="text-green-600"><i class="fas fa-check-circle mr-1"></i>Vinculada: ${linkedAccounts.meta.name}</span>`;
                     }
                 } catch (error) {
-                    console.error('❌ Erro Meta:', error);
+                    console.error('❌ [META] Erro completo:', error);
+                    console.error('❌ [META] Stack:', error.stack);
                     metaStatus.innerHTML = '<span class="text-red-600"><i class="fas fa-exclamation-circle mr-1"></i>Conecte-se ao Meta primeiro</span>';
                 }
                 
@@ -492,29 +514,43 @@ trafego pago</textarea>
                 const googleStatus = document.getElementById('googleAccountStatus');
                 
                 try {
-                    console.log('🔍 Buscando contas Google...');
+                    console.log('🔍 [GOOGLE] Verificando googleAuth:', googleAuth);
+                    console.log('🔍 [GOOGLE] Verificando googleAuth.getAccessibleAccounts:', googleAuth.getAccessibleAccounts);
+                    console.log('🔍 [GOOGLE] Chamando googleAuth.getAccessibleAccounts()...');
+                    
                     const googleAccounts = await googleAuth.getAccessibleAccounts();
-                    console.log('✅ Contas Google:', googleAccounts);
+                    console.log('✅ [GOOGLE] Contas retornadas:', googleAccounts);
+                    console.log('✅ [GOOGLE] Tipo:', typeof googleAccounts, 'Array?', Array.isArray(googleAccounts), 'Length:', googleAccounts?.length);
                     
                     googleSelect.innerHTML = '<option value="">Nenhuma</option>';
-                    googleAccounts.forEach(acc => {
-                        const option = document.createElement('option');
-                        option.value = acc.id;
-                        option.textContent = acc.name;
-                        option.dataset.name = acc.name;
-                        googleSelect.appendChild(option);
-                    });
+                    
+                    if (Array.isArray(googleAccounts) && googleAccounts.length > 0) {
+                        googleAccounts.forEach(acc => {
+                            console.log('➕ [GOOGLE] Adicionando conta:', acc);
+                            const option = document.createElement('option');
+                            option.value = acc.id;
+                            option.textContent = acc.name;
+                            option.dataset.name = acc.name;
+                            googleSelect.appendChild(option);
+                        });
+                    } else {
+                        console.warn('⚠️ [GOOGLE] Nenhuma conta disponível ou array vazio');
+                        googleStatus.innerHTML = '<span class="text-yellow-600"><i class="fas fa-exclamation-triangle mr-1"></i>Nenhuma conta Google encontrada</span>';
+                    }
                     
                     if (linkedAccounts.google) {
+                        console.log('🔗 [GOOGLE] Selecionando conta vinculada:', linkedAccounts.google);
                         googleSelect.value = linkedAccounts.google.id;
                         googleStatus.innerHTML = `<span class="text-green-600"><i class="fas fa-check-circle mr-1"></i>Vinculada: ${linkedAccounts.google.name}</span>`;
                     }
                 } catch (error) {
-                    console.error('❌ Erro Google:', error);
+                    console.error('❌ [GOOGLE] Erro completo:', error);
+                    console.error('❌ [GOOGLE] Stack:', error.stack);
                     googleStatus.innerHTML = '<span class="text-red-600"><i class="fas fa-exclamation-circle mr-1"></i>Conecte-se ao Google primeiro</span>';
                 }
             } catch (error) {
-                console.error('❌ Erro ao carregar contas vinculadas:', error);
+                console.error('❌ [loadLinkedAccounts] Erro geral:', error);
+                console.error('❌ [loadLinkedAccounts] Stack:', error.stack);
             }
         }
 
@@ -824,6 +860,22 @@ trafego pago</textarea>
             const date = new Date(dateStr);
             return date.toLocaleDateString('pt-BR');
         }
+
+        // ========== BOTÃO VOLTAR ==========
+        document.getElementById('backLink').addEventListener('click', (e) => {
+            e.preventDefault();
+            window.location.href = `unidades.html?projectId=${currentProjectId}`;
+        });
+
+        // ========== LOGOUT ==========
+        document.getElementById('logoutBtn').addEventListener('click', async () => {
+            try {
+                await signOut(auth);
+                window.location.href = '/login.html';
+            } catch (error) {
+                console.error('❌ Erro ao fazer logout:', error);
+            }
+        });
     </script>
 </body>
 </html>

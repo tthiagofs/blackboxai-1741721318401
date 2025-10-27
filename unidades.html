@@ -196,6 +196,70 @@
         </div>
     </div>
 
+    <!-- Modal: Vincular Contas de Anúncios -->
+    <div id="linkAccountsModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div class="bg-white rounded-xl p-8 max-w-lg w-full mx-4">
+            <h2 class="text-2xl font-bold text-gray-900 mb-2">
+                <i class="fas fa-link text-green-600 mr-2"></i>Vincular Contas de Anúncios
+            </h2>
+            <p class="text-sm text-gray-600 mb-6" id="linkAccountsUnitName"></p>
+            
+            <form id="linkAccountsForm">
+                <!-- Meta Ads -->
+                <div class="mb-6">
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">
+                        <i class="fab fa-meta text-blue-600 mr-1"></i> Meta Ads (Opcional)
+                    </label>
+                    <select 
+                        id="metaAccountSelect" 
+                        class="w-full border-2 border-gray-200 rounded-lg px-4 py-3 focus:outline-none focus:border-blue-500"
+                    >
+                        <option value="">Não vincular</option>
+                        <option value="loading">Carregando...</option>
+                    </select>
+                </div>
+
+                <!-- Google Ads -->
+                <div class="mb-6">
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">
+                        <i class="fab fa-google text-red-600 mr-1"></i> Google Ads (Opcional)
+                    </label>
+                    <select 
+                        id="googleAccountSelect" 
+                        class="w-full border-2 border-gray-200 rounded-lg px-4 py-3 focus:outline-none focus:border-blue-500"
+                    >
+                        <option value="">Não vincular</option>
+                        <option value="loading">Carregando...</option>
+                    </select>
+                </div>
+
+                <!-- Info -->
+                <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+                    <p class="text-sm text-blue-800">
+                        <i class="fas fa-info-circle mr-1"></i>
+                        Ao vincular contas, os relatórios desta unidade usarão essas contas automaticamente.
+                    </p>
+                </div>
+
+                <div class="flex gap-3">
+                    <button 
+                        type="button"
+                        onclick="hideLinkAccountsModal()"
+                        class="flex-1 px-4 py-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+                    >
+                        Cancelar
+                    </button>
+                    <button 
+                        type="submit"
+                        class="flex-1 px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                    >
+                        <i class="fas fa-save mr-2"></i>Salvar Vínculos
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- Scripts -->
     <script type="module">
         import { auth, db } from './config/firebase.js';
@@ -413,10 +477,35 @@
                             </div>
                         `}
                         
-                        <button onclick="openUnit('${unit.id}')" 
-                            class="w-full px-3 py-1.5 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors text-xs font-medium">
-                            <i class="fas fa-folder-open mr-1"></i> Abrir
-                        </button>
+                        <div class="flex gap-2">
+                            <button onclick="openUnit('${unit.id}')" 
+                                class="flex-1 px-3 py-1.5 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors text-xs font-medium">
+                                <i class="fas fa-folder-open mr-1"></i> Abrir
+                            </button>
+                            <button onclick="showLinkAccountsModal('${unit.id}', '${unit.name.replace(/'/g, "\\'")}')" 
+                                class="px-3 py-1.5 bg-green-600 text-white rounded hover:bg-green-700 transition-colors text-xs font-medium"
+                                title="Vincular contas de anúncios">
+                                <i class="fas fa-link"></i>
+                            </button>
+                        </div>
+                        
+                        ${unit.linkedAccounts && (unit.linkedAccounts.meta || unit.linkedAccounts.google) ? `
+                        <div class="mt-2 pt-2 border-t border-gray-200">
+                            <p class="text-xs text-gray-500 mb-1">Contas vinculadas:</p>
+                            ${unit.linkedAccounts.meta ? `
+                            <div class="flex items-center gap-1 text-xs text-gray-600 mb-0.5">
+                                <i class="fab fa-meta text-blue-600"></i>
+                                <span class="truncate">${unit.linkedAccounts.meta.accountName || 'Meta Ads'}</span>
+                            </div>
+                            ` : ''}
+                            ${unit.linkedAccounts.google ? `
+                            <div class="flex items-center gap-1 text-xs text-gray-600">
+                                <i class="fab fa-google text-red-600"></i>
+                                <span class="truncate">${unit.linkedAccounts.google.accountName || 'Google Ads'}</span>
+                            </div>
+                            ` : ''}
+                        </div>
+                        ` : ''}
                     </div>
                 `;
             }).join('');
@@ -606,6 +695,126 @@
             document.getElementById('addUnitModal').classList.add('hidden');
             document.getElementById('unitName').value = '';
         };
+
+        // ===== MODAL DE VINCULAÇÃO DE CONTAS =====
+        
+        let currentLinkingUnitId = null;
+        
+        window.showLinkAccountsModal = async (unitId, unitName) => {
+            currentLinkingUnitId = unitId;
+            document.getElementById('linkAccountsUnitName').textContent = `Unidade: ${unitName}`;
+            document.getElementById('linkAccountsModal').classList.remove('hidden');
+            
+            // Carregar contas disponíveis
+            await loadAvailableAccounts(unitId);
+        };
+        
+        window.hideLinkAccountsModal = () => {
+            document.getElementById('linkAccountsModal').classList.add('hidden');
+            currentLinkingUnitId = null;
+        };
+        
+        async function loadAvailableAccounts(unitId) {
+            try {
+                // Buscar conexões do projeto
+                const { collection: collectionRef, getDocs, query: queryRef, where } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
+                
+                const connectionsQuery = queryRef(
+                    collectionRef(db, `projects/${currentProjectId}/connections`),
+                    where('active', '==', true)
+                );
+                
+                const snapshot = await getDocs(connectionsQuery);
+                
+                const metaSelect = document.getElementById('metaAccountSelect');
+                const googleSelect = document.getElementById('googleAccountSelect');
+                
+                // Buscar unidade atual para pré-selecionar
+                const unit = units.find(u => u.id === unitId);
+                const currentMeta = unit?.linkedAccounts?.meta?.accountId || '';
+                const currentGoogle = unit?.linkedAccounts?.google?.accountId || '';
+                
+                // Limpar e popular Meta
+                metaSelect.innerHTML = '<option value="">Não vincular</option>';
+                googleSelect.innerHTML = '<option value="">Não vincular</option>';
+                
+                snapshot.forEach(doc => {
+                    const conn = doc.data();
+                    
+                    if (conn.type === 'meta' && conn.accounts) {
+                        conn.accounts.forEach(account => {
+                            const option = document.createElement('option');
+                            option.value = account.id;
+                            option.textContent = account.name;
+                            option.setAttribute('data-name', account.name);
+                            if (account.id === currentMeta) option.selected = true;
+                            metaSelect.appendChild(option);
+                        });
+                    } else if (conn.type === 'google' && conn.accounts) {
+                        conn.accounts.forEach(account => {
+                            const option = document.createElement('option');
+                            option.value = account.customerId;
+                            option.textContent = account.descriptiveName;
+                            option.setAttribute('data-name', account.descriptiveName);
+                            if (account.customerId === currentGoogle) option.selected = true;
+                            googleSelect.appendChild(option);
+                        });
+                    }
+                });
+                
+            } catch (error) {
+                console.error('❌ Erro ao carregar contas:', error);
+            }
+        }
+        
+        // Salvar vinculações
+        document.getElementById('linkAccountsForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            if (!currentLinkingUnitId) return;
+            
+            try {
+                const metaSelect = document.getElementById('metaAccountSelect');
+                const googleSelect = document.getElementById('googleAccountSelect');
+                
+                const linkedAccounts = {};
+                
+                // Meta
+                if (metaSelect.value) {
+                    const selectedOption = metaSelect.options[metaSelect.selectedIndex];
+                    linkedAccounts.meta = {
+                        accountId: metaSelect.value,
+                        accountName: selectedOption.getAttribute('data-name') || selectedOption.textContent
+                    };
+                }
+                
+                // Google
+                if (googleSelect.value) {
+                    const selectedOption = googleSelect.options[googleSelect.selectedIndex];
+                    linkedAccounts.google = {
+                        accountId: googleSelect.value,
+                        accountName: selectedOption.getAttribute('data-name') || selectedOption.textContent
+                    };
+                }
+                
+                // Salvar no Firestore
+                const { doc: docRef, updateDoc } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
+                
+                await updateDoc(
+                    docRef(db, `projects/${currentProjectId}/units/${currentLinkingUnitId}`),
+                    { linkedAccounts: Object.keys(linkedAccounts).length > 0 ? linkedAccounts : null }
+                );
+                
+                console.log('✅ Contas vinculadas com sucesso!');
+                
+                hideLinkAccountsModal();
+                loadUnits();
+                
+            } catch (error) {
+                console.error('❌ Erro ao salvar vínculos:', error);
+                alert('Erro ao salvar vínculos. Tente novamente.');
+            }
+        });
 
         // Criar unidade
         document.getElementById('addUnitForm').addEventListener('submit', async (e) => {

@@ -296,8 +296,8 @@ trafego pago</textarea>
         import { onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
         import { getUnit, updateUnit, updateBudgetData } from './services/unitsService.js';
         import { processSpreadsheet, validateSpreadsheet, mergeSpreadsheetData } from './services/spreadsheetProcessor.js';
-        import fbAuth from './auth.js?v=3.0';
-        import googleAuth from './authGoogle.js?v=3.0';
+        import { fbAuth } from './auth.js?v=3.0';
+        import { googleAuth } from './authGoogle.js?v=3.0';
 
         let currentProjectId = null;
         let currentUnitId = null;

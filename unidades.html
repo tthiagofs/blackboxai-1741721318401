@@ -202,7 +202,7 @@
         import { onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
         import { doc, getDoc, deleteDoc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
         import { listUnits, createUnit, getUnit, updateBudgetData } from './services/unitsService.js';
-        import { processSpreadsheet, validateSpreadsheet } from './services/spreadsheetProcessor.js';
+        import { processSpreadsheet, validateSpreadsheet, mergeSpreadsheetData } from './services/spreadsheetProcessor.js';
 
         let currentProjectId = null;
         let currentUser = null;
@@ -362,13 +362,23 @@
                             </div>
                         </div>
                         
-                        <!-- Botão Excluir (canto superior direito) -->
-                        <button 
-                            onclick="deleteUnit('${unit.id}', '${unit.name.replace(/'/g, "\\'")}')" 
-                            class="absolute top-2 right-2 w-7 h-7 bg-red-100 text-red-600 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-200 flex items-center justify-center z-20"
-                            title="Excluir unidade">
-                            <i class="fas fa-trash text-xs"></i>
-                        </button>
+                        <!-- Botões de ação (canto superior direito) -->
+                        <div class="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-20">
+                            ${hasData ? `
+                            <button 
+                                onclick="clearUnitData('${unit.id}', '${unit.name.replace(/'/g, "\\'")}')" 
+                                class="w-7 h-7 bg-yellow-100 text-yellow-600 rounded-full hover:bg-yellow-200 flex items-center justify-center"
+                                title="Limpar dados">
+                                <i class="fas fa-eraser text-xs"></i>
+                            </button>
+                            ` : ''}
+                            <button 
+                                onclick="deleteUnit('${unit.id}', '${unit.name.replace(/'/g, "\\'")}')" 
+                                class="w-7 h-7 bg-red-100 text-red-600 rounded-full hover:bg-red-200 flex items-center justify-center"
+                                title="Excluir unidade">
+                                <i class="fas fa-trash text-xs"></i>
+                            </button>
+                        </div>
                         
                         <div class="flex items-center gap-2 mb-3">
                             <div class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
@@ -477,6 +487,39 @@
                 await loadUnits();
             } catch (error) {
                 console.error('Erro ao excluir unidade:', error);
+            }
+        };
+
+        // Limpar dados de uma unidade específica
+        window.clearUnitData = async (unitId, unitName) => {
+            const confirmMessage = `⚠️ Limpar dados da unidade "${unitName}"?\n\nIsso vai remover TODOS os dados das planilhas.\nA unidade continuará existindo, mas SEM dados.\n\nVocê poderá importar novas planilhas depois.\n\nDeseja continuar?`;
+            
+            if (!confirm(confirmMessage)) {
+                return;
+            }
+            
+            try {
+                // Importar updateDoc
+                const { doc: docRef, updateDoc } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
+                
+                // Limpar budgetData
+                await updateDoc(
+                    docRef(db, `projects/${currentProjectId}/units/${unitId}`),
+                    {
+                        budgetData: null
+                    }
+                );
+                
+                console.log(`✅ Dados da unidade "${unitName}" limpos com sucesso!`);
+                
+                // Recarregar unidades
+                document.getElementById('unitsGrid').classList.add('hidden');
+                document.getElementById('loadingSection').classList.remove('hidden');
+                await loadUnits();
+                
+            } catch (error) {
+                console.error('❌ Erro ao limpar dados:', error);
+                alert('❌ Erro ao limpar dados. Tente novamente.');
             }
         };
 
@@ -673,20 +716,27 @@
                 
                 // Processar planilha
                 console.log('📊 [handleFileUpload] Processando planilha...');
-                const budgetData = await processSpreadsheet(
+                const newBudgetData = await processSpreadsheet(
                     file,
                     unit.trafficSources,
                     unit.customKeywords,
                     unit.excludeMaintenance || false
                 );
                 console.log('✅ [handleFileUpload] Planilha processada!');
-                console.log('📋 [handleFileUpload] Orçamentos:', budgetData.totalBudgets);
-                console.log('✅ [handleFileUpload] Vendas:', budgetData.totalSales);
-                console.log('💰 [handleFileUpload] Faturamento:', budgetData.totalRevenue);
+                console.log('📋 [handleFileUpload] Orçamentos:', newBudgetData.totalBudgets);
+                console.log('✅ [handleFileUpload] Vendas:', newBudgetData.totalSales);
+                console.log('💰 [handleFileUpload] Faturamento:', newBudgetData.totalRevenue);
+                
+                // Mesclar com dados existentes
+                console.log('🔄 [handleFileUpload] Mesclando com dados existentes...');
+                const mergedData = mergeSpreadsheetData(unit.budgetData, newBudgetData);
+                console.log('✅ [handleFileUpload] Mesclagem concluída!');
+                console.log('📊 [handleFileUpload] Total final:', mergedData.totalBudgets, 'registros');
+                console.log('📅 [handleFileUpload] Período:', mergedData.periodStart, 'a', mergedData.periodEnd);
                 
                 // Salvar no Firestore
                 console.log('💾 [handleFileUpload] Salvando no Firestore...');
-                await updateBudgetData(currentProjectId, unitId, budgetData);
+                await updateBudgetData(currentProjectId, unitId, mergedData);
                 console.log('✅ [handleFileUpload] Dados salvos no Firestore!');
                 
                 // Ocultar overlay

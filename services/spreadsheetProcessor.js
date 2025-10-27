@@ -227,6 +227,94 @@ export async function processSpreadsheet(file, trafficSources, customKeywords, e
 }
 
 /**
+ * Mesclar dados novos com existentes
+ * Regra: Se a data já existe, SUBSTITUI. Se não existe, ADICIONA.
+ */
+export function mergeSpreadsheetData(existingData, newData) {
+    console.log('🔄 [mergeSpreadsheetData] Iniciando mesclagem...');
+    console.log('📊 Dados existentes:', existingData?.rawData?.length || 0, 'linhas');
+    console.log('📊 Dados novos:', newData?.rawData?.length || 0, 'linhas');
+    
+    // Se não tem dados existentes, retorna os novos
+    if (!existingData || !existingData.rawData || existingData.rawData.length === 0) {
+        console.log('✅ Sem dados existentes, usando dados novos');
+        return newData;
+    }
+    
+    // Se não tem dados novos, retorna os existentes
+    if (!newData || !newData.rawData || newData.rawData.length === 0) {
+        console.log('⚠️ Sem dados novos, mantendo existentes');
+        return existingData;
+    }
+    
+    // Criar mapa de dados existentes por data (para busca rápida)
+    const existingMap = new Map();
+    existingData.rawData.forEach(item => {
+        const key = `${item.date}_${item.status}_${item.value}`;
+        existingMap.set(key, item);
+    });
+    
+    // Processar dados novos
+    const mergedRawData = [...existingData.rawData];
+    let addedCount = 0;
+    let updatedCount = 0;
+    
+    newData.rawData.forEach(newItem => {
+        const key = `${newItem.date}_${newItem.status}_${newItem.value}`;
+        
+        if (existingMap.has(key)) {
+            // Registro idêntico já existe, pular
+            return;
+        }
+        
+        // Procurar por registro com mesma data para substituir
+        const existingIndex = mergedRawData.findIndex(item => item.date === newItem.date);
+        
+        if (existingIndex >= 0) {
+            // Data existe, substituir
+            mergedRawData[existingIndex] = newItem;
+            updatedCount++;
+        } else {
+            // Data não existe, adicionar
+            mergedRawData.push(newItem);
+            addedCount++;
+        }
+    });
+    
+    // Ordenar por data
+    mergedRawData.sort((a, b) => a.date.localeCompare(b.date));
+    
+    // Recalcular estatísticas
+    const minDate = mergedRawData.reduce((min, item) => 
+        !min || item.date < min ? item.date : min, null);
+    const maxDate = mergedRawData.reduce((max, item) => 
+        !max || item.date > max ? item.date : max, null);
+    
+    const totalBudgets = mergedRawData.length;
+    const totalSales = mergedRawData.filter(r => r.status === "APPROVED").length;
+    const totalRevenue = mergedRawData
+        .filter(r => r.status === "APPROVED")
+        .reduce((sum, r) => sum + r.value, 0);
+    
+    console.log(`✅ Mesclagem concluída:`);
+    console.log(`   📊 Total final: ${mergedRawData.length} linhas`);
+    console.log(`   ➕ Adicionadas: ${addedCount}`);
+    console.log(`   🔄 Atualizadas: ${updatedCount}`);
+    console.log(`   📅 Período: ${minDate} a ${maxDate}`);
+    
+    return {
+        fileName: newData.fileName,
+        rawData: mergedRawData,
+        periodStart: minDate,
+        periodEnd: maxDate,
+        totalBudgets: totalBudgets,
+        totalSales: totalSales,
+        totalRevenue: totalRevenue,
+        uploadedAt: new Date().toISOString()
+    };
+}
+
+/**
  * Validar formato da planilha
  */
 export function validateSpreadsheet(file) {

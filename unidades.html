@@ -301,6 +301,13 @@
             // Atualizar link Tela Inicial
             document.getElementById('telaInicialLink').href = `projeto.html?id=${currentProjectId}`;
             
+            // Inicializar connectionService
+            connectionService.initialize().then(() => {
+                console.log('✅ ConnectionService inicializado');
+            }).catch(err => {
+                console.error('❌ Erro ao inicializar connectionService:', err);
+            });
+            
             // Carregar unidades
             loadUnits();
         });
@@ -720,11 +727,10 @@
             console.log('📋 Unit ID:', unitId);
             
             try {
-                // Inicializar connectionService
-                await connectionService.initialize();
+                // Buscar conexões do connectionService (já inicializado)
                 const connections = connectionService.getAllConnections();
                 
-                console.log('✅ Conexões carregadas:', connections);
+                console.log('✅ Conexões disponíveis:', connections);
                 
                 const metaSelect = document.getElementById('metaAccountSelect');
                 const googleSelect = document.getElementById('googleAccountSelect');

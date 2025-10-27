@@ -267,7 +267,8 @@
         import { doc, getDoc, deleteDoc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
         import { listUnits, createUnit, getUnit, updateBudgetData } from './services/unitsService.js';
         import { processSpreadsheet, validateSpreadsheet, mergeSpreadsheetData } from './services/spreadsheetProcessor.js';
-        import { connectionService } from './services/connectionService.js?v=1.1';
+        import { fbAuth } from './auth.js?v=3.0';
+        import { googleAuth } from './authGoogle.js?v=3.0';
 
         let currentProjectId = null;
         let currentUser = null;
@@ -300,13 +301,6 @@
             
             // Atualizar link Tela Inicial
             document.getElementById('telaInicialLink').href = `projeto.html?id=${currentProjectId}`;
-            
-            // Inicializar connectionService
-            connectionService.initialize().then(() => {
-                console.log('✅ ConnectionService inicializado');
-            }).catch(err => {
-                console.error('❌ Erro ao inicializar connectionService:', err);
-            });
             
             // Carregar unidades
             loadUnits();
@@ -727,20 +721,6 @@
             console.log('📋 Unit ID:', unitId);
             
             try {
-                // Garantir que connectionService está inicializado
-                console.log('⏳ Inicializando connectionService...');
-                await connectionService.initialize();
-                console.log('✅ ConnectionService pronto!');
-                
-                // Buscar conexões
-                const connections = connectionService.getAllConnections();
-                
-                console.log('✅ Conexões disponíveis:', connections);
-                console.log('🔵 Meta conectado?', connections.meta?.active);
-                console.log('🔵 Meta contas:', connections.meta?.accounts?.length || 0);
-                console.log('🔴 Google conectado?', connections.google?.active);
-                console.log('🔴 Google contas:', connections.google?.accounts?.length || 0);
-                
                 const metaSelect = document.getElementById('metaAccountSelect');
                 const googleSelect = document.getElementById('googleAccountSelect');
                 
@@ -759,10 +739,14 @@
                 let metaCount = 0;
                 let googleCount = 0;
                 
-                // Meta Ads
-                if (connections.meta?.active && connections.meta?.accounts) {
-                    console.log('🔵 Processando', connections.meta.accounts.length, 'contas Meta');
-                    connections.meta.accounts.forEach(account => {
+                // Meta Ads - usar fbAuth diretamente
+                console.log('🔵 Buscando contas Meta...');
+                const metaAccounts = fbAuth.getAccounts();
+                console.log('🔵 Meta accounts:', metaAccounts);
+                
+                if (metaAccounts && metaAccounts.length > 0) {
+                    console.log('🔵 Processando', metaAccounts.length, 'contas Meta');
+                    metaAccounts.forEach(account => {
                         console.log('  ➕ Adicionando conta Meta:', account.name, '| ID:', account.id);
                         const option = document.createElement('option');
                         option.value = account.id;
@@ -772,12 +756,18 @@
                         metaSelect.appendChild(option);
                         metaCount++;
                     });
+                } else {
+                    console.log('⚠️ Nenhuma conta Meta encontrada');
                 }
                 
-                // Google Ads
-                if (connections.google?.active && connections.google?.accounts) {
-                    console.log('🔴 Processando', connections.google.accounts.length, 'contas Google');
-                    connections.google.accounts.forEach(account => {
+                // Google Ads - usar googleAuth diretamente
+                console.log('🔴 Buscando contas Google...');
+                const googleAccounts = googleAuth.getAccessibleAccounts();
+                console.log('🔴 Google accounts:', googleAccounts);
+                
+                if (googleAccounts && googleAccounts.length > 0) {
+                    console.log('🔴 Processando', googleAccounts.length, 'contas Google');
+                    googleAccounts.forEach(account => {
                         console.log('  ➕ Adicionando conta Google:', account.descriptiveName, '| ID:', account.customerId);
                         const option = document.createElement('option');
                         option.value = account.customerId;
@@ -787,6 +777,8 @@
                         googleSelect.appendChild(option);
                         googleCount++;
                     });
+                } else {
+                    console.log('⚠️ Nenhuma conta Google encontrada');
                 }
                 
                 console.log('✅ Contas carregadas - Meta:', metaCount, '| Google:', googleCount);

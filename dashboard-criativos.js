@@ -5,6 +5,7 @@ import { auth, db } from './config/firebase.js';
 import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
 import { collection, query, where, getDocs } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 import { FacebookInsightsService } from './services/facebookInsights.js';
+import { projectsService } from './services/projects.js';
 
 let currentUser = null;
 let currentProject = null;
@@ -19,27 +20,23 @@ onAuthStateChanged(auth, async (user) => {
   }
 });
 
-// Carregar projetos no select
+// Carregar projetos no select (usando projectsService que filtra por isActive)
 async function loadCreativeProjects() {
   try {
-    const projectsQuery = query(
-      collection(db, 'projects'),
-      where('userId', '==', currentUser.uid)
-    );
-    const snapshot = await getDocs(projectsQuery);
-    
     const projectSelect = document.getElementById('creativeProjectSelect');
     projectSelect.innerHTML = '<option value="">Selecione um projeto</option>';
     
-    snapshot.forEach(doc => {
-      const data = doc.data();
+    // Usar projectsService que já filtra projetos deletados (isActive = true)
+    const projects = await projectsService.listProjects();
+    
+    projects.forEach(project => {
       const option = document.createElement('option');
-      option.value = doc.id;
-      option.textContent = data.name || 'Sem nome';
+      option.value = project.id;
+      option.textContent = project.name || 'Sem nome';
       projectSelect.appendChild(option);
     });
     
-    console.log(`✅ ${snapshot.size} projetos carregados para Análise de Criativos`);
+    console.log(`✅ ${projects.length} projeto(s) ativo(s) carregado(s) para Análise de Criativos`);
   } catch (error) {
     console.error('❌ Erro ao carregar projetos:', error);
   }

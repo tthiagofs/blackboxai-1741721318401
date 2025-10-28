@@ -115,22 +115,8 @@ async function loadProjects() {
 // ==================== CARREGAR UNIDADES ====================
 async function loadUnitsForProject(projectId) {
     try {
-        console.log('📋 Carregando unidades do projeto:', projectId);
-        
         allUnits = await unitsService.listUnits(projectId);
-        
-        console.log(`✅ ${allUnits.length} unidades carregadas`);
-        
-        // Log detalhado das unidades
-        allUnits.forEach((unit, index) => {
-            const hasBudgetData = unit.budgetData && unit.budgetData.rawData;
-            const dataCount = hasBudgetData ? unit.budgetData.rawData.length : 0;
-            console.log(`   ${index + 1}. ${unit.name} - ${hasBudgetData ? `✅ ${dataCount} registros` : '❌ Sem planilha'}`);
-        });
-        
-        // Atualizar lista de unidades específicas
         updateSpecificUnitsList();
-        
     } catch (error) {
         console.error('❌ Erro ao carregar unidades:', error);
         alert('Erro ao carregar unidades');
@@ -225,6 +211,12 @@ async function applyFilters() {
             return;
         }
         
+        // Validar se tem unidades carregadas
+        if (!allUnits || allUnits.length === 0) {
+            alert('❌ Nenhuma unidade encontrada. Carregue as unidades primeiro.');
+            return;
+        }
+        
         // Validar período personalizado
         if (currentFilters.period === 'custom') {
             const startDate = document.getElementById('startDate').value;
@@ -258,11 +250,9 @@ async function applyFilters() {
             }
             selectedUnits = Array.from(checkboxes).map(cb => cb.value);
         } else {
+            // TODAS as unidades
             selectedUnits = allUnits.map(u => u.id);
         }
-        
-        console.log('🎯 Aplicando filtros:', currentFilters);
-        console.log('📋 Unidades selecionadas:', selectedUnits);
         
         // Mostrar loading
         showLoading();
@@ -329,141 +319,76 @@ function calculatePeriodDates(period) {
 // ==================== CARREGAR DADOS DO DASHBOARD ====================
 async function loadDashboardData() {
     try {
-        console.log('📊 Carregando dados do dashboard...');
-        console.log(`   📅 Período: ${currentFilters.startDate} até ${currentFilters.endDate}`);
-        console.log(`   📋 Unidades selecionadas: ${selectedUnits.length}`);
-        console.log(`   📚 Total de unidades disponíveis: ${allUnits.length}`);
-        
         // Processar dados de cada unidade
-        console.log('🔄 Processando unidades...');
-        const unitsData = await Promise.all(
-            selectedUnits.map(async (unitId) => {
-                console.log(`   🔍 Buscando unidade ID: ${unitId}`);
-                const unit = allUnits.find(u => u.id === unitId);
-                
-                if (!unit) {
-                    console.warn(`   ⚠️ Unidade ${unitId} não encontrada!`);
-                    return null;
-                }
-                
-                console.log(`   ✅ Unidade encontrada: ${unit.name}`);
-                const metrics = calculateUnitMetrics(unit);
-                return {
-                    id: unit.id,
-                    name: unit.name,
-                    ...metrics
-                };
-            })
-        );
+        const unitsData = selectedUnits.map(unitId => {
+            const unit = allUnits.find(u => u.id === unitId);
+            if (!unit) return null;
+            
+            const metrics = calculateUnitMetrics(unit);
+            return {
+                id: unit.id,
+                name: unit.name,
+                ...metrics
+            };
+        }).filter(u => u !== null);
         
-        console.log(`✅ ${unitsData.length} unidades processadas`);
-        
-        // Filtrar unidades sem dados (aceita qualquer valor > 0, mesmo pequeno)
-        const validUnits = unitsData.filter(u => u !== null && (u.investment > 0 || u.revenue > 0 || u.leads > 0));
-        
-        console.log(`📊 Resumo do processamento:`);
-        console.log(`   - Total de unidades selecionadas: ${selectedUnits.length}`);
-        console.log(`   - Unidades com dados válidos: ${validUnits.length}`);
-        console.log(`   - Unidades sem dados: ${selectedUnits.length - validUnits.length}`);
-        
-        // Log de cada unidade processada
-        unitsData.forEach(u => {
-            if (u) {
-                console.log(`   📌 ${u.name}: Invest=${u.investment}, Revenue=${u.revenue}, Leads=${u.leads}, ROI=${u.roi.toFixed(2)}%`);
-            }
-        });
+        // Filtrar unidades com dados
+        const validUnits = unitsData.filter(u => u.investment > 0 || u.revenue > 0 || u.leads > 0);
         
         if (validUnits.length === 0) {
             hideLoading();
-            
-            // Mostrar mensagem detalhada
-            const emptyState = document.getElementById('emptyState');
-            emptyState.innerHTML = `
+            document.getElementById('emptyState').innerHTML = `
                 <div class="text-center">
                     <i class="fas fa-exclamation-circle text-6xl text-yellow-500 mb-4"></i>
                     <h3 class="text-xl font-bold text-gray-900 mb-2">Nenhum Dado Encontrado</h3>
-                    <p class="text-gray-600 mb-4">As unidades selecionadas não possuem dados de planilha no período escolhido.</p>
+                    <p class="text-gray-600 mb-4">Nenhuma unidade possui dados no período selecionado (${currentFilters.startDate} a ${currentFilters.endDate}).</p>
                     <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 max-w-md mx-auto text-left">
-                        <p class="text-sm text-blue-900 mb-2"><strong>💡 Dica:</strong></p>
+                        <p class="text-sm text-blue-900 mb-2"><strong>💡 Tente:</strong></p>
                         <ul class="text-sm text-blue-800 space-y-1">
-                            <li>• Verifique se as unidades têm planilhas importadas</li>
-                            <li>• Tente selecionar um período diferente</li>
-                            <li>• Vá em "Unidades" → Selecione uma unidade → Importe a planilha</li>
+                            <li>• Selecionar um período maior (ex: Últimos 3 Meses)</li>
+                            <li>• Verificar se as planilhas foram importadas</li>
+                            <li>• Importar planilhas mais recentes</li>
                         </ul>
                     </div>
                 </div>
             `;
-            emptyState.classList.remove('hidden');
-            console.error('❌ Nenhuma unidade com dados válidos encontrada!');
+            document.getElementById('emptyState').classList.remove('hidden');
             return;
         }
-        
-        console.log(`✅ ${validUnits.length} unidades com dados válidos`);
         
         // Calcular totais
         const totals = calculateTotals(validUnits);
         
         // Atualizar UI
-        console.log('🎨 Atualizando interface...');
-        
-        try {
-            console.log('   ├─ Atualizando cards de resumo...');
-            updateSummaryCards(totals);
-            
-            console.log('   ├─ Atualizando rankings...');
-            updateTopBottomUnits(validUnits);
-            
-            console.log('   ├─ Atualizando gráficos...');
-            updateCharts(validUnits);
-            
-            console.log('   └─ Carregando melhores anúncios...');
-            await loadBestAds();
-            
-            console.log('✅ Interface atualizada com sucesso!');
-        } catch (uiError) {
-            console.error('❌ Erro ao atualizar interface:', uiError);
-            console.error('Stack:', uiError.stack);
-        }
+        updateSummaryCards(totals);
+        updateTopBottomUnits(validUnits);
+        updateCharts(validUnits);
+        loadBestAds();
         
         // Mostrar conteúdo
-        console.log('🎨 Exibindo dashboard...');
         hideLoading();
         document.getElementById('emptyState').classList.add('hidden');
         document.getElementById('dashboardContent').classList.remove('hidden');
-        console.log('🎉 Dashboard exibido!');
         
     } catch (error) {
-        console.error('❌ ERRO CRÍTICO ao carregar dados:', error);
-        console.error('Stack completo:', error.stack);
+        console.error('❌ Erro ao carregar dashboard:', error);
         hideLoading();
-        alert('Erro ao carregar dashboard: ' + error.message + '\n\nVeja o console para mais detalhes (F12).');
-        throw error;
+        alert('Erro: ' + error.message);
     }
 }
 
 // ==================== CALCULAR MÉTRICAS DA UNIDADE ====================
 function calculateUnitMetrics(unit) {
-    console.log(`📊 Calculando métricas para unidade: ${unit.name}`);
-    
-    if (!unit.budgetData || !unit.budgetData.rawData) {
-        console.warn(`⚠️ Unidade ${unit.name} não tem dados de planilha`);
-        return {
-            investment: 0,
-            revenue: 0,
-            leads: 0,
-            roi: 0
-        };
+    if (!unit.budgetData || !unit.budgetData.rawData || unit.budgetData.rawData.length === 0) {
+        return { investment: 0, revenue: 0, leads: 0, roi: 0 };
     }
-    
-    console.log(`   📋 Total de registros na planilha: ${unit.budgetData.rawData.length}`);
     
     // Filtrar dados pelo período
     const filteredData = unit.budgetData.rawData.filter(item => {
+        if (!item.date) return false;
         const itemDate = item.date;
         return itemDate >= currentFilters.startDate && itemDate <= currentFilters.endDate;
     });
-    
-    console.log(`   📅 Registros no período (${currentFilters.startDate} a ${currentFilters.endDate}): ${filteredData.length}`);
     
     // Calcular métricas
     let investment = 0;
@@ -481,17 +406,7 @@ function calculateUnitMetrics(unit) {
     // Calcular ROI
     const roi = investment > 0 ? ((revenue - investment) / investment) * 100 : 0;
     
-    console.log(`   💰 Investimento: R$ ${investment.toFixed(2)}`);
-    console.log(`   💵 Faturamento: R$ ${revenue.toFixed(2)}`);
-    console.log(`   📈 ROI: ${roi.toFixed(2)}%`);
-    console.log(`   👥 Leads: ${leads}`);
-    
-    return {
-        investment,
-        revenue,
-        leads,
-        roi
-    };
+    return { investment, revenue, leads, roi };
 }
 
 // ==================== CALCULAR TOTAIS ====================

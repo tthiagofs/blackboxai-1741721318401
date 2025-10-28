@@ -39,8 +39,21 @@ async function loadProjectLogo() {
 // Carregar unidades do projeto
 async function loadUnits() {
     try {
-        const projectId = localStorage.getItem('currentProject');
-        if (!projectId) return;
+        let projectId = localStorage.getItem('currentProject');
+        
+        // Se não há projectId no localStorage, buscar do usuário
+        if (!projectId) {
+            console.log('📋 ProjectId não encontrado no localStorage - buscando projetos do usuário...');
+            const projects = await projectsService.getAllProjects();
+            if (projects && projects.length > 0) {
+                projectId = projects[0].id;
+                localStorage.setItem('currentProject', projectId);
+                console.log('✅ ProjectId obtido:', projectId);
+            } else {
+                console.warn('⚠️ Nenhum projeto encontrado para o usuário');
+                return;
+            }
+        }
         
         const units = await listUnits(projectId);
         const unitSelect = document.getElementById('unitSelect');

@@ -281,16 +281,23 @@ async function fetchCreativesFromMetaAds(projectId, unitId, dates) {
     console.log('   Projeto:', projectId);
     console.log('   Unidade:', unitId);
     console.log('   Período:', dates);
+    console.log('   User ID:', currentUser?.uid);
 
     // Buscar unidades do projeto
+    console.log('🔍 Buscando unidades do projeto...');
     const allUnits = await unitsService.listUnits(projectId);
+    console.log('✅ Total de unidades:', allUnits.length);
+    console.log('📋 Unidades:', allUnits.map(u => ({ id: u.id, name: u.name, linkedAccounts: u.linkedAccounts })));
     
     // Filtrar unidades com contas Meta vinculadas
     let targetUnits = allUnits.filter(u => u.linkedAccounts?.meta?.id);
+    console.log('🎯 Unidades com Meta vinculado:', targetUnits.length);
+    console.log('📋 Detalhes:', targetUnits.map(u => ({ name: u.name, metaId: u.linkedAccounts.meta.id })));
     
     // Se não for "all", filtrar pela unidade específica
     if (unitId !== 'all' && unitId) {
       targetUnits = targetUnits.filter(u => u.id === unitId);
+      console.log('🔎 Filtrando por unitId:', unitId, '→', targetUnits.length, 'unidade(s)');
     }
 
     if (targetUnits.length === 0) {
@@ -300,18 +307,34 @@ async function fetchCreativesFromMetaAds(projectId, unitId, dates) {
     console.log(`✅ ${targetUnits.length} unidade(s) com Meta Ads encontrada(s)`);
 
     // Buscar conexões do usuário
+    console.log('🔍 Buscando conexões do usuário no Firestore...');
+    console.log('   Collection: connections');
+    console.log('   userId:', currentUser.uid);
+    console.log('   platform: meta');
+    
     const connectionsQuery = query(
       collection(db, 'connections'),
       where('userId', '==', currentUser.uid),
       where('platform', '==', 'meta')
     );
+    
+    console.log('⏳ Executando query...');
     const connectionsSnapshot = await getDocs(connectionsQuery);
+    console.log('✅ Query executada. Resultados:', connectionsSnapshot.size);
 
     if (connectionsSnapshot.empty) {
       throw new Error('Nenhuma conta Meta Ads conectada. Por favor, conecte uma conta em Conexões.');
     }
 
     console.log(`✅ ${connectionsSnapshot.size} conexão(ões) Meta Ads encontrada(s)`);
+    connectionsSnapshot.docs.forEach((doc, idx) => {
+      const data = doc.data();
+      console.log(`   [${idx + 1}] Doc ID: ${doc.id}`);
+      console.log(`       userId: ${data.userId}`);
+      console.log(`       platform: ${data.platform}`);
+      console.log(`       adAccountId: ${data.adAccountId}`);
+      console.log(`       accountId: ${data.accountId}`);
+    });
 
     let allAds = [];
 

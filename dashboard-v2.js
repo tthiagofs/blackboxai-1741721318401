@@ -176,12 +176,12 @@ async function computeUnitMetricsFromSpreadsheet(unit, startDate, endDate) {
         console.log(`📱 Buscando gastos Meta para conta ${linkedAccounts.meta.id}`);
         const token = fbAuth.getAccessToken();
         const fb = new FacebookInsightsService(token);
-        if (fb?.getAccountSpend) {
-          const metaSpend = await fb.getAccountSpend(linkedAccounts.meta.id, startDate, endDate);
-          console.log(`💰 Gastos Meta encontrados: R$ ${metaSpend}`);
-          invested += Number(metaSpend || 0);
+        if (fb?.getAccountInsights) {
+          const metaInsights = await fb.getAccountInsights(linkedAccounts.meta.id, startDate, endDate);
+          console.log(`💰 Gastos Meta encontrados: R$ ${metaInsights.spend}`);
+          invested += Number(metaInsights.spend || 0);
         } else {
-          console.warn(`⚠️ FacebookInsightsService.getAccountSpend não disponível`);
+          console.warn(`⚠️ FacebookInsightsService.getAccountInsights não disponível`);
         }
       } else {
         console.warn(`⚠️ Meta não disponível para ${unit.name}:`, {
@@ -195,12 +195,12 @@ async function computeUnitMetricsFromSpreadsheet(unit, startDate, endDate) {
         console.log(`🔍 Buscando gastos Google para conta ${linkedAccounts.google.id}`);
         await googleAuth.initialize();
         const ga = new GoogleAdsService();
-        if (ga?.getAccountSpend) {
-          const gSpend = await ga.getAccountSpend(linkedAccounts.google.id, startDate, endDate);
-          console.log(`💰 Gastos Google encontrados: R$ ${gSpend}`);
-          invested += Number(gSpend || 0);
+        if (ga?.getAccountInsights) {
+          const gInsights = await ga.getAccountInsights(startDate, endDate);
+          console.log(`💰 Gastos Google encontrados: R$ ${gInsights.spend}`);
+          invested += Number(gInsights.spend || 0);
         } else {
-          console.warn(`⚠️ GoogleAdsService.getAccountSpend não disponível`);
+          console.warn(`⚠️ GoogleAdsService.getAccountInsights não disponível`);
         }
       }
     } catch (error) {

@@ -142,8 +142,8 @@
 
         // Verificar se já está logado
         if (authService.isAuthenticated()) {
-            console.log('✅ Usuário já autenticado - redirecionando para dashboard');
-            window.location.href = '/dashboard.html';
+            console.log('✅ Usuário já autenticado - redirecionando para home');
+            window.location.href = '/home.html';
         }
 
         // Esconder mensagem de erro ao digitar
@@ -201,7 +201,7 @@
                     
                     // Pequeno delay para mostrar sucesso
                     setTimeout(() => {
-                        window.location.href = '/dashboard.html';
+                        window.location.href = '/home.html';
                     }, 500);
                 } else {
                     setLoading(false);

@@ -204,7 +204,7 @@ export class AuthService {
     }
 
     // Proteger rota admin
-    requireAdmin(redirectTo = '/dashboard.html') {
+    requireAdmin(redirectTo = '/home.html') {
         if (!this.isAdmin()) {
             console.warn('⚠️ Acesso negado - requer privilégios de admin');
             window.location.href = redirectTo;

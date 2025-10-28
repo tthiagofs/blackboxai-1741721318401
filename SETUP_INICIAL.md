@@ -113,9 +113,9 @@ Agora você pode testar o fluxo completo!
    - **Email:** `admin@insightflow.com`
    - **Senha:** `Admin123!` (ou a senha que você criou)
 4. Clique em **"Entrar"**
-5. ✅ Deve ser redirecionado para `/dashboard.html`
+5. ✅ Deve ser redirecionado para `/home.html`
 
-### **Teste 2: Dashboard**
+### **Teste 2: Tela Inicial (Home)**
 1. Verifique se seu nome aparece no sidebar: **"Administrador"**
 2. Deve aparecer **"Olá, Administrador! 👋"**
 3. Deve mostrar: **"Nenhum projeto ainda"**

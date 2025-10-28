@@ -144,11 +144,11 @@ O Insightflow é uma plataforma de geração de relatórios de Meta Ads e Google
 └─────────────────────────────────────┘
 ```
 
-### **2. DASHBOARD PRINCIPAL**
+### **2. TELA INICIAL (HOME)**
 
 ```
 ┌──────────────────────────────────────────────────────┐
-│  DASHBOARD (dashboard.html)                          │
+│  TELA INICIAL (home.html)                            │
 │  ┌────────────┬─────────────────────────────────┐   │
 │  │ MENU       │  ÁREA PRINCIPAL                 │   │
 │  │ LATERAL    │                                 │   │
@@ -234,7 +234,7 @@ insightflow/
 ├─── index.html                    # Tela de login (atual)
 ├─── cadastro.html                 # Nova - Registro via convite
 ├─── obrigado.html                 # Nova - Confirmação de cadastro
-├─── dashboard.html                # Nova - Dashboard principal
+├─── home.html                     # Nova - Tela inicial (projetos)
 ├─── projeto.html                  # Nova - Detalhes do projeto
 ├─── minha-conta.html              # Nova - Editar perfil
 ├─── conexoes.html                 # Adaptada - Conexões Meta/Google
@@ -339,7 +339,7 @@ Páginas PÚBLICAS:
 └─ obrigado.html
 
 Páginas PROTEGIDAS (requer login):
-├─ dashboard.html
+├─ home.html
 ├─ projeto.html
 ├─ minha-conta.html
 ├─ conexoes.html
@@ -447,8 +447,8 @@ export function renderSidebar(currentPage, userRole) {
       </div>
       
       <nav class="sidebar-nav">
-        <a href="/dashboard.html" class="${currentPage === 'dashboard' ? 'active' : ''}">
-          <i class="fas fa-home"></i> Dashboard
+        <a href="/home.html" class="${currentPage === 'home' ? 'active' : ''}">
+          <i class="fas fa-home"></i> Tela Inicial
         </a>
         
         <a href="/minha-conta.html" class="${currentPage === 'account' ? 'active' : ''}">
@@ -567,7 +567,7 @@ export function validateToken(token) {
 
 ### **FASE 2: Projetos (SEGUNDA)** ✅
 ```
-1. Criar dashboard (dashboard.html)
+1. Criar tela inicial (home.html)
 2. Criar tela de projeto (projeto.html)
 3. Criar service de projetos (services/projects.js)
 4. Implementar CRUD de projetos

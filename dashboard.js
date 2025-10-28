@@ -1,6 +1,25 @@
 // dashboard.js - Lógica do Dashboard de Performance
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
+import { getFirestore, getDoc, doc } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
+import { getAuth, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
 import { projectsService } from './services/projectsService.js';
 import { unitsService } from './services/unitsService.js';
+
+// ==================== FIREBASE CONFIG ====================
+const firebaseConfig = {
+    apiKey: "AIzaSyBaR66Mcwo85eslNAJrAy_RTRvLXfUwzpA",
+    authDomain: "insight-flow.firebaseapp.com",
+    projectId: "insight-flow",
+    storageBucket: "insight-flow.firebasestorage.app",
+    messagingSenderId: "522915646693",
+    appId: "1:522915646693:web:02714acd6c7be1b7db6e21"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const auth = getAuth(app);
+
+console.log('🔥 Firebase inicializado no Dashboard');
 
 // ==================== VARIÁVEIS GLOBAIS ====================
 let allUnits = [];
@@ -16,15 +35,55 @@ let currentFilters = {
 let roiChart = null;
 let investmentRevenueChart = null;
 
+// ==================== AUTENTICAÇÃO ====================
+onAuthStateChanged(auth, async (user) => {
+    if (!user) {
+        console.warn('⚠️ Usuário não autenticado - redirecionando para login');
+        window.location.href = '/login.html';
+        return;
+    }
+
+    console.log('✅ Usuário autenticado:', user.email);
+
+    // Carregar info do usuário
+    try {
+        const userDoc = await getDoc(doc(db, 'users', user.uid));
+        
+        if (userDoc.exists()) {
+            const userData = userDoc.data();
+            document.getElementById('userName').textContent = userData.name || 'Usuário';
+            document.getElementById('userRole').textContent = userData.role === 'admin' ? 'Administrador' : 'Usuário';
+            
+            if (userData.role === 'admin') {
+                document.getElementById('adminLink').classList.remove('hidden');
+                document.getElementById('adminLink').href = '/usuarios.html';
+            }
+        }
+    } catch (error) {
+        console.error('❌ Erro ao carregar dados do usuário:', error);
+    }
+
+    // Inicializar dashboard
+    await initDashboard();
+});
+
+// Logout
+document.getElementById('logoutBtn')?.addEventListener('click', async () => {
+    if (confirm('Deseja realmente sair?')) {
+        await signOut(auth);
+        window.location.href = '/login.html';
+    }
+});
+
 // ==================== INICIALIZAÇÃO ====================
-document.addEventListener('DOMContentLoaded', async () => {
+async function initDashboard() {
     console.log('🚀 Dashboard carregando...');
     
     await loadProjects();
     setupEventListeners();
     
     console.log('✅ Dashboard pronto!');
-});
+}
 
 // ==================== CARREGAR PROJETOS ====================
 async function loadProjects() {

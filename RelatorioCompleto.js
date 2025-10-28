@@ -2185,7 +2185,8 @@ if (last7DaysBtn) {
         document.getElementById('startDate').value = formatDate(sevenDaysAgo);
         document.getElementById('endDate').value = formatDate(yesterday);
         
-        console.log(`📅 Últimos 7 dias selecionados: ${formatDate(sevenDaysAgo)} a ${formatDate(yesterday)}`);
+        // Atualizar métricas após setar as datas
+        updateMetricsOnPeriodChange();
     });
 }
 

@@ -193,9 +193,9 @@ function addTextToAnalysis(text) {
     }, 500);
 }
 
-// Carregar logo e unidades ao iniciar
+// Carregar logo ao iniciar
 loadProjectLogo();
-loadUnits();
+// NOTA: loadUnits() foi removido - as unidades agora são carregadas no RelatorioCompleto.html
 
 // Verificar autenticação Facebook (não obrigatório, pois pode gerar só Google Ads)
 const currentAccessToken = fbAuth.getAccessToken();

@@ -170,26 +170,44 @@ async function computeUnitMetricsFromSpreadsheet(unit, startDate, endDate) {
   if (linkedAccounts.meta?.id || linkedAccounts.google?.id) {
     // Buscar gastos de anúncios se tem conta vinculada
     try {
+      console.log(`🔍 Buscando gastos para ${unit.name}:`, linkedAccounts);
+      
       if (linkedAccounts.meta?.id && fbAuth?.getAccessToken && fbAuth.getAccessToken()) {
+        console.log(`📱 Buscando gastos Meta para conta ${linkedAccounts.meta.id}`);
         const token = fbAuth.getAccessToken();
         const fb = new FacebookInsightsService(token);
         if (fb?.getAccountSpend) {
           const metaSpend = await fb.getAccountSpend(linkedAccounts.meta.id, startDate, endDate);
+          console.log(`💰 Gastos Meta encontrados: R$ ${metaSpend}`);
           invested += Number(metaSpend || 0);
+        } else {
+          console.warn(`⚠️ FacebookInsightsService.getAccountSpend não disponível`);
         }
+      } else {
+        console.warn(`⚠️ Meta não disponível para ${unit.name}:`, {
+          hasId: !!linkedAccounts.meta?.id,
+          hasAuth: !!fbAuth,
+          hasToken: !!(fbAuth?.getAccessToken && fbAuth.getAccessToken())
+        });
       }
       
       if (linkedAccounts.google?.id) {
+        console.log(`🔍 Buscando gastos Google para conta ${linkedAccounts.google.id}`);
         await googleAuth.initialize();
         const ga = new GoogleAdsService();
         if (ga?.getAccountSpend) {
           const gSpend = await ga.getAccountSpend(linkedAccounts.google.id, startDate, endDate);
+          console.log(`💰 Gastos Google encontrados: R$ ${gSpend}`);
           invested += Number(gSpend || 0);
+        } else {
+          console.warn(`⚠️ GoogleAdsService.getAccountSpend não disponível`);
         }
       }
     } catch (error) {
-      console.warn(`Erro ao buscar gastos de anúncios para ${unit.name}:`, error);
+      console.error(`❌ Erro ao buscar gastos de anúncios para ${unit.name}:`, error);
     }
+  } else {
+    console.log(`ℹ️ ${unit.name} não tem contas vinculadas`);
   }
   
   return {

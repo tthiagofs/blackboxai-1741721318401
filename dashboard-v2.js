@@ -10,6 +10,8 @@ import { GoogleAdsService } from './services/googleAds.js';
 let currentProjectId = null;
 let currentMonth = null;
 let allUnits = [];
+let currentSortColumn = null;
+let currentSortDirection = 'asc';
 
 function formatCurrency(v) { 
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v || 0); 
@@ -123,12 +125,20 @@ async function generateDashboard() {
     // Calcula métricas da planilha por unidade
     const rows = await Promise.all(allUnits.map(async u => {
       const plan = await computeUnitMetricsFromSpreadsheet(u, start, end);
+      
+      // Calcula ROI: (faturamento * 0.25) / investimento
+      let roi = 0;
+      if (plan.revenue > 0 && plan.invested > 0) {
+        roi = (plan.revenue * 0.25) / plan.invested;
+      }
+      
       return {
         id: u?.id || '',
         name: u?.name || '-',
         invested: plan.invested,
         sales: plan.sales,
-        revenue: plan.revenue
+        revenue: plan.revenue,
+        roi: roi
       };
     }));
 
@@ -138,6 +148,12 @@ async function generateDashboard() {
       sales: a.sales + r.sales, 
       revenue: a.revenue + r.revenue 
     }), { units: 0, invested: 0, sales: 0, revenue: 0 });
+    
+    // Calcula ROI geral
+    totals.roi = 0;
+    if (totals.revenue > 0 && totals.invested > 0) {
+      totals.roi = (totals.revenue * 0.25) / totals.invested;
+    }
 
     renderCards(totals); 
     renderTable(rows);
@@ -250,20 +266,105 @@ function renderCards(t) {
   document.getElementById('cardInvested').textContent = formatCurrency(t.invested);
   document.getElementById('cardSales').textContent = t.sales;
   document.getElementById('cardRevenue').textContent = formatCurrency(t.revenue);
+  document.getElementById('cardROI').textContent = t.roi > 0 ? `${t.roi.toFixed(2)}x` : '0x';
+  
+  // Colorir ROI baseado no valor
+  const roiEl = document.getElementById('cardROI');
+  if (t.roi >= 2) {
+    roiEl.className = 'text-3xl font-bold text-green-600';
+  } else if (t.roi >= 1) {
+    roiEl.className = 'text-3xl font-bold text-yellow-600';
+  } else {
+    roiEl.className = 'text-3xl font-bold text-red-600';
+  }
 }
 
 function renderTable(rows) {
   const tbody = document.getElementById('unitsTableBody'); 
   tbody.innerHTML = '';
-  rows.sort((a, b) => b.revenue - a.revenue);
   
-  for (const r of rows) { 
+  // Aplicar ordenação se houver
+  if (currentSortColumn) {
+    sortRows(rows, currentSortColumn, currentSortDirection);
+  } else {
+    // Ordenação padrão: ROI decrescente
+    rows.sort((a, b) => b.roi - a.roi);
+  }
+  
+  for (const r of rows) {
+    // Determinar cor do ROI
+    let roiClass = 'text-red-600';
+    if (r.roi >= 2) roiClass = 'text-green-600';
+    else if (r.roi >= 1) roiClass = 'text-yellow-600';
+    
     const tr = document.createElement('tr'); 
     tr.innerHTML = `
       <td class="px-6 py-3 text-sm text-gray-900">${r.name}</td>
       <td class="px-6 py-3 text-sm text-right text-gray-900">${formatCurrency(r.invested)}</td>
       <td class="px-6 py-3 text-sm text-right text-gray-900">${r.sales}</td>
-      <td class="px-6 py-3 text-sm text-right text-gray-900">${formatCurrency(r.revenue)}</td>`; 
+      <td class="px-6 py-3 text-sm text-right text-gray-900">${formatCurrency(r.revenue)}</td>
+      <td class="px-6 py-3 text-sm text-right font-semibold ${roiClass}">${r.roi > 0 ? r.roi.toFixed(2) + 'x' : '0x'}</td>`; 
     tbody.appendChild(tr); 
   }
+  
+  // Configurar event listeners para ordenação
+  setupTableSorting(rows);
+}
+
+function sortRows(rows, column, direction) {
+  rows.sort((a, b) => {
+    let aVal = a[column];
+    let bVal = b[column];
+    
+    // Para strings (nome), usar localCompare
+    if (column === 'name') {
+      aVal = String(aVal).toLowerCase();
+      bVal = String(bVal).toLowerCase();
+      return direction === 'asc' 
+        ? aVal.localeCompare(bVal) 
+        : bVal.localeCompare(aVal);
+    }
+    
+    // Para números
+    return direction === 'asc' 
+      ? aVal - bVal 
+      : bVal - aVal;
+  });
+}
+
+function setupTableSorting(rows) {
+  const headers = document.querySelectorAll('th[data-sort]');
+  
+  headers.forEach(th => {
+    // Remover listener anterior se existir
+    const newTh = th.cloneNode(true);
+    th.parentNode.replaceChild(newTh, th);
+    
+    newTh.addEventListener('click', () => {
+      const column = newTh.getAttribute('data-sort');
+      
+      // Se clicar na mesma coluna, inverte direção
+      if (currentSortColumn === column) {
+        currentSortDirection = currentSortDirection === 'asc' ? 'desc' : 'asc';
+      } else {
+        currentSortColumn = column;
+        currentSortDirection = column === 'name' ? 'asc' : 'desc'; // Padrão: nome A-Z, números do maior ao menor
+      }
+      
+      // Atualizar ícones
+      document.querySelectorAll('th[data-sort] i').forEach(i => {
+        i.className = 'fas fa-sort text-gray-400';
+      });
+      
+      const icon = newTh.querySelector('i');
+      if (currentSortDirection === 'asc') {
+        icon.className = 'fas fa-sort-up text-blue-600';
+      } else {
+        icon.className = 'fas fa-sort-down text-blue-600';
+      }
+      
+      // Re-renderizar tabela
+      renderTable(rows);
+    });
+  });
 }

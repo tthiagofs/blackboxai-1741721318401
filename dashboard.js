@@ -346,13 +346,20 @@ async function loadDashboardData() {
             })
         );
         
-        // Filtrar unidades sem dados
-        const validUnits = unitsData.filter(u => u !== null && u.investment > 0);
+        // Filtrar unidades sem dados (aceita qualquer valor > 0, mesmo pequeno)
+        const validUnits = unitsData.filter(u => u !== null && (u.investment > 0 || u.revenue > 0 || u.leads > 0));
         
         console.log(`📊 Resumo do processamento:`);
         console.log(`   - Total de unidades selecionadas: ${selectedUnits.length}`);
         console.log(`   - Unidades com dados válidos: ${validUnits.length}`);
         console.log(`   - Unidades sem dados: ${selectedUnits.length - validUnits.length}`);
+        
+        // Log de cada unidade processada
+        unitsData.forEach(u => {
+            if (u) {
+                console.log(`   📌 ${u.name}: Invest=${u.investment}, Revenue=${u.revenue}, Leads=${u.leads}, ROI=${u.roi.toFixed(2)}%`);
+            }
+        });
         
         if (validUnits.length === 0) {
             hideLoading();
@@ -375,6 +382,7 @@ async function loadDashboardData() {
                 </div>
             `;
             emptyState.classList.remove('hidden');
+            console.error('❌ Nenhuma unidade com dados válidos encontrada!');
             return;
         }
         
@@ -384,18 +392,39 @@ async function loadDashboardData() {
         const totals = calculateTotals(validUnits);
         
         // Atualizar UI
-        updateSummaryCards(totals);
-        updateTopBottomUnits(validUnits);
-        updateCharts(validUnits);
-        await loadBestAds();
+        console.log('🎨 Atualizando interface...');
+        
+        try {
+            console.log('   ├─ Atualizando cards de resumo...');
+            updateSummaryCards(totals);
+            
+            console.log('   ├─ Atualizando rankings...');
+            updateTopBottomUnits(validUnits);
+            
+            console.log('   ├─ Atualizando gráficos...');
+            updateCharts(validUnits);
+            
+            console.log('   └─ Carregando melhores anúncios...');
+            await loadBestAds();
+            
+            console.log('✅ Interface atualizada com sucesso!');
+        } catch (uiError) {
+            console.error('❌ Erro ao atualizar interface:', uiError);
+            console.error('Stack:', uiError.stack);
+        }
         
         // Mostrar conteúdo
+        console.log('🎨 Exibindo dashboard...');
         hideLoading();
         document.getElementById('emptyState').classList.add('hidden');
         document.getElementById('dashboardContent').classList.remove('hidden');
+        console.log('🎉 Dashboard exibido!');
         
     } catch (error) {
-        console.error('❌ Erro ao carregar dados:', error);
+        console.error('❌ ERRO CRÍTICO ao carregar dados:', error);
+        console.error('Stack completo:', error.stack);
+        hideLoading();
+        alert('Erro ao carregar dashboard: ' + error.message + '\n\nVeja o console para mais detalhes (F12).');
         throw error;
     }
 }

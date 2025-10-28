@@ -12,7 +12,7 @@ let allUnits = [];
 let selectedUnits = [];
 let currentFilters = {
     projectId: null,
-    period: 'thisMonth',
+    period: 'last7Days',
     startDate: null,
     endDate: null,
     units: 'all'
@@ -283,6 +283,12 @@ function calculatePeriodDates(period) {
     let start, end;
     
     switch (period) {
+        case 'last7Days':
+            start = new Date(now);
+            start.setDate(start.getDate() - 7);
+            end = new Date(now);
+            break;
+            
         case 'thisMonth':
             start = new Date(now.getFullYear(), now.getMonth(), 1);
             end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
@@ -309,8 +315,9 @@ function calculatePeriodDates(period) {
             break;
             
         default:
-            start = new Date(now.getFullYear(), now.getMonth(), 1);
-            end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+            start = new Date(now);
+            start.setDate(start.getDate() - 7);
+            end = new Date(now);
     }
     
     return {
@@ -648,7 +655,7 @@ async function loadBestAds() {
 // ==================== RESETAR FILTROS ====================
 function resetFilters() {
     document.getElementById('projectFilter').value = '';
-    document.getElementById('periodFilter').value = 'thisMonth';
+    document.getElementById('periodFilter').value = 'last7Days';
     document.getElementById('unitsFilter').value = 'all';
     document.getElementById('customDateStart').classList.add('hidden');
     document.getElementById('customDateEnd').classList.add('hidden');
@@ -656,7 +663,7 @@ function resetFilters() {
     
     currentFilters = {
         projectId: null,
-        period: 'thisMonth',
+        period: 'last7Days',
         startDate: null,
         endDate: null,
         units: 'all'

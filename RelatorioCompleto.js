@@ -93,11 +93,19 @@ async function loadUnits() {
         const endDate = document.getElementById('endDate');
         
         if (startDate) {
-            startDate.addEventListener('change', updateMetricsOnPeriodChange);
+            startDate.addEventListener('change', () => {
+                console.log('📅 DATA DE INÍCIO MUDOU!');
+                updateMetricsOnPeriodChange();
+            });
+            console.log('✅ Listener startDate adicionado');
         }
         
         if (endDate) {
-            endDate.addEventListener('change', updateMetricsOnPeriodChange);
+            endDate.addEventListener('change', () => {
+                console.log('📅 DATA DE TÉRMINO MUDOU!');
+                updateMetricsOnPeriodChange();
+            });
+            console.log('✅ Listener endDate adicionado');
         }
         
     } catch (error) {
@@ -254,11 +262,20 @@ function fillUnitMetricsFromSelect(event) {
 
 // Atualizar métricas quando período mudar
 function updateMetricsOnPeriodChange() {
+    console.log('🔄 updateMetricsOnPeriodChange CHAMADA!');
+    
     const unitSelect = document.getElementById('unitSelect');
     const selectedOption = unitSelect?.selectedOptions[0];
     
+    console.log('  ├─ unitSelect:', unitSelect?.value);
+    console.log('  ├─ selectedOption:', selectedOption?.value);
+    console.log('  └─ tem dataset:', !!selectedOption?.dataset?.unit);
+    
     if (selectedOption && selectedOption.dataset.unit) {
+        console.log('  ✅ CHAMANDO fillUnitMetricsFromSelect...');
         fillUnitMetricsFromSelect({ target: unitSelect });
+    } else {
+        console.log('  ⚠️ Nenhuma unidade selecionada');
     }
 }
 
@@ -688,10 +705,10 @@ async function toggleModal(modalId, show) {
         }
         
         // Verificar se os dados foram carregados (apenas para modais Meta)
-        const unitId = document.getElementById('unitId').value;
-        const startDate = document.getElementById('startDate').value;
-        const endDate = document.getElementById('endDate').value;
-        
+    const unitId = document.getElementById('unitId').value;
+    const startDate = document.getElementById('startDate').value;
+    const endDate = document.getElementById('endDate').value;
+
         if (!unitId) {
             alert('Por favor, selecione uma conta de anúncio primeiro');
             return;
@@ -713,17 +730,17 @@ async function toggleModal(modalId, show) {
                     try {
                         await loadCampaigns(unitId, startDate, endDate);
                         console.log('✅ Campanhas carregadas com sucesso!');
-                    } catch (error) {
+    } catch (error) {
                         console.error('❌ Erro ao carregar campanhas:', error);
                         alert('Erro ao carregar campanhas. Tente novamente.');
                         return;
                     } finally {
                         isLoadingData = false;
                     }
-                } else {
+        } else {
                     console.log('ℹ️ Carregando campanhas sem período definido...');
                 }
-            } else {
+        } else {
                 alert('Aguarde o carregamento dos dados...');
                 return;
             }
@@ -745,7 +762,7 @@ async function toggleModal(modalId, show) {
                     try {
                         await loadAdSets(unitId, startDate, endDate);
                         console.log('✅ Ad Sets carregados com sucesso!');
-                    } catch (error) {
+                        } catch (error) {
                         console.error('❌ Erro ao carregar ad sets:', error);
                         alert('Erro ao carregar ad sets. Tente novamente.');
                         return;
@@ -755,7 +772,7 @@ async function toggleModal(modalId, show) {
                 } else {
                     console.log('ℹ️ Carregando ad sets sem período definido...');
                 }
-            } else {
+                } else {
                 alert('Aguarde o carregamento dos dados...');
                 return;
             }
@@ -767,15 +784,15 @@ async function toggleModal(modalId, show) {
         } else if (modalId === 'adSetsModal') {
             renderAdSetOptions();
         } else if (modalId === 'whiteCampaignsModal') {
-            renderWhiteCampaignOptions();
+                renderWhiteCampaignOptions();
         } else if (modalId === 'whiteAdSetsModal') {
             renderWhiteAdSetOptions();
         } else if (modalId === 'blackCampaignsModal') {
-            renderBlackCampaignOptions();
+                renderBlackCampaignOptions();
         } else if (modalId === 'blackAdSetsModal') {
             renderBlackAdSetOptions();
         }
-    } else {
+            } else {
         modal.classList.add('hidden');
     }
 }
@@ -788,10 +805,10 @@ function setupComparisonModal() {
             document.getElementById('compareEndDate').value = comparisonData.endDate;
         } else if (comparisonData.isPrevious) {
             document.querySelector('input[name="comparisonOption"][value="previous"]').checked = true;
-        } else {
+                            } else {
             document.querySelector('input[name="comparisonOption"][value="none"]').checked = true;
-        }
-    } else {
+                            }
+                        } else {
         // ⭐ Se não houver comparisonData, marcar "previous" por padrão
         document.querySelector('input[name="comparisonOption"][value="previous"]').checked = true;
     }
@@ -1227,8 +1244,8 @@ async function generateCompleteReport() {
     // Validar se pelo menos uma plataforma foi selecionada
     if (!unitId && !googleAccountId) {
         alert('⚠️ Nenhuma conta de anúncios selecionada!\n\nPor favor:\n1. Selecione uma unidade com contas vinculadas, OU\n2. Selecione manualmente uma conta Meta ou Google Ads');
-        return;
-    }
+            return;
+        }
 
     if (!startDate || !endDate) {
         alert('Preencha as datas de início e fim');
@@ -1547,7 +1564,7 @@ async function generateCompleteReport() {
                     window.location.href = '/conexoes.html?tokenExpired=true';
                 }
             }, 1000);
-        } else {
+            } else {
             alert('Erro ao gerar relatório. Tente novamente.');
         }
         
@@ -1604,34 +1621,34 @@ function extractMessages(actions) {
     let totalMessages = 0;
     
     if (actions && Array.isArray(actions)) {
-                // Contabilizar conversas iniciadas
+                    // Contabilizar conversas iniciadas
         const conversationAction = actions.find(
-                    action => action.action_type === 'onsite_conversion.messaging_conversation_started_7d'
-                );
-                if (conversationAction && conversationAction.value) {
+                        action => action.action_type === 'onsite_conversion.messaging_conversation_started_7d'
+                    );
+                    if (conversationAction && conversationAction.value) {
             totalMessages += parseInt(conversationAction.value) || 0;
-                }
-
-                // Contabilizar conversões personalizadas
-        const customConversions = actions.filter(
-                    action => action.action_type.startsWith('offsite_conversion.')
-                );
-                customConversions.forEach(action => {
-                    if (action.value) {
-                totalMessages += parseInt(action.value) || 0;
                     }
-                });
+
+                    // Contabilizar conversões personalizadas
+        const customConversions = actions.filter(
+                        action => action.action_type.startsWith('offsite_conversion.')
+                    );
+                    customConversions.forEach(action => {
+                        if (action.value) {
+                totalMessages += parseInt(action.value) || 0;
+                        }
+                    });
 
         // Contabilizar cadastros do Facebook
         const leadActions = actions.filter(
-                    action => action.action_type === 'lead'
-                );
-                leadActions.forEach(action => {
-                    if (action.value) {
+                        action => action.action_type === 'lead'
+                    );
+                    leadActions.forEach(action => {
+                        if (action.value) {
                 totalMessages += parseInt(action.value) || 0;
-            }
-        });
-    }
+                        }
+                    });
+                }
 
     return totalMessages;
 }
@@ -1934,7 +1951,7 @@ function renderPlatformMetrics(metaMetrics, googleMetrics, blackMetrics, hasMult
         // Renderizar Meta (White + Black se existir)
         if (blackMetrics) {
             html += renderBlackWhiteReport(metaMetrics, blackMetrics, accountName);
-        } else {
+    } else {
             html += renderStandardReport(metaMetrics, comparisonMetaMetrics, accountName);
         }
         
@@ -2062,36 +2079,36 @@ function renderBestAds(bestAds, isGoogleAds = false) {
                 <div class="flex items-center gap-2 mb-3">
                     <i class="fas fa-star text-yellow-500 text-xl"></i>
                     <h3 class="text-lg font-bold text-gray-900">Anúncios em Destaque</h3>
-                </div>
+                    </div>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     ${bestAds.map(ad => `
                         <div class="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
                             <div class="flex items-start gap-3">
                                 <div class="relative">
                                     <img src="${ad.imageUrl}" alt="Anúncio" class="w-20 h-20 object-cover rounded-lg border border-gray-300" onerror="this.src='https://dummyimage.com/150x150/2563eb/fff&text=AD'">
-                                </div>
+                    </div>
                                 <div class="flex-1">
                                     <div class="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-3 mb-2 border border-blue-200">
                                         <p class="text-xs text-gray-600 mb-1">Leads</p>
                                         <p class="text-2xl font-bold text-blue-600">${ad.messages}</p>
-                                    </div>
+                    </div>
                                     <div class="grid grid-cols-2 gap-2 text-xs">
                                         <div>
                                             <p class="text-gray-500">Investimento</p>
                                             <p class="font-bold text-gray-900">${formatCurrencyBRL(ad.spend)}</p>
-                                        </div>
+                    </div>
                                         <div>
                                             <p class="text-gray-500">Custo/Lead</p>
                                             <p class="font-bold text-gray-900">${formatCurrencyBRL(ad.costPerMessage)}</p>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    `).join('')}
                 </div>
             </div>
-        </div>
+                    </div>
+                    </div>
+                    </div>
+                    `).join('')}
+                    </div>
+                </div>
+            </div>
     `;
 }
 
@@ -2111,18 +2128,18 @@ function renderBusinessResults(budgetsCompleted, salesCount, revenue, totalInves
                 <div class="flex items-center gap-2 mb-3">
                     <i class="fas fa-chart-line text-green-600 text-xl"></i>
                     <h3 class="text-lg font-bold text-gray-900">Resultados do Negócio</h3>
-                </div>
+                                </div>
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                     <div class="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
                         <div class="flex items-center gap-2 mb-2">
                             <div class="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
                                 ${createIconWithBackgroundSVG('file-invoice', '#3b82f6', 'white', 16, 40)}
-                            </div>
+                                </div>
                             <div class="flex-1">
                                 <p class="text-xs text-gray-600">Orçamentos Concluídos</p>
                                 <p class="text-2xl font-bold text-gray-900">${budgetsCompleted.toLocaleString('pt-BR')}</p>
+                                </div>
                             </div>
-                        </div>
                     </div>
                     <div class="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
                         <div class="flex items-center gap-2 mb-2">
@@ -2156,11 +2173,11 @@ function renderBusinessResults(budgetsCompleted, salesCount, revenue, totalInves
                             <div class="w-12 h-12 bg-yellow-500 rounded-lg flex items-center justify-center">
                                 ${createIconWithBackgroundSVG('trophy', '#eab308', 'white', 18, 48)}
                             </div>
-                            <div>
+                                            <div>
                                 <p class="text-sm text-gray-600 font-medium">Retorno sobre Investimento (ROI)</p>
                                 <p class="text-4xl font-bold text-yellow-700">${roi.toFixed(2)}</p>
-                            </div>
-                        </div>
+                                            </div>
+                                        </div>
                         <div class="text-right">
                             <p class="text-xs text-gray-600 mb-1">Investimento Total</p>
                             <p class="text-lg font-bold text-gray-900">${formatCurrencyBRL(totalInvestment || 0)}</p>
@@ -2200,8 +2217,8 @@ function renderPerformanceAnalysis(performanceAnalysis) {
                                     </div>
                                 </div>
                                 <p class="text-sm text-gray-700 leading-relaxed flex-1">${formattedParagraph}</p>
-                            </div>
-                        `;
+        </div>
+    `;
                     }).join('')}
                 </div>
             </div>

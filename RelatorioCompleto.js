@@ -36,8 +36,102 @@ async function loadProjectLogo() {
     }
 }
 
-// NOTA: A lógica de carregar unidades e preencher métricas foi movida para RelatorioCompleto.html
-// para evitar duplicação e garantir que funcione em qualquer ordem de seleção
+// Carregar unidades do projeto
+async function loadUnits() {
+    try {
+        const projectId = localStorage.getItem('currentProject');
+        if (!projectId) return;
+        
+        const units = await listUnits(projectId);
+        const unitSelect = document.getElementById('unitSelect');
+        
+        if (units.length === 0) {
+            unitSelect.innerHTML = '<option value="">Nenhuma unidade cadastrada</option>';
+            unitSelect.disabled = true;
+            return;
+        }
+        
+        // Preencher dropdown
+        unitSelect.innerHTML = '<option value="">Selecione uma unidade...</option>';
+        units.forEach(unit => {
+            const option = document.createElement('option');
+            option.value = unit.id;
+            option.textContent = unit.name;
+            option.dataset.unit = JSON.stringify(unit);
+            unitSelect.appendChild(option);
+        });
+        
+        console.log(`✅ ${units.length} unidades carregadas`);
+    } catch (error) {
+        console.error('❌ Erro ao carregar unidades:', error);
+    }
+}
+
+// Quando uma unidade é selecionada - preencher métricas
+function fillUnitMetricsFromSelect(event) {
+    const selectedOption = event.target.selectedOptions[0];
+    
+    if (!selectedOption || !selectedOption.dataset.unit) {
+        // Limpar campos
+        document.getElementById('budgetsCompleted').value = '';
+        document.getElementById('salesCount').value = '';
+        document.getElementById('revenue').value = '';
+        return;
+    }
+    
+    const unit = JSON.parse(selectedOption.dataset.unit);
+    
+    if (!unit.budgetData || !unit.budgetData.rawData) {
+        console.warn('⚠️ Esta unidade não possui planilha importada.');
+        return;
+    }
+    
+    // Pegar datas do relatório
+    const startDate = document.getElementById('startDate').value;
+    const endDate = document.getElementById('endDate').value;
+    
+    // Se não tem período definido, não preencher
+    if (!startDate || !endDate) {
+        console.log('ℹ️ Período não definido - aguardando seleção de datas');
+        return;
+    }
+    
+    // Filtrar dados por período
+    const filteredData = filterUnitDataByPeriod(unit.budgetData.rawData, startDate, endDate);
+    
+    // Verificar se tem dados no período
+    if (filteredData.totalBudgets === 0) {
+        const confirmation = confirm(
+            `⚠️ Não há dados nesta unidade para o período selecionado (${startDate} a ${endDate}).\n\n` +
+            `Deseja preencher com zeros e inserir manualmente?`
+        );
+        
+        if (confirmation) {
+            document.getElementById('budgetsCompleted').value = '0';
+            document.getElementById('salesCount').value = '0';
+            document.getElementById('revenue').value = '0';
+        }
+        return;
+    }
+    
+    // Preencher campos
+    document.getElementById('budgetsCompleted').value = filteredData.totalBudgets;
+    document.getElementById('salesCount').value = filteredData.totalSales;
+    document.getElementById('revenue').value = filteredData.totalRevenue.toFixed(2);
+    
+    console.log(`✅ Métricas preenchidas - Orçamentos: ${filteredData.totalBudgets}, Vendas: ${filteredData.totalSales}, Faturamento: R$ ${filteredData.totalRevenue.toFixed(2)}`);
+}
+
+// Atualizar métricas quando período mudar
+function updateMetricsOnPeriodChange() {
+    const unitSelect = document.getElementById('unitSelect');
+    const selectedOption = unitSelect?.selectedOptions[0];
+    
+    if (selectedOption && selectedOption.dataset.unit) {
+        console.log('🔄 Período mudou - atualizando métricas...');
+        fillUnitMetricsFromSelect({ target: unitSelect });
+    }
+}
 
 // Filtrar dados da unidade por período (mantido para uso em outras partes do código)
 function filterUnitDataByPeriod(rawData, startDate, endDate) {
@@ -193,9 +287,26 @@ function addTextToAnalysis(text) {
     }, 500);
 }
 
-// Carregar logo ao iniciar
+// Carregar logo e unidades ao iniciar
 loadProjectLogo();
-// NOTA: loadUnits() foi removido - as unidades agora são carregadas no RelatorioCompleto.html
+loadUnits();
+
+// Event listener para seleção de unidade (incluindo lógica de contas vinculadas)
+document.addEventListener('DOMContentLoaded', () => {
+    const unitSelect = document.getElementById('unitSelect');
+    if (unitSelect) {
+        unitSelect.addEventListener('change', fillUnitMetricsFromSelect);
+    }
+});
+
+// Event listeners para atualizar métricas quando período mudar
+document.addEventListener('DOMContentLoaded', () => {
+    const startDate = document.getElementById('startDate');
+    const endDate = document.getElementById('endDate');
+    
+    if (startDate) startDate.addEventListener('change', updateMetricsOnPeriodChange);
+    if (endDate) endDate.addEventListener('change', updateMetricsOnPeriodChange);
+});
 
 // Verificar autenticação Facebook (não obrigatório, pois pode gerar só Google Ads)
 const currentAccessToken = fbAuth.getAccessToken();
@@ -968,12 +1079,11 @@ const onFormInput = debounce(async function(e) {
 // form.addEventListener('input', onFormInput);
 
 // Adicionar listeners apenas nos campos específicos
-document.getElementById('unitId').addEventListener('change', onFormInput);
-document.getElementById('startDate').addEventListener('change', onFormInput);
-document.getElementById('endDate').addEventListener('change', onFormInput);
-
-// NOTA: Os listeners de mudança de período foram movidos para RelatorioCompleto.html
-// onde a lógica de preenchimento de métricas agora está centralizada
+document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('unitId')?.addEventListener('change', onFormInput);
+    document.getElementById('startDate')?.addEventListener('change', onFormInput);
+    document.getElementById('endDate')?.addEventListener('change', onFormInput);
+});
 
 // Função para gerar o relatório completo
 async function generateCompleteReport() {

@@ -6,6 +6,7 @@ import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/fi
 import { collection, query, where, getDocs } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 import { FacebookInsightsService } from './services/facebookInsights.js';
 import { projectsService } from './services/projects.js';
+import * as unitsService from './services/unitsService.js';
 
 let currentUser = null;
 let currentProject = null;
@@ -64,36 +65,31 @@ async function loadCreativeUnits(projectId) {
   try {
     if (!projectId) {
       const unitsSelect = document.getElementById('creativeUnitsSelect');
-      unitsSelect.innerHTML = '<option value="all">Selecione um projeto primeiro</option>';
+      unitsSelect.innerHTML = '<option value="all" selected>Selecione um projeto primeiro</option>';
       return;
     }
 
     console.log('📋 Carregando unidades do projeto:', projectId);
     
-    // Buscar unidades do projeto selecionado
-    const unitsQuery = query(
-      collection(db, 'units'),
-      where('projectId', '==', projectId)
-    );
-    const snapshot = await getDocs(unitsQuery);
+    // Usar unitsService que busca da subcoleção correta: projects/{projectId}/units
+    const units = await unitsService.listUnits(projectId);
     
     const unitsSelect = document.getElementById('creativeUnitsSelect');
-    unitsSelect.innerHTML = '<option value="all">Todas as unidades</option>';
+    unitsSelect.innerHTML = '<option value="all" selected>Todas as unidades</option>';
     
-    if (snapshot.empty) {
+    if (!units || units.length === 0) {
       console.log('ℹ️ Nenhuma unidade encontrada para este projeto');
       return;
     }
     
-    snapshot.forEach(doc => {
-      const data = doc.data();
+    units.forEach(unit => {
       const option = document.createElement('option');
-      option.value = doc.id;
-      option.textContent = data.name || 'Sem nome';
+      option.value = unit.id;
+      option.textContent = unit.name || 'Sem nome';
       unitsSelect.appendChild(option);
     });
     
-    console.log(`✅ ${snapshot.size} unidades carregadas`);
+    console.log(`✅ ${units.length} unidades carregadas`);
   } catch (error) {
     console.error('❌ Erro ao carregar unidades:', error);
   }
@@ -196,7 +192,13 @@ async function searchCreatives() {
     const projectId = document.getElementById('creativeProjectSelect').value;
     const period = document.getElementById('creativePeriodSelect').value;
     const orderBy = document.getElementById('creativeOrderBy').value;
-    const unitId = document.getElementById('creativeUnitsSelect').value;
+    
+    // Pegar unidades selecionadas (multi-select)
+    const unitsSelect = document.getElementById('creativeUnitsSelect');
+    const selectedUnits = Array.from(unitsSelect.selectedOptions).map(opt => opt.value);
+    
+    // Se "all" está selecionado OU nenhuma seleção, usar todas
+    const unitIds = selectedUnits.includes('all') || selectedUnits.length === 0 ? 'all' : selectedUnits;
 
     // Validar projeto
     if (!projectId) {
@@ -212,10 +214,10 @@ async function searchCreatives() {
       throw new Error('Período inválido');
     }
 
-    console.log('🔍 Buscando criativos:', { projectId, period, orderBy, unitId, dates });
+    console.log('🔍 Buscando criativos:', { projectId, period, orderBy, unitIds, dates });
 
     // Buscar dados do Meta Ads
-    const creatives = await fetchCreativesFromMetaAds(unitId, dates);
+    const creatives = await fetchCreativesFromMetaAds(projectId, unitIds, dates);
 
     if (!creatives || creatives.length === 0) {
       loadingEl.classList.add('hidden');
@@ -247,9 +249,23 @@ async function searchCreatives() {
 }
 
 // Buscar criativos do Meta Ads
-async function fetchCreativesFromMetaAds(unitId, dates) {
+async function fetchCreativesFromMetaAds(projectId, unitIds, dates) {
   try {
-    // Buscar contas conectadas
+    // Buscar unidades do projeto
+    const units = await unitsService.listUnits(projectId);
+    
+    if (!units || units.length === 0) {
+      throw new Error('Nenhuma unidade encontrada para este projeto');
+    }
+
+    // Filtrar unidades se específicas foram selecionadas
+    let selectedUnits = units;
+    if (unitIds !== 'all' && Array.isArray(unitIds)) {
+      selectedUnits = units.filter(u => unitIds.includes(u.id));
+      console.log(`📊 Filtrando ${selectedUnits.length} de ${units.length} unidades`);
+    }
+
+    // Buscar contas conectadas do usuário
     const accountsQuery = query(
       collection(db, 'connections'),
       where('userId', '==', currentUser.uid),
@@ -267,12 +283,6 @@ async function fetchCreativesFromMetaAds(unitId, dates) {
     for (const accountDoc of accountsSnapshot.docs) {
       const connection = accountDoc.data();
       const fbService = new FacebookInsightsService(connection.accessToken);
-      
-      // Se filtrou por unidade específica, verificar se é essa conta
-      if (unitId !== 'all') {
-        // Aqui você precisa ter uma forma de associar a conta com a unidade
-        // Por enquanto, vamos buscar de todas
-      }
 
       try {
         // Buscar anúncios com insights usando o método existente

@@ -19,17 +19,34 @@ onAuthStateChanged(auth, async (user) => {
   }
 });
 
-// Carregar projetos no select de unidades
+// Carregar unidades no select
 async function loadProjectsForCreatives() {
   try {
-    const projectsQuery = query(
-      collection(db, 'projects'),
-      where('userId', '==', currentUser.uid)
+    // Pegar o projeto selecionado no dashboard principal
+    const mainProjectSelect = document.getElementById('projectSelect');
+    const selectedProjectId = mainProjectSelect?.value;
+    
+    if (!selectedProjectId) {
+      console.log('⚠️ Nenhum projeto selecionado ainda');
+      return;
+    }
+
+    console.log('📋 Carregando unidades do projeto:', selectedProjectId);
+    
+    // Buscar unidades do projeto selecionado
+    const unitsQuery = query(
+      collection(db, 'units'),
+      where('projectId', '==', selectedProjectId)
     );
-    const snapshot = await getDocs(projectsQuery);
+    const snapshot = await getDocs(unitsQuery);
     
     const unitsSelect = document.getElementById('creativeUnitsSelect');
     unitsSelect.innerHTML = '<option value="all">Todas as unidades</option>';
+    
+    if (snapshot.empty) {
+      console.log('ℹ️ Nenhuma unidade encontrada para este projeto');
+      return;
+    }
     
     snapshot.forEach(doc => {
       const data = doc.data();
@@ -38,8 +55,10 @@ async function loadProjectsForCreatives() {
       option.textContent = data.name || 'Sem nome';
       unitsSelect.appendChild(option);
     });
+    
+    console.log(`✅ ${snapshot.size} unidades carregadas`);
   } catch (error) {
-    console.error('Erro ao carregar projetos:', error);
+    console.error('❌ Erro ao carregar unidades:', error);
   }
 }
 
@@ -59,6 +78,25 @@ function setupCreativeEventListeners() {
 
   // Botão de buscar
   document.getElementById('searchCreativesBtn').addEventListener('click', searchCreatives);
+
+  // Quando o projeto mudar na Visão Geral, recarregar unidades
+  const mainProjectSelect = document.getElementById('projectSelect');
+  if (mainProjectSelect) {
+    mainProjectSelect.addEventListener('change', () => {
+      console.log('🔄 Projeto mudou, recarregando unidades...');
+      loadProjectsForCreatives();
+    });
+  }
+
+  // Quando trocar para a aba de Criativos, garantir que as unidades estejam carregadas
+  const tabCriativos = document.getElementById('tabCriativos');
+  if (tabCriativos) {
+    tabCriativos.addEventListener('click', () => {
+      setTimeout(() => {
+        loadProjectsForCreatives();
+      }, 100);
+    });
+  }
 }
 
 // Calcular datas do período

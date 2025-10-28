@@ -15,8 +15,6 @@ import {
     ANALYSIS_CATEGORIES 
 } from './services/analysisTemplates.js';
 
-console.log('✅✅✅ RelatorioCompleto.js IMPORTS COMPLETOS! ✅✅✅');
-
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
 // Variável global para armazenar a logo do projeto
@@ -81,29 +79,19 @@ async function loadUnits() {
             unitSelect.appendChild(option);
         });
         
-        console.log(`✅ ${units.length} unidades carregadas no select`);
-        
-        // Adicionar listener AQUI, depois de carregar as unidades
+        // Adicionar listener de unidade
         unitSelect.addEventListener('change', handleUnitSelection);
         
-        // Adicionar listeners de data AQUI também, garantindo que DOM está pronto
+        // Adicionar listeners de data
         const startDate = document.getElementById('startDate');
         const endDate = document.getElementById('endDate');
         
         if (startDate) {
-            startDate.addEventListener('change', () => {
-                console.log('📅 DATA DE INÍCIO MUDOU!');
-                updateMetricsOnPeriodChange();
-            });
-            console.log('✅ Listener startDate adicionado');
+            startDate.addEventListener('change', updateMetricsOnPeriodChange);
         }
         
         if (endDate) {
-            endDate.addEventListener('change', () => {
-                console.log('📅 DATA DE TÉRMINO MUDOU!');
-                updateMetricsOnPeriodChange();
-            });
-            console.log('✅ Listener endDate adicionado');
+            endDate.addEventListener('change', updateMetricsOnPeriodChange);
         }
         
     } catch (error) {
@@ -114,10 +102,6 @@ async function loadUnits() {
 // Handler unificado para seleção de unidade
 function handleUnitSelection(e) {
     const unitId = e.target.value;
-    
-    console.log('🔄 [handleUnitSelection] Unidade ID:', unitId);
-    
-    // Elementos
     const unitLinkedInfo = document.getElementById('unitLinkedInfo');
     const manualAccountSelection = document.getElementById('manualAccountSelection');
     const linkedAccountsBadges = document.getElementById('linkedAccountsBadges');
@@ -125,7 +109,6 @@ function handleUnitSelection(e) {
     const googleSelect = document.getElementById('googleAdsAccountId');
     
     if (!unitId) {
-        // Limpar tudo
         if (unitLinkedInfo) unitLinkedInfo.classList.add('hidden');
         if (manualAccountSelection) manualAccountSelection.classList.add('hidden');
         document.getElementById('budgetsCompleted').value = '';
@@ -137,29 +120,18 @@ function handleUnitSelection(e) {
     }
     
     const selectedOption = e.target.selectedOptions[0];
-    if (!selectedOption || !selectedOption.dataset.unit) {
-        console.error('❌ Dados da unidade não encontrados no dataset');
-        return;
-    }
+    if (!selectedOption || !selectedOption.dataset.unit) return;
     
     const unit = JSON.parse(selectedOption.dataset.unit);
-    console.log('📦 Unidade selecionada:', unit);
-    
     const linkedAccounts = unit.linkedAccounts || {};
     const hasMeta = linkedAccounts.meta?.id;
     const hasGoogle = linkedAccounts.google?.id;
     
-    console.log('🔍 Contas vinculadas - Meta:', hasMeta, 'Google:', hasGoogle);
-    
-    // Limpar badges e seleções anteriores
     if (linkedAccountsBadges) linkedAccountsBadges.innerHTML = '';
     if (metaSelect) metaSelect.value = '';
     if (googleSelect) googleSelect.value = '';
     
     if (hasMeta || hasGoogle) {
-        // TEM CONTAS VINCULADAS
-        console.log('✅ Unidade COM contas vinculadas');
-        
         if (hasMeta && linkedAccountsBadges) {
             linkedAccountsBadges.innerHTML += `
                 <div class="flex items-center gap-2 bg-blue-100 px-3 py-1 rounded-full">
@@ -167,10 +139,7 @@ function handleUnitSelection(e) {
                     <span class="text-xs font-medium text-gray-700">${linkedAccounts.meta.name}</span>
                 </div>
             `;
-            if (metaSelect) {
-                metaSelect.value = linkedAccounts.meta.id;
-                console.log('✅ Meta pré-selecionada:', linkedAccounts.meta.id);
-            }
+            if (metaSelect) metaSelect.value = linkedAccounts.meta.id;
         }
         
         if (hasGoogle && linkedAccountsBadges) {
@@ -180,35 +149,25 @@ function handleUnitSelection(e) {
                     <span class="text-xs font-medium text-gray-700">${linkedAccounts.google.name}</span>
                 </div>
             `;
-            if (googleSelect) {
-                googleSelect.value = linkedAccounts.google.id;
-                console.log('✅ Google pré-selecionada:', linkedAccounts.google.id);
-            }
+            if (googleSelect) googleSelect.value = linkedAccounts.google.id;
         }
         
         if (unitLinkedInfo) unitLinkedInfo.classList.remove('hidden');
         if (manualAccountSelection) manualAccountSelection.classList.add('hidden');
-        
     } else {
-        // NÃO TEM CONTAS VINCULADAS
-        console.warn('⚠️ Unidade SEM contas vinculadas - modo manual');
-        
         alert(`⚠️ Esta unidade não possui contas de anúncios vinculadas.\n\nVocê precisará selecionar as contas manualmente abaixo.`);
-        
         if (unitLinkedInfo) unitLinkedInfo.classList.add('hidden');
         if (manualAccountSelection) manualAccountSelection.classList.remove('hidden');
     }
     
-    // Preencher métricas (se período já estiver definido)
     fillUnitMetricsFromSelect(e);
 }
 
-// Quando uma unidade é selecionada - preencher métricas
+// Preencher métricas da unidade selecionada
 function fillUnitMetricsFromSelect(event) {
     const selectedOption = event.target.selectedOptions[0];
     
     if (!selectedOption || !selectedOption.dataset.unit) {
-        // Limpar campos
         document.getElementById('budgetsCompleted').value = '';
         document.getElementById('salesCount').value = '';
         document.getElementById('revenue').value = '';
@@ -217,25 +176,15 @@ function fillUnitMetricsFromSelect(event) {
     
     const unit = JSON.parse(selectedOption.dataset.unit);
     
-    if (!unit.budgetData || !unit.budgetData.rawData) {
-        console.warn('⚠️ Esta unidade não possui planilha importada.');
-        return;
-    }
+    if (!unit.budgetData || !unit.budgetData.rawData) return;
     
-    // Pegar datas do relatório
     const startDate = document.getElementById('startDate').value;
     const endDate = document.getElementById('endDate').value;
     
-    // Se não tem período definido, não preencher
-    if (!startDate || !endDate) {
-        console.log('ℹ️ Período não definido - aguardando seleção de datas');
-        return;
-    }
+    if (!startDate || !endDate) return;
     
-    // Filtrar dados por período
     const filteredData = filterUnitDataByPeriod(unit.budgetData.rawData, startDate, endDate);
     
-    // Verificar se tem dados no período
     if (filteredData.totalBudgets === 0) {
         const confirmation = confirm(
             `⚠️ Não há dados nesta unidade para o período selecionado (${startDate} a ${endDate}).\n\n` +
@@ -250,30 +199,18 @@ function fillUnitMetricsFromSelect(event) {
         return;
     }
     
-    // Preencher campos
     document.getElementById('budgetsCompleted').value = filteredData.totalBudgets;
     document.getElementById('salesCount').value = filteredData.totalSales;
     document.getElementById('revenue').value = filteredData.totalRevenue.toFixed(2);
-    
-    console.log(`✅ Métricas preenchidas - Orçamentos: ${filteredData.totalBudgets}, Vendas: ${filteredData.totalSales}, Faturamento: R$ ${filteredData.totalRevenue.toFixed(2)}`);
 }
 
 // Atualizar métricas quando período mudar
 function updateMetricsOnPeriodChange() {
-    console.log('🔄 updateMetricsOnPeriodChange CHAMADA!');
-    
     const unitSelect = document.getElementById('unitSelect');
     const selectedOption = unitSelect?.selectedOptions[0];
     
-    console.log('  ├─ unitSelect:', unitSelect?.value);
-    console.log('  ├─ selectedOption:', selectedOption?.value);
-    console.log('  └─ tem dataset:', !!selectedOption?.dataset?.unit);
-    
     if (selectedOption && selectedOption.dataset.unit) {
-        console.log('  ✅ CHAMANDO fillUnitMetricsFromSelect...');
         fillUnitMetricsFromSelect({ target: unitSelect });
-    } else {
-        console.log('  ⚠️ Nenhuma unidade selecionada');
     }
 }
 

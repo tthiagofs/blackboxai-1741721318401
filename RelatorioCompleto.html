@@ -699,6 +699,14 @@ ul.list-disc li br {
             console.log('✅ [RelatorioCompleto] Usuário autenticado:', user.email);
             currentUser = user;
             
+            // Aguardar DOM estar pronto antes de carregar unidades
+            if (document.readyState === 'loading') {
+                console.log('⏳ Aguardando DOM ficar pronto...');
+                await new Promise(resolve => document.addEventListener('DOMContentLoaded', resolve));
+            }
+            
+            console.log('✅ DOM pronto - carregando unidades...');
+            
             // Carregar projeto e unidades
             await loadUserUnits();
         });
@@ -706,8 +714,11 @@ ul.list-disc li br {
         // ========== CARREGAR UNIDADES DO USUÁRIO ==========
         async function loadUserUnits() {
             try {
-                console.log('🔍 [loadUserUnits] Buscando projetos...');
+                console.log('🔍 [loadUserUnits] INÍCIO - Buscando projetos...');
+                console.log('📦 projectsService disponível?', typeof projectsService);
+                
                 const projects = await projectsService.getAllProjects();
+                console.log('📋 Projetos encontrados:', projects);
                 
                 if (!projects || projects.length === 0) {
                     console.warn('⚠️ Nenhum projeto encontrado');
@@ -718,13 +729,24 @@ ul.list-disc li br {
                 currentProjectId = projects[0].id;
                 console.log('✅ Projeto ID:', currentProjectId);
                 
+                console.log('🔍 Buscando unidades do projeto...');
+                console.log('📦 unitsService disponível?', typeof unitsService);
+                
                 // Buscar unidades do projeto usando unitsService
                 allUnits = await unitsService.listUnits(currentProjectId);
                 
                 console.log('✅ Unidades carregadas:', allUnits.length);
+                console.log('📋 Unidades:', allUnits);
                 
                 // Popular o select de unidades
                 const unitSelect = document.getElementById('unitSelect');
+                console.log('📦 unitSelect encontrado?', !!unitSelect);
+                
+                if (!unitSelect) {
+                    console.error('❌ Elemento unitSelect não encontrado no DOM!');
+                    return;
+                }
+                
                 unitSelect.innerHTML = '<option value="">Selecione uma unidade...</option>';
                 
                 allUnits.forEach(unit => {
@@ -735,8 +757,11 @@ ul.list-disc li br {
                     unitSelect.appendChild(option);
                 });
                 
+                console.log('✅ [loadUserUnits] CONCLUÍDO - Select populado com', allUnits.length, 'unidades');
+                
             } catch (error) {
                 console.error('❌ Erro ao carregar unidades:', error);
+                console.error('📋 Stack trace:', error.stack);
             }
         }
 
@@ -803,6 +828,10 @@ ul.list-disc li br {
                 
             } else {
                 console.warn('⚠️ Unidade sem contas vinculadas - modo manual');
+                
+                // Mostrar aviso de que não há contas vinculadas
+                alert(`⚠️ Esta unidade não possui contas de anúncios vinculadas.\n\nVocê precisará selecionar as contas manualmente abaixo.`);
+                
                 unitLinkedInfo.classList.add('hidden');
                 manualAccountSelection.classList.remove('hidden');
             }

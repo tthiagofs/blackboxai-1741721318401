@@ -4,6 +4,8 @@ import { projectsService } from './services/projects.js';
 import * as unitsService from './services/unitsService.js';
 import { fbAuth } from './auth.js';
 import { googleAuth } from './authGoogle.js';
+import { FacebookInsightsService } from './services/facebookInsights.js';
+import { GoogleAdsService } from './services/googleAds.js';
 
 let currentProjectId = null;
 let currentMonth = null;
@@ -119,8 +121,8 @@ async function generateDashboard() {
     const { start, end } = monthStartEnd(currentMonth);
 
     // Calcula métricas da planilha por unidade
-    const rows = allUnits.map(u => {
-      const plan = computeUnitMetricsFromSpreadsheet(u, start, end);
+    const rows = await Promise.all(allUnits.map(async u => {
+      const plan = await computeUnitMetricsFromSpreadsheet(u, start, end);
       return {
         id: u?.id || '',
         name: u?.name || '-',
@@ -128,7 +130,7 @@ async function generateDashboard() {
         sales: plan.sales,
         revenue: plan.revenue
       };
-    });
+    }));
 
     const totals = rows.reduce((a, r) => ({
       units: a.units + 1, 
@@ -154,15 +156,44 @@ function normalizeStr(v) {
   return String(v ?? '').trim().toLowerCase(); 
 }
 
-function computeUnitMetricsFromSpreadsheet(unit, startDate, endDate) {
+async function computeUnitMetricsFromSpreadsheet(unit, startDate, endDate) {
   if (!unit.budgetData || !unit.budgetData.rawData) {
     return { invested: 0, sales: 0, revenue: 0 };
   }
   
   const filteredData = filterUnitDataByPeriod(unit.budgetData.rawData, startDate, endDate);
   
+  // Calcular investido apenas se a unidade tem conta vinculada
+  let invested = 0;
+  const linkedAccounts = unit.linkedAccounts || {};
+  
+  if (linkedAccounts.meta?.id || linkedAccounts.google?.id) {
+    // Buscar gastos de anúncios se tem conta vinculada
+    try {
+      if (linkedAccounts.meta?.id && fbAuth?.getAccessToken && fbAuth.getAccessToken()) {
+        const token = fbAuth.getAccessToken();
+        const fb = new FacebookInsightsService(token);
+        if (fb?.getAccountSpend) {
+          const metaSpend = await fb.getAccountSpend(linkedAccounts.meta.id, startDate, endDate);
+          invested += Number(metaSpend || 0);
+        }
+      }
+      
+      if (linkedAccounts.google?.id) {
+        await googleAuth.initialize();
+        const ga = new GoogleAdsService();
+        if (ga?.getAccountSpend) {
+          const gSpend = await ga.getAccountSpend(linkedAccounts.google.id, startDate, endDate);
+          invested += Number(gSpend || 0);
+        }
+      }
+    } catch (error) {
+      console.warn(`Erro ao buscar gastos de anúncios para ${unit.name}:`, error);
+    }
+  }
+  
   return {
-    invested: filteredData.totalBudgets * 100, // Assumindo R$ 100 por orçamento como exemplo
+    invested: invested,
     sales: filteredData.totalSales,
     revenue: filteredData.totalRevenue
   };
@@ -174,15 +205,25 @@ function filterUnitDataByPeriod(rawData, startDate, endDate) {
   const end = new Date(endDate);
   
   const filtered = rawData.filter(item => {
-    const itemDate = new Date(item.date);
+    // Tentar diferentes campos de data
+    const itemDateStr = item.date || item.budgetDate || item.data || item.createdAt;
+    if (!itemDateStr) return false;
+    
+    const itemDate = new Date(itemDateStr);
     return itemDate >= start && itemDate <= end;
   });
   
   return {
     totalBudgets: filtered.length,
-    totalSales: filtered.filter(r => r.status === "APPROVED").length,
-    totalRevenue: filtered.filter(r => r.status === "APPROVED")
-                        .reduce((sum, r) => sum + (r.value || 0), 0)
+    totalSales: filtered.filter(r => {
+      // Tentar diferentes campos de status
+      const status = r.status || r.budgetCompleted || r.completed || r.concluido;
+      return status === "APPROVED" || status === true || status === "sim" || status === "concluido" || status === "concluído";
+    }).length,
+    totalRevenue: filtered.filter(r => {
+      const status = r.status || r.budgetCompleted || r.completed || r.concluido;
+      return status === "APPROVED" || status === true || status === "sim" || status === "concluido" || status === "concluído";
+    }).reduce((sum, r) => sum + (r.value || r.saleValue || r.revenue || r.faturamento || 0), 0)
   };
 }
 

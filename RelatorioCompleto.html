@@ -675,6 +675,10 @@ ul.list-disc li br {
     <script type="module">
         import { auth } from './config/firebase.js';
         import { onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+        import { projectsService } from './services/projectsService.js';
+        import { unitsService } from './services/unitsService.js';
+        import { fbAuth } from './auth.js';
+        import { googleAuth } from './authGoogle.js';
         
         console.log('⏳ [RelatorioCompleto] Aguardando Firebase verificar autenticação...');
         
@@ -714,18 +718,8 @@ ul.list-disc li br {
                 currentProjectId = projects[0].id;
                 console.log('✅ Projeto ID:', currentProjectId);
                 
-                // Buscar unidades do projeto
-                const { getDocs, collection, query, orderBy } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
-                const { db } = await import('./config/firebase.js');
-                
-                const unitsRef = collection(db, 'projects', currentProjectId, 'units');
-                const q = query(unitsRef, orderBy('name'));
-                const snapshot = await getDocs(q);
-                
-                allUnits = snapshot.docs.map(doc => ({
-                    id: doc.id,
-                    ...doc.data()
-                }));
+                // Buscar unidades do projeto usando unitsService
+                allUnits = await unitsService.listUnits(currentProjectId);
                 
                 console.log('✅ Unidades carregadas:', allUnits.length);
                 

@@ -121,6 +121,13 @@ async function loadUnitsForProject(projectId) {
         
         console.log(`✅ ${allUnits.length} unidades carregadas`);
         
+        // Log detalhado das unidades
+        allUnits.forEach((unit, index) => {
+            const hasBudgetData = unit.budgetData && unit.budgetData.rawData;
+            const dataCount = hasBudgetData ? unit.budgetData.rawData.length : 0;
+            console.log(`   ${index + 1}. ${unit.name} - ${hasBudgetData ? `✅ ${dataCount} registros` : '❌ Sem planilha'}`);
+        });
+        
         // Atualizar lista de unidades específicas
         updateSpecificUnitsList();
         

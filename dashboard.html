@@ -175,12 +175,123 @@
 
         <!-- Conteúdo da Aba: Análise de Criativos -->
         <div id="contentCriativos" class="tab-content hidden">
-          <div class="bg-white border border-gray-200 rounded-xl p-20 text-center">
-            <div class="max-w-md mx-auto">
-              <i class="fas fa-tools text-6xl text-blue-600 mb-6"></i>
-              <h3 class="text-2xl font-bold text-gray-900 mb-3">🎨 Análise de Criativos</h3>
-              <p class="text-gray-600 text-lg mb-2">Em Desenvolvimento</p>
-              <p class="text-gray-500 text-sm">Esta funcionalidade estará disponível em breve. Aqui você poderá analisar a performance de cada criativo (anúncios) com métricas detalhadas.</p>
+          <!-- Filtros -->
+          <div class="bg-white border border-gray-200 rounded-xl p-5 mb-6">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Período</label>
+                <select id="creativePeriodSelect" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm">
+                  <option value="today">Hoje</option>
+                  <option value="last7days" selected>Últimos 7 dias</option>
+                  <option value="thisMonth">Este mês</option>
+                  <option value="lastMonth">Mês passado</option>
+                  <option value="custom">Período personalizado</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Ordenar por</label>
+                <select id="creativeOrderBy" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm">
+                  <option value="impressions">👁️ Impressões (maior)</option>
+                  <option value="leads" selected>💬 Nº de Leads (maior)</option>
+                  <option value="cpl">💰 Custo por Lead (menor)</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Unidades</label>
+                <select id="creativeUnitsSelect" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm">
+                  <option value="all">Todas as unidades</option>
+                </select>
+              </div>
+              <div>
+                <button id="searchCreativesBtn" class="w-full px-5 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium">
+                  <i class="fas fa-search mr-2"></i>Buscar Criativos
+                </button>
+              </div>
+            </div>
+            <!-- Datas personalizadas (oculto por padrão) -->
+            <div id="creativeCustomPeriodDiv" class="hidden mt-4 grid grid-cols-2 gap-4">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Data Início</label>
+                <input type="date" id="creativeCustomStartDate" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm">
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Data Fim</label>
+                <input type="date" id="creativeCustomEndDate" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm">
+              </div>
+            </div>
+          </div>
+
+          <!-- Loading -->
+          <div id="creativesLoading" class="hidden bg-white border border-gray-200 rounded-xl p-10 text-center">
+            <i class="fas fa-spinner fa-spin text-4xl text-blue-600 mb-4"></i>
+            <p class="text-gray-600">Buscando criativos...</p>
+          </div>
+
+          <!-- Empty State -->
+          <div id="creativesEmptyState" class="bg-white border border-gray-200 rounded-xl p-10 text-center">
+            <i class="fas fa-image text-6xl text-gray-300 mb-4"></i>
+            <h3 class="text-xl font-bold text-gray-900 mb-2">Nenhum criativo encontrado</h3>
+            <p class="text-gray-600">Selecione os filtros e clique em <strong>Buscar Criativos</strong>.</p>
+          </div>
+
+          <!-- Conteúdo -->
+          <div id="creativesContent" class="hidden">
+            <!-- Top 10 Criativos -->
+            <div class="bg-white border border-gray-200 rounded-xl p-5 mb-6">
+              <div class="flex items-center justify-between mb-4">
+                <h2 class="text-lg font-semibold text-gray-900">🏆 Top 10 Criativos</h2>
+                <span id="creativesCount" class="text-sm text-gray-600">0 criativos encontrados</span>
+              </div>
+              <div id="creativesList" class="space-y-4">
+                <!-- Cards dos criativos serão inseridos aqui -->
+              </div>
+            </div>
+
+            <!-- Comparação por Tipo -->
+            <div class="bg-white border border-gray-200 rounded-xl p-5 mb-6">
+              <h2 class="text-lg font-semibold text-gray-900 mb-4">📊 Comparação por Tipo</h2>
+              <div class="space-y-4">
+                <div id="typeImage" class="hidden">
+                  <div class="flex items-center justify-between mb-2">
+                    <span class="text-sm font-medium text-gray-700">📷 Imagem Estática</span>
+                    <span id="typeImagePercent" class="text-sm text-gray-600">0%</span>
+                  </div>
+                  <div class="w-full bg-gray-200 rounded-full h-3 mb-1">
+                    <div id="typeImageBar" class="bg-blue-600 h-3 rounded-full transition-all" style="width: 0%"></div>
+                  </div>
+                  <p id="typeImageStats" class="text-xs text-gray-600">0 Leads · CPL médio: R$ 0,00</p>
+                </div>
+                
+                <div id="typeVideo" class="hidden">
+                  <div class="flex items-center justify-between mb-2">
+                    <span class="text-sm font-medium text-gray-700">🎬 Vídeo</span>
+                    <span id="typeVideoPercent" class="text-sm text-gray-600">0%</span>
+                  </div>
+                  <div class="w-full bg-gray-200 rounded-full h-3 mb-1">
+                    <div id="typeVideoBar" class="bg-purple-600 h-3 rounded-full transition-all" style="width: 0%"></div>
+                  </div>
+                  <p id="typeVideoStats" class="text-xs text-gray-600">0 Leads · CPL médio: R$ 0,00</p>
+                </div>
+                
+                <div id="typeCarousel" class="hidden">
+                  <div class="flex items-center justify-between mb-2">
+                    <span class="text-sm font-medium text-gray-700">🎠 Carrossel</span>
+                    <span id="typeCarouselPercent" class="text-sm text-gray-600">0%</span>
+                  </div>
+                  <div class="w-full bg-gray-200 rounded-full h-3 mb-1">
+                    <div id="typeCarouselBar" class="bg-green-600 h-3 rounded-full transition-all" style="width: 0%"></div>
+                  </div>
+                  <p id="typeCarouselStats" class="text-xs text-gray-600">0 Leads · CPL médio: R$ 0,00</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Insights Automáticos -->
+            <div class="bg-blue-50 border border-blue-200 rounded-xl p-5">
+              <h2 class="text-lg font-semibold text-gray-900 mb-4">💡 Insights Automáticos</h2>
+              <div id="creativesInsights" class="space-y-3">
+                <!-- Insights serão inseridos aqui -->
+              </div>
             </div>
           </div>
         </div>
@@ -258,6 +369,7 @@
   </script>
 
   <script type="module" src="./dashboard-v2.js?v=22.1"></script>
+  <script type="module" src="./dashboard-criativos.js?v=1.0"></script>
 </body>
 </html>
 

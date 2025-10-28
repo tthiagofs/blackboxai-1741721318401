@@ -20,6 +20,26 @@
           <p class="text-gray-600">Selecione um projeto e o período e clique em Gerar Dashboard.</p>
         </div>
 
+        <!-- Tabs de Navegação -->
+        <div class="mb-6 border-b border-gray-200">
+          <nav class="flex space-x-8">
+            <button id="tabVisaoGeral" class="dashboard-tab active pb-3 px-1 border-b-2 border-blue-600 text-blue-600 font-medium transition-all text-sm">
+              📈 Visão Geral
+            </button>
+            <button id="tabCriativos" class="dashboard-tab pb-3 px-1 border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 font-medium transition-all text-sm">
+              🎨 Análise de Criativos
+            </button>
+            <button id="tabTemporal" class="dashboard-tab pb-3 px-1 border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 font-medium transition-all text-sm">
+              ⏰ Análise Temporal
+            </button>
+            <button id="tabFunil" class="dashboard-tab pb-3 px-1 border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 font-medium transition-all text-sm">
+              🎯 Funil de Conversão
+            </button>
+          </nav>
+        </div>
+
+        <!-- Conteúdo da Aba: Visão Geral -->
+        <div id="contentVisaoGeral" class="tab-content">
         <!-- Filtros -->
         <div class="bg-white border border-gray-200 rounded-xl p-4 mb-6">
           <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
@@ -150,6 +170,45 @@
           <h3 class="text-xl font-bold text-gray-900 mb-2">Nada para mostrar ainda</h3>
           <p class="text-gray-600">Selecione o projeto e o mês e clique em <strong>Gerar Dashboard</strong>.</p>
         </div>
+        </div>
+        <!-- FIM: Conteúdo da Aba Visão Geral -->
+
+        <!-- Conteúdo da Aba: Análise de Criativos -->
+        <div id="contentCriativos" class="tab-content hidden">
+          <div class="bg-white border border-gray-200 rounded-xl p-20 text-center">
+            <div class="max-w-md mx-auto">
+              <i class="fas fa-tools text-6xl text-blue-600 mb-6"></i>
+              <h3 class="text-2xl font-bold text-gray-900 mb-3">🎨 Análise de Criativos</h3>
+              <p class="text-gray-600 text-lg mb-2">Em Desenvolvimento</p>
+              <p class="text-gray-500 text-sm">Esta funcionalidade estará disponível em breve. Aqui você poderá analisar a performance de cada criativo (anúncios) com métricas detalhadas.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Conteúdo da Aba: Análise Temporal -->
+        <div id="contentTemporal" class="tab-content hidden">
+          <div class="bg-white border border-gray-200 rounded-xl p-20 text-center">
+            <div class="max-w-md mx-auto">
+              <i class="fas fa-tools text-6xl text-purple-600 mb-6"></i>
+              <h3 class="text-2xl font-bold text-gray-900 mb-3">⏰ Análise Temporal</h3>
+              <p class="text-gray-600 text-lg mb-2">Em Desenvolvimento</p>
+              <p class="text-gray-500 text-sm">Esta funcionalidade estará disponível em breve. Aqui você poderá ver a performance por dia da semana e identificar os melhores horários.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Conteúdo da Aba: Funil de Conversão -->
+        <div id="contentFunil" class="tab-content hidden">
+          <div class="bg-white border border-gray-200 rounded-xl p-20 text-center">
+            <div class="max-w-md mx-auto">
+              <i class="fas fa-tools text-6xl text-green-600 mb-6"></i>
+              <h3 class="text-2xl font-bold text-gray-900 mb-3">🎯 Funil de Conversão</h3>
+              <p class="text-gray-600 text-lg mb-2">Em Desenvolvimento</p>
+              <p class="text-gray-500 text-sm">Esta funcionalidade estará disponível em breve. Aqui você poderá visualizar o funil completo de conversão e identificar gargalos.</p>
+            </div>
+          </div>
+        </div>
+
       </div>
     </main>
   </div>
@@ -159,7 +218,46 @@
     // Inicializar sidebar
     initSidebar('dashboard');
   </script>
-  <script type="module" src="./dashboard-v2.js?v=22.0"></script>
+
+  <!-- Script de Troca de Tabs -->
+  <script>
+    // Função para trocar entre as tabs do dashboard
+    function switchDashboardTab(tabName) {
+      // Remove classe active de todas as tabs
+      document.querySelectorAll('.dashboard-tab').forEach(tab => {
+        tab.classList.remove('active', 'border-blue-600', 'text-blue-600');
+        tab.classList.add('border-transparent', 'text-gray-500');
+      });
+
+      // Oculta todo o conteúdo
+      document.querySelectorAll('.tab-content').forEach(content => {
+        content.classList.add('hidden');
+      });
+
+      // Ativa a tab clicada
+      const activeTab = document.getElementById(`tab${tabName}`);
+      if (activeTab) {
+        activeTab.classList.add('active', 'border-blue-600', 'text-blue-600');
+        activeTab.classList.remove('border-transparent', 'text-gray-500');
+      }
+
+      // Mostra o conteúdo correspondente
+      const activeContent = document.getElementById(`content${tabName}`);
+      if (activeContent) {
+        activeContent.classList.remove('hidden');
+      }
+    }
+
+    // Event listeners para as tabs
+    document.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('tabVisaoGeral').addEventListener('click', () => switchDashboardTab('VisaoGeral'));
+      document.getElementById('tabCriativos').addEventListener('click', () => switchDashboardTab('Criativos'));
+      document.getElementById('tabTemporal').addEventListener('click', () => switchDashboardTab('Temporal'));
+      document.getElementById('tabFunil').addEventListener('click', () => switchDashboardTab('Funil'));
+    });
+  </script>
+
+  <script type="module" src="./dashboard-v2.js?v=22.1"></script>
 </body>
 </html>
 

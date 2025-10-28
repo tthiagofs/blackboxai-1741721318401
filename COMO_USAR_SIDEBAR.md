@@ -33,15 +33,15 @@ Ter uma **sidebar consistente** em todas as páginas do app, com regras intelige
 
 ### 3️⃣ Nomes de Páginas Disponíveis
 
-| Página | Nome para passar |
-|--------|------------------|
-| `home.html` | `'home'` |
-| `dashboard.html` | `'dashboard'` |
-| `unidades.html` | `'unidades'` |
-| `conexoes.html` | `'conexoes'` |
-| `minha-conta.html` | `'minha-conta'` |
-| `usuarios.html` | `'usuarios'` |
-| `analises-predefinidas.html` | `'analises'` |
+| Página | Nome para passar | Observação |
+|--------|------------------|------------|
+| `home.html` | `'home'` ou `'relatorios'` | Relatórios salvos |
+| `dashboard.html` | `'dashboard'` | Dashboard geral |
+| `unidades.html` | `'unidades'` | Lista de unidades |
+| `conexoes.html` | `'conexoes'` | Conexões Meta/Google |
+| `minha-conta.html` | `'minha-conta'` | Perfil do usuário |
+| `usuarios.html` | `'usuarios'` | Admin only |
+| `analises-predefinidas.html` | `'analises'` | Admin only |
 
 ## 🎨 Funcionalidades Automáticas
 
@@ -53,10 +53,20 @@ Ter uma **sidebar consistente** em todas as páginas do app, com regras intelige
 
 ### ✅ Abas CONDICIONAIS:
 
-#### 1. **Unidades** (sub-aba da Tela Inicial)
-- ✅ Aparece **APENAS** quando há projeto selecionado (`localStorage.getItem('currentProject')`)
-- ✅ Aparece **indentada** (com `ml-4`) como sub-item
-- ✅ Texto menor para indicar hierarquia
+#### 1. **Sub-abas da Tela Inicial** (só quando projeto selecionado)
+Quando há projeto selecionado (`localStorage.getItem('currentProject')`), aparecem **2 sub-abas**:
+
+##### 📄 **Relatórios** (sub-aba 1)
+- ✅ Link: `/home.html`
+- ✅ Página com relatórios salvos e botão "Gerar Relatório"
+- ✅ Indentada com `ml-6`
+- ✅ Texto e ícone menores (`text-xs`)
+
+##### 🏢 **Unidades** (sub-aba 2)
+- ✅ Link: `/unidades.html`
+- ✅ Lista de unidades do projeto
+- ✅ Indentada com `ml-6`
+- ✅ Texto e ícone menores (`text-xs`)
 
 #### 2. **Usuários** (apenas Admin)
 - ✅ Aparece apenas se `user.role === 'admin'` no Firestore

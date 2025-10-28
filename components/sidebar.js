@@ -46,7 +46,10 @@ function renderSidebar(currentPage) {
 
   // Verificar se há projeto selecionado
   const currentProject = localStorage.getItem('currentProject');
-  const showUnidades = !!currentProject;
+  const showSubMenus = !!currentProject;
+  
+  // Verificar se está em uma das sub-páginas da Tela Inicial
+  const isHomeSection = ['home', 'relatorios', 'unidades'].includes(currentPage);
 
   const sidebarHTML = `
     <aside class="w-64 bg-white shadow-lg border-r border-gray-200 flex flex-col">
@@ -57,22 +60,30 @@ function renderSidebar(currentPage) {
 
       <!-- Menu de Navegação -->
       <nav class="flex-1 px-3 py-2">
-        <a href="/home.html" class="flex items-center px-3 py-2.5 mb-1 border-l-4 ${currentPage === 'home' ? 'border-blue-600 bg-blue-50 text-blue-600' : 'border-transparent text-gray-700 hover:bg-gray-50'} transition-all">
+        <!-- Tela Inicial (Principal) -->
+        <a href="/home.html" class="flex items-center px-3 py-2.5 mb-1 border-l-4 ${isHomeSection ? 'border-blue-600 bg-blue-50 text-blue-600' : 'border-transparent text-gray-700 hover:bg-gray-50'} transition-all">
           <i class="fas fa-home mr-3 text-sm"></i>
           <span class="text-sm">Tela Inicial</span>
         </a>
+        
+        ${showSubMenus ? `
+        <!-- Sub-aba: Relatórios -->
+        <a href="/home.html" class="flex items-center px-3 py-2 mb-1 ml-6 border-l-4 ${currentPage === 'relatorios' || currentPage === 'home' ? 'border-blue-600 bg-blue-50 text-blue-600' : 'border-transparent text-gray-600 hover:bg-gray-50'} transition-all">
+          <i class="fas fa-file-alt mr-2 text-xs"></i>
+          <span class="text-xs">Relatórios</span>
+        </a>
+        
+        <!-- Sub-aba: Unidades -->
+        <a href="/unidades.html" class="flex items-center px-3 py-2 mb-1 ml-6 border-l-4 ${currentPage === 'unidades' ? 'border-blue-600 bg-blue-50 text-blue-600' : 'border-transparent text-gray-600 hover:bg-gray-50'} transition-all">
+          <i class="fas fa-building mr-2 text-xs"></i>
+          <span class="text-xs">Unidades</span>
+        </a>
+        ` : ''}
         
         <a href="/dashboard.html" class="flex items-center px-3 py-2.5 mb-1 border-l-4 ${currentPage === 'dashboard' ? 'border-blue-600 bg-blue-50 text-blue-600' : 'border-transparent text-gray-700 hover:bg-gray-50'} transition-all">
           <i class="fas fa-chart-line mr-3 text-sm"></i>
           <span class="text-sm">Dashboard</span>
         </a>
-        
-        ${showUnidades ? `
-        <a href="/unidades.html" class="flex items-center px-3 py-2.5 mb-1 ml-4 border-l-4 ${currentPage === 'unidades' ? 'border-blue-600 bg-blue-50 text-blue-600' : 'border-transparent text-gray-600 hover:bg-gray-50'} transition-all">
-          <i class="fas fa-building mr-3 text-sm"></i>
-          <span class="text-sm text-xs">Unidades</span>
-        </a>
-        ` : ''}
         
         <a href="/conexoes.html" class="flex items-center px-3 py-2.5 mb-1 border-l-4 ${currentPage === 'conexoes' ? 'border-blue-600 bg-blue-50 text-blue-600' : 'border-transparent text-gray-700 hover:bg-gray-50'} transition-all">
           <i class="fas fa-plug mr-3 text-sm"></i>

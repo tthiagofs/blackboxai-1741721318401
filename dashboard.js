@@ -3,7 +3,7 @@ import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebas
 import { getFirestore, getDoc, doc } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
 import { getAuth, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
 import { projectsService } from './services/projects.js';
-import { unitsService } from './services/units.js';
+import { unitsService } from './services/unitsService.js';
 
 // ==================== FIREBASE CONFIG ====================
 const firebaseConfig = {

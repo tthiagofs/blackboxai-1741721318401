@@ -52,7 +52,7 @@ async function loadUnits() {
         }
         
         // Preencher dropdown
-        unitSelect.innerHTML = '<option value="">Selecione uma unidade (opcional)</option>';
+        unitSelect.innerHTML = '<option value="">Selecione uma unidade...</option>';
         units.forEach(unit => {
             const option = document.createElement('option');
             option.value = unit.id;
@@ -98,13 +98,15 @@ function onUnitSelected(event) {
     
     // Permitir preencher sem período definido
     if (!startDate || !endDate) {
-        console.log('ℹ️ Período não definido ainda - carregando todos os dados');
+        console.log('ℹ️ Período não definido ainda - não preencher dados');
+        // Não preencher dados se não há período definido
+        return;
     }
     
     // Filtrar dados por período
     const filteredData = filterUnitDataByPeriod(unit.budgetData.rawData, startDate, endDate);
     
-    // Verificar se tem dados no período
+    // Verificar se tem dados no período (SOMENTE se o período estiver definido)
     if (filteredData.totalBudgets === 0) {
         const confirmation = confirm(
             `⚠️ Não há dados nesta unidade para o período selecionado (${startDate} a ${endDate}).\n\n` +

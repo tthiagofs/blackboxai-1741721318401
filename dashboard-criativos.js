@@ -365,11 +365,7 @@ async function processAdsData(adsData, fbService, accessToken, unitName) {
     try {
       const creativeData = await fbService.getCreativeData(ad.ad_id);
       thumbnailUrl = creativeData.imageUrl || thumbnailUrl;
-      
-      // Determinar tipo baseado nos dados do criativo
-      // Por enquanto vamos assumir image como padrão
-      // Você pode expandir isso buscando mais dados do creative
-      type = 'image';
+      type = creativeData.type || 'image'; // Agora pega o tipo retornado
     } catch (error) {
       console.warn(`Erro ao buscar creative do ad ${ad.ad_id}:`, error);
     }

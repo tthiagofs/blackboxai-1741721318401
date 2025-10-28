@@ -227,7 +227,7 @@ export class FacebookInsightsService {
     // Dados do criativo com fallback
     async getCreativeData(adId) {
         try {
-            const url = `/${adId}?fields=creative{thumbnail_url,image_hash,object_story_spec,effective_object_story_id}&access_token=${this.accessToken}`;
+            const url = `/${adId}?fields=creative{thumbnail_url,image_hash,object_story_spec,effective_object_story_id,asset_feed_spec}&access_token=${this.accessToken}`;
             const response = await new Promise((resolve, reject) => {
                 const timeout = setTimeout(() => {
                     reject(new Error('Timeout ao buscar dados do criativo'));
@@ -245,50 +245,48 @@ export class FacebookInsightsService {
 
             if (response && !response.error && response.creative) {
                 const creative = response.creative;
+                let imageUrl = 'https://via.placeholder.com/200x200?text=Sem+Imagem';
+                let type = 'image'; // padrão
                 
-                // Tentar thumbnail_url primeiro
-                if (creative.thumbnail_url) {
-                    return { imageUrl: creative.thumbnail_url };
-                }
-                
-                // Tentar object_story_spec
-                if (creative.object_story_spec?.link_data?.picture) {
-                    return { imageUrl: creative.object_story_spec.link_data.picture };
-                }
-                
-                if (creative.object_story_spec?.video_data?.image_url) {
-                    return { imageUrl: creative.object_story_spec.video_data.image_url };
-                }
-                
-                // Tentar effective_object_story_id
-                if (creative.effective_object_story_id) {
-                    const storyUrl = `/${creative.effective_object_story_id}?fields=full_picture&access_token=${this.accessToken}`;
-                    const storyResponse = await new Promise((resolve, reject) => {
-                        const timeout = setTimeout(() => {
-                            reject(new Error('Timeout ao buscar story'));
-                        }, 10000);
-                        
-                        FB.api(storyUrl, (res) => {
-                            clearTimeout(timeout);
-                            if (res && res.error) {
-                                reject(new Error(res.error.message || 'Erro na API do Facebook'));
-                            } else {
-                                resolve(res);
-                            }
-                        });
-                    });
-                    
-                    if (storyResponse && !storyResponse.error && storyResponse.full_picture) {
-                        return { imageUrl: storyResponse.full_picture };
+                // Detectar tipo baseado em object_story_spec
+                if (creative.object_story_spec) {
+                    // Vídeo
+                    if (creative.object_story_spec.video_data) {
+                        type = 'video';
+                        imageUrl = creative.object_story_spec.video_data.image_url || creative.thumbnail_url || imageUrl;
+                    }
+                    // Carrossel
+                    else if (creative.object_story_spec.link_data?.child_attachments) {
+                        type = 'carousel';
+                        imageUrl = creative.object_story_spec.link_data.picture || creative.thumbnail_url || imageUrl;
+                    }
+                    // Imagem estática
+                    else if (creative.object_story_spec.link_data?.picture) {
+                        type = 'image';
+                        imageUrl = creative.object_story_spec.link_data.picture;
                     }
                 }
+                
+                // Detectar carrossel via asset_feed_spec
+                if (creative.asset_feed_spec) {
+                    type = 'carousel';
+                }
+                
+                // Fallback para thumbnail_url
+                if (!imageUrl || imageUrl === 'https://via.placeholder.com/200x200?text=Sem+Imagem') {
+                    if (creative.thumbnail_url) {
+                        imageUrl = creative.thumbnail_url;
+                    }
+                }
+                
+                return { imageUrl, type };
             }
             
             // Fallback para imagem placeholder
-            return { imageUrl: 'https://via.placeholder.com/300x200?text=Sem+Imagem' };
+            return { imageUrl: 'https://via.placeholder.com/300x200?text=Sem+Imagem', type: 'image' };
         } catch (error) {
             console.error('Erro ao buscar creative:', error);
-            return { imageUrl: 'https://via.placeholder.com/300x200?text=Erro' };
+            return { imageUrl: 'https://via.placeholder.com/300x200?text=Erro', type: 'image' };
         }
     }
 

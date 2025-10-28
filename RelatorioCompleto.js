@@ -1105,9 +1105,9 @@ async function generateCompleteReport() {
 
     // Validar se pelo menos uma plataforma foi selecionada
     if (!unitId && !googleAccountId) {
-        alert('Selecione pelo menos uma conta (Meta ou Google Ads)');
-            return;
-        }
+        alert('⚠️ Nenhuma conta de anúncios selecionada!\n\nPor favor:\n1. Selecione uma unidade com contas vinculadas, OU\n2. Selecione manualmente uma conta Meta ou Google Ads');
+        return;
+    }
 
     if (!startDate || !endDate) {
         alert('Preencha as datas de início e fim');

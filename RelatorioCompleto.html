@@ -701,77 +701,99 @@ ul.list-disc li br {
         });
 
         // ========== EVENTO: SELEÇÃO DE UNIDADE ==========
-        document.getElementById('unitSelect').addEventListener('change', async (e) => {
-            const unitId = e.target.value;
+        document.addEventListener('DOMContentLoaded', () => {
+            const unitSelect = document.getElementById('unitSelect');
+            if (!unitSelect) return;
             
-            if (!unitId) {
-                document.getElementById('unitLinkedInfo').classList.add('hidden');
-                document.getElementById('manualAccountSelection').classList.add('hidden');
-                // Limpar campos de métricas
-                document.getElementById('budgetsCompleted').value = '';
-                document.getElementById('salesCount').value = '';
-                document.getElementById('revenue').value = '';
-                return;
-            }
-            
-            const selectedOption = e.target.options[e.target.selectedIndex];
-            const unit = JSON.parse(selectedOption.dataset.unit);
-            
-            console.log('📦 Unidade selecionada:', unit);
-            
-            const linkedAccounts = unit.linkedAccounts || {};
-            const linkedAccountsBadges = document.getElementById('linkedAccountsBadges');
-            const unitLinkedInfo = document.getElementById('unitLinkedInfo');
-            const manualAccountSelection = document.getElementById('manualAccountSelection');
-            
-            linkedAccountsBadges.innerHTML = '';
-            
-            // Verificar se tem contas vinculadas
-            const hasMeta = linkedAccounts.meta?.id;
-            const hasGoogle = linkedAccounts.google?.id;
-            
-            if (hasMeta || hasGoogle) {
-                console.log('✅ Unidade possui contas vinculadas:', linkedAccounts);
+            unitSelect.addEventListener('change', async (e) => {
+                const unitId = e.target.value;
                 
-                // Mostrar badges
-                if (hasMeta) {
-                    linkedAccountsBadges.innerHTML += `
-                        <div class="flex items-center gap-2 bg-blue-100 px-3 py-1 rounded-full">
-                            <i class="fab fa-meta text-blue-600"></i>
-                            <span class="text-xs font-medium text-gray-700">${linkedAccounts.meta.name}</span>
-                        </div>
-                    `;
-                    
-                    // Pré-selecionar conta Meta
-                    document.getElementById('unitId').value = linkedAccounts.meta.id;
+                console.log('🔄 [unitSelect change] Unidade ID:', unitId);
+                
+                if (!unitId) {
+                    document.getElementById('unitLinkedInfo')?.classList.add('hidden');
+                    document.getElementById('manualAccountSelection')?.classList.add('hidden');
+                    // Limpar campos de métricas
+                    document.getElementById('budgetsCompleted').value = '';
+                    document.getElementById('salesCount').value = '';
+                    document.getElementById('revenue').value = '';
+                    // Limpar seleção de contas
+                    document.getElementById('unitId').value = '';
+                    document.getElementById('googleAdsAccountId').value = '';
+                    return;
                 }
                 
-                if (hasGoogle) {
-                    linkedAccountsBadges.innerHTML += `
-                        <div class="flex items-center gap-2 bg-red-100 px-3 py-1 rounded-full">
-                            <i class="fab fa-google text-red-600"></i>
-                            <span class="text-xs font-medium text-gray-700">${linkedAccounts.google.name}</span>
-                        </div>
-                    `;
+                const selectedOption = e.target.options[e.target.selectedIndex];
+                const unit = JSON.parse(selectedOption.dataset.unit);
+                
+                console.log('📦 Unidade selecionada:', unit);
+                
+                const linkedAccounts = unit.linkedAccounts || {};
+                const linkedAccountsBadges = document.getElementById('linkedAccountsBadges');
+                const unitLinkedInfo = document.getElementById('unitLinkedInfo');
+                const manualAccountSelection = document.getElementById('manualAccountSelection');
+                
+                if (linkedAccountsBadges) linkedAccountsBadges.innerHTML = '';
+                
+                // Limpar seleções anteriores
+                const metaSelect = document.getElementById('unitId');
+                const googleSelect = document.getElementById('googleAdsAccountId');
+                if (metaSelect) metaSelect.value = '';
+                if (googleSelect) googleSelect.value = '';
+                
+                // Verificar se tem contas vinculadas
+                const hasMeta = linkedAccounts.meta?.id;
+                const hasGoogle = linkedAccounts.google?.id;
+                
+                if (hasMeta || hasGoogle) {
+                    console.log('✅ Unidade possui contas vinculadas:', linkedAccounts);
                     
-                    // Pré-selecionar conta Google
-                    document.getElementById('googleAdsAccountId').value = linkedAccounts.google.id;
+                    // Mostrar badges
+                    if (hasMeta && linkedAccountsBadges) {
+                        linkedAccountsBadges.innerHTML += `
+                            <div class="flex items-center gap-2 bg-blue-100 px-3 py-1 rounded-full">
+                                <i class="fab fa-meta text-blue-600"></i>
+                                <span class="text-xs font-medium text-gray-700">${linkedAccounts.meta.name}</span>
+                            </div>
+                        `;
+                        
+                        // Pré-selecionar conta Meta
+                        if (metaSelect) {
+                            metaSelect.value = linkedAccounts.meta.id;
+                            console.log('✅ Meta pré-selecionada:', linkedAccounts.meta.id);
+                        }
+                    }
+                    
+                    if (hasGoogle && linkedAccountsBadges) {
+                        linkedAccountsBadges.innerHTML += `
+                            <div class="flex items-center gap-2 bg-red-100 px-3 py-1 rounded-full">
+                                <i class="fab fa-google text-red-600"></i>
+                                <span class="text-xs font-medium text-gray-700">${linkedAccounts.google.name}</span>
+                            </div>
+                        `;
+                        
+                        // Pré-selecionar conta Google
+                        if (googleSelect) {
+                            googleSelect.value = linkedAccounts.google.id;
+                            console.log('✅ Google pré-selecionada:', linkedAccounts.google.id);
+                        }
+                    }
+                    
+                    if (unitLinkedInfo) unitLinkedInfo.classList.remove('hidden');
+                    if (manualAccountSelection) manualAccountSelection.classList.add('hidden');
+                    
+                } else {
+                    console.warn('⚠️ Unidade sem contas vinculadas - modo manual');
+                    
+                    // Mostrar aviso de que não há contas vinculadas
+                    alert(`⚠️ Esta unidade não possui contas de anúncios vinculadas.\n\nVocê precisará selecionar as contas manualmente abaixo.`);
+                    
+                    if (unitLinkedInfo) unitLinkedInfo.classList.add('hidden');
+                    if (manualAccountSelection) manualAccountSelection.classList.remove('hidden');
                 }
                 
-                unitLinkedInfo.classList.remove('hidden');
-                manualAccountSelection.classList.add('hidden');
-                
-            } else {
-                console.warn('⚠️ Unidade sem contas vinculadas - modo manual');
-                
-                // Mostrar aviso de que não há contas vinculadas
-                alert(`⚠️ Esta unidade não possui contas de anúncios vinculadas.\n\nVocê precisará selecionar as contas manualmente abaixo.`);
-                
-                unitLinkedInfo.classList.add('hidden');
-                manualAccountSelection.classList.remove('hidden');
-            }
-            
-            // Nota: Preenchimento de métricas é feito pelo RelatorioCompleto.js
+                // Nota: Preenchimento de métricas é feito pelo RelatorioCompleto.js
+            });
         });
         
         // Logout da sidebar

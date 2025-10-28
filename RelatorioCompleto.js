@@ -96,9 +96,9 @@ function onUnitSelected(event) {
     const startDate = document.getElementById('startDate').value;
     const endDate = document.getElementById('endDate').value;
     
+    // Permitir preencher sem período definido
     if (!startDate || !endDate) {
-        alert('⚠️ Selecione primeiro o período do relatório para preencher os dados automaticamente.');
-        return;
+        console.log('ℹ️ Período não definido ainda - carregando todos os dados');
     }
     
     // Filtrar dados por período
@@ -534,9 +534,9 @@ async function toggleModal(modalId, show) {
             const startDate = document.getElementById('startDate').value;
             const endDate = document.getElementById('endDate').value;
             
+            // Remover verificação de período - permitir carregar sem data definida
             if (!startDate || !endDate) {
-                alert('Por favor, selecione o período do relatório primeiro');
-                return;
+                console.log('ℹ️ Período não definido - continuando...');
             }
             // Comparação pode ser usada com Meta ou Google Ads
             modal.classList.remove('hidden');
@@ -548,8 +548,8 @@ async function toggleModal(modalId, show) {
         const startDate = document.getElementById('startDate').value;
         const endDate = document.getElementById('endDate').value;
         
-        if (!unitId || !startDate || !endDate) {
-            alert('Por favor, selecione a conta e o período primeiro');
+        if (!unitId) {
+            alert('Por favor, selecione uma conta de anúncio primeiro');
             return;
         }
         
@@ -577,8 +577,7 @@ async function toggleModal(modalId, show) {
                         isLoadingData = false;
                     }
                 } else {
-                    alert('Por favor, selecione o período primeiro');
-                    return;
+                    console.log('ℹ️ Carregando campanhas sem período definido...');
                 }
             } else {
                 alert('Aguarde o carregamento dos dados...');
@@ -610,8 +609,7 @@ async function toggleModal(modalId, show) {
                         isLoadingData = false;
                     }
                 } else {
-                    alert('Por favor, selecione o período primeiro');
-                    return;
+                    console.log('ℹ️ Carregando ad sets sem período definido...');
                 }
             } else {
                 alert('Aguarde o carregamento dos dados...');

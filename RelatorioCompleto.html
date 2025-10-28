@@ -747,6 +747,10 @@ ul.list-disc li br {
             if (!unitId) {
                 document.getElementById('unitLinkedInfo').classList.add('hidden');
                 document.getElementById('manualAccountSelection').classList.add('hidden');
+                // Limpar campos de métricas
+                document.getElementById('budgetsCompleted').value = '';
+                document.getElementById('salesCount').value = '';
+                document.getElementById('revenue').value = '';
                 return;
             }
             
@@ -802,7 +806,84 @@ ul.list-disc li br {
                 unitLinkedInfo.classList.add('hidden');
                 manualAccountSelection.classList.remove('hidden');
             }
+            
+            // ========== PREENCHER MÉTRICAS (ORÇAMENTOS, VENDAS, FATURAMENTO) ==========
+            fillUnitMetrics(unit);
         });
+        
+        // ========== FUNÇÃO: PREENCHER MÉTRICAS DA UNIDADE ==========
+        window.fillUnitMetrics = function(unit) {
+            if (!unit || !unit.budgetData || !unit.budgetData.rawData) {
+                console.warn('⚠️ Unidade sem dados de planilha');
+                document.getElementById('budgetsCompleted').value = '';
+                document.getElementById('salesCount').value = '';
+                document.getElementById('revenue').value = '';
+                return;
+            }
+            
+            // Pegar datas do relatório
+            const startDate = document.getElementById('startDate').value;
+            const endDate = document.getElementById('endDate').value;
+            
+            // Se não tem período definido, não preencher
+            if (!startDate || !endDate) {
+                console.log('ℹ️ Período não definido - não preencher métricas ainda');
+                return;
+            }
+            
+            // Filtrar dados por período
+            const rawData = unit.budgetData.rawData || [];
+            const filteredData = rawData.filter(item => {
+                const itemDate = item.date;
+                return itemDate >= startDate && itemDate <= endDate;
+            });
+            
+            // Calcular métricas
+            const totalBudgets = filteredData.length;
+            const totalSales = filteredData.filter(item => item.status === 'Orçamento Concluído').length;
+            const totalRevenue = filteredData
+                .filter(item => item.status === 'Orçamento Concluído')
+                .reduce((sum, item) => sum + (parseFloat(item.value) || 0), 0);
+            
+            // Verificar se tem dados no período
+            if (totalBudgets === 0) {
+                const confirmation = confirm(
+                    `⚠️ Não há dados nesta unidade para o período selecionado (${startDate} a ${endDate}).\n\n` +
+                    `Deseja preencher com zeros e inserir manualmente?`
+                );
+                
+                if (confirmation) {
+                    document.getElementById('budgetsCompleted').value = '0';
+                    document.getElementById('salesCount').value = '0';
+                    document.getElementById('revenue').value = '0';
+                }
+                return;
+            }
+            
+            // Preencher campos
+            document.getElementById('budgetsCompleted').value = totalBudgets;
+            document.getElementById('salesCount').value = totalSales;
+            document.getElementById('revenue').value = totalRevenue.toFixed(2);
+            
+            console.log(`✅ Métricas preenchidas - Orçamentos: ${totalBudgets}, Vendas: ${totalSales}, Faturamento: R$ ${totalRevenue.toFixed(2)}`);
+        };
+        
+        // ========== EVENTO: MUDANÇA DE PERÍODO (ATUALIZAR MÉTRICAS) ==========
+        function updateMetricsOnDateChange() {
+            const unitSelect = document.getElementById('unitSelect');
+            const selectedOption = unitSelect?.selectedOptions[0];
+            
+            // Se há uma unidade selecionada, atualizar métricas
+            if (selectedOption && selectedOption.dataset.unit) {
+                const unit = JSON.parse(selectedOption.dataset.unit);
+                console.log('🔄 Período mudou - atualizando métricas...');
+                fillUnitMetrics(unit);
+            }
+        }
+        
+        // Adicionar listeners nas datas
+        document.getElementById('startDate').addEventListener('change', updateMetricsOnDateChange);
+        document.getElementById('endDate').addEventListener('change', updateMetricsOnDateChange);
         
         // Logout da sidebar
         document.getElementById('logoutBtnSidebar')?.addEventListener('click', async () => {

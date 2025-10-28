@@ -122,55 +122,8 @@
 
     <!-- Container Principal -->
     <div class="flex min-h-screen w-full">
-        <!-- Sidebar -->
-        <aside id="sidebar" class="w-56 bg-white flex flex-col border-r border-gray-200">
-            <!-- Logo -->
-            <div class="p-6">
-                <h1 class="text-xl font-bold text-gray-800">Relatórios</h1>
-            </div>
-
-            <!-- Menu de Navegação -->
-            <nav class="flex-1 px-3">
-                <a href="#" id="telaInicialLink" class="flex items-center px-3 py-2.5 mb-1 border-l-4 border-blue-600 bg-blue-50 text-blue-600 transition-all">
-                    <i class="fas fa-home mr-3 text-sm"></i>
-                    <span class="text-sm">Tela Inicial</span>
-                </a>
-                
-                <a href="/dashboard.html" class="flex items-center px-3 py-2.5 mb-1 border-l-4 border-transparent text-gray-700 hover:bg-gray-50 transition-all">
-                    <i class="fas fa-chart-line mr-3 text-sm"></i>
-                    <span class="text-sm">Dashboard</span>
-                </a>
-                
-                <a href="#" id="unidadesLink" class="flex items-center px-3 py-2.5 mb-1 border-l-4 border-transparent text-gray-700 hover:bg-gray-50 transition-all">
-                    <i class="fas fa-building mr-3 text-sm"></i>
-                    <span class="text-sm">Unidades</span>
-                </a>
-                
-                <a href="/conexoes.html" class="flex items-center px-3 py-2.5 mb-1 border-l-4 border-transparent text-gray-700 hover:bg-gray-50 transition-all">
-                    <i class="fas fa-plug mr-3 text-sm"></i>
-                    <span class="text-sm">Conexões</span>
-                </a>
-                
-                <a href="/minha-conta.html" class="flex items-center px-3 py-2.5 mb-1 border-l-4 border-transparent text-gray-700 hover:bg-gray-50 transition-all">
-                    <i class="fas fa-user mr-3 text-sm"></i>
-                    <span class="text-sm">Minha Conta</span>
-                </a>
-                
-                <!-- Link Admin (apenas para admins) -->
-                <a href="/usuarios.html" id="adminLink" class="hidden flex items-center px-3 py-2.5 mb-1 border-l-4 border-transparent text-gray-700 hover:bg-gray-50 transition-all">
-                    <i class="fas fa-users mr-3 text-sm"></i>
-                    <span class="text-sm">Usuários</span>
-                </a>
-            </nav>
-
-            <!-- Botão Sair -->
-            <div class="p-3">
-                <button id="logoutBtn" class="w-full flex items-center px-3 py-2.5 text-red-600 hover:bg-red-50 rounded-lg transition-all">
-                    <i class="fas fa-sign-out-alt mr-3 text-sm"></i>
-                    <span class="text-sm">Log out</span>
-                </button>
-            </div>
-        </aside>
+        <!-- Sidebar Unificada -->
+        <div id="app-sidebar"></div>
 
         <!-- Conteúdo Principal -->
         <main class="flex-1 p-10 bg-gray-50">
@@ -371,8 +324,6 @@
 
         const projectNameEl = document.getElementById('projectName');
         const projectNameEditable = document.getElementById('projectNameEditable');
-        const logoutBtn = document.getElementById('logoutBtn');
-        const adminLink = document.getElementById('adminLink');
         const generateReportBtn = document.getElementById('generateReportBtn');
         const reportsLoading = document.getElementById('reportsLoading');
         const reportsEmpty = document.getElementById('reportsEmpty');
@@ -411,17 +362,7 @@
             window.location.href = '/home.html';
         }
 
-        // Configurar links do menu
-        document.getElementById('telaInicialLink').href = `projeto.html?id=${currentProjectId}`;
-        document.getElementById('unidadesLink').href = `unidades.html?projectId=${currentProjectId}`;
-
-        // Logout
-        logoutBtn.addEventListener('click', async () => {
-            if (confirm('Tem certeza que deseja sair?')) {
-                await authService.logout();
-                window.location.href = '/login.html';
-            }
-        });
+        // Links do menu agora são gerenciados pela sidebar unificada
 
         // Botão Gerar Relatório
         generateReportBtn.addEventListener('click', () => {
@@ -912,15 +853,15 @@
         // Carregar dados do usuário e mostrar link admin
         onAuthStateChanged(auth, async (user) => {
             if (user) {
-                const userData = authService.getCurrentUser();
-                if (userData && userData.role === 'admin') {
-                    adminLink.classList.remove('hidden');
-                }
-                
+                // Admin check agora é feito pela sidebar unificada
                 await loadProject();
                 await loadReports();
             }
         });
+    </script>
+    <script type="module">
+        import { initSidebar } from './components/sidebar.js';
+        initSidebar('projeto');
     </script>
 </body>
 </html>

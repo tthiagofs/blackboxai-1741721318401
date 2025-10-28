@@ -88,10 +88,19 @@ async function initDashboard() {
 // ==================== CARREGAR PROJETOS ====================
 async function loadProjects() {
     try {
+        console.log('📂 Carregando projetos...');
         const projectFilter = document.getElementById('projectFilter');
         const projects = await projectsService.getAllProjects();
         
+        console.log(`✅ ${projects.length} projetos encontrados:`, projects);
+        
         projectFilter.innerHTML = '<option value="">Selecione um projeto</option>';
+        
+        if (projects.length === 0) {
+            projectFilter.innerHTML = '<option value="">Nenhum projeto encontrado</option>';
+            console.warn('⚠️ Nenhum projeto encontrado. Crie um projeto primeiro.');
+            return;
+        }
         
         projects.forEach(project => {
             const option = document.createElement('option');
@@ -103,6 +112,7 @@ async function loadProjects() {
         // Se tiver projeto no localStorage, selecionar automaticamente
         const savedProject = localStorage.getItem('currentProject');
         if (savedProject && projects.find(p => p.id === savedProject)) {
+            console.log('🔄 Auto-selecionando projeto salvo:', savedProject);
             projectFilter.value = savedProject;
             currentFilters.projectId = savedProject;
             await loadUnitsForProject(savedProject);
@@ -110,7 +120,9 @@ async function loadProjects() {
         
     } catch (error) {
         console.error('❌ Erro ao carregar projetos:', error);
-        alert('Erro ao carregar projetos');
+        const projectFilter = document.getElementById('projectFilter');
+        projectFilter.innerHTML = '<option value="">Erro ao carregar projetos</option>';
+        alert('Erro ao carregar projetos: ' + error.message);
     }
 }
 
@@ -337,9 +349,32 @@ async function loadDashboardData() {
         // Filtrar unidades sem dados
         const validUnits = unitsData.filter(u => u !== null && u.investment > 0);
         
+        console.log(`📊 Resumo do processamento:`);
+        console.log(`   - Total de unidades selecionadas: ${selectedUnits.length}`);
+        console.log(`   - Unidades com dados válidos: ${validUnits.length}`);
+        console.log(`   - Unidades sem dados: ${selectedUnits.length - validUnits.length}`);
+        
         if (validUnits.length === 0) {
-            alert('⚠️ Nenhuma unidade com dados no período selecionado');
             hideLoading();
+            
+            // Mostrar mensagem detalhada
+            const emptyState = document.getElementById('emptyState');
+            emptyState.innerHTML = `
+                <div class="text-center">
+                    <i class="fas fa-exclamation-circle text-6xl text-yellow-500 mb-4"></i>
+                    <h3 class="text-xl font-bold text-gray-900 mb-2">Nenhum Dado Encontrado</h3>
+                    <p class="text-gray-600 mb-4">As unidades selecionadas não possuem dados de planilha no período escolhido.</p>
+                    <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 max-w-md mx-auto text-left">
+                        <p class="text-sm text-blue-900 mb-2"><strong>💡 Dica:</strong></p>
+                        <ul class="text-sm text-blue-800 space-y-1">
+                            <li>• Verifique se as unidades têm planilhas importadas</li>
+                            <li>• Tente selecionar um período diferente</li>
+                            <li>• Vá em "Unidades" → Selecione uma unidade → Importe a planilha</li>
+                        </ul>
+                    </div>
+                </div>
+            `;
+            emptyState.classList.remove('hidden');
             return;
         }
         
@@ -367,7 +402,10 @@ async function loadDashboardData() {
 
 // ==================== CALCULAR MÉTRICAS DA UNIDADE ====================
 function calculateUnitMetrics(unit) {
+    console.log(`📊 Calculando métricas para unidade: ${unit.name}`);
+    
     if (!unit.budgetData || !unit.budgetData.rawData) {
+        console.warn(`⚠️ Unidade ${unit.name} não tem dados de planilha`);
         return {
             investment: 0,
             revenue: 0,
@@ -376,11 +414,15 @@ function calculateUnitMetrics(unit) {
         };
     }
     
+    console.log(`   📋 Total de registros na planilha: ${unit.budgetData.rawData.length}`);
+    
     // Filtrar dados pelo período
     const filteredData = unit.budgetData.rawData.filter(item => {
         const itemDate = item.date;
         return itemDate >= currentFilters.startDate && itemDate <= currentFilters.endDate;
     });
+    
+    console.log(`   📅 Registros no período (${currentFilters.startDate} a ${currentFilters.endDate}): ${filteredData.length}`);
     
     // Calcular métricas
     let investment = 0;
@@ -397,6 +439,11 @@ function calculateUnitMetrics(unit) {
     
     // Calcular ROI
     const roi = investment > 0 ? ((revenue - investment) / investment) * 100 : 0;
+    
+    console.log(`   💰 Investimento: R$ ${investment.toFixed(2)}`);
+    console.log(`   💵 Faturamento: R$ ${revenue.toFixed(2)}`);
+    console.log(`   📈 ROI: ${roi.toFixed(2)}%`);
+    console.log(`   👥 Leads: ${leads}`);
     
     return {
         investment,

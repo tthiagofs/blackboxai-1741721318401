@@ -41,57 +41,11 @@
 
     <!-- Container Principal -->
     <div class="flex min-h-screen w-full bg-gray-50">
-        <!-- Sidebar -->
-        <aside id="sidebar" class="w-56 bg-white flex flex-col border-r border-gray-200">
-            <!-- Logo -->
-            <div class="p-6">
-                <h1 class="text-xl font-bold text-gray-800">Relatórios</h1>
-            </div>
-
-            <!-- Menu de Navegação -->
-            <nav class="flex-1 px-3">
-                <a href="/home.html" class="flex items-center px-3 py-2.5 mb-1 border-l-4 border-transparent text-gray-700 hover:bg-gray-50 transition-all">
-                    <i class="fas fa-home mr-3 text-sm"></i>
-                    <span class="text-sm">Tela Inicial</span>
-                </a>
-                
-                <a href="/dashboard.html" class="flex items-center px-3 py-2.5 mb-1 border-l-4 border-transparent text-gray-700 hover:bg-gray-50 transition-all">
-                    <i class="fas fa-chart-line mr-3 text-sm"></i>
-                    <span class="text-sm">Dashboard</span>
-                </a>
-                
-                <a href="/conexoes.html" class="flex items-center px-3 py-2.5 mb-1 border-l-4 border-transparent text-gray-700 hover:bg-gray-50 transition-all">
-                    <i class="fas fa-plug mr-3 text-sm"></i>
-                    <span class="text-sm">Conexões</span>
-                </a>
-                
-                <a href="/minha-conta.html" class="flex items-center px-3 py-2.5 mb-1 border-l-4 border-transparent text-gray-700 hover:bg-gray-50 transition-all">
-                    <i class="fas fa-user mr-3 text-sm"></i>
-                    <span class="text-sm">Minha Conta</span>
-                </a>
-                
-                <a href="/usuarios.html" class="flex items-center px-3 py-2.5 mb-1 border-l-4 border-blue-600 bg-blue-50 text-blue-600 transition-all">
-                    <i class="fas fa-users mr-3 text-sm"></i>
-                    <span class="text-sm">Usuários</span>
-                </a>
-                
-                <a href="/analises-predefinidas.html" class="flex items-center px-3 py-2.5 mb-1 border-l-4 border-transparent text-gray-700 hover:bg-gray-50 transition-all">
-                    <i class="fas fa-comments mr-3 text-sm"></i>
-                    <span class="text-sm">Análises Pré-Definidas</span>
-                </a>
-            </nav>
-
-            <!-- Botão Sair -->
-            <div class="p-3">
-                <button id="logoutBtn" class="w-full flex items-center px-3 py-2.5 text-red-600 hover:bg-red-50 rounded-lg transition-all">
-                    <i class="fas fa-sign-out-alt mr-3 text-sm"></i>
-                    <span class="text-sm">Log out</span>
-                </button>
-            </div>
-        </aside>
+        <!-- Sidebar Unificada -->
+        <div id="app-sidebar"></div>
 
         <!-- Conteúdo Principal -->
-        <main class="flex-1 p-10 bg-gray-50">
+        <main class="flex-1 p-10">
             <!-- Header -->
             <div class="mb-8 flex items-center justify-between">
                 <div>
@@ -290,7 +244,6 @@
         const invitesContent = document.getElementById('invitesContent');
         const usersTableBody = document.getElementById('usersTableBody');
         const invitesTableBody = document.getElementById('invitesTableBody');
-        const logoutBtn = document.getElementById('logoutBtn');
         
         // Modal
         const inviteModal = document.getElementById('inviteModal');
@@ -300,14 +253,6 @@
         const inviteForm = document.getElementById('inviteForm');
 
         let allUsers = [];
-
-        // Logout
-        logoutBtn.addEventListener('click', async () => {
-            if (confirm('Tem certeza que deseja sair?')) {
-                await authService.logout();
-                window.location.href = '/login.html';
-            }
-        });
 
         // Tabs
         usersTab.addEventListener('click', () => {
@@ -810,6 +755,12 @@
 
         // Carregar usuários ao iniciar
         loadUsers();
+    </script>
+
+    <!-- Inicializar Sidebar Unificada -->
+    <script type="module">
+        import { initSidebar } from './components/sidebar.js';
+        initSidebar('usuarios');
     </script>
 </body>
 </html>

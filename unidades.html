@@ -30,60 +30,8 @@
 <body class="bg-gray-50 min-h-screen">
     <div class="flex min-h-screen w-full bg-gray-50">
         
-        <!-- Sidebar -->
-        <aside id="sidebar" class="w-56 bg-white flex flex-col border-r border-gray-200">
-            <!-- Logo -->
-            <div class="p-6">
-                <h1 class="text-xl font-bold text-gray-800">Relatórios</h1>
-            </div>
-
-            <!-- Navegação -->
-            <nav class="flex-1 px-3">
-                <a href="#" id="telaInicialLink" class="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors">
-                    <i class="fas fa-home"></i>
-                    <span>Tela Inicial</span>
-                </a>
-
-                <a href="/dashboard.html" class="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors">
-                    <i class="fas fa-chart-line"></i>
-                    <span>Dashboard</span>
-                </a>
-
-                <a href="#" class="flex items-center gap-3 px-4 py-3 rounded-lg bg-blue-50 text-blue-600 border-l-4 border-blue-600 transition-colors">
-                    <i class="fas fa-building"></i>
-                    <span>Unidades</span>
-                </a>
-
-                <a href="conexoes.html" class="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors">
-                    <i class="fas fa-plug"></i>
-                    <span>Conexões</span>
-                </a>
-
-                <a href="minha-conta.html" class="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors">
-                    <i class="fas fa-user"></i>
-                    <span>Minha Conta</span>
-                </a>
-
-                <!-- Link Admin (oculto por padrão) -->
-                <a href="usuarios.html" id="adminLink" class="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors hidden">
-                    <i class="fas fa-users"></i>
-                    <span>Usuários</span>
-                </a>
-
-                <a href="analises-predefinidas.html" id="analysisLink" class="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors hidden">
-                    <i class="fas fa-comments"></i>
-                    <span>Análises Pré-Definidas</span>
-                </a>
-            </nav>
-
-            <!-- Logout -->
-            <div class="p-4 border-t border-gray-200">
-                <button id="logoutBtn" class="w-full flex items-center justify-center gap-2 px-4 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors">
-                    <i class="fas fa-sign-out-alt"></i>
-                    <span>Sair</span>
-                </button>
-            </div>
-        </aside>
+        <!-- Sidebar Unificada -->
+        <div id="app-sidebar"></div>
 
         <!-- Conteúdo Principal -->
         <main class="flex-1 p-8 overflow-auto">
@@ -225,12 +173,6 @@
             
             currentUser = user;
             
-            // Mostrar links de admin se for admin
-            if (user.email === 'thiagofelipefreire0810@gmail.com') {
-                document.getElementById('adminLink').classList.remove('hidden');
-                document.getElementById('analysisLink').classList.remove('hidden');
-            }
-            
             // Pegar projectId da URL
             const urlParams = new URLSearchParams(window.location.search);
             currentProjectId = urlParams.get('projectId');
@@ -240,21 +182,8 @@
                 return;
             }
             
-            // Atualizar link Tela Inicial
-            document.getElementById('telaInicialLink').href = `projeto.html?id=${currentProjectId}`;
-            
             // Carregar unidades
             loadUnits();
-        });
-
-        // Logout
-        document.getElementById('logoutBtn').addEventListener('click', async () => {
-            try {
-                await signOut(auth);
-                window.location.href = '/login.html';
-            } catch (error) {
-                console.error('Erro ao fazer logout:', error);
-            }
         });
 
         // Calcular dados filtrados por período
@@ -789,6 +718,12 @@
                 alert(`❌ Erro: ${error.message}`);
             }
         }
+    </script>
+
+    <!-- Inicializar Sidebar Unificada -->
+    <script type="module">
+        import { initSidebar } from './components/sidebar.js';
+        initSidebar('unidades');
     </script>
 </body>
 </html>

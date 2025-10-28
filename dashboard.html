@@ -1,279 +1,89 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard de Performance - InsightFlow</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard - InsightFlow</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body class="bg-gray-50">
-    <div class="flex h-screen overflow-hidden">
-        <!-- Sidebar -->
-        <aside class="w-64 bg-white shadow-lg flex flex-col">
-            <div class="p-6 border-b border-gray-200">
-                <h1 class="text-xl font-bold text-gray-800">Relatórios</h1>
-            </div>
-
-            <!-- Menu de Navegação -->
-            <nav class="flex-1 px-3">
-                <a href="/home.html" class="flex items-center px-3 py-2.5 mb-1 border-l-4 border-transparent text-gray-700 hover:bg-gray-50 transition-all">
-                    <i class="fas fa-home mr-3 text-sm"></i>
-                    <span class="text-sm">Tela Inicial</span>
-                </a>
-                
-                <a href="/dashboard.html" class="flex items-center px-3 py-2.5 mb-1 border-l-4 border-blue-600 bg-blue-50 text-blue-600 transition-all">
-                    <i class="fas fa-chart-line mr-3 text-sm"></i>
-                    <span class="text-sm">Dashboard</span>
-                </a>
-                
-                <a href="/conexoes.html" class="flex items-center px-3 py-2.5 mb-1 border-l-4 border-transparent text-gray-700 hover:bg-gray-50 transition-all">
-                    <i class="fas fa-plug mr-3 text-sm"></i>
-                    <span class="text-sm">Conexões</span>
-                </a>
-                
-                <a href="#" id="adminLink" class="hidden flex items-center px-3 py-2.5 mb-1 border-l-4 border-transparent text-gray-700 hover:bg-gray-50 transition-all">
-                    <i class="fas fa-users-cog mr-3 text-sm"></i>
-                    <span class="text-sm">Usuários</span>
-                </a>
-            </nav>
-
-            <!-- User Info -->
-            <div class="p-4 border-t border-gray-200">
-                <div class="flex items-center">
-                    <div class="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-semibold">
-                        <i class="fas fa-user"></i>
-                    </div>
-                    <div class="ml-3 flex-1">
-                        <p class="text-sm font-medium text-gray-700" id="userName">Carregando...</p>
-                        <p class="text-xs text-gray-500" id="userRole">Usuário</p>
-                    </div>
-                </div>
-                <button id="logoutBtn" class="mt-3 w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-all">
-                    <i class="fas fa-sign-out-alt mr-2"></i>Sair
-                </button>
-            </div>
-        </aside>
-
-        <!-- Main Content -->
-        <main class="flex-1 overflow-y-auto">
-            <!-- Header -->
-            <div class="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-10">
-                <div class="px-8 py-6">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <h1 class="text-3xl font-bold text-gray-900">Dashboard de Performance</h1>
-                            <p class="text-gray-600 mt-1">Análise completa de ROI e performance das unidades</p>
-                        </div>
-                        <button onclick="window.location.href='/home.html'" class="text-gray-600 hover:text-gray-900 transition-colors">
-                            <i class="fas fa-arrow-left mr-2"></i>Voltar
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Content -->
-            <div class="p-8">
-                <!-- Filtros -->
-                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
-                    <h2 class="text-xl font-bold text-gray-900 mb-4">
-                        <i class="fas fa-filter text-blue-600 mr-2"></i>Filtros de Análise
-                    </h2>
-                    
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                        <!-- Projeto -->
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Projeto</label>
-                            <select id="projectFilter" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                                <option value="">Carregando...</option>
-                            </select>
-                        </div>
-
-                        <!-- Período -->
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Período</label>
-                            <select id="periodFilter" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                                <option value="last7Days">Últimos 7 Dias</option>
-                                <option value="thisMonth">Este Mês</option>
-                                <option value="lastMonth">Mês Passado</option>
-                                <option value="last3Months">Últimos 3 Meses</option>
-                                <option value="last6Months">Últimos 6 Meses</option>
-                                <option value="thisYear">Este Ano</option>
-                                <option value="custom">Personalizado</option>
-                            </select>
-                        </div>
-
-                        <!-- Data Início (quando personalizado) -->
-                        <div id="customDateStart" class="hidden">
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Data Início</label>
-                            <input type="date" id="startDate" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                        </div>
-
-                        <!-- Data Fim (quando personalizado) -->
-                        <div id="customDateEnd" class="hidden">
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Data Fim</label>
-                            <input type="date" id="endDate" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                        </div>
-
-                        <!-- Unidades -->
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Unidades</label>
-                            <select id="unitsFilter" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                                <option value="all">Todas as Unidades</option>
-                                <option value="select">Selecionar Específicas</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <!-- Seleção de Unidades Específicas -->
-                    <div id="specificUnitsSection" class="hidden mt-4">
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Selecione as Unidades</label>
-                        <div id="unitsList" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 max-h-60 overflow-y-auto p-4 border border-gray-200 rounded-lg">
-                            <!-- Checkboxes serão inseridos aqui -->
-                        </div>
-                    </div>
-
-                    <div class="flex gap-3 mt-4">
-                        <button id="applyFiltersBtn" class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
-                            <i class="fas fa-check mr-2"></i>Aplicar Filtros
-                        </button>
-                        <button id="resetFiltersBtn" class="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors">
-                            <i class="fas fa-undo mr-2"></i>Resetar
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Loading State -->
-                <div id="loadingState" class="hidden bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
-                    <div class="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600 mx-auto mb-4"></div>
-                    <p class="text-gray-600">Carregando dados do dashboard...</p>
-                </div>
-
-                <!-- Dashboard Content -->
-                <div id="dashboardContent" class="hidden">
-                    <!-- Cards de Resumo -->
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
-                        <!-- Total Investimento -->
-                        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                            <div class="flex items-center justify-between mb-2">
-                                <h3 class="text-sm font-medium text-gray-600">Total Investido</h3>
-                                <i class="fas fa-dollar-sign text-blue-600 text-xl"></i>
-                            </div>
-                            <p class="text-3xl font-bold text-gray-900" id="totalInvestment">R$ 0,00</p>
-                            <p class="text-sm text-gray-500 mt-2" id="investmentComparison">-</p>
-                        </div>
-
-                        <!-- Total Faturamento -->
-                        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                            <div class="flex items-center justify-between mb-2">
-                                <h3 class="text-sm font-medium text-gray-600">Total Faturamento</h3>
-                                <i class="fas fa-chart-line text-green-600 text-xl"></i>
-                            </div>
-                            <p class="text-3xl font-bold text-gray-900" id="totalRevenue">R$ 0,00</p>
-                            <p class="text-sm text-gray-500 mt-2" id="revenueComparison">-</p>
-                        </div>
-
-                        <!-- ROI Médio -->
-                        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                            <div class="flex items-center justify-between mb-2">
-                                <h3 class="text-sm font-medium text-gray-600">ROI Médio</h3>
-                                <i class="fas fa-percent text-purple-600 text-xl"></i>
-                            </div>
-                            <p class="text-3xl font-bold text-gray-900" id="averageROI">0%</p>
-                            <p class="text-sm text-gray-500 mt-2" id="roiComparison">-</p>
-                        </div>
-
-                        <!-- Total Leads -->
-                        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                            <div class="flex items-center justify-between mb-2">
-                                <h3 class="text-sm font-medium text-gray-600">Total Leads</h3>
-                                <i class="fas fa-users text-orange-600 text-xl"></i>
-                            </div>
-                            <p class="text-3xl font-bold text-gray-900" id="totalLeads">0</p>
-                            <p class="text-sm text-gray-500 mt-2" id="leadsComparison">-</p>
-                        </div>
-                    </div>
-
-                    <!-- Top 5 Melhores e Piores -->
-                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-                        <!-- Top 5 Melhores -->
-                        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                            <h2 class="text-xl font-bold text-gray-900 mb-4">
-                                <i class="fas fa-trophy text-yellow-500 mr-2"></i>Top 5 Melhores Unidades (ROI)
-                            </h2>
-                            <div id="topUnits" class="space-y-3">
-                                <!-- Lista será inserida aqui -->
-                            </div>
-                        </div>
-
-                        <!-- Top 5 Piores -->
-                        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                            <h2 class="text-xl font-bold text-gray-900 mb-4">
-                                <i class="fas fa-exclamation-triangle text-red-500 mr-2"></i>Top 5 Unidades com Menor ROI
-                            </h2>
-                            <div id="bottomUnits" class="space-y-3">
-                                <!-- Lista será inserida aqui -->
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Gráficos -->
-                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-                        <!-- Gráfico de ROI por Unidade -->
-                        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                            <h2 class="text-xl font-bold text-gray-900 mb-4">
-                                <i class="fas fa-chart-bar text-blue-600 mr-2"></i>ROI por Unidade
-                            </h2>
-                            <canvas id="roiChart"></canvas>
-                        </div>
-
-                        <!-- Gráfico de Investimento vs Faturamento -->
-                        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                            <h2 class="text-xl font-bold text-gray-900 mb-4">
-                                <i class="fas fa-chart-line text-green-600 mr-2"></i>Investimento vs Faturamento
-                            </h2>
-                            <canvas id="investmentRevenueChart"></canvas>
-                        </div>
-                    </div>
-
-                    <!-- Melhores Anúncios -->
-                    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                        <div class="flex items-center justify-between mb-4">
-                            <h2 class="text-xl font-bold text-gray-900">
-                                <i class="fas fa-star text-yellow-500 mr-2"></i>Melhores Anúncios do Período
-                            </h2>
-                            <div class="flex gap-3">
-                                <select id="adMetricFilter" class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm">
-                                    <option value="cpl">Menor CPL</option>
-                                    <option value="leads">Mais Leads</option>
-                                    <option value="conversions">Mais Conversões</option>
-                                </select>
-                                <select id="adAccountFilter" class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm">
-                                    <option value="all">Todas as Contas</option>
-                                    <option value="meta">Apenas Meta Ads</option>
-                                    <option value="google">Apenas Google Ads</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div id="bestAds" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-                            <!-- Anúncios serão inseridos aqui -->
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Empty State -->
-                <div id="emptyState" class="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
-                    <i class="fas fa-chart-pie text-6xl text-gray-300 mb-4"></i>
-                    <h3 class="text-xl font-bold text-gray-900 mb-2">Selecione os Filtros</h3>
-                    <p class="text-gray-600">Configure os filtros acima e clique em "Aplicar Filtros" para visualizar o dashboard.</p>
-                </div>
-            </div>
-        </main>
+  <div class="max-w-7xl mx-auto p-6">
+    <div class="mb-6">
+      <h1 class="text-2xl font-bold text-gray-900">Dashboard</h1>
+      <p class="text-gray-600">Selecione um projeto e o período e clique em Gerar Dashboard.</p>
     </div>
 
-    <!-- Dashboard Logic -->
-    <script type="module" src="./dashboard.js?v=12.0"></script>
+    <!-- Filtros -->
+    <div class="bg-white border border-gray-200 rounded-xl p-4 mb-6">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Projeto</label>
+          <select id="projectSelect" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+            <option value="">Carregando...</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Período (mês)</label>
+          <select id="monthSelect" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"></select>
+        </div>
+        <div>
+          <button id="generateBtn" class="w-full md:w-auto px-5 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+            <i class="fas fa-chart-pie mr-2"></i>Gerar Dashboard
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Cards -->
+    <div id="cardsSection" class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6 hidden">
+      <div class="bg-white border border-gray-200 rounded-xl p-5">
+        <p class="text-sm text-gray-600">Unidades</p>
+        <p id="cardUnits" class="text-3xl font-bold text-gray-900">0</p>
+      </div>
+      <div class="bg-white border border-gray-200 rounded-xl p-5">
+        <p class="text-sm text-gray-600">Investido</p>
+        <p id="cardInvested" class="text-3xl font-bold text-gray-900">R$ 0,00</p>
+      </div>
+      <div class="bg-white border border-gray-200 rounded-xl p-5">
+        <p class="text-sm text-gray-600">Vendas</p>
+        <p id="cardSales" class="text-3xl font-bold text-gray-900">0</p>
+      </div>
+      <div class="bg-white border border-gray-200 rounded-xl p-5">
+        <p class="text-sm text-gray-600">Faturamento</p>
+        <p id="cardRevenue" class="text-3xl font-bold text-gray-900">R$ 0,00</p>
+      </div>
+    </div>
+
+    <!-- Tabela -->
+    <div id="tableSection" class="bg-white border border-gray-200 rounded-xl overflow-hidden hidden">
+      <div class="px-5 py-4 border-b border-gray-200 flex items-center justify-between">
+        <h2 class="text-lg font-semibold text-gray-900">Detalhes por Unidade</h2>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200">
+          <thead class="bg-gray-50">
+            <tr>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Unidade</th>
+              <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Investido</th>
+              <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Vendas</th>
+              <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Faturamento</th>
+            </tr>
+          </thead>
+          <tbody id="unitsTableBody" class="bg-white divide-y divide-gray-200"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Empty state -->
+    <div id="emptyState" class="bg-white border border-gray-200 rounded-xl p-10 text-center">
+      <i class="fas fa-chart-bar text-6xl text-gray-300 mb-4"></i>
+      <h3 class="text-xl font-bold text-gray-900 mb-2">Nada para mostrar ainda</h3>
+      <p class="text-gray-600">Selecione o projeto e o mês e clique em <strong>Gerar Dashboard</strong>.</p>
+    </div>
+  </div>
+
+  <script type="module" src="./dashboard.js?v=13.0"></script>
 </body>
 </html>
 

@@ -1,656 +1,168 @@
-// dashboard.js - Lógica do Dashboard de Performance
+// Dashboard v2 - simples e funcional
 import { auth, db } from './config/firebase.js';
-import { onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
-import { getDoc, doc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
 import { projectsService } from './services/projects.js';
 import * as unitsService from './services/unitsService.js';
 
-console.log('🚀 Dashboard inicializando...');
-
-// ==================== VARIÁVEIS GLOBAIS ====================
+// Estado
+let currentProjectId = null;
+let currentMonth = null; // YYYY-MM
 let allUnits = [];
-let selectedUnits = [];
-let currentFilters = {
-    projectId: null,
-    period: 'last7Days',
-    startDate: null,
-    endDate: null,
-    units: 'all'
-};
 
-let roiChart = null;
-let investmentRevenueChart = null;
+// Util
+function formatCurrency(v) {
+  return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v || 0);
+}
 
-// ==================== AUTENTICAÇÃO ====================
+function yyyymm(date) {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  return `${y}-${m}`;
+}
+
+function monthStartEnd(ym) {
+  const [y, m] = ym.split('-').map(n => parseInt(n, 10));
+  const start = new Date(y, m - 1, 1);
+  const end = new Date(y, m, 0);
+  const s = start.toISOString().split('T')[0];
+  const e = end.toISOString().split('T')[0];
+  return { start: s, end: e };
+}
+
+// Autenticação e boot
 onAuthStateChanged(auth, async (user) => {
-    if (!user) {
-        console.warn('⚠️ Usuário não autenticado - redirecionando para login');
-        window.location.href = '/login.html';
-        return;
-    }
-
-    console.log('✅ Usuário autenticado:', user.email);
-
-    // Carregar info do usuário
-    try {
-        const userDoc = await getDoc(doc(db, 'users', user.uid));
-        
-        if (userDoc.exists()) {
-            const userData = userDoc.data();
-            document.getElementById('userName').textContent = userData.name || 'Usuário';
-            document.getElementById('userRole').textContent = userData.role === 'admin' ? 'Administrador' : 'Usuário';
-            
-            if (userData.role === 'admin') {
-                document.getElementById('adminLink').classList.remove('hidden');
-                document.getElementById('adminLink').href = '/usuarios.html';
-            }
-        }
-    } catch (error) {
-        console.error('❌ Erro ao carregar dados do usuário:', error);
-    }
-
-    // Inicializar dashboard
-    await initDashboard();
+  if (!user) {
+    window.location.href = '/login.html';
+    return;
+  }
+  await bootstrap();
 });
 
-// Logout
-document.getElementById('logoutBtn')?.addEventListener('click', async () => {
-    if (confirm('Deseja realmente sair?')) {
-        await signOut(auth);
-        window.location.href = '/login.html';
+async function bootstrap() {
+  await populateProjects();
+  populateMonths();
+  document.getElementById('generateBtn').addEventListener('click', generateDashboard);
+}
+
+async function populateProjects() {
+  const select = document.getElementById('projectSelect');
+  select.innerHTML = '<option value="">Selecione...</option>';
+  const projects = await projectsService.listProjects();
+  projects.forEach(p => {
+    const opt = document.createElement('option');
+    opt.value = p.id;
+    opt.textContent = p.name;
+    select.appendChild(opt);
+  });
+  // Tenta usar o último projeto usado
+  const saved = localStorage.getItem('currentProject');
+  if (saved && projects.find(p => p.id === saved)) {
+    select.value = saved;
+  }
+  select.addEventListener('change', (e) => {
+    currentProjectId = e.target.value || null;
+    if (currentProjectId) localStorage.setItem('currentProject', currentProjectId);
+  });
+  currentProjectId = select.value || null;
+}
+
+function populateMonths() {
+  const select = document.getElementById('monthSelect');
+  select.innerHTML = '';
+  const now = new Date();
+  for (let i = 0; i < 12; i++) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const ym = yyyymm(d);
+    const label = d.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+    const opt = document.createElement('option');
+    opt.value = ym;
+    opt.textContent = label.charAt(0).toUpperCase() + label.slice(1);
+    if (i === 0) opt.selected = true;
+    select.appendChild(opt);
+  }
+  select.addEventListener('change', (e) => { currentMonth = e.target.value; });
+  currentMonth = select.value;
+}
+
+async function generateDashboard() {
+  if (!currentProjectId) { alert('Selecione um projeto'); return; }
+  if (!currentMonth) { alert('Selecione um mês'); return; }
+
+  // Loading simples
+  document.getElementById('cardsSection').classList.add('hidden');
+  document.getElementById('tableSection').classList.add('hidden');
+  const empty = document.getElementById('emptyState');
+  empty.classList.remove('hidden');
+  empty.querySelector('h3').textContent = 'Gerando dashboard...';
+  empty.querySelector('p').textContent = 'Calculando métricas a partir das planilhas das unidades.';
+
+  // Carrega unidades do projeto
+  allUnits = await unitsService.listUnits(currentProjectId);
+  const { start, end } = monthStartEnd(currentMonth);
+
+  // Calcula métricas
+  const rows = allUnits.map(u => computeUnitMetrics(u, start, end));
+
+  // Agrega totais
+  const totals = rows.reduce((acc, r) => {
+    acc.units += 1;
+    acc.invested += r.invested;
+    acc.sales += r.sales;
+    acc.revenue += r.revenue;
+    return acc;
+  }, { units: 0, invested: 0, sales: 0, revenue: 0 });
+
+  // Renderiza
+  renderCards(totals);
+  renderTable(rows);
+
+  // Mostra
+  empty.classList.add('hidden');
+  document.getElementById('cardsSection').classList.remove('hidden');
+  document.getElementById('tableSection').classList.remove('hidden');
+}
+
+function computeUnitMetrics(unit, startDate, endDate) {
+  if (!unit || !unit.budgetData || !unit.budgetData.rawData) {
+    return { id: unit?.id || '', name: unit?.name || '-', invested: 0, sales: 0, revenue: 0 };
+  }
+  const data = unit.budgetData.rawData.filter(item => item.date >= startDate && item.date <= endDate);
+
+  let invested = 0;
+  let sales = 0;
+  let revenue = 0;
+  for (const item of data) {
+    if (item.budgetCompleted === 'Sim') {
+      invested += Number(item.budgetValue || 0);
+      revenue += Number(item.saleValue || 0);
+      sales += 1;
     }
-});
-
-// ==================== INICIALIZAÇÃO ====================
-async function initDashboard() {
-    console.log('🚀 Dashboard carregando...');
-    
-    await loadProjects();
-    setupEventListeners();
-    
-    console.log('✅ Dashboard pronto!');
+  }
+  return { id: unit.id, name: unit.name, invested, sales, revenue };
 }
 
-// ==================== CARREGAR PROJETOS ====================
-async function loadProjects() {
-    try {
-        console.log('📂 Carregando projetos...');
-        const projectFilter = document.getElementById('projectFilter');
-        const projects = await projectsService.listProjects();
-        
-        console.log(`✅ ${projects.length} projetos encontrados:`, projects);
-        
-        projectFilter.innerHTML = '<option value="">Selecione um projeto</option>';
-        
-        if (projects.length === 0) {
-            projectFilter.innerHTML = '<option value="">Nenhum projeto encontrado</option>';
-            console.warn('⚠️ Nenhum projeto encontrado. Crie um projeto primeiro.');
-            return;
-        }
-        
-        projects.forEach(project => {
-            const option = document.createElement('option');
-            option.value = project.id;
-            option.textContent = project.name;
-            projectFilter.appendChild(option);
-        });
-        
-        // Se tiver projeto no localStorage, selecionar automaticamente
-        const savedProject = localStorage.getItem('currentProject');
-        if (savedProject && projects.find(p => p.id === savedProject)) {
-            console.log('🔄 Auto-selecionando projeto salvo:', savedProject);
-            projectFilter.value = savedProject;
-            currentFilters.projectId = savedProject;
-            await loadUnitsForProject(savedProject);
-        }
-        
-    } catch (error) {
-        console.error('❌ Erro ao carregar projetos:', error);
-        const projectFilter = document.getElementById('projectFilter');
-        projectFilter.innerHTML = '<option value="">Erro ao carregar projetos</option>';
-        alert('Erro ao carregar projetos: ' + error.message);
-    }
+function renderCards(totals) {
+  document.getElementById('cardUnits').textContent = totals.units;
+  document.getElementById('cardInvested').textContent = formatCurrency(totals.invested);
+  document.getElementById('cardSales').textContent = totals.sales;
+  document.getElementById('cardRevenue').textContent = formatCurrency(totals.revenue);
 }
 
-// ==================== CARREGAR UNIDADES ====================
-async function loadUnitsForProject(projectId) {
-    try {
-        allUnits = await unitsService.listUnits(projectId);
-        updateSpecificUnitsList();
-    } catch (error) {
-        console.error('❌ Erro ao carregar unidades:', error);
-        alert('Erro ao carregar unidades');
-    }
-}
+function renderTable(rows) {
+  const tbody = document.getElementById('unitsTableBody');
+  tbody.innerHTML = '';
+  // Ordena por faturamento desc
+  rows.sort((a, b) => b.revenue - a.revenue);
 
-// ==================== ATUALIZAR LISTA DE UNIDADES ====================
-function updateSpecificUnitsList() {
-    const unitsList = document.getElementById('unitsList');
-    unitsList.innerHTML = '';
-    
-    allUnits.forEach(unit => {
-        const checkbox = document.createElement('label');
-        checkbox.className = 'flex items-center p-2 hover:bg-gray-50 rounded cursor-pointer';
-        checkbox.innerHTML = `
-            <input type="checkbox" value="${unit.id}" class="unit-checkbox mr-2 rounded border-gray-300 text-blue-600 focus:ring-blue-500">
-            <span class="text-sm text-gray-700">${unit.name}</span>
-        `;
-        unitsList.appendChild(checkbox);
-    });
-}
-
-// ==================== SETUP EVENT LISTENERS ====================
-function setupEventListeners() {
-    // Projeto selecionado
-    document.getElementById('projectFilter').addEventListener('change', async (e) => {
-        const projectId = e.target.value;
-        currentFilters.projectId = projectId;
-        
-        if (projectId) {
-            await loadUnitsForProject(projectId);
-        } else {
-            allUnits = [];
-            updateSpecificUnitsList();
-        }
-    });
-    
-    // Período personalizado
-    document.getElementById('periodFilter').addEventListener('change', (e) => {
-        const customStart = document.getElementById('customDateStart');
-        const customEnd = document.getElementById('customDateEnd');
-        
-        if (e.target.value === 'custom') {
-            customStart.classList.remove('hidden');
-            customEnd.classList.remove('hidden');
-        } else {
-            customStart.classList.add('hidden');
-            customEnd.classList.add('hidden');
-        }
-        
-        currentFilters.period = e.target.value;
-    });
-    
-    // Unidades - mostrar/ocultar seleção específica
-    document.getElementById('unitsFilter').addEventListener('change', (e) => {
-        const specificSection = document.getElementById('specificUnitsSection');
-        
-        if (e.target.value === 'select') {
-            specificSection.classList.remove('hidden');
-        } else {
-            specificSection.classList.add('hidden');
-        }
-        
-        currentFilters.units = e.target.value;
-    });
-    
-    // Aplicar filtros
-    document.getElementById('applyFiltersBtn').addEventListener('click', applyFilters);
-    
-    // Resetar filtros
-    document.getElementById('resetFiltersBtn').addEventListener('click', resetFilters);
-    
-    // Filtro de métrica de anúncios
-    document.getElementById('adMetricFilter').addEventListener('change', () => {
-        if (document.getElementById('dashboardContent').classList.contains('hidden')) return;
-        loadBestAds();
-    });
-    
-    // Filtro de conta de anúncios
-    document.getElementById('adAccountFilter').addEventListener('change', () => {
-        if (document.getElementById('dashboardContent').classList.contains('hidden')) return;
-        loadBestAds();
-    });
-}
-
-// ==================== APLICAR FILTROS ====================
-async function applyFilters() {
-    try {
-        // Validar projeto
-        if (!currentFilters.projectId) {
-            alert('❌ Selecione um projeto');
-            return;
-        }
-        
-        // Validar se tem unidades carregadas
-        if (!allUnits || allUnits.length === 0) {
-            alert('❌ Nenhuma unidade encontrada. Carregue as unidades primeiro.');
-            return;
-        }
-        
-        // Validar período personalizado
-        if (currentFilters.period === 'custom') {
-            const startDate = document.getElementById('startDate').value;
-            const endDate = document.getElementById('endDate').value;
-            
-            if (!startDate || !endDate) {
-                alert('❌ Selecione as datas de início e fim');
-                return;
-            }
-            
-            if (new Date(startDate) > new Date(endDate)) {
-                alert('❌ A data de início não pode ser maior que a data de fim');
-                return;
-            }
-            
-            currentFilters.startDate = startDate;
-            currentFilters.endDate = endDate;
-        } else {
-            // Calcular datas baseado no período
-            const dates = calculatePeriodDates(currentFilters.period);
-            currentFilters.startDate = dates.start;
-            currentFilters.endDate = dates.end;
-        }
-        
-        // Validar unidades selecionadas
-        if (currentFilters.units === 'select') {
-            const checkboxes = document.querySelectorAll('.unit-checkbox:checked');
-            if (checkboxes.length === 0) {
-                alert('❌ Selecione pelo menos uma unidade');
-                return;
-            }
-            selectedUnits = Array.from(checkboxes).map(cb => cb.value);
-        } else {
-            // TODAS as unidades
-            selectedUnits = allUnits.map(u => u.id);
-        }
-        
-        // Mostrar loading
-        showLoading();
-        
-        // Carregar dados
-        await loadDashboardData();
-        
-    } catch (error) {
-        console.error('❌ Erro ao aplicar filtros:', error);
-        alert('Erro ao carregar dashboard: ' + error.message);
-        hideLoading();
-    }
-}
-
-// ==================== CALCULAR DATAS DO PERÍODO ====================
-function calculatePeriodDates(period) {
-    const now = new Date();
-    let start, end;
-    
-    switch (period) {
-        case 'last7Days':
-            start = new Date(now);
-            start.setDate(start.getDate() - 7);
-            end = new Date(now);
-            break;
-            
-        case 'thisMonth':
-            start = new Date(now.getFullYear(), now.getMonth(), 1);
-            end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-            break;
-            
-        case 'lastMonth':
-            start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-            end = new Date(now.getFullYear(), now.getMonth(), 0);
-            break;
-            
-        case 'last3Months':
-            start = new Date(now.getFullYear(), now.getMonth() - 3, 1);
-            end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-            break;
-            
-        case 'last6Months':
-            start = new Date(now.getFullYear(), now.getMonth() - 6, 1);
-            end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-            break;
-            
-        case 'thisYear':
-            start = new Date(now.getFullYear(), 0, 1);
-            end = new Date(now.getFullYear(), 11, 31);
-            break;
-            
-        default:
-            start = new Date(now);
-            start.setDate(start.getDate() - 7);
-            end = new Date(now);
-    }
-    
-    return {
-        start: start.toISOString().split('T')[0],
-        end: end.toISOString().split('T')[0]
-    };
-}
-
-// ==================== CARREGAR DADOS DO DASHBOARD ====================
-async function loadDashboardData() {
-    try {
-        // Processar dados de cada unidade
-        const unitsData = selectedUnits.map(unitId => {
-            const unit = allUnits.find(u => u.id === unitId);
-            if (!unit) return null;
-            
-            const metrics = calculateUnitMetrics(unit);
-            return {
-                id: unit.id,
-                name: unit.name,
-                ...metrics
-            };
-        }).filter(u => u !== null);
-        
-        // Filtrar unidades com dados
-        const validUnits = unitsData.filter(u => u.investment > 0 || u.revenue > 0 || u.leads > 0);
-        
-        if (validUnits.length === 0) {
-            hideLoading();
-            document.getElementById('emptyState').innerHTML = `
-                <div class="text-center">
-                    <i class="fas fa-exclamation-circle text-6xl text-yellow-500 mb-4"></i>
-                    <h3 class="text-xl font-bold text-gray-900 mb-2">Nenhum Dado Encontrado</h3>
-                    <p class="text-gray-600 mb-4">Nenhuma unidade possui dados no período selecionado (${currentFilters.startDate} a ${currentFilters.endDate}).</p>
-                    <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 max-w-md mx-auto text-left">
-                        <p class="text-sm text-blue-900 mb-2"><strong>💡 Tente:</strong></p>
-                        <ul class="text-sm text-blue-800 space-y-1">
-                            <li>• Selecionar um período maior (ex: Últimos 3 Meses)</li>
-                            <li>• Verificar se as planilhas foram importadas</li>
-                            <li>• Importar planilhas mais recentes</li>
-                        </ul>
-                    </div>
-                </div>
-            `;
-            document.getElementById('emptyState').classList.remove('hidden');
-            return;
-        }
-        
-        // Calcular totais
-        const totals = calculateTotals(validUnits);
-        
-        // Atualizar UI
-        updateSummaryCards(totals);
-        updateTopBottomUnits(validUnits);
-        updateCharts(validUnits);
-        loadBestAds();
-        
-        // Mostrar conteúdo
-        hideLoading();
-        document.getElementById('emptyState').classList.add('hidden');
-        document.getElementById('dashboardContent').classList.remove('hidden');
-        
-    } catch (error) {
-        console.error('❌ Erro ao carregar dashboard:', error);
-        hideLoading();
-        alert('Erro: ' + error.message);
-    }
-}
-
-// ==================== CALCULAR MÉTRICAS DA UNIDADE ====================
-function calculateUnitMetrics(unit) {
-    if (!unit.budgetData || !unit.budgetData.rawData || unit.budgetData.rawData.length === 0) {
-        return { investment: 0, revenue: 0, leads: 0, roi: 0 };
-    }
-    
-    // Filtrar dados pelo período
-    const filteredData = unit.budgetData.rawData.filter(item => {
-        if (!item.date) return false;
-        const itemDate = item.date;
-        return itemDate >= currentFilters.startDate && itemDate <= currentFilters.endDate;
-    });
-    
-    // Calcular métricas
-    let investment = 0;
-    let revenue = 0;
-    let leads = 0;
-    
-    filteredData.forEach(item => {
-        if (item.budgetCompleted === 'Sim') {
-            investment += parseFloat(item.budgetValue) || 0;
-            revenue += parseFloat(item.saleValue) || 0;
-            leads++;
-        }
-    });
-    
-    // Calcular ROI
-    const roi = investment > 0 ? ((revenue - investment) / investment) * 100 : 0;
-    
-    return { investment, revenue, leads, roi };
-}
-
-// ==================== CALCULAR TOTAIS ====================
-function calculateTotals(unitsData) {
-    const totals = {
-        investment: 0,
-        revenue: 0,
-        leads: 0,
-        roi: 0
-    };
-    
-    unitsData.forEach(unit => {
-        totals.investment += unit.investment;
-        totals.revenue += unit.revenue;
-        totals.leads += unit.leads;
-    });
-    
-    // ROI médio
-    totals.roi = totals.investment > 0 
-        ? ((totals.revenue - totals.investment) / totals.investment) * 100 
-        : 0;
-    
-    return totals;
-}
-
-// ==================== ATUALIZAR CARDS DE RESUMO ====================
-function updateSummaryCards(totals) {
-    document.getElementById('totalInvestment').textContent = formatCurrency(totals.investment);
-    document.getElementById('totalRevenue').textContent = formatCurrency(totals.revenue);
-    document.getElementById('averageROI').textContent = formatPercentage(totals.roi);
-    document.getElementById('totalLeads').textContent = totals.leads;
-    
-    // TODO: Adicionar comparações com período anterior
-    document.getElementById('investmentComparison').textContent = 'Comparação em desenvolvimento';
-    document.getElementById('revenueComparison').textContent = 'Comparação em desenvolvimento';
-    document.getElementById('roiComparison').textContent = 'Comparação em desenvolvimento';
-    document.getElementById('leadsComparison').textContent = 'Comparação em desenvolvimento';
-}
-
-// ==================== ATUALIZAR TOP/BOTTOM UNIDADES ====================
-function updateTopBottomUnits(unitsData) {
-    // Ordenar por ROI
-    const sortedByROI = [...unitsData].sort((a, b) => b.roi - a.roi);
-    
-    // Top 5
-    const top5 = sortedByROI.slice(0, 5);
-    const topContainer = document.getElementById('topUnits');
-    topContainer.innerHTML = '';
-    
-    top5.forEach((unit, index) => {
-        const item = createUnitRankItem(unit, index + 1, 'success');
-        topContainer.appendChild(item);
-    });
-    
-    // Bottom 5
-    const bottom5 = sortedByROI.slice(-5).reverse();
-    const bottomContainer = document.getElementById('bottomUnits');
-    bottomContainer.innerHTML = '';
-    
-    bottom5.forEach((unit, index) => {
-        const item = createUnitRankItem(unit, sortedByROI.length - index, 'warning');
-        bottomContainer.appendChild(item);
-    });
-}
-
-// ==================== CRIAR ITEM DE RANKING ====================
-function createUnitRankItem(unit, rank, type) {
-    const div = document.createElement('div');
-    const colorClass = type === 'success' ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200';
-    const rankColor = type === 'success' ? 'text-green-600' : 'text-red-600';
-    
-    div.className = `p-4 rounded-lg border ${colorClass}`;
-    div.innerHTML = `
-        <div class="flex items-center justify-between">
-            <div class="flex items-center gap-3">
-                <span class="text-2xl font-bold ${rankColor}">#${rank}</span>
-                <div>
-                    <p class="font-semibold text-gray-900">${unit.name}</p>
-                    <p class="text-sm text-gray-600">
-                        ${formatCurrency(unit.revenue)} / ${formatCurrency(unit.investment)}
-                    </p>
-                </div>
-            </div>
-            <div class="text-right">
-                <p class="text-2xl font-bold ${rankColor}">${formatPercentage(unit.roi)}</p>
-                <p class="text-xs text-gray-500">${unit.leads} leads</p>
-            </div>
-        </div>
+  for (const r of rows) {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td class="px-6 py-3 text-sm text-gray-900">${r.name}</td>
+      <td class="px-6 py-3 text-sm text-right text-gray-900">${formatCurrency(r.invested)}</td>
+      <td class="px-6 py-3 text-sm text-right text-gray-900">${r.sales}</td>
+      <td class="px-6 py-3 text-sm text-right text-gray-900">${formatCurrency(r.revenue)}</td>
     `;
-    
-    return div;
-}
-
-// ==================== ATUALIZAR GRÁFICOS ====================
-function updateCharts(unitsData) {
-    // Limitar a 10 unidades para melhor visualização
-    const top10 = [...unitsData].sort((a, b) => b.roi - a.roi).slice(0, 10);
-    
-    // Gráfico de ROI
-    const roiCtx = document.getElementById('roiChart').getContext('2d');
-    
-    if (roiChart) {
-        roiChart.destroy();
-    }
-    
-    roiChart = new Chart(roiCtx, {
-        type: 'bar',
-        data: {
-            labels: top10.map(u => u.name),
-            datasets: [{
-                label: 'ROI (%)',
-                data: top10.map(u => u.roi.toFixed(2)),
-                backgroundColor: 'rgba(59, 130, 246, 0.5)',
-                borderColor: 'rgb(59, 130, 246)',
-                borderWidth: 2
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: true,
-            plugins: {
-                legend: {
-                    display: false
-                }
-            },
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    ticks: {
-                        callback: function(value) {
-                            return value + '%';
-                        }
-                    }
-                }
-            }
-        }
-    });
-    
-    // Gráfico de Investimento vs Faturamento
-    const invRevCtx = document.getElementById('investmentRevenueChart').getContext('2d');
-    
-    if (investmentRevenueChart) {
-        investmentRevenueChart.destroy();
-    }
-    
-    investmentRevenueChart = new Chart(invRevCtx, {
-        type: 'bar',
-        data: {
-            labels: top10.map(u => u.name),
-            datasets: [
-                {
-                    label: 'Investimento',
-                    data: top10.map(u => u.investment),
-                    backgroundColor: 'rgba(239, 68, 68, 0.5)',
-                    borderColor: 'rgb(239, 68, 68)',
-                    borderWidth: 2
-                },
-                {
-                    label: 'Faturamento',
-                    data: top10.map(u => u.revenue),
-                    backgroundColor: 'rgba(34, 197, 94, 0.5)',
-                    borderColor: 'rgb(34, 197, 94)',
-                    borderWidth: 2
-                }
-            ]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: true,
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    ticks: {
-                        callback: function(value) {
-                            return 'R$ ' + value.toLocaleString('pt-BR');
-                        }
-                    }
-                }
-            }
-        }
-    });
-}
-
-// ==================== CARREGAR MELHORES ANÚNCIOS ====================
-async function loadBestAds() {
-    const bestAdsContainer = document.getElementById('bestAds');
-    bestAdsContainer.innerHTML = `
-        <div class="col-span-full text-center p-8 text-gray-500">
-            <i class="fas fa-info-circle text-4xl mb-3"></i>
-            <p>Funcionalidade de melhores anúncios em desenvolvimento</p>
-            <p class="text-sm mt-2">Será integrada com as APIs do Meta Ads e Google Ads</p>
-        </div>
-    `;
-    
-    // TODO: Implementar integração com APIs
-    // - Buscar anúncios do período
-    // - Filtrar por métrica selecionada
-    // - Filtrar por conta selecionada
-    // - Exibir imagens e métricas
-}
-
-// ==================== RESETAR FILTROS ====================
-function resetFilters() {
-    document.getElementById('projectFilter').value = '';
-    document.getElementById('periodFilter').value = 'last7Days';
-    document.getElementById('unitsFilter').value = 'all';
-    document.getElementById('customDateStart').classList.add('hidden');
-    document.getElementById('customDateEnd').classList.add('hidden');
-    document.getElementById('specificUnitsSection').classList.add('hidden');
-    
-    currentFilters = {
-        projectId: null,
-        period: 'last7Days',
-        startDate: null,
-        endDate: null,
-        units: 'all'
-    };
-    
-    selectedUnits = [];
-    allUnits = [];
-    
-    document.getElementById('dashboardContent').classList.add('hidden');
-    document.getElementById('emptyState').classList.remove('hidden');
-}
-
-// ==================== HELPERS ====================
-function showLoading() {
-    document.getElementById('emptyState').classList.add('hidden');
-    document.getElementById('dashboardContent').classList.add('hidden');
-    document.getElementById('loadingState').classList.remove('hidden');
-}
-
-function hideLoading() {
-    document.getElementById('loadingState').classList.add('hidden');
-}
-
-function formatCurrency(value) {
-    return new Intl.NumberFormat('pt-BR', {
-        style: 'currency',
-        currency: 'BRL'
-    }).format(value);
-}
-
-function formatPercentage(value) {
-    return value.toFixed(2) + '%';
+    tbody.appendChild(tr);
+  }
 }
 

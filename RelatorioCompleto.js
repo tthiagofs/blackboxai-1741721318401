@@ -45,6 +45,11 @@ async function loadUnits() {
         const units = await listUnits(projectId);
         const unitSelect = document.getElementById('unitSelect');
         
+        if (!unitSelect) {
+            console.error('❌ Elemento unitSelect não encontrado!');
+            return;
+        }
+        
         if (units.length === 0) {
             unitSelect.innerHTML = '<option value="">Nenhuma unidade cadastrada</option>';
             unitSelect.disabled = true;
@@ -61,10 +66,106 @@ async function loadUnits() {
             unitSelect.appendChild(option);
         });
         
-        console.log(`✅ ${units.length} unidades carregadas`);
+        console.log(`✅ ${units.length} unidades carregadas no select`);
+        
+        // Adicionar listener AQUI, depois de carregar as unidades
+        unitSelect.addEventListener('change', handleUnitSelection);
+        
     } catch (error) {
         console.error('❌ Erro ao carregar unidades:', error);
     }
+}
+
+// Handler unificado para seleção de unidade
+function handleUnitSelection(e) {
+    const unitId = e.target.value;
+    
+    console.log('🔄 [handleUnitSelection] Unidade ID:', unitId);
+    
+    // Elementos
+    const unitLinkedInfo = document.getElementById('unitLinkedInfo');
+    const manualAccountSelection = document.getElementById('manualAccountSelection');
+    const linkedAccountsBadges = document.getElementById('linkedAccountsBadges');
+    const metaSelect = document.getElementById('unitId');
+    const googleSelect = document.getElementById('googleAdsAccountId');
+    
+    if (!unitId) {
+        // Limpar tudo
+        if (unitLinkedInfo) unitLinkedInfo.classList.add('hidden');
+        if (manualAccountSelection) manualAccountSelection.classList.add('hidden');
+        document.getElementById('budgetsCompleted').value = '';
+        document.getElementById('salesCount').value = '';
+        document.getElementById('revenue').value = '';
+        if (metaSelect) metaSelect.value = '';
+        if (googleSelect) googleSelect.value = '';
+        return;
+    }
+    
+    const selectedOption = e.target.selectedOptions[0];
+    if (!selectedOption || !selectedOption.dataset.unit) {
+        console.error('❌ Dados da unidade não encontrados no dataset');
+        return;
+    }
+    
+    const unit = JSON.parse(selectedOption.dataset.unit);
+    console.log('📦 Unidade selecionada:', unit);
+    
+    const linkedAccounts = unit.linkedAccounts || {};
+    const hasMeta = linkedAccounts.meta?.id;
+    const hasGoogle = linkedAccounts.google?.id;
+    
+    console.log('🔍 Contas vinculadas - Meta:', hasMeta, 'Google:', hasGoogle);
+    
+    // Limpar badges e seleções anteriores
+    if (linkedAccountsBadges) linkedAccountsBadges.innerHTML = '';
+    if (metaSelect) metaSelect.value = '';
+    if (googleSelect) googleSelect.value = '';
+    
+    if (hasMeta || hasGoogle) {
+        // TEM CONTAS VINCULADAS
+        console.log('✅ Unidade COM contas vinculadas');
+        
+        if (hasMeta && linkedAccountsBadges) {
+            linkedAccountsBadges.innerHTML += `
+                <div class="flex items-center gap-2 bg-blue-100 px-3 py-1 rounded-full">
+                    <i class="fab fa-meta text-blue-600"></i>
+                    <span class="text-xs font-medium text-gray-700">${linkedAccounts.meta.name}</span>
+                </div>
+            `;
+            if (metaSelect) {
+                metaSelect.value = linkedAccounts.meta.id;
+                console.log('✅ Meta pré-selecionada:', linkedAccounts.meta.id);
+            }
+        }
+        
+        if (hasGoogle && linkedAccountsBadges) {
+            linkedAccountsBadges.innerHTML += `
+                <div class="flex items-center gap-2 bg-red-100 px-3 py-1 rounded-full">
+                    <i class="fab fa-google text-red-600"></i>
+                    <span class="text-xs font-medium text-gray-700">${linkedAccounts.google.name}</span>
+                </div>
+            `;
+            if (googleSelect) {
+                googleSelect.value = linkedAccounts.google.id;
+                console.log('✅ Google pré-selecionada:', linkedAccounts.google.id);
+            }
+        }
+        
+        if (unitLinkedInfo) unitLinkedInfo.classList.remove('hidden');
+        if (manualAccountSelection) manualAccountSelection.classList.add('hidden');
+        
+    } else {
+        // NÃO TEM CONTAS VINCULADAS
+        console.warn('⚠️ Unidade SEM contas vinculadas - modo manual');
+        
+        alert(`⚠️ Esta unidade não possui contas de anúncios vinculadas.\n\nVocê precisará selecionar as contas manualmente abaixo.`);
+        
+        if (unitLinkedInfo) unitLinkedInfo.classList.add('hidden');
+        if (manualAccountSelection) manualAccountSelection.classList.remove('hidden');
+    }
+    
+    // Preencher métricas (se período já estiver definido)
+    fillUnitMetricsFromSelect(e);
 }
 
 // Quando uma unidade é selecionada - preencher métricas
@@ -289,15 +390,13 @@ function addTextToAnalysis(text) {
 
 // Carregar logo e unidades ao iniciar
 loadProjectLogo();
-loadUnits();
 
-// Event listener para seleção de unidade (incluindo lógica de contas vinculadas)
-document.addEventListener('DOMContentLoaded', () => {
-    const unitSelect = document.getElementById('unitSelect');
-    if (unitSelect) {
-        unitSelect.addEventListener('change', fillUnitMetricsFromSelect);
-    }
-});
+// Aguardar DOM estar pronto antes de carregar unidades
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', loadUnits);
+} else {
+    loadUnits();
+}
 
 // Event listeners para atualizar métricas quando período mudar
 document.addEventListener('DOMContentLoaded', () => {

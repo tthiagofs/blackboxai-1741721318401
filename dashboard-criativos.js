@@ -3,7 +3,7 @@
 
 import { auth, db } from './config/firebase.js';
 import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
-import { collection, query, where, getDocs } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+import { collection, query, where, getDocs, doc, getDoc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 import { FacebookInsightsService } from './services/facebookInsights.js';
 import { projectsService } from './services/projects.js';
 import * as unitsService from './services/unitsService.js';
@@ -60,7 +60,7 @@ async function loadCreativeProjects() {
   }
 }
 
-// Carregar unidades do projeto selecionado
+// Carregar unidades do projeto selecionado (apenas com contas vinculadas)
 async function loadCreativeUnits(projectId) {
   try {
     if (!projectId) {
@@ -72,24 +72,38 @@ async function loadCreativeUnits(projectId) {
     console.log('📋 Carregando unidades do projeto:', projectId);
     
     // Usar unitsService que busca da subcoleção correta: projects/{projectId}/units
-    const units = await unitsService.listUnits(projectId);
+    const allUnits = await unitsService.listUnits(projectId);
+    
+    // Filtrar apenas unidades que têm Meta Ads OU Google Ads vinculado
+    const unitsWithAccounts = allUnits.filter(unit => {
+      const linkedAccounts = unit.linkedAccounts || {};
+      return linkedAccounts.meta?.id || linkedAccounts.google?.id;
+    });
     
     const unitsSelect = document.getElementById('creativeUnitsSelect');
     unitsSelect.innerHTML = '<option value="all" selected>Todas as unidades</option>';
     
-    if (!units || units.length === 0) {
-      console.log('ℹ️ Nenhuma unidade encontrada para este projeto');
+    if (!unitsWithAccounts || unitsWithAccounts.length === 0) {
+      console.log('ℹ️ Nenhuma unidade com contas de anúncios vinculadas');
+      unitsSelect.innerHTML = '<option value="">Nenhuma unidade com contas vinculadas</option>';
+      showError('Nenhuma unidade possui contas de anúncios vinculadas. Por favor, vincule contas em Unidades.');
       return;
     }
     
-    units.forEach(unit => {
+    unitsWithAccounts.forEach(unit => {
       const option = document.createElement('option');
       option.value = unit.id;
-      option.textContent = unit.name || 'Sem nome';
+      // Mostrar quais contas estão vinculadas
+      const badges = [];
+      if (unit.linkedAccounts?.meta?.id) badges.push('Meta');
+      if (unit.linkedAccounts?.google?.id) badges.push('Google');
+      option.textContent = `${unit.name || 'Sem nome'} (${badges.join(', ')})`;
+      // Salvar dados da unidade no option para uso posterior
+      option.dataset.unit = JSON.stringify(unit);
       unitsSelect.appendChild(option);
     });
     
-    console.log(`✅ ${units.length} unidades carregadas`);
+    console.log(`✅ ${unitsWithAccounts.length} unidades com contas vinculadas (de ${allUnits.length} totais)`);
   } catch (error) {
     console.error('❌ Erro ao carregar unidades:', error);
   }
@@ -158,7 +172,7 @@ function calculateCreativePeriod(period) {
       const customEnd = document.getElementById('creativeCustomEndDate').value;
       
       if (!customStart || !customEnd) {
-        alert('Por favor, selecione as datas de início e fim.');
+        showError('Por favor, selecione as datas de início e fim.');
         return null;
       }
       
@@ -196,7 +210,7 @@ async function searchCreatives() {
 
     // Validar projeto
     if (!projectId) {
-      alert('Por favor, selecione um projeto primeiro.');
+      showError('Por favor, selecione um projeto primeiro.');
       loadingEl.classList.add('hidden');
       emptyStateEl.classList.remove('hidden');
       return;
@@ -205,7 +219,9 @@ async function searchCreatives() {
     // Calcular período
     const dates = calculateCreativePeriod(period);
     if (!dates) {
-      throw new Error('Período inválido');
+      loadingEl.classList.add('hidden');
+      emptyStateEl.classList.remove('hidden');
+      return;
     }
 
     console.log('🔍 Buscando criativos:', { projectId, period, orderBy, unitId, dates });
@@ -216,6 +232,7 @@ async function searchCreatives() {
     if (!creatives || creatives.length === 0) {
       loadingEl.classList.add('hidden');
       emptyStateEl.classList.remove('hidden');
+      showError('Não encontramos criativos com dados no período selecionado. Tente ajustar os filtros.');
       return;
     }
 
@@ -236,8 +253,23 @@ async function searchCreatives() {
 
   } catch (error) {
     console.error('Erro ao buscar criativos:', error);
-    alert('Erro ao buscar criativos: ' + error.message);
+    showError(error.message || 'Erro ao buscar criativos. Verifique se as contas estão conectadas corretamente.');
     loadingEl.classList.add('hidden');
+    emptyStateEl.classList.remove('hidden');
+  }
+}
+
+// Mostrar erro inline (sem popup)
+function showError(message) {
+  const emptyStateEl = document.getElementById('creativesEmptyState');
+  if (emptyStateEl) {
+    emptyStateEl.innerHTML = `
+      <div class="bg-white border border-gray-200 rounded-xl p-10 text-center">
+        <i class="fas fa-exclamation-triangle text-6xl text-red-400 mb-4"></i>
+        <h3 class="text-xl font-bold text-gray-900 mb-2">Atenção</h3>
+        <p class="text-gray-600">${message}</p>
+      </div>
+    `;
     emptyStateEl.classList.remove('hidden');
   }
 }
@@ -250,52 +282,75 @@ async function fetchCreativesFromMetaAds(projectId, unitId, dates) {
     console.log('   Unidade:', unitId);
     console.log('   Período:', dates);
 
-    // Buscar contas conectadas do usuário
-    const accountsQuery = query(
+    // Buscar unidades do projeto
+    const allUnits = await unitsService.listUnits(projectId);
+    
+    // Filtrar unidades com contas Meta vinculadas
+    let targetUnits = allUnits.filter(u => u.linkedAccounts?.meta?.id);
+    
+    // Se não for "all", filtrar pela unidade específica
+    if (unitId !== 'all' && unitId) {
+      targetUnits = targetUnits.filter(u => u.id === unitId);
+    }
+
+    if (targetUnits.length === 0) {
+      throw new Error('Nenhuma unidade com Meta Ads vinculado encontrada.');
+    }
+
+    console.log(`✅ ${targetUnits.length} unidade(s) com Meta Ads encontrada(s)`);
+
+    // Buscar conexões do usuário
+    const connectionsQuery = query(
       collection(db, 'connections'),
       where('userId', '==', currentUser.uid),
       where('platform', '==', 'meta')
     );
-    const accountsSnapshot = await getDocs(accountsQuery);
+    const connectionsSnapshot = await getDocs(connectionsQuery);
 
-    if (accountsSnapshot.empty) {
+    if (connectionsSnapshot.empty) {
       throw new Error('Nenhuma conta Meta Ads conectada. Por favor, conecte uma conta em Conexões.');
     }
 
-    console.log(`✅ ${accountsSnapshot.size} conta(s) Meta Ads encontrada(s)`);
+    console.log(`✅ ${connectionsSnapshot.size} conexão(ões) Meta Ads encontrada(s)`);
 
     let allAds = [];
 
-    // Para cada conta conectada
-    for (const accountDoc of accountsSnapshot.docs) {
-      const connection = accountDoc.data();
-      const fbService = new FacebookInsightsService(connection.accessToken);
-      
-      console.log(`🔍 Buscando anúncios da conta: ${connection.adAccountId}`);
+    // Para cada unidade com Meta vinculado
+    for (const unit of targetUnits) {
+      const metaAccountId = unit.linkedAccounts.meta.id;
+      console.log(`🔍 Buscando anúncios da unidade "${unit.name}" (Meta: ${metaAccountId})`);
+
+      // Buscar a conexão correspondente
+      const connection = connectionsSnapshot.docs.find(doc => {
+        const data = doc.data();
+        return data.adAccountId === metaAccountId || data.accountId === metaAccountId;
+      });
+
+      if (!connection) {
+        console.warn(`⚠️ Conexão não encontrada para conta ${metaAccountId}`);
+        continue;
+      }
+
+      const connectionData = connection.data();
+      const fbService = new FacebookInsightsService(connectionData.accessToken);
 
       try {
-        // Buscar anúncios com insights usando o método existente
-        // Ele retorna ads com insights e creative info
-        const adsData = await fbService.getBestPerformingAds(
-          connection.adAccountId,
-          dates.start,
-          dates.end,
-          50 // Top 50 para ter dados suficientes
-        );
+        // Buscar TODOS os anúncios com dados
+        const url = `/${metaAccountId}/insights?level=ad&fields=ad_id,ad_name,spend,impressions,clicks,actions&time_range={'since':'${dates.start}','until':'${dates.end}'}&limit=100&access_token=${connectionData.accessToken}`;
+        const adsData = await fbService.fetchWithPagination(url, [], true);
 
-        // Buscar TODOS os anúncios com dados (não só os top)
-        const url = `/${connection.adAccountId}/insights?level=ad&fields=ad_id,ad_name,spend,impressions,clicks,actions&time_range={'since':'${dates.start}','until':'${dates.end}'}&limit=100&access_token=${connection.accessToken}`;
-        const allAdsData = await fbService.fetchWithPagination(url, [], true);
+        console.log(`   ✅ ${adsData.length} anúncios encontrados para ${unit.name}`);
 
-        // Processar e adicionar (async)
-        const processedAds = await processAdsData(allAdsData, fbService, connection.accessToken);
+        // Processar e adicionar
+        const processedAds = await processAdsData(adsData, fbService, connectionData.accessToken, unit.name);
         allAds = allAds.concat(processedAds);
 
       } catch (error) {
-        console.error(`Erro ao buscar ads da conta ${connection.adAccountId}:`, error);
+        console.error(`   ❌ Erro ao buscar ads da conta ${metaAccountId}:`, error);
       }
     }
 
+    console.log(`📊 Total de ${allAds.length} anúncios processados`);
     return allAds;
 
   } catch (error) {
@@ -305,7 +360,7 @@ async function fetchCreativesFromMetaAds(projectId, unitId, dates) {
 }
 
 // Processar dados dos anúncios
-async function processAdsData(adsData, fbService, accessToken) {
+async function processAdsData(adsData, fbService, accessToken, unitName) {
   const processed = [];
   
   for (const ad of adsData) {
@@ -342,6 +397,7 @@ async function processAdsData(adsData, fbService, accessToken) {
       processed.push({
         id: ad.ad_id,
         name: ad.ad_name || 'Sem nome',
+        unitName: unitName,
         thumbnailUrl: thumbnailUrl,
         impressions: impressions,
         leads: leads,
@@ -424,7 +480,7 @@ function renderCreatives(creatives) {
           <div class="flex items-start justify-between mb-2">
             <div>
               <h3 class="text-base font-semibold text-gray-900 mb-1">${creative.name}${badge}</h3>
-              <p class="text-xs text-gray-500">ID: ${creative.id}</p>
+              <p class="text-xs text-gray-500">ID: ${creative.id} · ${creative.unitName}</p>
             </div>
           </div>
           <div class="grid grid-cols-3 gap-4 mt-3">
@@ -552,4 +608,3 @@ function renderInsights(creatives) {
 
 // Exportar funções
 window.searchCreatives = searchCreatives;
-

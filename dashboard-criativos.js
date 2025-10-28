@@ -192,13 +192,7 @@ async function searchCreatives() {
     const projectId = document.getElementById('creativeProjectSelect').value;
     const period = document.getElementById('creativePeriodSelect').value;
     const orderBy = document.getElementById('creativeOrderBy').value;
-    
-    // Pegar unidades selecionadas (multi-select)
-    const unitsSelect = document.getElementById('creativeUnitsSelect');
-    const selectedUnits = Array.from(unitsSelect.selectedOptions).map(opt => opt.value);
-    
-    // Se "all" está selecionado OU nenhuma seleção, usar todas
-    const unitIds = selectedUnits.includes('all') || selectedUnits.length === 0 ? 'all' : selectedUnits;
+    const unitId = document.getElementById('creativeUnitsSelect').value || 'all';
 
     // Validar projeto
     if (!projectId) {
@@ -214,10 +208,10 @@ async function searchCreatives() {
       throw new Error('Período inválido');
     }
 
-    console.log('🔍 Buscando criativos:', { projectId, period, orderBy, unitIds, dates });
+    console.log('🔍 Buscando criativos:', { projectId, period, orderBy, unitId, dates });
 
     // Buscar dados do Meta Ads
-    const creatives = await fetchCreativesFromMetaAds(projectId, unitIds, dates);
+    const creatives = await fetchCreativesFromMetaAds(projectId, unitId, dates);
 
     if (!creatives || creatives.length === 0) {
       loadingEl.classList.add('hidden');
@@ -249,21 +243,12 @@ async function searchCreatives() {
 }
 
 // Buscar criativos do Meta Ads
-async function fetchCreativesFromMetaAds(projectId, unitIds, dates) {
+async function fetchCreativesFromMetaAds(projectId, unitId, dates) {
   try {
-    // Buscar unidades do projeto
-    const units = await unitsService.listUnits(projectId);
-    
-    if (!units || units.length === 0) {
-      throw new Error('Nenhuma unidade encontrada para este projeto');
-    }
-
-    // Filtrar unidades se específicas foram selecionadas
-    let selectedUnits = units;
-    if (unitIds !== 'all' && Array.isArray(unitIds)) {
-      selectedUnits = units.filter(u => unitIds.includes(u.id));
-      console.log(`📊 Filtrando ${selectedUnits.length} de ${units.length} unidades`);
-    }
+    console.log('📊 Buscando criativos do Meta Ads...');
+    console.log('   Projeto:', projectId);
+    console.log('   Unidade:', unitId);
+    console.log('   Período:', dates);
 
     // Buscar contas conectadas do usuário
     const accountsQuery = query(
@@ -274,8 +259,10 @@ async function fetchCreativesFromMetaAds(projectId, unitIds, dates) {
     const accountsSnapshot = await getDocs(accountsQuery);
 
     if (accountsSnapshot.empty) {
-      throw new Error('Nenhuma conta Meta Ads conectada');
+      throw new Error('Nenhuma conta Meta Ads conectada. Por favor, conecte uma conta em Conexões.');
     }
+
+    console.log(`✅ ${accountsSnapshot.size} conta(s) Meta Ads encontrada(s)`);
 
     let allAds = [];
 
@@ -283,6 +270,8 @@ async function fetchCreativesFromMetaAds(projectId, unitIds, dates) {
     for (const accountDoc of accountsSnapshot.docs) {
       const connection = accountDoc.data();
       const fbService = new FacebookInsightsService(connection.accessToken);
+      
+      console.log(`🔍 Buscando anúncios da conta: ${connection.adAccountId}`);
 
       try {
         // Buscar anúncios com insights usando o método existente

@@ -8,14 +8,14 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
-<body class="bg-white min-h-screen font-sans m-0 p-0">
+<body class="bg-gray-50 min-h-screen font-sans m-0 p-0">
     <!-- Container Principal -->
-    <div class="flex min-h-screen w-full">
+    <div class="flex min-h-screen w-full bg-gray-50">
         <!-- Sidebar Unificada -->
         <div id="app-sidebar"></div>
 
         <!-- Conteúdo Principal -->
-        <main class="flex-1 p-10 bg-gray-50">
+        <main class="flex-1 p-10">
             <!-- Header -->
             <div class="mb-8 flex items-center justify-between">
                 <h2 class="text-2xl font-bold text-gray-900">Meus Projetos</h2>
@@ -137,8 +137,6 @@
             console.log('🎯 Inicializando dashboard...');
 
         // Elementos do DOM
-        const logoutBtn = document.getElementById('logoutBtn');
-        const adminLink = document.getElementById('adminLink');
         const newProjectBtn = document.getElementById('newProjectBtn');
         const newProjectModal = document.getElementById('newProjectModal');
         const closeModalBtn = document.getElementById('closeModalBtn');
@@ -149,25 +147,10 @@
         const projectsLoading = document.getElementById('projectsLoading');
         const projectsEmpty = document.getElementById('projectsEmpty');
 
-        // Carregar dados do usuário
+        // Carregar dados do usuário (admin check já é feito pela sidebar)
         async function loadUserData() {
-            const user = authService.getCurrentUser();
-            
-            if (user) {
-                // Mostrar link admin se for admin
-                if (user.email === 'thiagofelipefreire0810@gmail.com') {
-                    adminLink.classList.remove('hidden');
-                }
-            }
+            // Não precisa mais fazer nada aqui
         }
-
-        // Logout
-        logoutBtn.addEventListener('click', async () => {
-            if (confirm('Tem certeza que deseja sair?')) {
-                await authService.logout();
-                window.location.href = '/login.html';
-            }
-        });
 
         // Modal Novo Projeto
         newProjectBtn.addEventListener('click', () => {

@@ -44,9 +44,9 @@ function renderSidebar(currentPage) {
   const sidebarContainer = document.getElementById('app-sidebar');
   if (!sidebarContainer) return;
 
-  // Verificar se há projeto selecionado
-  const currentProject = localStorage.getItem('currentProject');
-  const showSubMenus = !!currentProject;
+  // Sub-abas só aparecem quando estiver DENTRO do projeto (projeto.html ou unidades.html)
+  // NÃO aparecem em home.html (lista de projetos)
+  const showSubMenus = ['projeto', 'relatorios', 'unidades'].includes(currentPage);
   
   // Verificar se está em uma das sub-páginas da Tela Inicial
   const isHomeSection = ['home', 'projeto', 'relatorios', 'unidades'].includes(currentPage);

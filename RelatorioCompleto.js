@@ -238,12 +238,20 @@ function fillUnitMetricsFromSelect(event) {
 
 // Atualizar métricas quando período mudar
 function updateMetricsOnPeriodChange() {
+    console.log('🔄 [updateMetricsOnPeriodChange] Disparado!');
+    
     const unitSelect = document.getElementById('unitSelect');
     const selectedOption = unitSelect?.selectedOptions[0];
     
+    console.log('📋 unitSelect encontrado:', !!unitSelect);
+    console.log('📋 selectedOption:', selectedOption?.value);
+    console.log('📋 tem dataset.unit:', !!selectedOption?.dataset?.unit);
+    
     if (selectedOption && selectedOption.dataset.unit) {
-        console.log('🔄 Período mudou - atualizando métricas...');
+        console.log('✅ Atualizando métricas da unidade...');
         fillUnitMetricsFromSelect({ target: unitSelect });
+    } else {
+        console.log('⚠️ Nenhuma unidade selecionada - não há o que atualizar');
     }
 }
 

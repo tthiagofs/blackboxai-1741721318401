@@ -330,13 +330,23 @@ function calculatePeriodDates(period) {
 async function loadDashboardData() {
     try {
         console.log('📊 Carregando dados do dashboard...');
+        console.log(`   📅 Período: ${currentFilters.startDate} até ${currentFilters.endDate}`);
+        console.log(`   📋 Unidades selecionadas: ${selectedUnits.length}`);
+        console.log(`   📚 Total de unidades disponíveis: ${allUnits.length}`);
         
         // Processar dados de cada unidade
+        console.log('🔄 Processando unidades...');
         const unitsData = await Promise.all(
             selectedUnits.map(async (unitId) => {
+                console.log(`   🔍 Buscando unidade ID: ${unitId}`);
                 const unit = allUnits.find(u => u.id === unitId);
-                if (!unit) return null;
                 
+                if (!unit) {
+                    console.warn(`   ⚠️ Unidade ${unitId} não encontrada!`);
+                    return null;
+                }
+                
+                console.log(`   ✅ Unidade encontrada: ${unit.name}`);
                 const metrics = calculateUnitMetrics(unit);
                 return {
                     id: unit.id,
@@ -345,6 +355,8 @@ async function loadDashboardData() {
                 };
             })
         );
+        
+        console.log(`✅ ${unitsData.length} unidades processadas`);
         
         // Filtrar unidades sem dados (aceita qualquer valor > 0, mesmo pequeno)
         const validUnits = unitsData.filter(u => u !== null && (u.investment > 0 || u.revenue > 0 || u.leads > 0));

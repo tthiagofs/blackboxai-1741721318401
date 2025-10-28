@@ -1,12 +1,8 @@
-console.log('🚀 RelatorioCompleto.js CARREGANDO...');
-
 import { fbAuth } from './auth.js?v=3.0';
 import { exportToPDF } from './exportPDF.js?v=3.0';
 import { formatDateISOToBR, formatCurrencyBRL, encodeWhatsAppText } from './utils/format.js?v=3.0';
 import { setSelectedStyles, debounce } from './utils/dom.js?v=3.0';
 import { FacebookInsightsService } from './services/facebookInsights.js?v=3.0';
-
-console.log('✅ RelatorioCompleto.js CARREGADO!');
 import { GoogleAdsService } from './services/googleAds.js?v=3.0';
 import { googleAuth } from './authGoogle.js?v=3.0';
 import { projectsService } from './services/projects.js?v=1.3';
@@ -18,6 +14,8 @@ import {
     generateBusinessText,
     ANALYSIS_CATEGORIES 
 } from './services/analysisTemplates.js';
+
+console.log('✅✅✅ RelatorioCompleto.js IMPORTS COMPLETOS! ✅✅✅');
 
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 

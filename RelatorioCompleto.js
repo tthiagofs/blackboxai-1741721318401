@@ -399,13 +399,26 @@ if (document.readyState === 'loading') {
 }
 
 // Event listeners para atualizar métricas quando período mudar
-document.addEventListener('DOMContentLoaded', () => {
+function setupDateListeners() {
     const startDate = document.getElementById('startDate');
     const endDate = document.getElementById('endDate');
     
-    if (startDate) startDate.addEventListener('change', updateMetricsOnPeriodChange);
-    if (endDate) endDate.addEventListener('change', updateMetricsOnPeriodChange);
-});
+    if (startDate) {
+        startDate.addEventListener('change', updateMetricsOnPeriodChange);
+        console.log('✅ Listener de startDate adicionado');
+    }
+    if (endDate) {
+        endDate.addEventListener('change', updateMetricsOnPeriodChange);
+        console.log('✅ Listener de endDate adicionado');
+    }
+}
+
+// Adicionar listeners quando DOM estiver pronto
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', setupDateListeners);
+} else {
+    setupDateListeners();
+}
 
 // Verificar autenticação Facebook (não obrigatório, pois pode gerar só Google Ads)
 const currentAccessToken = fbAuth.getAccessToken();

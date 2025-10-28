@@ -1,25 +1,11 @@
 // dashboard.js - Lógica do Dashboard de Performance
-import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
-import { getFirestore, getDoc, doc } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
-import { getAuth, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
+import { auth, db } from './config/firebase.js';
+import { onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+import { getDoc, doc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 import { projectsService } from './services/projects.js';
 import * as unitsService from './services/unitsService.js';
 
-// ==================== FIREBASE CONFIG ====================
-const firebaseConfig = {
-    apiKey: "AIzaSyBaR66Mcwo85eslNAJrAy_RTRvLXfUwzpA",
-    authDomain: "insight-flow.firebaseapp.com",
-    projectId: "insight-flow",
-    storageBucket: "insight-flow.firebasestorage.app",
-    messagingSenderId: "522915646693",
-    appId: "1:522915646693:web:02714acd6c7be1b7db6e21"
-};
-
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
-const auth = getAuth(app);
-
-console.log('🔥 Firebase inicializado no Dashboard');
+console.log('🚀 Dashboard inicializando...');
 
 // ==================== VARIÁVEIS GLOBAIS ====================
 let allUnits = [];

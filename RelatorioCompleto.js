@@ -1062,6 +1062,22 @@ document.getElementById('unitId').addEventListener('change', onFormInput);
 document.getElementById('startDate').addEventListener('change', onFormInput);
 document.getElementById('endDate').addEventListener('change', onFormInput);
 
+// Adicionar listeners para recarregar dados da unidade quando período mudar
+document.getElementById('startDate').addEventListener('change', updateUnitDataOnPeriodChange);
+document.getElementById('endDate').addEventListener('change', updateUnitDataOnPeriodChange);
+
+// Função para atualizar dados da unidade quando período mudar
+function updateUnitDataOnPeriodChange() {
+    const unitSelect = document.getElementById('unitSelect');
+    const selectedOption = unitSelect?.selectedOptions[0];
+    
+    // Se há uma unidade selecionada, recarregar seus dados
+    if (selectedOption && selectedOption.dataset.unit) {
+        console.log('🔄 Período mudou - recarregando dados da unidade...');
+        onUnitSelected({ target: unitSelect });
+    }
+}
+
 // Função para gerar o relatório completo
 async function generateCompleteReport() {
     console.time('⏱️ GERAÇÃO COMPLETA DO RELATÓRIO');

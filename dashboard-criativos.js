@@ -37,6 +37,23 @@ async function loadCreativeProjects() {
     });
     
     console.log(`✅ ${projects.length} projeto(s) ativo(s) carregado(s) para Análise de Criativos`);
+    
+    // Se houver apenas 1 projeto, selecionar automaticamente (igual Visão Geral)
+    if (projects.length === 1) {
+      projectSelect.value = projects[0].id;
+      console.log('🎯 Apenas 1 projeto encontrado, selecionando automaticamente:', projects[0].name);
+      // Carregar unidades desse projeto
+      await loadCreativeUnits(projects[0].id);
+    } else if (projects.length > 1) {
+      // Se houver mais de 1, tentar pegar do localStorage
+      const savedProjectId = localStorage.getItem('currentProject');
+      if (savedProjectId && projects.find(p => p.id === savedProjectId)) {
+        projectSelect.value = savedProjectId;
+        console.log('🎯 Projeto salvo encontrado, selecionando:', savedProjectId);
+        // Carregar unidades desse projeto
+        await loadCreativeUnits(savedProjectId);
+      }
+    }
   } catch (error) {
     console.error('❌ Erro ao carregar projetos:', error);
   }

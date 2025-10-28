@@ -1,9 +1,9 @@
 // Dashboard - Análise de Criativos
 // Busca e analisa performance de criativos (anúncios) do Meta Ads
 
-import { auth, db } from './config/firebase.js';
+import { auth } from './config/firebase.js';
 import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
-import { collection, query, where, getDocs, doc, getDoc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+import { fbAuth } from './auth.js';
 import { FacebookInsightsService } from './services/facebookInsights.js';
 import { projectsService } from './services/projects.js';
 import * as unitsService from './services/unitsService.js';
@@ -274,98 +274,59 @@ function showError(message) {
   }
 }
 
-// Buscar criativos do Meta Ads
+// Buscar criativos do Meta Ads (usando fbAuth do localStorage, igual à Visão Geral)
 async function fetchCreativesFromMetaAds(projectId, unitId, dates) {
   try {
     console.log('📊 Buscando criativos do Meta Ads...');
     console.log('   Projeto:', projectId);
     console.log('   Unidade:', unitId);
     console.log('   Período:', dates);
-    console.log('   User ID:', currentUser?.uid);
+
+    // Verificar se tem token do Facebook (igual à Visão Geral)
+    const fbToken = fbAuth?.getAccessToken && fbAuth.getAccessToken();
+    if (!fbToken) {
+      throw new Error('Nenhuma conta Meta Ads conectada. Por favor, conecte uma conta em Conexões.');
+    }
+    console.log('✅ Token do Facebook encontrado');
 
     // Buscar unidades do projeto
     console.log('🔍 Buscando unidades do projeto...');
     const allUnits = await unitsService.listUnits(projectId);
-    console.log('✅ Total de unidades:', allUnits.length);
-    console.log('📋 Unidades:', allUnits.map(u => ({ id: u.id, name: u.name, linkedAccounts: u.linkedAccounts })));
+    console.log(`✅ ${allUnits.length} unidade(s) encontrada(s)`);
     
     // Filtrar unidades com contas Meta vinculadas
     let targetUnits = allUnits.filter(u => u.linkedAccounts?.meta?.id);
-    console.log('🎯 Unidades com Meta vinculado:', targetUnits.length);
-    console.log('📋 Detalhes:', targetUnits.map(u => ({ name: u.name, metaId: u.linkedAccounts.meta.id })));
+    console.log(`🎯 ${targetUnits.length} unidade(s) com Meta vinculado`);
     
     // Se não for "all", filtrar pela unidade específica
     if (unitId !== 'all' && unitId) {
       targetUnits = targetUnits.filter(u => u.id === unitId);
-      console.log('🔎 Filtrando por unitId:', unitId, '→', targetUnits.length, 'unidade(s)');
+      console.log(`🔎 Filtrando por unitId: ${unitId} → ${targetUnits.length} unidade(s)`);
     }
 
     if (targetUnits.length === 0) {
       throw new Error('Nenhuma unidade com Meta Ads vinculado encontrada.');
     }
 
-    console.log(`✅ ${targetUnits.length} unidade(s) com Meta Ads encontrada(s)`);
-
-    // Buscar conexões do usuário
-    console.log('🔍 Buscando conexões do usuário no Firestore...');
-    console.log('   Collection: connections');
-    console.log('   userId:', currentUser.uid);
-    console.log('   platform: meta');
-    
-    const connectionsQuery = query(
-      collection(db, 'connections'),
-      where('userId', '==', currentUser.uid),
-      where('platform', '==', 'meta')
-    );
-    
-    console.log('⏳ Executando query...');
-    const connectionsSnapshot = await getDocs(connectionsQuery);
-    console.log('✅ Query executada. Resultados:', connectionsSnapshot.size);
-
-    if (connectionsSnapshot.empty) {
-      throw new Error('Nenhuma conta Meta Ads conectada. Por favor, conecte uma conta em Conexões.');
-    }
-
-    console.log(`✅ ${connectionsSnapshot.size} conexão(ões) Meta Ads encontrada(s)`);
-    connectionsSnapshot.docs.forEach((doc, idx) => {
-      const data = doc.data();
-      console.log(`   [${idx + 1}] Doc ID: ${doc.id}`);
-      console.log(`       userId: ${data.userId}`);
-      console.log(`       platform: ${data.platform}`);
-      console.log(`       adAccountId: ${data.adAccountId}`);
-      console.log(`       accountId: ${data.accountId}`);
-    });
-
     let allAds = [];
+
+    // Criar serviço do Facebook com o token
+    const fbService = new FacebookInsightsService(fbToken);
 
     // Para cada unidade com Meta vinculado
     for (const unit of targetUnits) {
       const metaAccountId = unit.linkedAccounts.meta.id;
       console.log(`🔍 Buscando anúncios da unidade "${unit.name}" (Meta: ${metaAccountId})`);
 
-      // Buscar a conexão correspondente
-      const connection = connectionsSnapshot.docs.find(doc => {
-        const data = doc.data();
-        return data.adAccountId === metaAccountId || data.accountId === metaAccountId;
-      });
-
-      if (!connection) {
-        console.warn(`⚠️ Conexão não encontrada para conta ${metaAccountId}`);
-        continue;
-      }
-
-      const connectionData = connection.data();
-      const fbService = new FacebookInsightsService(connectionData.accessToken);
-
       try {
-        // Buscar TODOS os anúncios com dados
-        const url = `/${metaAccountId}/insights?level=ad&fields=ad_id,ad_name,spend,impressions,clicks,actions&time_range={'since':'${dates.start}','until':'${dates.end}'}&limit=100&access_token=${connectionData.accessToken}`;
+        // Buscar TODOS os anúncios com dados (usando a API do Facebook)
+        const url = `/${metaAccountId}/insights?level=ad&fields=ad_id,ad_name,spend,impressions,clicks,actions&time_range={'since':'${dates.start}','until':'${dates.end}'}&limit=100&access_token=${fbToken}`;
         const adsData = await fbService.fetchWithPagination(url, [], true);
 
         console.log(`   ✅ ${adsData.length} anúncios encontrados para ${unit.name}`);
 
         // Processar e adicionar
-        const processedAds = await processAdsData(adsData, fbService, connectionData.accessToken, unit.name);
+        const processedAds = await processAdsData(adsData, fbService, fbToken, unit.name);
         allAds = allAds.concat(processedAds);
 
       } catch (error) {

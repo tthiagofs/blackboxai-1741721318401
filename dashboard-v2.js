@@ -8,7 +8,7 @@ import { FacebookInsightsService } from './services/facebookInsights.js';
 import { GoogleAdsService } from './services/googleAds.js';
 
 let currentProjectId = null;
-let currentMonth = null;
+let currentPeriod = 'last7days';
 let allUnits = [];
 let currentSortColumn = null;
 let currentSortDirection = 'asc';
@@ -17,15 +17,45 @@ function formatCurrency(v) {
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v || 0); 
 }
 
-function yyyymm(d) { 
-  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`; 
-}
-
-function monthStartEnd(ym) {
-  const [y, m] = ym.split('-').map(n=>parseInt(n,10));
-  const s = new Date(y, m-1, 1).toISOString().split('T')[0];
-  const e = new Date(y, m, 0).toISOString().split('T')[0];
-  return { start: s, end: e };
+function calculatePeriodDates(period) {
+  const today = new Date();
+  const todayStr = today.toISOString().split('T')[0];
+  
+  switch(period) {
+    case 'today':
+      return { start: todayStr, end: todayStr };
+      
+    case 'last7days': {
+      const start = new Date(today);
+      start.setDate(start.getDate() - 6);
+      return { start: start.toISOString().split('T')[0], end: todayStr };
+    }
+    
+    case 'thisMonth': {
+      const start = new Date(today.getFullYear(), today.getMonth(), 1);
+      return { start: start.toISOString().split('T')[0], end: todayStr };
+    }
+    
+    case 'lastMonth': {
+      const lastMonthDate = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+      const start = new Date(lastMonthDate.getFullYear(), lastMonthDate.getMonth(), 1);
+      const end = new Date(lastMonthDate.getFullYear(), lastMonthDate.getMonth() + 1, 0);
+      return { start: start.toISOString().split('T')[0], end: end.toISOString().split('T')[0] };
+    }
+    
+    case 'custom': {
+      const startInput = document.getElementById('customStartDate').value;
+      const endInput = document.getElementById('customEndDate').value;
+      if (!startInput || !endInput) {
+        alert('Selecione as datas de início e fim');
+        return null;
+      }
+      return { start: startInput, end: endInput };
+    }
+    
+    default:
+      return { start: todayStr, end: todayStr };
+  }
 }
 
 onAuthStateChanged(auth, async (user) => { 
@@ -39,7 +69,7 @@ onAuthStateChanged(auth, async (user) => {
 async function bootstrap() {
   try {
     await populateProjects();
-    populateMonths();
+    setupPeriodControls();
     document.getElementById('generateBtn').addEventListener('click', generateDashboard);
   } catch (error) {
     console.error('Erro ao inicializar dashboard:', error);
@@ -75,29 +105,33 @@ async function populateProjects() {
   }
 }
 
-function populateMonths() {
+function setupPeriodControls() {
   try {
-    const select = document.getElementById('monthSelect'); 
-    select.innerHTML = '';
-    const now = new Date();
+    const periodSelect = document.getElementById('periodSelect');
+    const customPeriodDiv = document.getElementById('customPeriodDiv');
+    const customStartDate = document.getElementById('customStartDate');
+    const customEndDate = document.getElementById('customEndDate');
     
-    for (let i = 0; i < 12; i++) { 
-      const d = new Date(now.getFullYear(), now.getMonth() - i, 1); 
-      const ym = yyyymm(d); 
-      const label = d.toLocaleDateString('pt-BR', {month: 'long', year: 'numeric'}); 
-      const o = document.createElement('option'); 
-      o.value = ym; 
-      o.textContent = label.charAt(0).toUpperCase() + label.slice(1); 
-      if (i === 0) o.selected = true; 
-      select.appendChild(o);
-    } 
+    // Definir data de hoje como padrão para campos personalizados
+    const today = new Date().toISOString().split('T')[0];
+    const last7Days = new Date();
+    last7Days.setDate(last7Days.getDate() - 6);
+    customStartDate.value = last7Days.toISOString().split('T')[0];
+    customEndDate.value = today;
     
-    currentMonth = select.value; 
-    select.addEventListener('change', e => { 
-      currentMonth = e.target.value; 
+    // Event listener para mostrar/ocultar campos personalizados
+    periodSelect.addEventListener('change', (e) => {
+      currentPeriod = e.target.value;
+      if (currentPeriod === 'custom') {
+        customPeriodDiv.classList.remove('hidden');
+      } else {
+        customPeriodDiv.classList.add('hidden');
+      }
     });
+    
+    currentPeriod = periodSelect.value;
   } catch (error) {
-    console.error('Erro ao popular meses:', error);
+    console.error('Erro ao configurar controles de período:', error);
   }
 }
 
@@ -106,9 +140,10 @@ async function generateDashboard() {
     alert('Selecione um projeto'); 
     return; 
   }
-  if (!currentMonth) { 
-    alert('Selecione um mês'); 
-    return; 
+  
+  const periodDates = calculatePeriodDates(currentPeriod);
+  if (!periodDates) {
+    return; // calculatePeriodDates já mostra o alert
   }
   
   const empty = document.getElementById('emptyState');
@@ -120,7 +155,7 @@ async function generateDashboard() {
 
   try {
     allUnits = await unitsService.listUnits(currentProjectId);
-    const { start, end } = monthStartEnd(currentMonth);
+    const { start, end } = periodDates;
 
     // Calcula métricas da planilha por unidade
     const rows = await Promise.all(allUnits.map(async u => {

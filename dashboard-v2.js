@@ -167,10 +167,18 @@ async function generateDashboard() {
         roi = (plan.revenue * 0.25) / plan.invested;
       }
       
+      // Calcula CPA: investido / mensagens
+      let cpa = 0;
+      if (plan.messages > 0 && plan.invested > 0) {
+        cpa = plan.invested / plan.messages;
+      }
+      
       return {
         id: u?.id || '',
         name: u?.name || '-',
         invested: plan.invested,
+        messages: plan.messages,
+        cpa: cpa,
         sales: plan.sales,
         revenue: plan.revenue,
         roi: roi
@@ -179,15 +187,22 @@ async function generateDashboard() {
 
     const totals = rows.reduce((a, r) => ({
       units: a.units + 1, 
-      invested: a.invested + r.invested, 
+      invested: a.invested + r.invested,
+      messages: a.messages + r.messages,
       sales: a.sales + r.sales, 
       revenue: a.revenue + r.revenue 
-    }), { units: 0, invested: 0, sales: 0, revenue: 0 });
+    }), { units: 0, invested: 0, messages: 0, sales: 0, revenue: 0 });
     
     // Calcula ROI geral
     totals.roi = 0;
     if (totals.revenue > 0 && totals.invested > 0) {
       totals.roi = (totals.revenue * 0.25) / totals.invested;
+    }
+    
+    // Calcula CPA geral
+    totals.cpa = 0;
+    if (totals.messages > 0 && totals.invested > 0) {
+      totals.cpa = totals.invested / totals.messages;
     }
 
     renderCards(totals); 
@@ -209,28 +224,36 @@ function normalizeStr(v) {
 
 async function computeUnitMetricsFromSpreadsheet(unit, startDate, endDate) {
   if (!unit.budgetData || !unit.budgetData.rawData) {
-    return { invested: 0, sales: 0, revenue: 0 };
+    return { invested: 0, messages: 0, sales: 0, revenue: 0 };
   }
   
   const filteredData = filterUnitDataByPeriod(unit.budgetData.rawData, startDate, endDate);
   
-  // Calcular investido apenas se a unidade tem conta vinculada
+  // Calcular investido e mensagens se a unidade tem conta vinculada
   let invested = 0;
+  let messages = 0;
   const linkedAccounts = unit.linkedAccounts || {};
   
   if (linkedAccounts.meta?.id || linkedAccounts.google?.id) {
     // Buscar gastos de anúncios se tem conta vinculada
     try {
-      console.log(`🔍 Buscando gastos para ${unit.name}:`, linkedAccounts);
+      console.log(`🔍 Buscando dados para ${unit.name}:`, linkedAccounts);
       
       if (linkedAccounts.meta?.id && fbAuth?.getAccessToken && fbAuth.getAccessToken()) {
-        console.log(`📱 Buscando gastos Meta para conta ${linkedAccounts.meta.id}`);
+        console.log(`📱 Buscando dados Meta para conta ${linkedAccounts.meta.id}`);
         const token = fbAuth.getAccessToken();
         const fb = new FacebookInsightsService(token);
         if (fb?.getAccountInsights) {
           const metaInsights = await fb.getAccountInsights(linkedAccounts.meta.id, startDate, endDate);
-          console.log(`💰 Gastos Meta encontrados: R$ ${metaInsights.spend}`);
+          console.log(`💰 Gastos Meta: R$ ${metaInsights.spend}`);
           invested += Number(metaInsights.spend || 0);
+          
+          // Extrair mensagens das actions
+          if (metaInsights.actions && Array.isArray(metaInsights.actions)) {
+            const totalMessages = extractMessages(metaInsights.actions);
+            console.log(`💬 Mensagens Meta: ${totalMessages}`);
+            messages += totalMessages;
+          }
         } else {
           console.warn(`⚠️ FacebookInsightsService.getAccountInsights não disponível`);
         }
@@ -250,12 +273,13 @@ async function computeUnitMetricsFromSpreadsheet(unit, startDate, endDate) {
           const gInsights = await ga.getAccountInsights(startDate, endDate);
           console.log(`💰 Gastos Google encontrados: R$ ${gInsights.spend}`);
           invested += Number(gInsights.spend || 0);
+          // Google Ads não tem mensagens do WhatsApp
         } else {
           console.warn(`⚠️ GoogleAdsService.getAccountInsights não disponível`);
         }
       }
     } catch (error) {
-      console.error(`❌ Erro ao buscar gastos de anúncios para ${unit.name}:`, error);
+      console.error(`❌ Erro ao buscar dados de anúncios para ${unit.name}:`, error);
     }
   } else {
     console.log(`ℹ️ ${unit.name} não tem contas vinculadas`);
@@ -263,9 +287,47 @@ async function computeUnitMetricsFromSpreadsheet(unit, startDate, endDate) {
   
   return {
     invested: invested,
+    messages: messages,
     sales: filteredData.totalSales,
     revenue: filteredData.totalRevenue
   };
+}
+
+// Função para extrair mensagens das actions (mesma lógica do RelatorioCompleto.js)
+function extractMessages(actions) {
+  let totalMessages = 0;
+  
+  if (actions && Array.isArray(actions)) {
+    // Contabilizar conversas iniciadas
+    const conversationAction = actions.find(
+      action => action.action_type === 'onsite_conversion.messaging_conversation_started_7d'
+    );
+    if (conversationAction && conversationAction.value) {
+      totalMessages += parseInt(conversationAction.value) || 0;
+    }
+
+    // Contabilizar conversões personalizadas
+    const customConversions = actions.filter(
+      action => action.action_type.startsWith('offsite_conversion.')
+    );
+    customConversions.forEach(action => {
+      if (action.value) {
+        totalMessages += parseInt(action.value) || 0;
+      }
+    });
+
+    // Contabilizar cadastros do Facebook
+    const leadActions = actions.filter(
+      action => action.action_type === 'lead'
+    );
+    leadActions.forEach(action => {
+      if (action.value) {
+        totalMessages += parseInt(action.value) || 0;
+      }
+    });
+  }
+
+  return totalMessages;
 }
 
 // Filtrar dados da unidade por período (mesma lógica do RelatorioCompleto.js)
@@ -299,6 +361,8 @@ function filterUnitDataByPeriod(rawData, startDate, endDate) {
 function renderCards(t) {
   document.getElementById('cardUnits').textContent = t.units;
   document.getElementById('cardInvested').textContent = formatCurrency(t.invested);
+  document.getElementById('cardMessages').textContent = t.messages;
+  document.getElementById('cardCPA').textContent = formatCurrency(t.cpa);
   document.getElementById('cardSales').textContent = t.sales;
   document.getElementById('cardRevenue').textContent = formatCurrency(t.revenue);
   document.getElementById('cardROI').textContent = t.roi > 0 ? `${t.roi.toFixed(2)}x` : '0x';
@@ -336,6 +400,8 @@ function renderTable(rows) {
     tr.innerHTML = `
       <td class="px-6 py-3 text-sm text-gray-900">${r.name}</td>
       <td class="px-6 py-3 text-sm text-right text-gray-900">${formatCurrency(r.invested)}</td>
+      <td class="px-6 py-3 text-sm text-right text-gray-900">${r.messages}</td>
+      <td class="px-6 py-3 text-sm text-right text-gray-900">${formatCurrency(r.cpa)}</td>
       <td class="px-6 py-3 text-sm text-right text-gray-900">${r.sales}</td>
       <td class="px-6 py-3 text-sm text-right text-gray-900">${formatCurrency(r.revenue)}</td>
       <td class="px-6 py-3 text-sm text-right font-semibold ${roiClass}">${r.roi > 0 ? r.roi.toFixed(2) + 'x' : '0x'}</td>`; 

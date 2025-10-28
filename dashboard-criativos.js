@@ -14,29 +14,52 @@ let allCreatives = [];
 onAuthStateChanged(auth, async (user) => {
   if (user) {
     currentUser = user;
-    await loadProjectsForCreatives();
+    await loadCreativeProjects();
     setupCreativeEventListeners();
   }
 });
 
-// Carregar unidades no select
-async function loadProjectsForCreatives() {
+// Carregar projetos no select
+async function loadCreativeProjects() {
   try {
-    // Pegar o projeto selecionado no dashboard principal
-    const mainProjectSelect = document.getElementById('projectSelect');
-    const selectedProjectId = mainProjectSelect?.value;
+    const projectsQuery = query(
+      collection(db, 'projects'),
+      where('userId', '==', currentUser.uid)
+    );
+    const snapshot = await getDocs(projectsQuery);
     
-    if (!selectedProjectId) {
-      console.log('⚠️ Nenhum projeto selecionado ainda');
+    const projectSelect = document.getElementById('creativeProjectSelect');
+    projectSelect.innerHTML = '<option value="">Selecione um projeto</option>';
+    
+    snapshot.forEach(doc => {
+      const data = doc.data();
+      const option = document.createElement('option');
+      option.value = doc.id;
+      option.textContent = data.name || 'Sem nome';
+      projectSelect.appendChild(option);
+    });
+    
+    console.log(`✅ ${snapshot.size} projetos carregados para Análise de Criativos`);
+  } catch (error) {
+    console.error('❌ Erro ao carregar projetos:', error);
+  }
+}
+
+// Carregar unidades do projeto selecionado
+async function loadCreativeUnits(projectId) {
+  try {
+    if (!projectId) {
+      const unitsSelect = document.getElementById('creativeUnitsSelect');
+      unitsSelect.innerHTML = '<option value="all">Selecione um projeto primeiro</option>';
       return;
     }
 
-    console.log('📋 Carregando unidades do projeto:', selectedProjectId);
+    console.log('📋 Carregando unidades do projeto:', projectId);
     
     // Buscar unidades do projeto selecionado
     const unitsQuery = query(
       collection(db, 'units'),
-      where('projectId', '==', selectedProjectId)
+      where('projectId', '==', projectId)
     );
     const snapshot = await getDocs(unitsQuery);
     
@@ -76,27 +99,18 @@ function setupCreativeEventListeners() {
     }
   });
 
+  // Quando o projeto mudar, carregar unidades
+  const creativeProjectSelect = document.getElementById('creativeProjectSelect');
+  if (creativeProjectSelect) {
+    creativeProjectSelect.addEventListener('change', () => {
+      const projectId = creativeProjectSelect.value;
+      console.log('🔄 Projeto selecionado:', projectId);
+      loadCreativeUnits(projectId);
+    });
+  }
+
   // Botão de buscar
   document.getElementById('searchCreativesBtn').addEventListener('click', searchCreatives);
-
-  // Quando o projeto mudar na Visão Geral, recarregar unidades
-  const mainProjectSelect = document.getElementById('projectSelect');
-  if (mainProjectSelect) {
-    mainProjectSelect.addEventListener('change', () => {
-      console.log('🔄 Projeto mudou, recarregando unidades...');
-      loadProjectsForCreatives();
-    });
-  }
-
-  // Quando trocar para a aba de Criativos, garantir que as unidades estejam carregadas
-  const tabCriativos = document.getElementById('tabCriativos');
-  if (tabCriativos) {
-    tabCriativos.addEventListener('click', () => {
-      setTimeout(() => {
-        loadProjectsForCreatives();
-      }, 100);
-    });
-  }
 }
 
 // Calcular datas do período
@@ -165,9 +179,18 @@ async function searchCreatives() {
 
   try {
     // Pegar filtros
+    const projectId = document.getElementById('creativeProjectSelect').value;
     const period = document.getElementById('creativePeriodSelect').value;
     const orderBy = document.getElementById('creativeOrderBy').value;
     const unitId = document.getElementById('creativeUnitsSelect').value;
+
+    // Validar projeto
+    if (!projectId) {
+      alert('Por favor, selecione um projeto primeiro.');
+      loadingEl.classList.add('hidden');
+      emptyStateEl.classList.remove('hidden');
+      return;
+    }
 
     // Calcular período
     const dates = calculateCreativePeriod(period);
@@ -175,7 +198,7 @@ async function searchCreatives() {
       throw new Error('Período inválido');
     }
 
-    console.log('🔍 Buscando criativos:', { period, orderBy, unitId, dates });
+    console.log('🔍 Buscando criativos:', { projectId, period, orderBy, unitId, dates });
 
     // Buscar dados do Meta Ads
     const creatives = await fetchCreativesFromMetaAds(unitId, dates);

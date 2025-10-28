@@ -84,6 +84,18 @@ async function loadUnits() {
         // Adicionar listener AQUI, depois de carregar as unidades
         unitSelect.addEventListener('change', handleUnitSelection);
         
+        // Adicionar listeners de data AQUI também, garantindo que DOM está pronto
+        const startDate = document.getElementById('startDate');
+        const endDate = document.getElementById('endDate');
+        
+        if (startDate) {
+            startDate.addEventListener('change', updateMetricsOnPeriodChange);
+        }
+        
+        if (endDate) {
+            endDate.addEventListener('change', updateMetricsOnPeriodChange);
+        }
+        
     } catch (error) {
         console.error('❌ Erro ao carregar unidades:', error);
     }
@@ -238,20 +250,11 @@ function fillUnitMetricsFromSelect(event) {
 
 // Atualizar métricas quando período mudar
 function updateMetricsOnPeriodChange() {
-    console.log('🔄 [updateMetricsOnPeriodChange] Disparado!');
-    
     const unitSelect = document.getElementById('unitSelect');
     const selectedOption = unitSelect?.selectedOptions[0];
     
-    console.log('📋 unitSelect encontrado:', !!unitSelect);
-    console.log('📋 selectedOption:', selectedOption?.value);
-    console.log('📋 tem dataset.unit:', !!selectedOption?.dataset?.unit);
-    
     if (selectedOption && selectedOption.dataset.unit) {
-        console.log('✅ Atualizando métricas da unidade...');
         fillUnitMetricsFromSelect({ target: unitSelect });
-    } else {
-        console.log('⚠️ Nenhuma unidade selecionada - não há o que atualizar');
     }
 }
 
@@ -419,46 +422,8 @@ if (document.readyState === 'loading') {
     loadUnits();
 }
 
-// Event listeners para atualizar métricas quando período mudar
-function setupDateListeners() {
-    console.log('🔧 [setupDateListeners] EXECUTANDO...');
-    console.log('🔧 document.readyState:', document.readyState);
-    
-    const startDate = document.getElementById('startDate');
-    const endDate = document.getElementById('endDate');
-    
-    console.log('🔧 startDate encontrado:', !!startDate);
-    console.log('🔧 endDate encontrado:', !!endDate);
-    
-    if (startDate) {
-        startDate.addEventListener('change', updateMetricsOnPeriodChange);
-        console.log('✅ Listener de startDate adicionado');
-    } else {
-        console.error('❌ Elemento startDate NÃO encontrado!');
-    }
-    
-    if (endDate) {
-        endDate.addEventListener('change', updateMetricsOnPeriodChange);
-        console.log('✅ Listener de endDate adicionado');
-    } else {
-        console.error('❌ Elemento endDate NÃO encontrado!');
-    }
-}
-
-// Adicionar listeners quando DOM estiver pronto
-console.log('🔧 [INIT] Preparando para adicionar listeners de data...');
-console.log('🔧 [INIT] document.readyState:', document.readyState);
-
-if (document.readyState === 'loading') {
-    console.log('🔧 [INIT] DOM ainda carregando - aguardando DOMContentLoaded...');
-    document.addEventListener('DOMContentLoaded', () => {
-        console.log('🔧 [DOMContentLoaded] Disparado! Executando setupDateListeners...');
-        setupDateListeners();
-    });
-} else {
-    console.log('🔧 [INIT] DOM já pronto - executando setupDateListeners imediatamente...');
-    setupDateListeners();
-}
+// NOTA: Listeners de data agora são adicionados dentro de loadUnits()
+// para garantir que DOM esteja pronto
 
 // Verificar autenticação Facebook (não obrigatório, pois pode gerar só Google Ads)
 const currentAccessToken = fbAuth.getAccessToken();

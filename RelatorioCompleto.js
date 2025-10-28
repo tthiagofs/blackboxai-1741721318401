@@ -421,23 +421,42 @@ if (document.readyState === 'loading') {
 
 // Event listeners para atualizar métricas quando período mudar
 function setupDateListeners() {
+    console.log('🔧 [setupDateListeners] EXECUTANDO...');
+    console.log('🔧 document.readyState:', document.readyState);
+    
     const startDate = document.getElementById('startDate');
     const endDate = document.getElementById('endDate');
+    
+    console.log('🔧 startDate encontrado:', !!startDate);
+    console.log('🔧 endDate encontrado:', !!endDate);
     
     if (startDate) {
         startDate.addEventListener('change', updateMetricsOnPeriodChange);
         console.log('✅ Listener de startDate adicionado');
+    } else {
+        console.error('❌ Elemento startDate NÃO encontrado!');
     }
+    
     if (endDate) {
         endDate.addEventListener('change', updateMetricsOnPeriodChange);
         console.log('✅ Listener de endDate adicionado');
+    } else {
+        console.error('❌ Elemento endDate NÃO encontrado!');
     }
 }
 
 // Adicionar listeners quando DOM estiver pronto
+console.log('🔧 [INIT] Preparando para adicionar listeners de data...');
+console.log('🔧 [INIT] document.readyState:', document.readyState);
+
 if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', setupDateListeners);
+    console.log('🔧 [INIT] DOM ainda carregando - aguardando DOMContentLoaded...');
+    document.addEventListener('DOMContentLoaded', () => {
+        console.log('🔧 [DOMContentLoaded] Disparado! Executando setupDateListeners...');
+        setupDateListeners();
+    });
 } else {
+    console.log('🔧 [INIT] DOM já pronto - executando setupDateListeners imediatamente...');
     setupDateListeners();
 }
 

@@ -10,39 +10,7 @@
 <body class="bg-gray-50">
   <div class="min-h-screen flex">
     <!-- Sidebar -->
-    <aside class="w-64 bg-white shadow-lg border-r border-gray-200 hidden md:flex md:flex-col">
-      <div class="p-6 border-b border-gray-200">
-        <h1 class="text-xl font-bold text-gray-800">Relatórios</h1>
-      </div>
-      <nav class="flex-1 px-3 py-2">
-        <a href="/home.html" class="flex items-center px-3 py-2.5 mb-1 border-l-4 border-transparent text-gray-700 hover:bg-gray-50 transition-all">
-          <i class="fas fa-home mr-3 text-sm"></i>
-          <span class="text-sm">Tela Inicial</span>
-        </a>
-        <a href="/dashboard.html" class="flex items-center px-3 py-2.5 mb-1 border-l-4 border-blue-600 bg-blue-50 text-blue-600 transition-all">
-          <i class="fas fa-chart-line mr-3 text-sm"></i>
-          <span class="text-sm">Dashboard</span>
-        </a>
-        <a href="/conexoes.html" class="flex items-center px-3 py-2.5 mb-1 border-l-4 border-transparent text-gray-700 hover:bg-gray-50 transition-all">
-          <i class="fas fa-plug mr-3 text-sm"></i>
-          <span class="text-sm">Conexões</span>
-        </a>
-        <a href="/minha-conta.html" class="flex items-center px-3 py-2.5 mb-1 border-l-4 border-transparent text-gray-700 hover:bg-gray-50 transition-all">
-          <i class="fas fa-user mr-3 text-sm"></i>
-          <span class="text-sm">Minha Conta</span>
-        </a>
-        <a href="/usuarios.html" id="adminLink" class="hidden flex items-center px-3 py-2.5 mb-1 border-l-4 border-transparent text-gray-700 hover:bg-gray-50 transition-all">
-          <i class="fas fa-users-cog mr-3 text-sm"></i>
-          <span class="text-sm">Usuários</span>
-        </a>
-      </nav>
-      <div class="p-3 border-t border-gray-200">
-        <button onclick="history.back()" class="w-full flex items-center px-3 py-2.5 text-gray-700 hover:bg-gray-100 rounded-lg transition-all">
-          <i class="fas fa-arrow-left mr-3 text-sm"></i>
-          <span class="text-sm">Voltar</span>
-        </button>
-      </div>
-    </aside>
+    <div id="app-sidebar" class="hidden md:block"></div>
 
     <!-- Main -->
     <main class="flex-1 p-6">
@@ -186,6 +154,11 @@
     </main>
   </div>
 
+  <script type="module">
+    import { initSidebar } from './components/sidebar.js';
+    // Inicializar sidebar
+    initSidebar('dashboard');
+  </script>
   <script type="module" src="./dashboard-v2.js?v=22.0"></script>
 </body>
 </html>

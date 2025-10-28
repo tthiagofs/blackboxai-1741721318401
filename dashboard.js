@@ -76,7 +76,7 @@ async function loadProjects() {
     try {
         console.log('📂 Carregando projetos...');
         const projectFilter = document.getElementById('projectFilter');
-        const projects = await projectsService.getAllProjects();
+        const projects = await projectsService.listProjects();
         
         console.log(`✅ ${projects.length} projetos encontrados:`, projects);
         

@@ -365,8 +365,18 @@ export class FacebookInsightsService {
                             console.error('❌❌❌ POST RESPONSE TEM ERRO OU É VAZIO!', {
                                 hasResponse: !!postResponse,
                                 hasError: !!postResponse?.error,
-                                fullError: postResponse?.error
+                                errorMessage: postResponse?.error?.message,
+                                errorType: postResponse?.error?.type,
+                                errorCode: postResponse?.error?.code,
+                                errorSubcode: postResponse?.error?.error_subcode,
+                                fullError: postResponse?.error,
+                                fullResponse: postResponse
                             });
+                            console.error('❌ DETALHES DO ERRO:');
+                            console.error('   Mensagem:', postResponse?.error?.message);
+                            console.error('   Tipo:', postResponse?.error?.type);
+                            console.error('   Código:', postResponse?.error?.code);
+                            console.error('   Post ID:', creative.effective_object_story_id);
                         }
                     } catch (err) {
                         console.error('❌❌❌ EXCEÇÃO CAPTURADA ao buscar post existente:', err);

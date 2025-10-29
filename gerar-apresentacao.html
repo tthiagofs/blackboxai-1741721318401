@@ -483,18 +483,18 @@ ul.list-disc li br {
             </div>
 
             <!-- Botões de Ação -->
-            <div class="flex flex-wrap gap-3 mt-6">
+            <div id="actionButtons" class="flex flex-wrap gap-3 mt-6" style="display: none;">
             <button id="backToReportSelectionBtn"
                     class="flex-1 min-w-[200px] bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold py-3 px-6 rounded-lg transition duration-300 flex items-center justify-center">
                 <i class="fas fa-arrow-left mr-2"></i>Voltar
             </button>
             <button id="refreshBtn"
-                    class="flex-1 min-w-[200px] bg-blue-100 hover:bg-blue-200 text-blue-700 font-semibold py-3 px-6 rounded-lg transition duration-300 flex items-center justify-center">
-                    <i class="fas fa-sync-alt mr-2"></i>Atualizar
+                    class="flex-1 min-w-[200px] bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg transition duration-300 flex items-center justify-center">
+                    <i class="fas fa-sync-alt mr-2"></i>Gerar Nova Apresentação
             </button>
-            <button id="shareWhatsAppBtn"
-                    class="hidden flex-1 min-w-[200px] bg-[#25D366] hover:bg-[#20c058] text-white font-semibold py-3 px-6 rounded-lg transition duration-300 flex items-center justify-center">
-                <i class="fab fa-whatsapp mr-2"></i>Compartilhar no WhatsApp
+            <button id="exportPdfBtn"
+                    class="flex-1 min-w-[200px] bg-red-600 hover:bg-red-700 text-white font-semibold py-3 px-6 rounded-lg transition duration-300 flex items-center justify-center">
+                <i class="fas fa-file-pdf mr-2"></i>Exportar PDF
             </button>
         </div>
         </div>
@@ -882,6 +882,31 @@ ul.list-disc li br {
                     saveReportBtn.disabled = false;
                     saveReportBtn.innerHTML = '<i class="fas fa-save mr-3 text-xl"></i><span class="text-lg">Salvar Apresentação</span>';
                 }
+            });
+        }
+        
+        // Botão Exportar PDF
+        const exportPdfBtn = document.getElementById('exportPdfBtn');
+        if (exportPdfBtn) {
+            exportPdfBtn.addEventListener('click', () => {
+                if (!window.currentPresentationData || !window.currentPresentationData.html) {
+                    alert('Erro: Nenhuma apresentação foi gerada ainda');
+                    return;
+                }
+                
+                console.log('📥 Exportando apresentação para PDF...');
+                
+                // Abrir apresentação em nova janela para impressão
+                const printWindow = window.open('', '_blank');
+                printWindow.document.write(window.currentPresentationData.html);
+                printWindow.document.close();
+                
+                // Aguardar carregamento e acionar impressão
+                printWindow.onload = () => {
+                    setTimeout(() => {
+                        printWindow.print();
+                    }, 500);
+                };
             });
         }
     </script>

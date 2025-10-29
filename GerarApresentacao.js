@@ -1274,7 +1274,7 @@ async function generateCompleteReport() {
 
             // Buscar melhores anúncios da Meta
             try {
-                const rawBestAds = await insightsService.getBestPerformingAds(unitId, startDate, endDate, 2);
+                const rawBestAds = await insightsService.getBestPerformingAds(unitId, startDate, endDate, 3);
                 
                 // Transformar dados para o formato esperado pela renderização
                 bestAds = rawBestAds.map(ad => {
@@ -1493,7 +1493,7 @@ async function generateCompleteReport() {
         console.log('🎨 Renderizando apresentação na tela...');
         
         // Importar função de geração de HTML
-        const { generatePresentationHTML } = await import('./gerar-html-apresentacao.js?v=1.1');
+        const { generatePresentationHTML } = await import('./gerar-html-apresentacao.js?v=1.2');
         
         const presentationHTML = generatePresentationHTML({
             unitName: accountName,
@@ -1504,7 +1504,7 @@ async function generateCompleteReport() {
             metaMetrics: separateMetaMetrics,
             googleMetrics: separateGoogleMetrics,
             metaTop3Ads: bestAds.filter(ad => ad.platform === 'meta').slice(0, 3),
-            performanceAnalysis: performanceAnalysis || '',
+            performanceAnalysis: '', // Deixar vazio para o usuário preencher
             budgetsCompleted,
             salesCount,
             revenue
@@ -1522,6 +1522,18 @@ async function generateCompleteReport() {
             setTimeout(() => {
                 reportContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
             }, 100);
+        }
+        
+        // Mostrar seção de análise/próximos passos
+        const analysisSection = document.getElementById('analysisSection');
+        if (analysisSection) {
+            analysisSection.style.display = 'block';
+        }
+        
+        // Mostrar botões de ação
+        const actionButtons = document.getElementById('actionButtons');
+        if (actionButtons) {
+            actionButtons.style.display = 'flex';
         }
         
         // Salvar dados para posterior salvamento no Firebase (quando clicar em "Salvar")
@@ -1543,7 +1555,7 @@ async function generateCompleteReport() {
             budgetsCompleted,
             salesCount,
             revenue,
-            performanceAnalysis: performanceAnalysis || '',
+            performanceAnalysis: '', // Será preenchido pelo usuário
             // HTML gerado
             html: presentationHTML,
             // Configurações
@@ -1552,6 +1564,11 @@ async function generateCompleteReport() {
         };
         
         console.log('💾 Dados salvos para posterior salvamento no Firebase');
+        
+        // Mostrar botão de salvar
+        if (typeof window.showSaveButton === 'function') {
+            window.showSaveButton();
+        }
         
         return; // Não continuar com o resto da função
         

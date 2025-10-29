@@ -276,35 +276,22 @@ function generateRankingPage(ads) {
  * Gerar página de próximos passos
  */
 function generateNextStepsPage(performanceAnalysis) {
-    const analysisText = performanceAnalysis || 'Análise de desempenho não fornecida.';
+    // Converter texto em lista com marcadores
+    const analysisLines = performanceAnalysis ? performanceAnalysis.split('\n').filter(line => line.trim()) : [];
+    const analysisHTML = analysisLines.length > 0 
+        ? analysisLines.map(line => `<li>${line.trim()}</li>`).join('')
+        : '<li>Nenhuma orientação fornecida.</li>';
+    
     return `
     <div class="page proximos-passos">
         <div class="proximos-left">
             <h2 class="proximos-title">PRÓXIMOS<br/>PASSOS</h2>
-            
-            <div class="proximos-stepper">
-                <div class="proximos-step">
-                    <div class="proximos-step-number">1</div>
-                    <div class="proximos-step-text">Análise detalhada dos resultados</div>
-                </div>
-                <div class="proximos-step">
-                    <div class="proximos-step-number">2</div>
-                    <div class="proximos-step-text">Otimização de campanhas</div>
-                </div>
-                <div class="proximos-step">
-                    <div class="proximos-step-number">3</div>
-                    <div class="proximos-step-text">Escalonamento de investimento</div>
-                </div>
-            </div>
         </div>
 
         <div class="proximos-right">
             <h3 class="proximos-subtitle">Orientações</h3>
             <ul class="proximos-list">
-                <li>Continuar investimento em criativos de alta performance</li>
-                <li>Testar novos formatos de anúncios</li>
-                <li>Acompanhar métricas semanalmente</li>
-                <li>Ajustar orçamentos baseado em ROI</li>
+                ${analysisHTML}
             </ul>
 
             <!-- Logo -->

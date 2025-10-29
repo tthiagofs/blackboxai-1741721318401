@@ -227,8 +227,8 @@ export class FacebookInsightsService {
     // Dados do criativo com fallback
     async getCreativeData(adId) {
         try {
-            // Buscar creative com TODOS os campos possíveis de mídia
-            const url = `/${adId}?fields=creative{thumbnail_url,image_hash,image_url,video_id,object_story_spec,effective_object_story_id,asset_feed_spec}&access_token=${this.accessToken}`;
+            // Buscar creative com TODOS os campos possíveis de mídia, incluindo image_crops para melhor qualidade
+            const url = `/${adId}?fields=creative{thumbnail_url,image_hash,image_url,video_id,object_story_spec,effective_object_story_id,asset_feed_spec,image_crops}&access_token=${this.accessToken}`;
             const response = await new Promise((resolve, reject) => {
                 const timeout = setTimeout(() => {
                     reject(new Error('Timeout ao buscar dados do criativo'));
@@ -253,10 +253,23 @@ export class FacebookInsightsService {
                     has_effective_object_story_id: !!creative.effective_object_story_id,
                     has_object_story_spec: !!creative.object_story_spec,
                     has_video_id: !!creative.video_id,
+                    has_image_crops: !!creative.image_crops,
                     effective_object_story_id: creative.effective_object_story_id,
                     video_id: creative.video_id,
                     thumbnail_url: creative.thumbnail_url ? creative.thumbnail_url.substring(0, Math.min(50, creative.thumbnail_url.length)) : null
                 });
+                
+                // TENTAR USAR IMAGE_CROPS para melhor qualidade (não precisa permissões extras!)
+                if (creative.image_crops && creative.image_crops['100x100']) {
+                    console.log('   📸 image_crops disponível! Usando para melhor qualidade');
+                    const crop = creative.image_crops['100x100'][0]; // Pegar primeira crop
+                    if (crop && crop.url) {
+                        imageUrl = crop.url;
+                        type = 'image';
+                        console.log('   ✅ Usando image_crops URL:', imageUrl.substring(0, 100));
+                        return { imageUrl, type };
+                    }
+                }
                 
                 // NOTA: video_id existe mas requer permissões especiais que não temos
                 // Por isso, vamos usar thumbnail_url para posts existentes (qualidade limitada)

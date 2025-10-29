@@ -846,12 +846,24 @@ ul.list-disc li br {
                 const projectId = localStorage.getItem('currentProject');
                 
                 if (!projectId) {
-                    alert('Erro: Nenhum projeto selecionado');
+                    console.error('❌ Erro: Nenhum projeto selecionado');
+                    saveReportBtn.className = 'flex-1 bg-gradient-to-r from-red-600 to-red-700 text-white font-bold py-4 px-6 rounded-xl shadow-lg flex items-center justify-center';
+                    saveReportBtn.innerHTML = '<i class="fas fa-times mr-3 text-xl"></i><span class="text-lg">Erro: Projeto não selecionado</span>';
+                    setTimeout(() => {
+                        saveReportBtn.className = 'flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold py-4 px-6 rounded-xl transition duration-300 transform hover:scale-[1.02] shadow-lg flex items-center justify-center';
+                        saveReportBtn.innerHTML = '<i class="fas fa-save mr-3 text-xl"></i><span class="text-lg">Salvar Apresentação</span>';
+                    }, 3000);
                     return;
                 }
 
                 if (!window.currentPresentationData) {
-                    alert('Erro: Nenhuma apresentação foi gerada ainda');
+                    console.error('❌ Erro: Nenhuma apresentação foi gerada ainda');
+                    saveReportBtn.className = 'flex-1 bg-gradient-to-r from-red-600 to-red-700 text-white font-bold py-4 px-6 rounded-xl shadow-lg flex items-center justify-center';
+                    saveReportBtn.innerHTML = '<i class="fas fa-times mr-3 text-xl"></i><span class="text-lg">Erro: Gere uma apresentação primeiro</span>';
+                    setTimeout(() => {
+                        saveReportBtn.className = 'flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold py-4 px-6 rounded-xl transition duration-300 transform hover:scale-[1.02] shadow-lg flex items-center justify-center';
+                        saveReportBtn.innerHTML = '<i class="fas fa-save mr-3 text-xl"></i><span class="text-lg">Salvar Apresentação</span>';
+                    }, 3000);
                     return;
                 }
 
@@ -872,15 +884,24 @@ ul.list-disc li br {
                         
                         // NÃO redirecionar - usuário pode gerar outra apresentação
                     } else {
-                        alert('❌ Erro ao salvar apresentação: ' + result.error);
+                        console.error('❌ Erro ao salvar apresentação:', result.error);
                         saveReportBtn.disabled = false;
-                        saveReportBtn.innerHTML = '<i class="fas fa-save mr-3 text-xl"></i><span class="text-lg">Salvar Apresentação</span>';
+                        saveReportBtn.className = 'flex-1 bg-gradient-to-r from-red-600 to-red-700 text-white font-bold py-4 px-6 rounded-xl shadow-lg flex items-center justify-center';
+                        saveReportBtn.innerHTML = '<i class="fas fa-times mr-3 text-xl"></i><span class="text-lg">Erro ao salvar</span>';
+                        setTimeout(() => {
+                            saveReportBtn.className = 'flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold py-4 px-6 rounded-xl transition duration-300 transform hover:scale-[1.02] shadow-lg flex items-center justify-center';
+                            saveReportBtn.innerHTML = '<i class="fas fa-save mr-3 text-xl"></i><span class="text-lg">Salvar Apresentação</span>';
+                        }, 3000);
                     }
                 } catch (error) {
-                    console.error('Erro ao salvar apresentação:', error);
-                    alert('❌ Erro ao salvar apresentação. Tente novamente.');
+                    console.error('❌ Erro ao salvar apresentação:', error);
                     saveReportBtn.disabled = false;
-                    saveReportBtn.innerHTML = '<i class="fas fa-save mr-3 text-xl"></i><span class="text-lg">Salvar Apresentação</span>';
+                    saveReportBtn.className = 'flex-1 bg-gradient-to-r from-red-600 to-red-700 text-white font-bold py-4 px-6 rounded-xl shadow-lg flex items-center justify-center';
+                    saveReportBtn.innerHTML = '<i class="fas fa-times mr-3 text-xl"></i><span class="text-lg">Erro ao salvar</span>';
+                    setTimeout(() => {
+                        saveReportBtn.className = 'flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold py-4 px-6 rounded-xl transition duration-300 transform hover:scale-[1.02] shadow-lg flex items-center justify-center';
+                        saveReportBtn.innerHTML = '<i class="fas fa-save mr-3 text-xl"></i><span class="text-lg">Salvar Apresentação</span>';
+                    }, 3000);
                 }
             });
         }
@@ -890,7 +911,7 @@ ul.list-disc li br {
         if (exportPdfBtn) {
             exportPdfBtn.addEventListener('click', () => {
                 if (!window.currentPresentationData || !window.currentPresentationData.html) {
-                    alert('Erro: Nenhuma apresentação foi gerada ainda');
+                    console.error('❌ Erro: Nenhuma apresentação foi gerada ainda');
                     return;
                 }
                 
@@ -898,15 +919,19 @@ ul.list-disc li br {
                 
                 // Abrir apresentação em nova janela para impressão
                 const printWindow = window.open('', '_blank');
-                printWindow.document.write(window.currentPresentationData.html);
-                printWindow.document.close();
-                
-                // Aguardar carregamento e acionar impressão
-                printWindow.onload = () => {
-                    setTimeout(() => {
-                        printWindow.print();
-                    }, 500);
-                };
+                if (printWindow) {
+                    printWindow.document.write(window.currentPresentationData.html);
+                    printWindow.document.close();
+                    
+                    // Aguardar carregamento e acionar impressão
+                    printWindow.onload = () => {
+                        setTimeout(() => {
+                            printWindow.print();
+                        }, 500);
+                    };
+                } else {
+                    console.error('❌ Erro: Bloqueio de popup. Por favor, habilite popups para este site.');
+                }
             });
         }
         
@@ -915,7 +940,7 @@ ul.list-disc li br {
         if (generateFinalReportBtn) {
             generateFinalReportBtn.addEventListener('click', async () => {
                 if (!window.currentPresentationData) {
-                    alert('Erro: Nenhuma apresentação foi gerada ainda');
+                    console.error('❌ Erro: Nenhuma apresentação foi gerada ainda');
                     return;
                 }
                 

@@ -1569,7 +1569,10 @@ async function generateCompleteReport() {
             html: presentationHTML,
             // Configurações
             hasBlack,
-            hasMultiplePlatforms
+            hasMultiplePlatforms,
+            // Metadados
+            createdBy: auth.currentUser?.uid,
+            createdAt: new Date().toISOString()
         };
         
         console.log('💾 Dados salvos para posterior salvamento no Firebase');

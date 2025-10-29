@@ -252,56 +252,85 @@ export class FacebookInsightsService {
                 // PARA "USAR POST EXISTENTE": buscar dados do post original (Stories, Reels, Feed)
                 if (creative.effective_object_story_id && !creative.object_story_spec) {
                     try {
-                        // Buscar TODOS os campos possíveis do post (funciona para Stories, Reels, Feed)
-                        const postUrl = `/${creative.effective_object_story_id}?fields=full_picture,type,source,attachments{media_type,media{source,image{src,width,height}},subattachments,target{id}}&access_token=${this.accessToken}`;
+                        // Buscar TODOS os campos possíveis do post (funciona para Stories, Reels, Feed, Instagram)
+                        const postUrl = `/${creative.effective_object_story_id}?fields=full_picture,picture,type,source,format_type,permalink_url,attachments{media_type,type,media{source,image{src,width,height}},subattachments,target{id}}&access_token=${this.accessToken}`;
                         const postResponse = await new Promise((resolve) => {
                             FB.api(postUrl, (res) => resolve(res));
                         });
                         
                         if (postResponse && !postResponse.error) {
-                            console.log('📱 Post existente:', postResponse);
+                            console.log('📱 Post existente COMPLETO:', {
+                                id: creative.effective_object_story_id,
+                                type: postResponse.type,
+                                format_type: postResponse.format_type,
+                                has_source: !!postResponse.source,
+                                has_full_picture: !!postResponse.full_picture,
+                                has_picture: !!postResponse.picture,
+                                attachments: postResponse.attachments?.data?.[0],
+                                thumbnail_url: creative.thumbnail_url
+                            });
                             
                             // Detectar tipo e pegar ALTA QUALIDADE
                             const attachment = postResponse.attachments?.data?.[0];
                             
                             // VÍDEO (incluindo Reels e Stories de vídeo)
-                            if (postResponse.type === 'video' || 
-                                attachment?.media_type === 'video' ||
-                                postResponse.source) {
+                            // Reels do Instagram geralmente vêm como type='video' OU têm 'source' OU attachment.type='video_inline'
+                            const isVideo = postResponse.type === 'video' || 
+                                          postResponse.source || 
+                                          attachment?.media_type === 'video' ||
+                                          attachment?.type === 'video_inline' ||
+                                          postResponse.format_type === 'video';
+                            
+                            if (isVideo) {
                                 type = 'video';
-                                // Prioridade: source do vídeo (thumbnail de alta), depois media.image.src, depois full_picture
+                                console.log('   🎬 Detectado como VÍDEO');
+                                
+                                // Ordem de prioridade para ALTA QUALIDADE
                                 if (attachment?.media?.image?.src) {
                                     imageUrl = attachment.media.image.src;
-                                } else if (postResponse.full_picture) {
-                                    imageUrl = postResponse.full_picture;
+                                    console.log('   ✅ Usando attachment.media.image.src');
                                 } else if (creative.thumbnail_url) {
                                     imageUrl = creative.thumbnail_url;
+                                    console.log('   ✅ Usando thumbnail_url');
+                                } else if (postResponse.picture) {
+                                    imageUrl = postResponse.picture;
+                                    console.log('   ✅ Usando picture');
+                                } else if (postResponse.full_picture) {
+                                    imageUrl = postResponse.full_picture;
+                                    console.log('   ⚠️ Usando full_picture (pode ser baixa qualidade)');
                                 }
                             } 
                             // CARROSSEL
                             else if (attachment?.subattachments) {
                                 type = 'carousel';
-                                // Pegar a primeira imagem do carrossel em alta qualidade
+                                console.log('   🎠 Detectado como CARROSSEL');
                                 const firstImage = attachment.subattachments.data?.[0]?.media?.image?.src;
                                 imageUrl = firstImage || postResponse.full_picture || creative.thumbnail_url || imageUrl;
                             } 
                             // IMAGEM (incluindo Stories de imagem)
                             else {
                                 type = 'image';
-                                // Pegar imagem em alta qualidade
+                                console.log('   📷 Detectado como IMAGEM');
+                                
                                 if (attachment?.media?.image?.src) {
                                     imageUrl = attachment.media.image.src;
+                                    console.log('   ✅ Usando attachment.media.image.src');
+                                } else if (postResponse.picture) {
+                                    imageUrl = postResponse.picture;
+                                    console.log('   ✅ Usando picture');
                                 } else if (postResponse.full_picture) {
                                     imageUrl = postResponse.full_picture;
+                                    console.log('   ⚠️ Usando full_picture');
                                 } else if (creative.thumbnail_url) {
                                     imageUrl = creative.thumbnail_url;
+                                    console.log('   ✅ Usando thumbnail_url');
                                 }
                             }
                             
-                            console.log(`   Tipo detectado: ${type}, URL: ${imageUrl.substring(0, 50)}...`);
+                            console.log(`   📸 URL final: ${imageUrl.substring(0, 80)}...`);
                         }
                     } catch (err) {
-                        console.warn('Erro ao buscar post existente:', err);
+                        console.error('❌ Erro ao buscar post existente:', err);
                     }
                 }
                 // PARA "CRIAR ANÚNCIO": usar object_story_spec

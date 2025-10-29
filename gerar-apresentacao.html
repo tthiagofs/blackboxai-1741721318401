@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerar Apresentação - Insightflow</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="bg-gray-50 font-sans">
+    <!-- Container Principal -->
+    <div class="min-h-screen flex items-center justify-center p-6">
+        <div class="bg-white rounded-2xl shadow-xl p-8 max-w-2xl w-full">
+            <!-- Header -->
+            <div class="text-center mb-8">
+                <div class="w-16 h-16 bg-gradient-to-br from-purple-600 to-pink-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i class="fas fa-presentation text-white text-2xl"></i>
+                </div>
+                <h1 class="text-3xl font-bold text-gray-900 mb-2">Gerar Apresentação</h1>
+                <p class="text-gray-600">Configure os parâmetros da sua apresentação</p>
+            </div>
+
+            <!-- Formulário -->
+            <form id="presentationForm" class="space-y-6">
+                <!-- Nome da Apresentação -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        <i class="fas fa-tag text-purple-600 mr-2"></i>
+                        Nome da Apresentação
+                    </label>
+                    <input 
+                        type="text" 
+                        id="presentationName" 
+                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                        placeholder="Ex: Apresentação Janeiro 2025"
+                        required
+                    >
+                </div>
+
+                <!-- Unidade -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        <i class="fas fa-building text-purple-600 mr-2"></i>
+                        Unidade
+                    </label>
+                    <select 
+                        id="unitSelect" 
+                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                        required
+                    >
+                        <option value="">Selecione uma unidade...</option>
+                    </select>
+                </div>
+
+                <!-- Período -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        <i class="fas fa-calendar text-purple-600 mr-2"></i>
+                        Período
+                    </label>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs text-gray-600 mb-1">Data Inicial</label>
+                            <input 
+                                type="date" 
+                                id="startDate" 
+                                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                                required
+                            >
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-600 mb-1">Data Final</label>
+                            <input 
+                                type="date" 
+                                id="endDate" 
+                                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                                required
+                            >
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Loading State -->
+                <div id="loadingState" class="hidden">
+                    <div class="bg-purple-50 border border-purple-200 rounded-lg p-4">
+                        <div class="flex items-center gap-3">
+                            <div class="animate-spin rounded-full h-5 w-5 border-b-2 border-purple-600"></div>
+                            <div>
+                                <p class="text-sm font-medium text-purple-900" id="loadingText">Gerando apresentação...</p>
+                                <p class="text-xs text-purple-700" id="loadingSubtext">Isso pode levar alguns segundos</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Error State -->
+                <div id="errorState" class="hidden">
+                    <div class="bg-red-50 border border-red-200 rounded-lg p-4">
+                        <div class="flex items-start gap-3">
+                            <i class="fas fa-exclamation-circle text-red-600 mt-0.5"></i>
+                            <div>
+                                <p class="text-sm font-medium text-red-900">Erro ao gerar apresentação</p>
+                                <p class="text-xs text-red-700" id="errorText"></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Botões -->
+                <div class="flex gap-3 pt-4">
+                    <button 
+                        type="button"
+                        onclick="window.history.back()"
+                        class="flex-1 px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-all font-medium"
+                    >
+                        <i class="fas fa-arrow-left mr-2"></i>
+                        Voltar
+                    </button>
+                    <button 
+                        type="submit"
+                        id="generateBtn"
+                        class="flex-1 px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg hover:from-purple-700 hover:to-pink-700 transition-all font-medium shadow-lg"
+                    >
+                        <i class="fas fa-magic mr-2"></i>
+                        Gerar Apresentação
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script type="module">
+        import { auth, db } from './config/firebase.js';
+        import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+        import { unitsService } from './services/unitsService.js';
+
+        const presentationForm = document.getElementById('presentationForm');
+        const presentationNameInput = document.getElementById('presentationName');
+        const unitSelect = document.getElementById('unitSelect');
+        const startDateInput = document.getElementById('startDate');
+        const endDateInput = document.getElementById('endDate');
+        const generateBtn = document.getElementById('generateBtn');
+        const loadingState = document.getElementById('loadingState');
+        const errorState = document.getElementById('errorState');
+        const loadingText = document.getElementById('loadingText');
+        const loadingSubtext = document.getElementById('loadingSubtext');
+        const errorText = document.getElementById('errorText');
+
+        let currentProjectId = localStorage.getItem('currentProject');
+
+        // Verificar se projeto está selecionado
+        if (!currentProjectId) {
+            alert('Nenhum projeto selecionado');
+            window.location.href = '/home.html';
+        }
+
+        // Definir datas padrão (mês atual)
+        const hoje = new Date();
+        const primeiroDia = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
+        const ultimoDia = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0);
+
+        startDateInput.value = primeiroDia.toISOString().split('T')[0];
+        endDateInput.value = ultimoDia.toISOString().split('T')[0];
+
+        // Nome padrão
+        const meses = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 
+                      'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+        presentationNameInput.value = `Apresentação ${meses[hoje.getMonth()]} ${hoje.getFullYear()}`;
+
+        // Carregar unidades
+        async function loadUnits() {
+            try {
+                const units = await unitsService.listUnits(currentProjectId);
+                
+                // Filtrar apenas unidades com conexões ativas
+                const unitsWithConnections = units.filter(unit => 
+                    (unit.metaAdAccountId && unit.metaAdAccountId.trim() !== '') ||
+                    (unit.googleAdAccountId && unit.googleAdAccountId.trim() !== '')
+                );
+
+                if (unitsWithConnections.length === 0) {
+                    unitSelect.innerHTML = '<option value="">Nenhuma unidade com conexões ativas</option>';
+                    generateBtn.disabled = true;
+                    return;
+                }
+
+                unitSelect.innerHTML = '<option value="">Selecione uma unidade...</option>';
+                unitsWithConnections.forEach(unit => {
+                    const option = document.createElement('option');
+                    option.value = unit.id;
+                    option.textContent = unit.name;
+                    option.dataset.unit = JSON.stringify(unit);
+                    unitSelect.appendChild(option);
+                });
+
+            } catch (error) {
+                console.error('Erro ao carregar unidades:', error);
+                unitSelect.innerHTML = '<option value="">Erro ao carregar unidades</option>';
+                generateBtn.disabled = true;
+            }
+        }
+
+        // Submeter formulário
+        presentationForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            // Esconder estados anteriores
+            errorState.classList.add('hidden');
+            loadingState.classList.remove('hidden');
+            generateBtn.disabled = true;
+
+            try {
+                // Pegar dados do formulário
+                const presentationName = presentationNameInput.value.trim();
+                const selectedOption = unitSelect.options[unitSelect.selectedIndex];
+                const unitData = JSON.parse(selectedOption.dataset.unit);
+                const startDate = startDateInput.value;
+                const endDate = endDateInput.value;
+
+                // Validar datas
+                if (new Date(startDate) > new Date(endDate)) {
+                    throw new Error('A data inicial não pode ser maior que a data final');
+                }
+
+                console.log('📊 Iniciando geração de apresentação...', {
+                    name: presentationName,
+                    unit: unitData.name,
+                    startDate,
+                    endDate
+                });
+
+                // Salvar dados no localStorage para a próxima página
+                localStorage.setItem('presentationData', JSON.stringify({
+                    presentationName,
+                    unitId: unitData.id,
+                    unitName: unitData.name,
+                    unitData,
+                    startDate,
+                    endDate,
+                    projectId: currentProjectId
+                }));
+
+                // Redirecionar para página de processamento
+                window.location.href = '/processar-apresentacao.html';
+
+            } catch (error) {
+                console.error('❌ Erro ao iniciar geração:', error);
+                errorState.classList.remove('hidden');
+                errorText.textContent = error.message;
+                loadingState.classList.add('hidden');
+                generateBtn.disabled = false;
+            }
+        });
+
+        // Carregar dados quando autenticado
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                await loadUnits();
+            } else {
+                window.location.href = '/login.html';
+            }
+        });
+    </script>
+</body>
+</html>
+

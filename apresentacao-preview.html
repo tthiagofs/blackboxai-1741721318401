@@ -21,8 +21,8 @@
     }
 
     .page {
-      width: 1920px;
-      height: 1080px;
+      width: 1280px;
+      height: 720px;
       background: white;
       margin: 20px auto;
       position: relative;
@@ -36,28 +36,28 @@
       display: flex;
       flex-direction: column;
       justify-content: center;
-      padding: 80px 100px;
+      padding: 50px 65px;
       position: relative;
     }
 
     .capa-logo-horizontal {
       position: absolute;
-      top: 60px;
-      left: 100px;
-      height: 70px;
+      top: 40px;
+      left: 65px;
+      height: 45px;
     }
 
     .capa-content {
-      max-width: 900px;
+      max-width: 600px;
       z-index: 2;
     }
 
     .capa-title {
-      font-size: 80px;
+      font-size: 54px;
       font-weight: 700;
       color: #1e5091;
       line-height: 1.1;
-      margin-bottom: 60px;
+      margin-bottom: 40px;
       letter-spacing: -1px;
     }
 
@@ -69,25 +69,25 @@
     .capa-unidade {
       display: flex;
       align-items: center;
-      gap: 15px;
-      font-size: 42px;
+      gap: 10px;
+      font-size: 28px;
       font-weight: 700;
       color: #2563A8;
-      margin-bottom: 30px;
+      margin-bottom: 20px;
     }
 
     .capa-unidade-icon {
-      width: 45px;
-      height: 45px;
+      width: 30px;
+      height: 30px;
       fill: #2563A8;
     }
 
     .capa-periodo {
       display: inline-block;
-      border: 4px solid #2563A8;
-      border-radius: 12px;
-      padding: 18px 45px;
-      font-size: 32px;
+      border: 3px solid #2563A8;
+      border-radius: 8px;
+      padding: 12px 30px;
+      font-size: 22px;
       color: #2563A8;
       font-weight: 400;
       background: white;
@@ -95,11 +95,12 @@
 
     .capa-rocket {
       position: absolute;
-      bottom: 120px;
-      right: 150px;
-      width: 650px;
-      height: 650px;
+      bottom: 50px;
+      right: 80px;
+      width: 450px;
+      height: 450px;
       z-index: 1;
+      background: url('https://cdn-icons-png.flaticon.com/512/2920/2920277.png') center/contain no-repeat;
     }
 
     .capa-footer {
@@ -107,38 +108,38 @@
       bottom: 0;
       left: 0;
       right: 0;
-      height: 25px;
+      height: 15px;
       background: linear-gradient(90deg, #1e7fd4 0%, #2563A8 100%);
     }
 
     /* === PÁGINA 2 - RESULTADOS === */
     .resultados {
-      padding: 70px 100px;
+      padding: 45px 65px;
       background: #ffffff;
       position: relative;
     }
 
     .resultados-logo-horizontal {
       position: absolute;
-      top: 60px;
-      right: 100px;
-      height: 65px;
+      top: 40px;
+      right: 65px;
+      height: 42px;
     }
 
     .resultados-header {
-      margin-bottom: 50px;
+      margin-bottom: 35px;
     }
 
     .resultados-title {
-      font-size: 48px;
+      font-size: 32px;
       font-weight: 600;
       color: #7B4397;
-      margin-bottom: 5px;
+      margin-bottom: 3px;
       letter-spacing: 2px;
     }
 
     .resultados-subtitle {
-      font-size: 56px;
+      font-size: 38px;
       font-weight: 700;
       color: #2563A8;
       letter-spacing: 0px;
@@ -146,20 +147,20 @@
 
     .resultados-container {
       display: grid;
-      grid-template-columns: 1fr 1.3fr;
-      gap: 50px;
+      grid-template-columns: 1fr 1.4fr;
+      gap: 35px;
     }
 
     .resultados-left {
       display: flex;
       flex-direction: column;
-      gap: 20px;
+      gap: 14px;
     }
 
     .card-white {
-      border: 4px solid #2563A8;
-      border-radius: 15px;
-      padding: 22px 35px;
+      border: 3px solid #2563A8;
+      border-radius: 10px;
+      padding: 14px 24px;
       background: white;
       display: flex;
       justify-content: space-between;
@@ -167,13 +168,13 @@
     }
 
     .card-white-label {
-      font-size: 28px;
-      color: #333;
+      font-size: 19px;
+      color: #666;
       font-weight: 400;
     }
 
     .card-white-value {
-      font-size: 38px;
+      font-size: 26px;
       color: #2563A8;
       font-weight: 600;
     }
@@ -181,32 +182,32 @@
     .resultados-right {
       display: flex;
       flex-direction: column;
-      gap: 20px;
+      gap: 14px;
     }
 
     .card-purple {
-      border-radius: 15px;
-      background: linear-gradient(90deg, #7B4397 0%, #8B4FA5 100%);
-      padding: 22px 40px;
+      border-radius: 10px;
+      background: #7B4397;
+      padding: 14px 26px;
       display: grid;
       grid-template-columns: 1fr auto;
       align-items: center;
-      gap: 25px;
+      gap: 20px;
     }
 
     .card-purple-metric {
-      font-size: 32px;
+      font-size: 21px;
       color: white;
-      font-weight: 500;
+      font-weight: 400;
     }
 
     .card-purple-cost {
       background: white;
-      border-radius: 10px;
-      padding: 12px 30px;
-      font-size: 28px;
-      color: #333;
-      font-weight: 600;
+      border-radius: 8px;
+      padding: 8px 20px;
+      font-size: 19px;
+      color: #666;
+      font-weight: 400;
       white-space: nowrap;
     }
 
@@ -215,14 +216,14 @@
       bottom: 0;
       left: 0;
       right: 0;
-      height: 25px;
-      background: linear-gradient(90deg, #7B4397 0%, #8B4FA5 100%);
+      height: 15px;
+      background: #7B4397;
     }
 
     /* === PÁGINA 3 - RANKING === */
     .ranking {
       background: #7B4397;
-      padding: 80px 100px;
+      padding: 50px 65px;
       position: relative;
       overflow: hidden;
     }
@@ -238,27 +239,27 @@
         repeating-linear-gradient(
           45deg,
           transparent,
-          transparent 100px,
-          rgba(255,255,255,0.02) 100px,
-          rgba(255,255,255,0.02) 200px
+          transparent 70px,
+          rgba(255,255,255,0.02) 70px,
+          rgba(255,255,255,0.02) 140px
         );
       pointer-events: none;
     }
 
     .ranking-logo-circle {
       position: absolute;
-      top: 70px;
-      right: 100px;
-      width: 120px;
-      height: 120px;
+      top: 45px;
+      right: 65px;
+      width: 80px;
+      height: 80px;
       z-index: 2;
     }
 
     .ranking-title {
-      font-size: 72px;
+      font-size: 48px;
       font-weight: 700;
       color: white;
-      margin-bottom: 60px;
+      margin-bottom: 40px;
       text-transform: uppercase;
       line-height: 1.15;
       letter-spacing: 2px;
@@ -269,21 +270,21 @@
     .ranking-cards {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
-      gap: 40px;
+      gap: 26px;
       position: relative;
       z-index: 1;
     }
 
     .ranking-card {
       background: white;
-      border-radius: 18px;
+      border-radius: 12px;
       overflow: hidden;
-      box-shadow: 0 8px 30px rgba(0,0,0,0.25);
+      box-shadow: 0 5px 20px rgba(0,0,0,0.25);
     }
 
     .ranking-card-image {
       width: 100%;
-      height: 380px;
+      height: 250px;
       background: linear-gradient(135deg, #e0e0e0 0%, #f5f5f5 100%);
       display: flex;
       align-items: center;
@@ -303,8 +304,8 @@
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
-      width: 80px;
-      height: 80px;
+      width: 55px;
+      height: 55px;
       background: rgba(255,255,255,0.95);
       border-radius: 50%;
       display: flex;
@@ -317,27 +318,27 @@
       content: '';
       width: 0;
       height: 0;
-      border-left: 25px solid #7B4397;
-      border-top: 15px solid transparent;
-      border-bottom: 15px solid transparent;
-      margin-left: 5px;
+      border-left: 18px solid #7B4397;
+      border-top: 11px solid transparent;
+      border-bottom: 11px solid transparent;
+      margin-left: 3px;
     }
 
     .ranking-card-info {
       background: white;
-      padding: 25px;
+      padding: 16px;
       text-align: center;
     }
 
     .ranking-card-leads {
-      font-size: 26px;
+      font-size: 17px;
       color: #1e5091;
       font-weight: 700;
-      margin-bottom: 5px;
+      margin-bottom: 3px;
     }
 
     .ranking-card-cpl {
-      font-size: 30px;
+      font-size: 20px;
       color: #7B4397;
       font-weight: 700;
     }
@@ -346,12 +347,12 @@
     .proximos-passos {
       display: grid;
       grid-template-columns: 40% 60%;
-      height: 100%;
+      height: 720px;
     }
 
     .passos-left {
       background: linear-gradient(135deg, #1976D2 0%, #1e5091 100%);
-      padding: 100px 70px;
+      padding: 65px 45px;
       display: flex;
       flex-direction: column;
       justify-content: space-between;
@@ -359,7 +360,7 @@
     }
 
     .passos-title {
-      font-size: 68px;
+      font-size: 45px;
       font-weight: 700;
       color: white;
       text-transform: uppercase;
@@ -370,15 +371,15 @@
     .passos-stepper {
       display: flex;
       align-items: center;
-      gap: 20px;
+      gap: 13px;
       margin-top: auto;
     }
 
     .passos-step {
-      width: 70px;
-      height: 70px;
+      width: 47px;
+      height: 47px;
       border-radius: 50%;
-      border: 4px solid white;
+      border: 3px solid white;
       background: white;
       display: flex;
       align-items: center;
@@ -388,7 +389,7 @@
 
     .passos-step.completed::after {
       content: '✓';
-      font-size: 40px;
+      font-size: 26px;
       color: #1976D2;
       font-weight: 700;
     }
@@ -398,14 +399,14 @@
     }
 
     .passos-step-line {
-      width: 50px;
-      height: 4px;
+      width: 33px;
+      height: 3px;
       background: white;
     }
 
     .passos-right {
       background: #f8f9fa;
-      padding: 100px 80px;
+      padding: 65px 55px;
       display: flex;
       flex-direction: column;
       justify-content: flex-start;
@@ -413,10 +414,10 @@
     }
 
     .passos-right-title {
-      font-size: 44px;
+      font-size: 30px;
       color: #1e5091;
       font-weight: 600;
-      margin-bottom: 50px;
+      margin-bottom: 35px;
     }
 
     .passos-list {
@@ -424,10 +425,10 @@
     }
 
     .passos-list li {
-      font-size: 28px;
+      font-size: 19px;
       color: #1e5091;
-      margin-bottom: 35px;
-      padding-left: 35px;
+      margin-bottom: 24px;
+      padding-left: 24px;
       position: relative;
       line-height: 1.5;
       font-weight: 400;
@@ -437,16 +438,16 @@
       content: "○";
       position: absolute;
       left: 0;
-      font-size: 32px;
+      font-size: 22px;
       font-weight: 700;
       color: #1e5091;
     }
 
     .passos-logo-horizontal {
       position: absolute;
-      bottom: 60px;
-      right: 80px;
-      height: 60px;
+      bottom: 40px;
+      right: 55px;
+      height: 40px;
     }
 
     /* === PÁGINA 5 - OBRIGADO === */
@@ -460,13 +461,13 @@
     }
 
     .obrigado-logo {
-      width: 200px;
-      height: 200px;
-      margin-bottom: 50px;
+      width: 130px;
+      height: 130px;
+      margin-bottom: 35px;
     }
 
     .obrigado-text {
-      font-size: 120px;
+      font-size: 80px;
       font-weight: 700;
       color: #2563A8;
       text-transform: uppercase;
@@ -519,39 +520,8 @@
       </div>
     </div>
 
-    <!-- Foguete 3D (SVG ilustrativo) -->
-    <svg class="capa-rocket" viewBox="0 0 500 500" xmlns="http://www.w3.org/2000/svg">
-      <!-- Círculo de fundo -->
-      <circle cx="250" cy="250" r="220" fill="#E3F2FD" opacity="0.6"/>
-      <!-- Estrelas decorativas -->
-      <polygon points="150,100 155,115 170,115 158,123 163,138 150,130 137,138 142,123 130,115 145,115" fill="#64B5F6" opacity="0.7"/>
-      <polygon points="380,280 383,288 391,288 385,293 388,301 380,296 372,301 375,293 369,288 377,288" fill="#64B5F6" opacity="0.7"/>
-      <polygon points="420,180 423,188 431,188 425,193 428,201 420,196 412,201 415,193 409,188 417,188" fill="#90CAF9" opacity="0.6"/>
-      
-      <!-- Foguete -->
-      <!-- Corpo principal -->
-      <ellipse cx="250" cy="280" rx="55" ry="150" fill="#42A5F5" transform="rotate(-25 250 280)"/>
-      <ellipse cx="250" cy="280" rx="45" ry="145" fill="#1E88E5" transform="rotate(-25 250 280)"/>
-      <ellipse cx="250" cy="280" rx="35" ry="140" fill="#1976D2" transform="rotate(-25 250 280)"/>
-      
-      <!-- Ponta do foguete -->
-      <path d="M 200 150 L 250 100 L 300 150 Q 280 170 250 175 Q 220 170 200 150 Z" fill="#1565C0"/>
-      <path d="M 210 155 L 250 110 L 290 155 Q 275 170 250 173 Q 225 170 210 155 Z" fill="#0D47A1"/>
-      
-      <!-- Janela -->
-      <circle cx="250" cy="240" r="25" fill="#81D4FA" opacity="0.8"/>
-      <circle cx="250" cy="240" r="20" fill="#B3E5FC"/>
-      
-      <!-- Aletas -->
-      <path d="M 180 320 L 150 380 L 200 350 Z" fill="#1565C0" transform="rotate(-25 250 280)"/>
-      <path d="M 320 320 L 350 380 L 300 350 Z" fill="#0D47A1" transform="rotate(-25 250 280)"/>
-      
-      <!-- Fogo/Propulsão -->
-      <ellipse cx="240" cy="420" rx="30" ry="50" fill="#FF6F00" opacity="0.8" transform="rotate(-25 250 280)"/>
-      <ellipse cx="240" cy="420" rx="20" ry="40" fill="#FF8F00" opacity="0.9" transform="rotate(-25 250 280)"/>
-      <ellipse cx="240" cy="420" rx="12" ry="30" fill="#FFA726" opacity="0.95" transform="rotate(-25 250 280)"/>
-      <ellipse cx="240" cy="430" rx="8" ry="20" fill="#FFB74D" transform="rotate(-25 250 280)"/>
-    </svg>
+    <!-- Foguete 3D (Imagem) -->
+    <div class="capa-rocket"></div>
 
     <div class="capa-footer"></div>
   </div>

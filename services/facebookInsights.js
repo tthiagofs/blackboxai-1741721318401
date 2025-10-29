@@ -264,14 +264,20 @@ export class FacebookInsightsService {
                     try {
                         // Buscar thumbnail de alta qualidade do vídeo
                         const videoUrl = `/${creative.video_id}?fields=picture,source&access_token=${this.accessToken}`;
+                        console.log(`   📡 Chamando FB.api para vídeo...`);
+                        
                         const videoResponse = await new Promise((resolve) => {
-                            FB.api(videoUrl, (res) => resolve(res));
+                            FB.api(videoUrl, (res) => {
+                                console.log(`   🔙 FB.api vídeo retornou:`, res);
+                                resolve(res);
+                            });
                         });
                         
                         if (videoResponse && !videoResponse.error) {
                             console.log('   ✅ Dados do vídeo recebidos:', {
                                 has_picture: !!videoResponse.picture,
-                                has_source: !!videoResponse.source
+                                has_source: !!videoResponse.source,
+                                picture_url: videoResponse.picture ? videoResponse.picture.substring(0, 100) : null
                             });
                             
                             // picture = thumbnail HD, source = URL do vídeo completo
@@ -279,12 +285,16 @@ export class FacebookInsightsService {
                                 imageUrl = videoResponse.picture;
                                 type = 'video';
                                 console.log('   🎬 Usando thumbnail HD do vídeo!');
-                                console.log(`   📸 URL: ${imageUrl.substring(0, 100)}...`);
+                                console.log(`   📸 URL HD: ${imageUrl.substring(0, 100)}...`);
                                 return { imageUrl, type };
+                            } else {
+                                console.warn('   ⚠️ Vídeo retornou mas SEM picture!');
                             }
+                        } else {
+                            console.error('   ❌ Erro ao buscar vídeo:', videoResponse?.error);
                         }
                     } catch (err) {
-                        console.warn('   ⚠️ Erro ao buscar vídeo, usando fallback:', err.message);
+                        console.error('   ❌ Exceção ao buscar vídeo:', err);
                     }
                 }
                 

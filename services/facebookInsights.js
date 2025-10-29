@@ -227,6 +227,7 @@ export class FacebookInsightsService {
     // Dados do criativo com fallback
     async getCreativeData(adId) {
         try {
+            // Buscar creative com thumbnail_url que é a melhor qualidade
             const url = `/${adId}?fields=creative{thumbnail_url,image_hash,image_url,object_story_spec,effective_object_story_id,asset_feed_spec}&access_token=${this.accessToken}`;
             const response = await new Promise((resolve, reject) => {
                 const timeout = setTimeout(() => {
@@ -248,25 +249,40 @@ export class FacebookInsightsService {
                 let imageUrl = 'https://via.placeholder.com/200x200?text=Sem+Imagem';
                 let type = 'image'; // padrão
                 
+                // Primeiro: Sempre tentar thumbnail_url (melhor qualidade para TODOS os tipos)
+                if (creative.thumbnail_url) {
+                    imageUrl = creative.thumbnail_url;
+                }
+                
                 // Detectar tipo baseado em object_story_spec
                 if (creative.object_story_spec) {
                     // Vídeo
                     if (creative.object_story_spec.video_data) {
                         type = 'video';
-                        // Para vídeos: priorizar thumbnail_url (melhor qualidade)
-                        imageUrl = creative.thumbnail_url || creative.object_story_spec.video_data.image_url || imageUrl;
+                        // Se não tinha thumbnail, tentar video image_url
+                        if (!creative.thumbnail_url && creative.object_story_spec.video_data.image_url) {
+                            imageUrl = creative.object_story_spec.video_data.image_url;
+                        }
                     }
                     // Carrossel
                     else if (creative.object_story_spec.link_data?.child_attachments) {
                         type = 'carousel';
-                        // Para carrosséis: priorizar thumbnail_url também
-                        imageUrl = creative.thumbnail_url || creative.object_story_spec.link_data.picture || imageUrl;
+                        // Se não tinha thumbnail, tentar link_data picture
+                        if (!creative.thumbnail_url && creative.object_story_spec.link_data.picture) {
+                            imageUrl = creative.object_story_spec.link_data.picture;
+                        }
                     }
                     // Imagem estática
-                    else if (creative.object_story_spec.link_data?.picture) {
+                    else if (creative.object_story_spec.link_data?.picture || creative.object_story_spec.link_data) {
                         type = 'image';
-                        // Para imagens: TAMBÉM priorizar thumbnail_url (igual aos vídeos!)
-                        imageUrl = creative.thumbnail_url || creative.image_url || creative.object_story_spec.link_data.picture;
+                        // Se não tinha thumbnail, tentar outras fontes
+                        if (!creative.thumbnail_url) {
+                            if (creative.image_url) {
+                                imageUrl = creative.image_url;
+                            } else if (creative.object_story_spec.link_data?.picture) {
+                                imageUrl = creative.object_story_spec.link_data.picture;
+                            }
+                        }
                     }
                 }
                 
@@ -275,11 +291,9 @@ export class FacebookInsightsService {
                     type = 'carousel';
                 }
                 
-                // Fallback universal para thumbnail_url (mesma lógica para todos os tipos)
+                // Fallback final
                 if (!imageUrl || imageUrl === 'https://via.placeholder.com/200x200?text=Sem+Imagem') {
-                    if (creative.thumbnail_url) {
-                        imageUrl = creative.thumbnail_url;
-                    } else if (creative.image_url) {
+                    if (creative.image_url) {
                         imageUrl = creative.image_url;
                     }
                 }

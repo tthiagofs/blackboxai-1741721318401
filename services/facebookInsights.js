@@ -249,6 +249,16 @@ export class FacebookInsightsService {
                 let imageUrl = 'https://via.placeholder.com/200x200?text=Sem+Imagem';
                 let type = 'image'; // padrão
                 
+                // Log completo do creative para debug (temporário)
+                console.log(`📸 Creative raw data:`, {
+                    has_thumbnail: !!creative.thumbnail_url,
+                    has_image_url: !!creative.image_url,
+                    has_object_story_spec: !!creative.object_story_spec,
+                    has_effective_object_story_id: !!creative.effective_object_story_id,
+                    thumbnail_preview: creative.thumbnail_url ? creative.thumbnail_url.substring(0, 60) : null,
+                    image_url_preview: creative.image_url ? creative.image_url.substring(0, 60) : null
+                });
+                
                 // Primeiro: Sempre tentar thumbnail_url (melhor qualidade para TODOS os tipos)
                 if (creative.thumbnail_url) {
                     imageUrl = creative.thumbnail_url;
@@ -289,6 +299,14 @@ export class FacebookInsightsService {
                 // Detectar carrossel via asset_feed_spec
                 if (creative.asset_feed_spec) {
                     type = 'carousel';
+                }
+                
+                // Fallback final: tentar image_url se ainda não tiver nada válido
+                if (!imageUrl || imageUrl.includes('placeholder')) {
+                    if (creative.image_url) {
+                        console.log(`   ↪️ Usando image_url como fallback`);
+                        imageUrl = creative.image_url;
+                    }
                 }
                 
                 return { imageUrl, type };

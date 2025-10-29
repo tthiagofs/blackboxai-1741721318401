@@ -333,6 +333,12 @@ async function fetchCreativesFromMetaAds(projectId, unitId, dates) {
     for (const ad of top10) {
       try {
         const creativeData = await fbService.getCreativeData(ad.id);
+        
+        // Debug: verificar se recebeu URL válida
+        if (!creativeData.imageUrl || creativeData.imageUrl.includes('placeholder')) {
+          console.warn(`⚠️ "${ad.name}": sem imagem válida (${creativeData.type})`);
+        }
+        
         ad.thumbnailUrl = creativeData.imageUrl || ad.thumbnailUrl;
         ad.type = creativeData.type || ad.type;
       } catch (error) {

@@ -467,19 +467,23 @@ function renderCreatives(creatives) {
   countEl.textContent = `${creatives.length} criativos encontrados`;
   
   listEl.innerHTML = creatives.map((creative, index) => {
-    // Determinar badges
-    let badge = '';
+    // Determinar badges (pode ter múltiplas)
+    let badges = [];
     const bestCPL = Math.min(...creatives.filter(c => c.cpl > 0).map(c => c.cpl));
     const mostLeads = Math.max(...creatives.map(c => c.leads));
     const mostImpressions = Math.max(...creatives.map(c => c.impressions));
     
     if (creative.cpl > 0 && creative.cpl === bestCPL) {
-      badge = '<span class="inline-block px-2 py-1 bg-green-100 text-green-700 text-xs font-semibold rounded ml-2">⭐ MELHOR CPL</span>';
-    } else if (creative.leads === mostLeads) {
-      badge = '<span class="inline-block px-2 py-1 bg-blue-100 text-blue-700 text-xs font-semibold rounded ml-2">🔥 MAIS LEADS</span>';
-    } else if (creative.impressions === mostImpressions) {
-      badge = '<span class="inline-block px-2 py-1 bg-purple-100 text-purple-700 text-xs font-semibold rounded ml-2">👁️ MAIS VISTO</span>';
+      badges.push('<span class="inline-block px-2 py-1 bg-green-100 text-green-700 text-xs font-semibold rounded ml-2">⭐ MELHOR CPL</span>');
     }
+    if (creative.leads === mostLeads && creative.leads > 0) {
+      badges.push('<span class="inline-block px-2 py-1 bg-blue-100 text-blue-700 text-xs font-semibold rounded ml-2">🔥 MAIS LEADS</span>');
+    }
+    if (creative.impressions === mostImpressions && creative.impressions > 0) {
+      badges.push('<span class="inline-block px-2 py-1 bg-purple-100 text-purple-700 text-xs font-semibold rounded ml-2">👁️ MAIS VISTO</span>');
+    }
+    
+    const badge = badges.join('');
 
     // Ícone do tipo
     let typeIcon = '📷';

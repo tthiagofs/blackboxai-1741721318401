@@ -226,7 +226,7 @@ async function searchCreatives() {
 
     console.log('🔍 Iniciando busca de criativos...');
 
-    // Buscar dados do Meta Ads
+    // Buscar dados do Meta Ads (já retorna apenas TOP 10 com imagens)
     const creatives = await fetchCreativesFromMetaAds(projectId, unitId, dates);
 
     if (!creatives || creatives.length === 0) {
@@ -236,11 +236,8 @@ async function searchCreatives() {
       return;
     }
 
-    // Ordenar
-    sortCreatives(creatives, orderBy);
-
-    // Limitar aos top 10
-    allCreatives = creatives.slice(0, 10);
+    // Já vem ordenado e limitado aos TOP 10 com imagens
+    allCreatives = creatives;
 
     // Renderizar
     renderCreatives(allCreatives);
@@ -354,8 +351,9 @@ async function fetchCreativesFromMetaAds(projectId, unitId, dates) {
       }
     }
     
-    console.log(`✅ ${allAds.length} anúncios encontrados, ${top10.length} com preview em alta qualidade`);
-    return allAds;
+    console.log(`✅ ${allAds.length} anúncios encontrados, retornando TOP ${top10.length} com preview em alta qualidade`);
+    // IMPORTANTE: Retornar APENAS os TOP 10 que tiveram imagens buscadas
+    return top10;
 
   } catch (error) {
     console.error('Erro ao buscar do Meta Ads:', error);

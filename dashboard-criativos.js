@@ -456,7 +456,7 @@ function renderCreatives(creatives) {
       <div class="flex items-start gap-4 p-4 border border-gray-200 rounded-lg hover:shadow-md transition-shadow">
         <div class="flex-shrink-0">
           <img src="${creative.thumbnailUrl}" alt="${creative.name}" class="w-32 h-32 object-cover rounded-lg border border-gray-200" 
-               onerror="this.onerror=null; this.src='${creative.thumbnailUrl.replace('p720x720','p360x360')}'; setTimeout(() => { if(this.complete && this.naturalHeight === 0) this.src='https://via.placeholder.com/200x200?text=Sem+Imagem'; }, 2000);" 
+               onerror="this.src='https://via.placeholder.com/200x200?text=Sem+Imagem'" 
                loading="lazy">
           <span class="text-xs text-gray-500 mt-1 block text-center">${typeIcon} ${creative.type === 'video' ? 'Vídeo' : creative.type === 'carousel' ? 'Carrossel' : 'Imagem'}</span>
         </div>

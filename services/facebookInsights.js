@@ -365,28 +365,14 @@ export class FacebookInsightsService {
                             console.warn('⚠️ Sem permissão para acessar post orgânico, usando FALLBACK inteligente');
                             console.warn('   Erro:', postResponse?.error?.message);
                             
-                            // FALLBACK: Usar thumbnail_url e detectar tipo pela URL ou nome do arquivo
+                            // FALLBACK: Usar thumbnail_url SEM MODIFICAR (Facebook rejeita URLs customizadas)
                             if (creative.thumbnail_url) {
-                                let thumbnailUrl = creative.thumbnail_url;
-                                
-                                // FORÇAR ALTA QUALIDADE: Substituir parâmetros de tamanho na URL
-                                // ESTRATÉGIA: Substituir tamanhos pequenos por grandes (não remover!)
-                                thumbnailUrl = thumbnailUrl
-                                    .replace(/_s\d+x\d+/g, '')                    // Remove _s200x200, _s150x150, etc
-                                    .replace(/_\d+\./g, '_720.')                  // Substitui _128., _256. por _720.
-                                    .replace(/&width=\d+/g, '&width=1080')        // Força width maior
-                                    .replace(/&height=\d+/g, '&height=1080')      // Força height maior
-                                    .replace(/p64x64/g, 'p720x720')               // Substitui p64x64 por p720x720
-                                    .replace(/p128x128/g, 'p720x720')             // Substitui p128x128 por p720x720
-                                    .replace(/p200x200/g, 'p720x720')             // Substitui p200x200 por p720x720
-                                    .replace(/p360x360/g, 'p720x720')             // Substitui p360x360 por p720x720
-                                    .replace(/q75/g, 'q95');                      // Aumenta qualidade JPEG de 75% para 95%
-                                
-                                imageUrl = thumbnailUrl;
+                                // Usar URL original sem modificações - Facebook valida hash da URL
+                                imageUrl = creative.thumbnail_url;
                                 
                                 // Detectar se é vídeo pela URL do thumbnail
                                 // URLs de vídeo geralmente contém "video", "scontent", "fna.fbcdn.net/v/t15"
-                                const urlLower = thumbnailUrl.toLowerCase();
+                                const urlLower = creative.thumbnail_url.toLowerCase();
                                 const isLikelyVideo = urlLower.includes('/v/t15') || 
                                                      urlLower.includes('video') || 
                                                      urlLower.includes('t15.5256');
@@ -399,14 +385,8 @@ export class FacebookInsightsService {
                                     console.log('   📷 Detectado como IMAGEM (pela URL do thumbnail)');
                                 }
                                 
-                                console.log('   ✅ Usando thumbnail_url como fallback (ALTA QUALIDADE)');
-                                console.log('   🔗 URL ORIGINAL COMPLETA:', creative.thumbnail_url);
-                                console.log('   🔗 URL OTIMIZADA COMPLETA:', thumbnailUrl);
-                                console.log('   📏 Mudanças aplicadas:', {
-                                    removeuTamanho: creative.thumbnail_url !== thumbnailUrl,
-                                    tamanhoOriginal: creative.thumbnail_url.length,
-                                    tamanhoOtimizado: thumbnailUrl.length
-                                });
+                                console.log('   ✅ Usando thumbnail_url original (Facebook valida hash)');
+                                console.log(`   📸 URL: ${imageUrl.substring(0, 100)}...`);
                             }
                         }
                     } catch (err) {

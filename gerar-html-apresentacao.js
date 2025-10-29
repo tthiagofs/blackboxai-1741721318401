@@ -113,15 +113,22 @@ function generateResultsPage(metrics, platformName, budgetsCompleted, salesCount
     const invested = metrics?.spend || 0;
     const clicks = metrics?.clicks || 0;
     const messages = metrics?.conversations || 0;
+    const leads = metrics?.conversions || 0;
     
     // Usar dados manuais da planilha
     const sales = salesCount || 0;
     const faturamento = revenue || 0;
     const orcamentos = budgetsCompleted || 0;
     
-    // Calcular métricas derivadas
+    // Calcular métricas principais
     const ticketMedio = sales > 0 ? faturamento / sales : 0;
     const roi = invested > 0 ? (faturamento * 0.25) / invested : 0;
+    
+    // Calcular métricas de custo (CPC, CPL, CPO, CPV)
+    const cpc = clicks > 0 ? invested / clicks : 0;
+    const cpl = leads > 0 ? invested / leads : 0;
+    const cpo = orcamentos > 0 ? invested / orcamentos : 0;
+    const cpv = sales > 0 ? invested / sales : 0;
     
     console.log('📊 Dados da página de resultados:', {
         platformName,
@@ -130,9 +137,14 @@ function generateResultsPage(metrics, platformName, budgetsCompleted, salesCount
         ticketMedio,
         roi,
         clicks,
+        leads,
         messages,
         orcamentos,
         sales,
+        cpc,
+        cpl,
+        cpo,
+        cpv,
         metricsReceived: metrics
     });
     
@@ -160,32 +172,48 @@ function generateResultsPage(metrics, platformName, budgetsCompleted, salesCount
                     <div class="card-value">${formatCurrency(faturamento)}</div>
                 </div>
                 <div class="card-white">
-                    <div class="card-label">Ticket Médio</div>
+                    <div class="card-label">Ticket médio</div>
                     <div class="card-value">${formatCurrency(ticketMedio)}</div>
                 </div>
                 <div class="card-white">
-                    <div class="card-label">ROI</div>
+                    <div class="card-label">Roi</div>
                     <div class="card-value">${roi.toFixed(2)}</div>
                 </div>
             </div>
 
             <!-- Cards Roxos (Direita) -->
             <div class="resultados-column">
-                <div class="card-purple">
-                    <div class="card-label">Cliques</div>
-                    <div class="card-value">${formatNumber(clicks)}</div>
+                <div class="card-purple card-split">
+                    <div class="card-split-left">
+                        <div class="card-label">${formatNumber(clicks)} | Cliques</div>
+                    </div>
+                    <div class="card-split-right">
+                        <div class="card-label">CPC | ${formatCurrency(cpc)}</div>
+                    </div>
                 </div>
-                <div class="card-purple">
-                    <div class="card-label">Mensagens</div>
-                    <div class="card-value">${formatNumber(messages)}</div>
+                <div class="card-purple card-split">
+                    <div class="card-split-left">
+                        <div class="card-label">${formatNumber(leads)} | Leads</div>
+                    </div>
+                    <div class="card-split-right">
+                        <div class="card-label">CPL | ${formatCurrency(cpl)}</div>
+                    </div>
                 </div>
-                <div class="card-purple">
-                    <div class="card-label">Orçamentos</div>
-                    <div class="card-value">${formatNumber(orcamentos)}</div>
+                <div class="card-purple card-split">
+                    <div class="card-split-left">
+                        <div class="card-label">${formatNumber(orcamentos)} | Orçamentos</div>
+                    </div>
+                    <div class="card-split-right">
+                        <div class="card-label">CPO | ${formatCurrency(cpo)}</div>
+                    </div>
                 </div>
-                <div class="card-purple">
-                    <div class="card-label">Fechamentos</div>
-                    <div class="card-value">${formatNumber(sales)}</div>
+                <div class="card-purple card-split">
+                    <div class="card-split-left">
+                        <div class="card-label">${formatNumber(sales)} | Vendas</div>
+                    </div>
+                    <div class="card-split-right">
+                        <div class="card-label">CPV | ${formatCurrency(cpv)}</div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -511,6 +539,37 @@ function getStyles() {
 
     .card-purple .card-value {
       color: white;
+    }
+
+    .card-split {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 15px;
+    }
+
+    .card-split-left,
+    .card-split-right {
+      flex: 1;
+      display: flex;
+      align-items: center;
+    }
+
+    .card-split-left {
+      justify-content: flex-start;
+    }
+
+    .card-split-right {
+      justify-content: flex-end;
+      text-align: right;
+    }
+
+    .card-split .card-label {
+      font-size: 18px;
+      font-weight: 600;
+      color: white;
+      margin-bottom: 0;
+      white-space: nowrap;
     }
 
     .resultados-footer {

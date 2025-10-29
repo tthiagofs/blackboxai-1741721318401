@@ -113,7 +113,6 @@ function generateResultsPage(metrics, platformName, budgetsCompleted, salesCount
     const invested = metrics?.spend || 0;
     const clicks = metrics?.clicks || 0;
     const messages = metrics?.conversations || 0;
-    const leads = metrics?.conversions || 0;
     
     // Usar dados manuais da planilha
     const sales = salesCount || 0;
@@ -126,7 +125,7 @@ function generateResultsPage(metrics, platformName, budgetsCompleted, salesCount
     
     // Calcular métricas de custo (CPC, CPL, CPO, CPV)
     const cpc = clicks > 0 ? invested / clicks : 0;
-    const cpl = leads > 0 ? invested / leads : 0;
+    const cpl = messages > 0 ? invested / messages : 0;  // CPL = Custo por Mensagem (não por lead)
     const cpo = orcamentos > 0 ? invested / orcamentos : 0;
     const cpv = sales > 0 ? invested / sales : 0;
     
@@ -137,7 +136,6 @@ function generateResultsPage(metrics, platformName, budgetsCompleted, salesCount
         ticketMedio,
         roi,
         clicks,
-        leads,
         messages,
         orcamentos,
         sales,
@@ -193,10 +191,10 @@ function generateResultsPage(metrics, platformName, budgetsCompleted, salesCount
                 </div>
                 <div class="card-purple card-split">
                     <div class="card-split-left">
-                        <div class="card-label">${formatNumber(leads)} | Leads</div>
+                        <div class="card-label">${formatNumber(messages)} | Mensagens</div>
                     </div>
                     <div class="card-split-right">
-                        <div class="card-label">CPL | ${formatCurrency(cpl)}</div>
+                        <div class="card-label">CPM | ${formatCurrency(cpl)}</div>
                     </div>
                 </div>
                 <div class="card-purple card-split">

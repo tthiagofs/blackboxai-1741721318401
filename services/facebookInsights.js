@@ -227,7 +227,7 @@ export class FacebookInsightsService {
     // Dados do criativo com fallback
     async getCreativeData(adId) {
         try {
-            // Buscar creative com image_hash para pegar imagem de alta qualidade
+            // Buscar creative com effective_object_story_id para posts existentes
             const url = `/${adId}?fields=creative{thumbnail_url,image_hash,image_url,object_story_spec,effective_object_story_id,asset_feed_spec}&access_token=${this.accessToken}`;
             const response = await new Promise((resolve, reject) => {
                 const timeout = setTimeout(() => {
@@ -249,8 +249,33 @@ export class FacebookInsightsService {
                 let imageUrl = 'https://via.placeholder.com/200x200?text=Sem+Imagem';
                 let type = 'image'; // padrão
                 
-                // Detectar tipo baseado em object_story_spec
-                if (creative.object_story_spec) {
+                // PARA "USAR POST EXISTENTE": buscar dados do post original
+                if (creative.effective_object_story_id && !creative.object_story_spec) {
+                    try {
+                        const postUrl = `/${creative.effective_object_story_id}?fields=full_picture,type,attachments{media_type,media,subattachments}&access_token=${this.accessToken}`;
+                        const postResponse = await new Promise((resolve) => {
+                            FB.api(postUrl, (res) => resolve(res));
+                        });
+                        
+                        if (postResponse && !postResponse.error) {
+                            // Detectar tipo do post
+                            if (postResponse.type === 'video' || postResponse.attachments?.data?.[0]?.media_type === 'video') {
+                                type = 'video';
+                                imageUrl = postResponse.attachments?.data?.[0]?.media?.image?.src || postResponse.full_picture || imageUrl;
+                            } else if (postResponse.attachments?.data?.[0]?.subattachments) {
+                                type = 'carousel';
+                                imageUrl = postResponse.full_picture || postResponse.attachments.data[0].media?.image?.src || imageUrl;
+                            } else {
+                                type = 'image';
+                                imageUrl = postResponse.full_picture || postResponse.attachments?.data?.[0]?.media?.image?.src || imageUrl;
+                            }
+                        }
+                    } catch (err) {
+                        console.warn('Erro ao buscar post existente:', err);
+                    }
+                }
+                // PARA "CRIAR ANÚNCIO": usar object_story_spec
+                else if (creative.object_story_spec) {
                     // Vídeo
                     if (creative.object_story_spec.video_data) {
                         type = 'video';
@@ -274,7 +299,7 @@ export class FacebookInsightsService {
                 }
                 
                 // Se tiver image_hash, buscar imagem de ALTA QUALIDADE usando a Graph API
-                if (creative.image_hash) {
+                if (creative.image_hash && type === 'image') {
                     try {
                         const imageHashUrl = `/${creative.image_hash}?fields=url_128&access_token=${this.accessToken}`;
                         const imageHashResponse = await new Promise((resolve) => {

@@ -107,6 +107,15 @@
         import { googleAuth } from './authGoogle.js';
         import { FacebookInsightsService } from './services/facebookInsights.js';
         import { GoogleAdsService } from './services/googleAdsService.js';
+        import { 
+            filterSpreadsheetByPlatform, 
+            extractMessages, 
+            calculateConsolidatedMetrics,
+            fetchTop3Ads,
+            formatCurrency,
+            formatNumber,
+            formatDate
+        } from './processar-apresentacao.js';
 
         // Estado dos steps
         function updateStep(stepId, state) {
@@ -218,10 +227,74 @@
                 updateStep('step3', 'loading');
                 console.log('📊 Processando métricas...');
                 
-                // TODO: Filtrar dados da planilha por fontes e exclusões
-                // TODO: Calcular métricas totais
+                // Buscar dados da planilha da unidade
+                const excludeMaintenance = true; // TODO: Pegar das configurações do usuário
                 
-                await new Promise(resolve => setTimeout(resolve, 1000));
+                let metaSpreadsheetData = null;
+                let googleSpreadsheetData = null;
+                let metaTop3Ads = [];
+
+                if (unitData.budgetData && unitData.budgetData.rawData) {
+                    console.log(`📋 Processando planilha com ${unitData.budgetData.rawData.length} registros`);
+                    
+                    // Filtrar dados para Meta (Facebook + Instagram)
+                    if (hasMeta) {
+                        metaSpreadsheetData = filterSpreadsheetByPlatform(
+                            unitData.budgetData.rawData,
+                            'meta',
+                            excludeMaintenance
+                        );
+                        console.log('📊 Dados Meta planilha:', metaSpreadsheetData);
+                    }
+
+                    // Filtrar dados para Google
+                    if (hasGoogle) {
+                        googleSpreadsheetData = filterSpreadsheetByPlatform(
+                            unitData.budgetData.rawData,
+                            'google',
+                            excludeMaintenance
+                        );
+                        console.log('📊 Dados Google planilha:', googleSpreadsheetData);
+                    }
+                } else {
+                    console.warn('⚠️ Unidade sem dados de planilha');
+                }
+
+                // Calcular métricas consolidadas
+                let metaConsolidated = null;
+                let googleConsolidated = null;
+
+                if (hasMeta && metaMetrics) {
+                    metaConsolidated = calculateConsolidatedMetrics({
+                        metaMetrics,
+                        spreadsheetData: metaSpreadsheetData,
+                        platform: 'meta'
+                    });
+                    console.log('✅ Métricas Meta consolidadas:', metaConsolidated);
+
+                    // Buscar top 3 anúncios do Meta
+                    const token = fbAuth.getAccessToken();
+                    if (token) {
+                        const fbService = new FacebookInsightsService(token);
+                        metaTop3Ads = await fetchTop3Ads(
+                            unitData.metaAdAccountId,
+                            startDate,
+                            endDate,
+                            fbService
+                        );
+                        console.log('🏆 Top 3 anúncios:', metaTop3Ads);
+                    }
+                }
+
+                if (hasGoogle && googleMetrics) {
+                    googleConsolidated = calculateConsolidatedMetrics({
+                        googleMetrics,
+                        spreadsheetData: googleSpreadsheetData,
+                        platform: 'google'
+                    });
+                    console.log('✅ Métricas Google consolidadas:', googleConsolidated);
+                }
+
                 updateStep('step3', 'success');
 
                 // STEP 4: Gerar apresentação

@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Escolher Tipo de Relatório - Insightflow</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-white min-h-screen font-sans m-0 p-0">
+    <!-- Proteção de Auth -->
+    <script type="module">
+        import { auth } from './config/firebase.js';
+        import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+        
+        onAuthStateChanged(auth, (user) => {
+            if (!user) {
+                window.location.href = '/login.html';
+                return;
+            }
+        });
+    </script>
+
+    <!-- Container Principal -->
+    <div class="flex min-h-screen w-full">
+        <!-- Sidebar -->
+        <aside id="sidebar" class="w-56 bg-white flex flex-col border-r border-gray-200">
+            <!-- Logo -->
+            <div class="p-6">
+                <h1 class="text-xl font-bold text-gray-800">Relatórios</h1>
+            </div>
+
+            <!-- Menu de Navegação -->
+            <nav class="flex-1 px-3">
+                <a href="/home.html" class="flex items-center px-3 py-2.5 mb-1 border-l-4 border-blue-600 bg-blue-50 text-blue-600 transition-all">
+                    <i class="fas fa-home mr-3 text-sm"></i>
+                    <span class="text-sm">Tela Inicial</span>
+                </a>
+                
+                <a href="/dashboard.html" class="flex items-center px-3 py-2.5 mb-1 border-l-4 border-transparent text-gray-700 hover:bg-gray-50 transition-all">
+                    <i class="fas fa-chart-line mr-3 text-sm"></i>
+                    <span class="text-sm">Dashboard</span>
+                </a>
+                
+                <a href="/conexoes.html" class="flex items-center px-3 py-2.5 mb-1 border-l-4 border-transparent text-gray-700 hover:bg-gray-50 transition-all">
+                    <i class="fas fa-plug mr-3 text-sm"></i>
+                    <span class="text-sm">Conexões</span>
+                </a>
+                
+                <a href="/minha-conta.html" class="flex items-center px-3 py-2.5 mb-1 border-l-4 border-transparent text-gray-700 hover:bg-gray-50 transition-all">
+                    <i class="fas fa-user mr-3 text-sm"></i>
+                    <span class="text-sm">Minha Conta</span>
+                </a>
+                
+                <!-- Link Admin (apenas para admins) -->
+                <a href="/usuarios.html" id="adminLink" class="hidden flex items-center px-3 py-2.5 mb-1 border-l-4 border-transparent text-gray-700 hover:bg-gray-50 transition-all">
+                    <i class="fas fa-users mr-3 text-sm"></i>
+                    <span class="text-sm">Usuários</span>
+                </a>
+            </nav>
+
+            <!-- Botão Sair -->
+            <div class="p-3">
+                <button id="logoutBtn" class="w-full flex items-center px-3 py-2.5 text-red-600 hover:bg-red-50 rounded-lg transition-all">
+                    <i class="fas fa-sign-out-alt mr-3 text-sm"></i>
+                    <span class="text-sm">Log out</span>
+                </button>
+            </div>
+        </aside>
+
+        <!-- Conteúdo Principal -->
+        <main class="flex-1 p-10 bg-gray-50 flex items-center justify-center">
+            <div class="max-w-4xl w-full">
+                <!-- Header com botão voltar -->
+                <div class="mb-8 flex items-center">
+                    <button id="backBtn" class="mr-4 text-gray-600 hover:text-gray-900 transition-colors">
+                        <i class="fas fa-arrow-left text-xl"></i>
+                    </button>
+                    <div>
+                        <h2 class="text-2xl font-bold text-gray-900">Escolha o Tipo de Relatório</h2>
+                        <p class="text-sm text-gray-600">Selecione o formato desejado para seu relatório</p>
+                    </div>
+                </div>
+
+                <!-- Grid de Opções -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Relatório Completo -->
+                    <div class="bg-white border-2 border-gray-200 rounded-lg p-8 hover:border-blue-600 hover:shadow-xl transition-all cursor-pointer group" onclick="selectReportType('completo')">
+                        <div class="text-center">
+                            <div class="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:bg-blue-600 transition-all">
+                                <i class="fas fa-chart-line text-4xl text-blue-600 group-hover:text-white transition-all"></i>
+                            </div>
+                            <h3 class="text-xl font-bold text-gray-900 mb-3">Relatório Completo</h3>
+                            <p class="text-sm text-gray-600 mb-4">
+                                Análise detalhada com todas as métricas, comparativos e insights avançados
+                            </p>
+                            <ul class="text-left text-sm text-gray-600 space-y-2 mb-6">
+                                <li class="flex items-start">
+                                    <i class="fas fa-check text-green-600 mr-2 mt-1"></i>
+                                    <span>Métricas detalhadas por campanha</span>
+                                </li>
+                                <li class="flex items-start">
+                                    <i class="fas fa-check text-green-600 mr-2 mt-1"></i>
+                                    <span>Comparação com períodos anteriores</span>
+                                </li>
+                                <li class="flex items-start">
+                                    <i class="fas fa-check text-green-600 mr-2 mt-1"></i>
+                                    <span>Análise de performance por conjunto</span>
+                                </li>
+                                <li class="flex items-start">
+                                    <i class="fas fa-check text-green-600 mr-2 mt-1"></i>
+                                    <span>Dados manuais personalizados</span>
+                                </li>
+                            </ul>
+                            <button class="w-full bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-all font-medium">
+                                Escolher Completo
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Relatório Simplificado -->
+                    <div class="bg-white border-2 border-gray-200 rounded-lg p-8 hover:border-green-600 hover:shadow-xl transition-all cursor-pointer group" onclick="selectReportType('simplificado')">
+                        <div class="text-center">
+                            <div class="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:bg-green-600 transition-all">
+                                <i class="fas fa-chart-bar text-4xl text-green-600 group-hover:text-white transition-all"></i>
+                            </div>
+                            <h3 class="text-xl font-bold text-gray-900 mb-3">Relatório Simplificado</h3>
+                            <p class="text-sm text-gray-600 mb-4">
+                                Visão geral rápida com as principais métricas e KPIs essenciais
+                            </p>
+                            <ul class="text-left text-sm text-gray-600 space-y-2 mb-6">
+                                <li class="flex items-start">
+                                    <i class="fas fa-check text-green-600 mr-2 mt-1"></i>
+                                    <span>Métricas principais consolidadas</span>
+                                </li>
+                                <li class="flex items-start">
+                                    <i class="fas fa-check text-green-600 mr-2 mt-1"></i>
+                                    <span>Visão geral de performance</span>
+                                </li>
+                                <li class="flex items-start">
+                                    <i class="fas fa-check text-green-600 mr-2 mt-1"></i>
+                                    <span>Geração rápida de relatório</span>
+                                </li>
+                                <li class="flex items-start">
+                                    <i class="fas fa-check text-green-600 mr-2 mt-1"></i>
+                                    <span>Ideal para acompanhamento diário</span>
+                                </li>
+                            </ul>
+                            <button class="w-full bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition-all font-medium">
+                                Escolher Simplificado
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script type="module">
+        import { auth } from './config/firebase.js';
+        import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+        import { authService } from './services/authService.js?v=1.4';
+
+        const logoutBtn = document.getElementById('logoutBtn');
+        const adminLink = document.getElementById('adminLink');
+        const backBtn = document.getElementById('backBtn');
+
+        // Verificar se tem projeto selecionado
+        const currentProject = localStorage.getItem('currentProject');
+        if (!currentProject) {
+            alert('Nenhum projeto selecionado');
+            window.location.href = '/home.html';
+        }
+
+        // Voltar para o projeto
+        backBtn.addEventListener('click', () => {
+            window.location.href = `/projeto.html?id=${currentProject}`;
+        });
+
+        // Logout
+        logoutBtn.addEventListener('click', async () => {
+            if (confirm('Tem certeza que deseja sair?')) {
+                await authService.logout();
+                window.location.href = '/login.html';
+            }
+        });
+
+        // Selecionar tipo de relatório
+        window.selectReportType = (type) => {
+            if (type === 'completo') {
+                window.location.href = '/RelatorioCompleto.html';
+            } else if (type === 'simplificado') {
+                window.location.href = '/RelatorioSimplificado.html';
+            }
+        };
+
+        // Carregar dados do usuário e mostrar link admin
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                const userData = authService.getCurrentUser();
+                if (userData && userData.role === 'admin') {
+                    adminLink.classList.remove('hidden');
+                }
+            }
+        });
+    </script>
+</body>
+</html>
+

@@ -249,26 +249,56 @@ export class FacebookInsightsService {
                 let imageUrl = 'https://via.placeholder.com/200x200?text=Sem+Imagem';
                 let type = 'image'; // padrão
                 
-                // PARA "USAR POST EXISTENTE": buscar dados do post original
+                // PARA "USAR POST EXISTENTE": buscar dados do post original (Stories, Reels, Feed)
                 if (creative.effective_object_story_id && !creative.object_story_spec) {
                     try {
-                        const postUrl = `/${creative.effective_object_story_id}?fields=full_picture,type,attachments{media_type,media,subattachments}&access_token=${this.accessToken}`;
+                        // Buscar TODOS os campos possíveis do post (funciona para Stories, Reels, Feed)
+                        const postUrl = `/${creative.effective_object_story_id}?fields=full_picture,type,source,attachments{media_type,media{source,image{src,width,height}},subattachments,target{id}}&access_token=${this.accessToken}`;
                         const postResponse = await new Promise((resolve) => {
                             FB.api(postUrl, (res) => resolve(res));
                         });
                         
                         if (postResponse && !postResponse.error) {
-                            // Detectar tipo do post
-                            if (postResponse.type === 'video' || postResponse.attachments?.data?.[0]?.media_type === 'video') {
+                            console.log('📱 Post existente:', postResponse);
+                            
+                            // Detectar tipo e pegar ALTA QUALIDADE
+                            const attachment = postResponse.attachments?.data?.[0];
+                            
+                            // VÍDEO (incluindo Reels e Stories de vídeo)
+                            if (postResponse.type === 'video' || 
+                                attachment?.media_type === 'video' ||
+                                postResponse.source) {
                                 type = 'video';
-                                imageUrl = postResponse.attachments?.data?.[0]?.media?.image?.src || postResponse.full_picture || imageUrl;
-                            } else if (postResponse.attachments?.data?.[0]?.subattachments) {
+                                // Prioridade: source do vídeo (thumbnail de alta), depois media.image.src, depois full_picture
+                                if (attachment?.media?.image?.src) {
+                                    imageUrl = attachment.media.image.src;
+                                } else if (postResponse.full_picture) {
+                                    imageUrl = postResponse.full_picture;
+                                } else if (creative.thumbnail_url) {
+                                    imageUrl = creative.thumbnail_url;
+                                }
+                            } 
+                            // CARROSSEL
+                            else if (attachment?.subattachments) {
                                 type = 'carousel';
-                                imageUrl = postResponse.full_picture || postResponse.attachments.data[0].media?.image?.src || imageUrl;
-                            } else {
+                                // Pegar a primeira imagem do carrossel em alta qualidade
+                                const firstImage = attachment.subattachments.data?.[0]?.media?.image?.src;
+                                imageUrl = firstImage || postResponse.full_picture || creative.thumbnail_url || imageUrl;
+                            } 
+                            // IMAGEM (incluindo Stories de imagem)
+                            else {
                                 type = 'image';
-                                imageUrl = postResponse.full_picture || postResponse.attachments?.data?.[0]?.media?.image?.src || imageUrl;
+                                // Pegar imagem em alta qualidade
+                                if (attachment?.media?.image?.src) {
+                                    imageUrl = attachment.media.image.src;
+                                } else if (postResponse.full_picture) {
+                                    imageUrl = postResponse.full_picture;
+                                } else if (creative.thumbnail_url) {
+                                    imageUrl = creative.thumbnail_url;
+                                }
                             }
+                            
+                            console.log(`   Tipo detectado: ${type}, URL: ${imageUrl.substring(0, 50)}...`);
                         }
                     } catch (err) {
                         console.warn('Erro ao buscar post existente:', err);

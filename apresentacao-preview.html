@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Preview Apresentação - Oral Centter</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Inter', 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #e8eaf6 0%, #f5f5f5 100%);
+      padding: 20px;
+    }
+
+    /* Container para cada página */
+    .page {
+      width: 1200px;
+      height: 675px; /* 16:9 ratio */
+      margin: 20px auto;
+      background: white;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.12);
+      border-radius: 8px;
+      page-break-after: always;
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* === PÁGINA 1 - CAPA === */
+    .capa {
+      background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+
+    .capa::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: radial-gradient(ellipse at top right, rgba(43, 127, 204, 0.08) 0%, transparent 50%);
+      pointer-events: none;
+    }
+
+    .capa-logo {
+      position: absolute;
+      top: 50px;
+      left: 50%;
+      transform: translateX(-50%);
+      text-align: center;
+    }
+
+    .logo-circle {
+      width: 90px;
+      height: 90px;
+      border: 6px solid #2B7FCC;
+      border-radius: 50%;
+      margin: 0 auto 15px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 20px rgba(43, 127, 204, 0.2);
+      background: white;
+    }
+
+    .logo-smile {
+      width: 50px;
+      height: 25px;
+      border: 5px solid #2B7FCC;
+      border-top: none;
+      border-radius: 0 0 50px 50px;
+    }
+
+    .logo-text {
+      font-size: 44px;
+      font-weight: 800;
+      color: #2B7FCC;
+      letter-spacing: -1px;
+    }
+
+    .logo-text span {
+      color: #6B46C1;
+    }
+
+    .capa-content {
+      text-align: left;
+      z-index: 2;
+      margin-top: -50px;
+    }
+
+    .capa-title {
+      font-size: 78px;
+      font-weight: 900;
+      background: linear-gradient(135deg, #2B7FCC 0%, #1a5fa8 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      line-height: 1.05;
+      margin-bottom: 15px;
+      letter-spacing: -2px;
+    }
+
+    .capa-subtitle {
+      font-size: 52px;
+      font-weight: 300;
+      color: #555;
+      margin-bottom: 35px;
+      letter-spacing: 8px;
+    }
+
+    .capa-periodo {
+      display: inline-block;
+      background: linear-gradient(135deg, #2B7FCC 0%, #1a5fa8 100%);
+      border-radius: 50px;
+      padding: 16px 55px;
+      font-size: 26px;
+      color: white;
+      font-weight: 600;
+      box-shadow: 0 6px 25px rgba(43, 127, 204, 0.3);
+      letter-spacing: 1px;
+    }
+
+    .capa-rocket {
+      position: absolute;
+      bottom: 30px;
+      right: 80px;
+      font-size: 300px;
+      transform: rotate(-15deg);
+      opacity: 0.85;
+      filter: drop-shadow(0 10px 30px rgba(0,0,0,0.15));
+    }
+
+    /* === PÁGINA 2 - RESULTADOS === */
+    .resultados {
+      padding: 55px 80px;
+      background: linear-gradient(135deg, #ffffff 0%, #fafafa 100%);
+    }
+
+    .resultados-title {
+      font-size: 58px;
+      font-weight: 800;
+      background: linear-gradient(135deg, #6B46C1 0%, #5B3A99 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 8px;
+      text-transform: uppercase;
+      line-height: 1.1;
+      letter-spacing: -1px;
+    }
+
+    .resultados-subtitle {
+      font-size: 36px;
+      font-weight: 400;
+      color: #7e5bb0;
+      margin-bottom: 45px;
+      letter-spacing: 2px;
+    }
+
+    .resultados-container {
+      display: grid;
+      grid-template-columns: 1fr 1.3fr;
+      gap: 50px;
+      align-items: center;
+    }
+
+    /* Cards da esquerda */
+    .cards-left {
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    .card-metric {
+      border: 3px solid #6B46C1;
+      border-radius: 18px;
+      padding: 22px 32px;
+      background: linear-gradient(135deg, #ffffff 0%, #fdfcff 100%);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 4px 15px rgba(107, 70, 193, 0.08);
+      transition: all 0.3s ease;
+    }
+
+    .card-metric:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 25px rgba(107, 70, 193, 0.15);
+    }
+
+    .card-metric-label {
+      font-size: 20px;
+      color: #6B46C1;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .card-metric-value {
+      font-size: 38px;
+      background: linear-gradient(135deg, #6B46C1 0%, #5B3A99 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      font-weight: 800;
+    }
+
+    /* Funil da direita */
+    .funnel-container {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      padding: 15px 0;
+      position: relative;
+    }
+
+    .funnel-container::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(to bottom, 
+        transparent 0%, 
+        rgba(107, 70, 193, 0.03) 25%,
+        rgba(107, 70, 193, 0.05) 50%,
+        rgba(107, 70, 193, 0.08) 75%,
+        rgba(107, 70, 193, 0.1) 100%
+      );
+      border-radius: 20px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .funnel-step {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: relative;
+      z-index: 1;
+    }
+
+    .funnel-bar {
+      background: linear-gradient(135deg, #001B5E 0%, #002880 100%);
+      border-radius: 0 50px 50px 0;
+      padding: 20px 35px;
+      color: white;
+      font-size: 22px;
+      font-weight: 700;
+      flex-grow: 1;
+      transition: all 0.3s ease;
+      position: relative;
+      box-shadow: 0 4px 15px rgba(0, 27, 94, 0.25);
+      letter-spacing: 0.5px;
+    }
+
+    .funnel-bar::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 8px;
+      height: 60%;
+      background: rgba(255,255,255,0.2);
+      border-radius: 0 10px 10px 0;
+    }
+
+    .funnel-step:nth-child(1) .funnel-bar { width: 100%; }
+    .funnel-step:nth-child(2) .funnel-bar { width: 90%; }
+    .funnel-step:nth-child(3) .funnel-bar { width: 78%; }
+    .funnel-step:nth-child(4) .funnel-bar { width: 65%; }
+
+    .funnel-metric {
+      background: white;
+      border: 3px solid #6B46C1;
+      border-radius: 50px;
+      padding: 20px 32px;
+      margin-left: 18px;
+      min-width: 230px;
+      text-align: center;
+      font-size: 19px;
+      color: #6B46C1;
+      font-weight: 700;
+      box-shadow: 0 4px 15px rgba(107, 70, 193, 0.1);
+      letter-spacing: 0.5px;
+    }
+
+    /* === PÁGINA 3 - RANKING === */
+    .ranking {
+      background: linear-gradient(135deg, #6B46C1 0%, #8B5DC9 50%, #5B3A99 100%);
+      padding: 55px 80px;
+      position: relative;
+    }
+
+    .ranking::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: radial-gradient(ellipse at bottom left, rgba(255,255,255,0.1) 0%, transparent 50%);
+      pointer-events: none;
+    }
+
+    .ranking-title {
+      font-size: 76px;
+      font-weight: 900;
+      color: white;
+      margin-bottom: 55px;
+      text-transform: uppercase;
+      line-height: 0.95;
+      letter-spacing: -2px;
+      text-shadow: 0 4px 20px rgba(0,0,0,0.2);
+      position: relative;
+      z-index: 1;
+    }
+
+    .ranking-cards {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 35px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .ranking-card {
+      background: white;
+      border-radius: 22px;
+      overflow: hidden;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .ranking-card:hover {
+      transform: translateY(-8px);
+      box-shadow: 0 15px 50px rgba(0,0,0,0.4);
+    }
+
+    .ranking-card-image {
+      width: 100%;
+      height: 270px;
+      background: linear-gradient(135deg, #e0e0e0 0%, #f5f5f5 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      color: #999;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .ranking-card-image::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(to bottom, transparent 60%, rgba(0,0,0,0.1) 100%);
+      pointer-events: none;
+    }
+
+    .ranking-card-image img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .ranking-card-footer {
+      background: white;
+      padding: 22px;
+      text-align: center;
+    }
+
+    .ranking-card-leads {
+      font-size: 26px;
+      color: #001B5E;
+      font-weight: 800;
+      margin-bottom: 6px;
+      letter-spacing: 0.5px;
+    }
+
+    .ranking-card-cpl {
+      font-size: 30px;
+      background: linear-gradient(135deg, #6B46C1 0%, #8B5DC9 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+    }
+
+    /* === PÁGINA 4 - PRÓXIMOS PASSOS === */
+    .proximos-passos {
+      display: grid;
+      grid-template-columns: 45% 55%;
+    }
+
+    .passos-left {
+      background: linear-gradient(135deg, #001B5E 0%, #002880 50%, #003399 100%);
+      padding: 80px 60px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+
+    .passos-left::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: radial-gradient(ellipse at center, rgba(255,255,255,0.08) 0%, transparent 60%);
+      pointer-events: none;
+    }
+
+    .passos-title {
+      font-size: 72px;
+      font-weight: 900;
+      color: white;
+      text-transform: uppercase;
+      line-height: 0.95;
+      letter-spacing: -2px;
+      text-shadow: 0 4px 20px rgba(0,0,0,0.3);
+      position: relative;
+      z-index: 1;
+    }
+
+    .passos-right {
+      background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+      padding: 80px 65px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    .passos-subtitle {
+      font-size: 34px;
+      color: #333;
+      margin-bottom: 35px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+    }
+
+    .passos-list {
+      list-style: none;
+    }
+
+    .passos-list li {
+      font-size: 26px;
+      color: #5B3A99;
+      margin-bottom: 20px;
+      padding-left: 35px;
+      position: relative;
+      line-height: 1.5;
+      font-weight: 500;
+      letter-spacing: 0.3px;
+    }
+
+    .passos-list li:before {
+      content: "○";
+      position: absolute;
+      left: 0;
+      font-size: 32px;
+      font-weight: 700;
+      color: #6B46C1;
+    }
+
+    /* === PÁGINA 5 - OBRIGADO === */
+    .obrigado {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+      position: relative;
+    }
+
+    .obrigado::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: radial-gradient(ellipse at center, rgba(107, 70, 193, 0.05) 0%, transparent 60%);
+      pointer-events: none;
+    }
+
+    .obrigado-text {
+      font-size: 130px;
+      font-weight: 900;
+      background: linear-gradient(135deg, #6B46C1 0%, #8B5DC9 50%, #6B46C1 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      text-transform: uppercase;
+      letter-spacing: -3px;
+      position: relative;
+      z-index: 1;
+      text-shadow: 0 10px 30px rgba(107, 70, 193, 0.2);
+    }
+
+    .obrigado-line {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      height: 5px;
+      background: linear-gradient(90deg, 
+        transparent 0%, 
+        rgba(107, 70, 193, 0.3) 10%,
+        rgba(107, 70, 193, 0.8) 30%,
+        #6B46C1 50%,
+        rgba(107, 70, 193, 0.8) 70%,
+        rgba(107, 70, 193, 0.3) 90%,
+        transparent 100%
+      );
+      box-shadow: 0 -2px 20px rgba(107, 70, 193, 0.3);
+    }
+
+    /* Print styles */
+    @media print {
+      body {
+        background: white;
+        padding: 0;
+      }
+      .page {
+        margin: 0;
+        box-shadow: none;
+        border-radius: 0;
+      }
+      .card-metric:hover,
+      .ranking-card:hover {
+        transform: none;
+      }
+    }
+
+    /* Responsividade para telas menores */
+    @media screen and (max-width: 1400px) {
+      .page {
+        width: 100%;
+        height: auto;
+        aspect-ratio: 16/9;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- PÁGINA 1 - CAPA -->
+  <div class="page capa">
+    <div class="capa-logo">
+      <div class="logo-circle">
+        <div class="logo-smile"></div>
+      </div>
+      <div class="logo-text">Oral <span>Centter</span></div>
+    </div>
+
+    <div class="capa-content">
+      <h1 class="capa-title">RELATÓRIO DE<br>RESULTADOS</h1>
+      <p class="capa-subtitle">JAÍBA</p>
+      <div class="capa-periodo">01 a 30 de Setembro 2025</div>
+    </div>
+
+    <div class="capa-rocket">🚀</div>
+  </div>
+
+  <!-- PÁGINA 2 - RESULTADOS -->
+  <div class="page resultados">
+    <h2 class="resultados-title">RESULTADOS</h2>
+    <h3 class="resultados-subtitle">TRÁFEGO PAGO White</h3>
+
+    <div class="resultados-container">
+      <!-- Cards da esquerda -->
+      <div class="cards-left">
+        <div class="card-metric">
+          <span class="card-metric-label">Investimento</span>
+          <span class="card-metric-value">R$ 1.481,17</span>
+        </div>
+        <div class="card-metric">
+          <span class="card-metric-label">Faturamento</span>
+          <span class="card-metric-value">R$ 83.185</span>
+        </div>
+        <div class="card-metric">
+          <span class="card-metric-label">Ticket Médio</span>
+          <span class="card-metric-value">R$ 3.327</span>
+        </div>
+        <div class="card-metric">
+          <span class="card-metric-label">ROI</span>
+          <span class="card-metric-value">14.04</span>
+        </div>
+      </div>
+
+      <!-- Funil da direita -->
+      <div class="funnel-container">
+        <div class="funnel-step">
+          <div class="funnel-bar">667 Cliques</div>
+          <div class="funnel-metric">CPC | R$ 2,19</div>
+        </div>
+        <div class="funnel-step">
+          <div class="funnel-bar">110 Leads</div>
+          <div class="funnel-metric">CPL | R$ 12,89</div>
+        </div>
+        <div class="funnel-step">
+          <div class="funnel-bar">51 Orçamentos</div>
+          <div class="funnel-metric">CPO | R$ 73,89</div>
+        </div>
+        <div class="funnel-step">
+          <div class="funnel-bar">25 Fechamentos</div>
+          <div class="funnel-metric">CAC | R$ 117,0</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PÁGINA 3 - RANKING -->
+  <div class="page ranking">
+    <h2 class="ranking-title">RANKING<br>ANÚNCIOS</h2>
+
+    <div class="ranking-cards">
+      <div class="ranking-card">
+        <div class="ranking-card-image">
+          <img src="https://via.placeholder.com/400x280/cccccc/666666?text=Anuncio+1" alt="Anúncio 1">
+        </div>
+        <div class="ranking-card-footer">
+          <div class="ranking-card-leads">18 Leads</div>
+          <div class="ranking-card-cpl">R$14,45</div>
+        </div>
+      </div>
+
+      <div class="ranking-card">
+        <div class="ranking-card-image">
+          <img src="https://via.placeholder.com/400x280/cccccc/666666?text=Anuncio+2" alt="Anúncio 2">
+        </div>
+        <div class="ranking-card-footer">
+          <div class="ranking-card-leads">16 Leads</div>
+          <div class="ranking-card-cpl">R$12,12</div>
+        </div>
+      </div>
+
+      <div class="ranking-card">
+        <div class="ranking-card-image">
+          <img src="https://via.placeholder.com/400x280/cccccc/666666?text=Anuncio+3" alt="Anúncio 3">
+        </div>
+        <div class="ranking-card-footer">
+          <div class="ranking-card-leads">13 Leads</div>
+          <div class="ranking-card-cpl">R$8,89</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PÁGINA 4 - PRÓXIMOS PASSOS -->
+  <div class="page proximos-passos">
+    <div class="passos-left">
+      <h2 class="passos-title">PRÓXIMOS<br>PASSOS</h2>
+    </div>
+    <div class="passos-right">
+      <h3 class="passos-subtitle">• Orientações:</h3>
+      <ul class="passos-list">
+        <li>Aumento de investimento</li>
+        <li>Continuar com a produção de conteúdos em vídeo.</li>
+        <li>Provas sociais.</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- PÁGINA 5 - OBRIGADO -->
+  <div class="page obrigado">
+    <h2 class="obrigado-text">OBRIGADO</h2>
+    <div class="obrigado-line"></div>
+  </div>
+
+</body>
+</html>
+

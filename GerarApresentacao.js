@@ -1438,18 +1438,35 @@ async function generateCompleteReport() {
             black: reportSeparateBlackMetrics ? 'SIM' : 'NÃO'
         });
 
-        // Renderizar relatório COM dados de negócio, mas SEM análise de texto ainda
-        renderCompleteReport(accountName, startDate, endDate, metrics, blackMetrics, bestAds, comparisonMetrics, budgetsCompleted, salesCount, revenue, '', currentProjectLogo, hasMultiplePlatforms, separateMetaMetrics, separateGoogleMetrics, separateBlackMetrics, comparisonGoogleMetrics);
+        // ========== GERAR APRESENTAÇÃO ==========
+        // Salvar dados no localStorage para processamento
+        const presentationData = {
+            presentationName: `Apresentação ${accountName} - ${formatDateISOToBR(startDate)} a ${formatDateISOToBR(endDate)}`,
+            unitId: selectedUnit?.id || unitId,
+            unitName: accountName,
+            unitData: selectedUnit || {},
+            startDate,
+            endDate,
+            projectId: localStorage.getItem('currentProject'),
+            // Métricas
+            metaMetrics: separateMetaMetrics,
+            googleMetrics: separateGoogleMetrics,
+            blackMetrics: separateBlackMetrics,
+            // Dados manuais
+            budgetsCompleted,
+            salesCount,
+            revenue,
+            performanceAnalysis: '', // Será preenchido depois se quiser
+            // Configurações
+            hasBlack,
+            hasMultiplePlatforms
+        };
+
+        console.log('📊 Redirecionando para processar apresentação...', presentationData);
+        localStorage.setItem('presentationData', JSON.stringify(presentationData));
         
-        // Mostrar seção de análise
-        const analysisSection = document.getElementById('analysisSection');
-        if (analysisSection) {
-            analysisSection.style.display = 'block';
-            // Scroll suave para a seção
-            setTimeout(() => {
-                analysisSection.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-            }, 500);
-        }
+        // Redirecionar para página de processamento
+        window.location.href = '/processar-apresentacao.html';
         
         // Exibir sugestões de análise (SOMAR TODAS AS PLATAFORMAS)
         console.log('🔍 [SUGESTÕES] Iniciando cálculo...');

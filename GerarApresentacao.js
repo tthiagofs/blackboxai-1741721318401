@@ -1,4 +1,5 @@
 import { fbAuth } from './auth.js?v=3.0';
+import { auth } from './config/firebase.js';
 import { exportToPDF } from './exportPDF.js?v=3.0';
 import { formatDateISOToBR, formatCurrencyBRL, encodeWhatsAppText } from './utils/format.js?v=3.0';
 import { setSelectedStyles, debounce } from './utils/dom.js?v=3.0';
@@ -1143,7 +1144,7 @@ document.getElementById('unitId').addEventListener('change', function() {
         
         // Limpar relatório
         reportContainer.innerHTML = '';
-        shareWhatsAppBtn.classList.add('hidden');
+        if (shareWhatsAppBtn) shareWhatsAppBtn.classList.add('hidden');
         
         // Limpar mapas de campanhas e ad sets
         campaignsMap = {};
@@ -1835,7 +1836,7 @@ function renderCompleteReport(unitName, startDate, endDate, metrics, blackMetric
     // Limpar relatório anterior antes de adicionar o novo
     reportContainer.innerHTML = '';
     reportContainer.insertAdjacentHTML('beforeend', reportHTML);
-    shareWhatsAppBtn.classList.remove('hidden');
+    if (shareWhatsAppBtn) shareWhatsAppBtn.classList.remove('hidden');
 }
 
 function renderTotalLeads(metaMetrics, blackMetrics, googleMetrics = null) {
@@ -2656,7 +2657,8 @@ if (!reportMetrics) {
     }
 });
 
-// Compartilhar no WhatsApp
+// Compartilhar no WhatsApp (desabilitado para apresentações)
+if (shareWhatsAppBtn) {
 shareWhatsAppBtn.addEventListener('click', () => {
     const unitId = document.getElementById('unitId').value;
     const unitName = adAccountsMap[unitId] || 'Unidade Desconhecida';
@@ -2707,6 +2709,7 @@ shareWhatsAppBtn.addEventListener('click', () => {
     const whatsappUrl = `https://api.whatsapp.com/send?text=${encodedMessage}`;
     window.open(whatsappUrl, '_blank');
 });
+}
 
 // Voltar para a seleção de relatórios
 backToReportSelectionBtn.addEventListener('click', () => {
@@ -2733,7 +2736,7 @@ refreshBtn.addEventListener('click', () => {
     // Limpar o formulário
     form.reset();
     reportContainer.innerHTML = '';
-    shareWhatsAppBtn.classList.add('hidden');
+    if (shareWhatsAppBtn) shareWhatsAppBtn.classList.add('hidden');
     
     // Limpar campos manuais
     document.getElementById('budgetsCompleted').value = '';

@@ -370,14 +370,17 @@ export class FacebookInsightsService {
                                 let thumbnailUrl = creative.thumbnail_url;
                                 
                                 // FORÇAR ALTA QUALIDADE: Substituir parâmetros de tamanho na URL
-                                // Remover ou substituir parâmetros que limitam a qualidade
+                                // ESTRATÉGIA: Substituir tamanhos pequenos por grandes (não remover!)
                                 thumbnailUrl = thumbnailUrl
-                                    .replace(/_s\d+x\d+/g, '')           // Remove _s200x200, _s150x150, etc
-                                    .replace(/_\d+\./g, '_720.')         // Substitui _128., _256. por _720.
-                                    .replace(/&width=\d+/g, '&width=1080')  // Força width maior
-                                    .replace(/&height=\d+/g, '&height=1080') // Força height maior
-                                    .replace(/&stp=[^&]+/g, '')          // REMOVE o parâmetro stp (p64x64, etc)
-                                    .replace(/stp=[^&]+&?/g, '');        // Remove stp no início também
+                                    .replace(/_s\d+x\d+/g, '')                    // Remove _s200x200, _s150x150, etc
+                                    .replace(/_\d+\./g, '_720.')                  // Substitui _128., _256. por _720.
+                                    .replace(/&width=\d+/g, '&width=1080')        // Força width maior
+                                    .replace(/&height=\d+/g, '&height=1080')      // Força height maior
+                                    .replace(/p64x64/g, 'p720x720')               // Substitui p64x64 por p720x720
+                                    .replace(/p128x128/g, 'p720x720')             // Substitui p128x128 por p720x720
+                                    .replace(/p200x200/g, 'p720x720')             // Substitui p200x200 por p720x720
+                                    .replace(/p360x360/g, 'p720x720')             // Substitui p360x360 por p720x720
+                                    .replace(/q75/g, 'q95');                      // Aumenta qualidade JPEG de 75% para 95%
                                 
                                 imageUrl = thumbnailUrl;
                                 

@@ -171,16 +171,24 @@
 
         // Função principal
         async function processPresentation() {
+            console.log('🚀 Iniciando processamento...');
             try {
                 // STEP 1: Carregar configurações
+                console.log('📝 STEP 1: Carregando configurações...');
                 updateStep('step1', 'loading');
-                const presentationData = JSON.parse(localStorage.getItem('presentationData') || '{}');
+                
+                const rawData = localStorage.getItem('presentationData');
+                console.log('🔍 Raw data do localStorage:', rawData);
+                
+                const presentationData = JSON.parse(rawData || '{}');
+                console.log('📦 Dados parseados:', presentationData);
                 
                 if (!presentationData.unitId) {
-                    throw new Error('Dados da apresentação não encontrados');
+                    console.error('❌ unitId não encontrado!', presentationData);
+                    throw new Error('Dados da apresentação não encontrados. Por favor, volte e preencha o formulário novamente.');
                 }
 
-                console.log('📊 Dados da apresentação:', presentationData);
+                console.log('✅ Dados da apresentação validados:', presentationData);
                 await new Promise(resolve => setTimeout(resolve, 500)); // Simular delay
                 updateStep('step1', 'success');
 
@@ -325,10 +333,14 @@
         });
 
         // Iniciar quando autenticado
+        console.log('🔐 Aguardando autenticação Firebase...');
         onAuthStateChanged(auth, async (user) => {
+            console.log('🔐 Firebase auth callback:', user ? `Usuário: ${user.email}` : 'Sem usuário');
             if (user) {
+                console.log('✅ Usuário autenticado, iniciando processamento...');
                 await processPresentation();
             } else {
+                console.log('❌ Usuário não autenticado, redirecionando...');
                 window.location.href = '/login.html';
             }
         });

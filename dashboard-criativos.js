@@ -226,6 +226,22 @@ async function searchCreatives() {
 
     console.log('🔍 Buscando criativos:', { projectId, period, orderBy, unitId, dates });
 
+    // Verificar permissões do Facebook
+    FB.api('/me/permissions', (response) => {
+      if (response && !response.error) {
+        console.log('🔑 Permissões do Facebook:', response.data);
+        const granted = response.data.filter(p => p.status === 'granted').map(p => p.permission);
+        console.log('✅ Permissões concedidas:', granted);
+        
+        if (!granted.includes('instagram_basic')) {
+          console.warn('⚠️ Permissão instagram_basic NÃO concedida!');
+        }
+        if (!granted.includes('pages_read_engagement')) {
+          console.warn('⚠️ Permissão pages_read_engagement NÃO concedida!');
+        }
+      }
+    });
+
     // Buscar dados do Meta Ads
     const creatives = await fetchCreativesFromMetaAds(projectId, unitId, dates);
 

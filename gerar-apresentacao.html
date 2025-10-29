@@ -134,7 +134,7 @@
     <script type="module">
         import { auth, db } from './config/firebase.js';
         import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
-        import { unitsService } from './services/unitsService.js';
+        import { listUnits } from './services/unitsService.js';
 
         const presentationForm = document.getElementById('presentationForm');
         const presentationNameInput = document.getElementById('presentationName');
@@ -172,7 +172,7 @@
         // Carregar unidades
         async function loadUnits() {
             try {
-                const units = await unitsService.listUnits(currentProjectId);
+                const units = await listUnits(currentProjectId);
                 
                 // Filtrar apenas unidades com conexões ativas
                 const unitsWithConnections = units.filter(unit => 

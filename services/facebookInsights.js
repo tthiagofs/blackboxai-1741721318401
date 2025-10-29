@@ -227,7 +227,7 @@ export class FacebookInsightsService {
     // Dados do criativo com fallback
     async getCreativeData(adId) {
         try {
-            const url = `/${adId}?fields=creative{thumbnail_url,image_hash,object_story_spec,effective_object_story_id,asset_feed_spec}&access_token=${this.accessToken}`;
+            const url = `/${adId}?fields=creative{thumbnail_url,image_hash,image_url,object_story_spec,effective_object_story_id,asset_feed_spec}&access_token=${this.accessToken}`;
             const response = await new Promise((resolve, reject) => {
                 const timeout = setTimeout(() => {
                     reject(new Error('Timeout ao buscar dados do criativo'));
@@ -253,17 +253,20 @@ export class FacebookInsightsService {
                     // Vídeo
                     if (creative.object_story_spec.video_data) {
                         type = 'video';
-                        imageUrl = creative.object_story_spec.video_data.image_url || creative.thumbnail_url || imageUrl;
+                        // Para vídeos: priorizar thumbnail_url (melhor qualidade)
+                        imageUrl = creative.thumbnail_url || creative.object_story_spec.video_data.image_url || imageUrl;
                     }
                     // Carrossel
                     else if (creative.object_story_spec.link_data?.child_attachments) {
                         type = 'carousel';
-                        imageUrl = creative.object_story_spec.link_data.picture || creative.thumbnail_url || imageUrl;
+                        // Para carrosséis: priorizar thumbnail_url também
+                        imageUrl = creative.thumbnail_url || creative.object_story_spec.link_data.picture || imageUrl;
                     }
                     // Imagem estática
                     else if (creative.object_story_spec.link_data?.picture) {
                         type = 'image';
-                        imageUrl = creative.object_story_spec.link_data.picture;
+                        // Para imagens: TAMBÉM priorizar thumbnail_url (igual aos vídeos!)
+                        imageUrl = creative.thumbnail_url || creative.image_url || creative.object_story_spec.link_data.picture;
                     }
                 }
                 
@@ -272,10 +275,12 @@ export class FacebookInsightsService {
                     type = 'carousel';
                 }
                 
-                // Fallback para thumbnail_url
+                // Fallback universal para thumbnail_url (mesma lógica para todos os tipos)
                 if (!imageUrl || imageUrl === 'https://via.placeholder.com/200x200?text=Sem+Imagem') {
                     if (creative.thumbnail_url) {
                         imageUrl = creative.thumbnail_url;
+                    } else if (creative.image_url) {
+                        imageUrl = creative.image_url;
                     }
                 }
                 

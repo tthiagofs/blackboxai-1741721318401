@@ -367,11 +367,21 @@ export class FacebookInsightsService {
                             
                             // FALLBACK: Usar thumbnail_url e detectar tipo pela URL ou nome do arquivo
                             if (creative.thumbnail_url) {
-                                imageUrl = creative.thumbnail_url;
+                                let thumbnailUrl = creative.thumbnail_url;
+                                
+                                // FORÇAR ALTA QUALIDADE: Substituir parâmetros de tamanho na URL
+                                // Remover ou substituir parâmetros que limitam a qualidade
+                                thumbnailUrl = thumbnailUrl
+                                    .replace(/_s\d+x\d+/g, '')           // Remove _s200x200, _s150x150, etc
+                                    .replace(/_\d+\./g, '_720.')         // Substitui _128., _256. por _720.
+                                    .replace(/&width=\d+/g, '&width=1080')  // Força width maior
+                                    .replace(/&height=\d+/g, '&height=1080'); // Força height maior
+                                
+                                imageUrl = thumbnailUrl;
                                 
                                 // Detectar se é vídeo pela URL do thumbnail
                                 // URLs de vídeo geralmente contém "video", "scontent", "fna.fbcdn.net/v/t15"
-                                const urlLower = creative.thumbnail_url.toLowerCase();
+                                const urlLower = thumbnailUrl.toLowerCase();
                                 const isLikelyVideo = urlLower.includes('/v/t15') || 
                                                      urlLower.includes('video') || 
                                                      urlLower.includes('t15.5256');
@@ -384,7 +394,9 @@ export class FacebookInsightsService {
                                     console.log('   📷 Detectado como IMAGEM (pela URL do thumbnail)');
                                 }
                                 
-                                console.log('   ✅ Usando thumbnail_url como fallback');
+                                console.log('   ✅ Usando thumbnail_url como fallback (ALTA QUALIDADE)');
+                                console.log('   🔗 URL original:', creative.thumbnail_url.substring(0, 80));
+                                console.log('   🔗 URL otimizada:', thumbnailUrl.substring(0, 80));
                             }
                         }
                     } catch (err) {

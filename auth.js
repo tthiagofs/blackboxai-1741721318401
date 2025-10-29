@@ -108,7 +108,7 @@ class FacebookAuth {
                             reject(new Error('Login do Facebook não autorizado'));
                         }
                     }, {
-                        scope: 'public_profile,ads_read,ads_management,business_management', // Incluídas permissões necessárias para gerenciadores de negócios
+                        scope: 'public_profile,ads_read,ads_management,business_management,instagram_basic,pages_read_engagement', // Incluídas permissões para posts orgânicos
                         return_scopes: true,
                         auth_type: 'rerequest'  // Force re-authentication
                     });

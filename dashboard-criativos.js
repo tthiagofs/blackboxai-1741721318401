@@ -325,8 +325,8 @@ async function fetchCreativesFromMetaAds(projectId, unitId, dates) {
 
         console.log(`   ✅ ${adsData.length} anúncios encontrados para ${unit.name}`);
 
-        // Processar e adicionar
-        const processedAds = await processAdsData(adsData, fbService, fbToken, unit.name);
+        // Processar APENAS métricas (SEM buscar creative ainda)
+        const processedAds = processAdsDataFast(adsData, unit.name);
         allAds = allAds.concat(processedAds);
 
       } catch (error) {
@@ -334,7 +334,29 @@ async function fetchCreativesFromMetaAds(projectId, unitId, dates) {
       }
     }
 
-    console.log(`📊 Total de ${allAds.length} anúncios processados`);
+    console.log(`📊 Total de ${allAds.length} anúncios processados (métricas)`);
+    
+    // OTIMIZAÇÃO: Ordenar ANTES de buscar creatives
+    const orderBy = document.getElementById('orderBy').value;
+    sortCreatives(allAds, orderBy);
+    
+    // Buscar creative APENAS do TOP 10
+    const top10 = allAds.slice(0, 10);
+    console.log(`🎯 Buscando creatives apenas dos TOP ${top10.length} anúncios`);
+    
+    for (const ad of top10) {
+      try {
+        console.log(`🔍 Buscando creative para: ${ad.name} (ID: ${ad.id})`);
+        const creativeData = await fbService.getCreativeData(ad.id);
+        ad.thumbnailUrl = creativeData.imageUrl || ad.thumbnailUrl;
+        ad.type = creativeData.type || ad.type;
+        console.log(`   ✅ Creative recebido`);
+      } catch (error) {
+        console.error(`   ❌ Erro ao buscar creative do ad ${ad.id}:`, error);
+      }
+    }
+    
+    console.log(`✅ Busca completa! ${allAds.length} anúncios, ${top10.length} com preview HD`);
     return allAds;
 
   } catch (error) {
@@ -343,7 +365,36 @@ async function fetchCreativesFromMetaAds(projectId, unitId, dates) {
   }
 }
 
-// Processar dados dos anúncios
+// Processar dados dos anúncios (RÁPIDO - sem buscar creative)
+function processAdsDataFast(adsData, unitName) {
+  const processed = [];
+  
+  for (const ad of adsData) {
+    const actions = ad.actions || [];
+    const leads = extractLeads(actions);
+    const spend = parseFloat(ad.spend || 0);
+    const cpl = leads > 0 ? spend / leads : 0;
+    const impressions = parseInt(ad.impressions || 0);
+    
+    if (impressions > 0) {
+      processed.push({
+        id: ad.ad_id,
+        name: ad.ad_name || 'Sem nome',
+        unitName: unitName,
+        thumbnailUrl: 'https://via.placeholder.com/200x200?text=Carregando...', // Placeholder
+        impressions: impressions,
+        leads: leads,
+        cpl: cpl,
+        spend: spend,
+        type: 'image' // Padrão, será atualizado depois para o top 10
+      });
+    }
+  }
+  
+  return processed;
+}
+
+// Processar dados dos anúncios (COMPLETO - com creative) - DEPRECATED
 async function processAdsData(adsData, fbService, accessToken, unitName) {
   const processed = [];
   

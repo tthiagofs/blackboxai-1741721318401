@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Processando Apresentação - Insightflow</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="bg-gray-50 font-sans">
+    <!-- Container Principal -->
+    <div class="min-h-screen flex items-center justify-center p-6">
+        <div class="bg-white rounded-2xl shadow-xl p-8 max-w-2xl w-full">
+            <!-- Header -->
+            <div class="text-center mb-8">
+                <div id="iconContainer" class="w-16 h-16 bg-gradient-to-br from-purple-600 to-pink-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i class="fas fa-magic text-white text-2xl animate-pulse"></i>
+                </div>
+                <h1 id="mainTitle" class="text-3xl font-bold text-gray-900 mb-2">Gerando Apresentação</h1>
+                <p id="mainSubtitle" class="text-gray-600">Aguarde enquanto processamos seus dados</p>
+            </div>
+
+            <!-- Progress Steps -->
+            <div id="progressSteps" class="space-y-4 mb-8">
+                <div id="step1" class="flex items-center gap-3 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                    <div class="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
+                    <span class="text-sm text-blue-900 font-medium">Carregando configurações...</span>
+                </div>
+                <div id="step2" class="flex items-center gap-3 p-4 bg-gray-50 border border-gray-200 rounded-lg opacity-50">
+                    <div class="rounded-full h-5 w-5 border-2 border-gray-300"></div>
+                    <span class="text-sm text-gray-600">Buscando dados de anúncios...</span>
+                </div>
+                <div id="step3" class="flex items-center gap-3 p-4 bg-gray-50 border border-gray-200 rounded-lg opacity-50">
+                    <div class="rounded-full h-5 w-5 border-2 border-gray-300"></div>
+                    <span class="text-sm text-gray-600">Processando métricas...</span>
+                </div>
+                <div id="step4" class="flex items-center gap-3 p-4 bg-gray-50 border border-gray-200 rounded-lg opacity-50">
+                    <div class="rounded-full h-5 w-5 border-2 border-gray-300"></div>
+                    <span class="text-sm text-gray-600">Gerando apresentação...</span>
+                </div>
+                <div id="step5" class="flex items-center gap-3 p-4 bg-gray-50 border border-gray-200 rounded-lg opacity-50">
+                    <div class="rounded-full h-5 w-5 border-2 border-gray-300"></div>
+                    <span class="text-sm text-gray-600">Salvando apresentação...</span>
+                </div>
+            </div>
+
+            <!-- Error State -->
+            <div id="errorState" class="hidden">
+                <div class="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
+                    <div class="flex items-start gap-3">
+                        <i class="fas fa-exclamation-circle text-red-600 mt-0.5"></i>
+                        <div>
+                            <p class="text-sm font-medium text-red-900">Erro ao gerar apresentação</p>
+                            <p class="text-xs text-red-700" id="errorText"></p>
+                        </div>
+                    </div>
+                </div>
+                <button 
+                    onclick="window.history.back()"
+                    class="w-full px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-all font-medium"
+                >
+                    <i class="fas fa-arrow-left mr-2"></i>
+                    Voltar e Tentar Novamente
+                </button>
+            </div>
+
+            <!-- Success State (Hidden) -->
+            <div id="successState" class="hidden">
+                <div class="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
+                    <div class="flex items-start gap-3">
+                        <i class="fas fa-check-circle text-green-600 mt-0.5"></i>
+                        <div>
+                            <p class="text-sm font-medium text-green-900">Apresentação gerada com sucesso!</p>
+                            <p class="text-xs text-green-700">Você pode visualizar ou fazer download do PDF.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="flex gap-3">
+                    <a 
+                        href="/apresentacoes.html"
+                        class="flex-1 px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-all font-medium text-center"
+                    >
+                        <i class="fas fa-list mr-2"></i>
+                        Ver Apresentações
+                    </a>
+                    <button 
+                        id="downloadBtn"
+                        class="flex-1 px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg hover:from-purple-700 hover:to-pink-700 transition-all font-medium shadow-lg"
+                    >
+                        <i class="fas fa-download mr-2"></i>
+                        Baixar PDF
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { auth, db } from './config/firebase.js';
+        import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+        import { collection, addDoc, getDoc, doc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+        import { unitsService } from './services/unitsService.js';
+        import { presentationsService } from './services/presentationsService.js';
+        import { fbAuth } from './auth.js';
+        import { googleAuth } from './authGoogle.js';
+        import { FacebookInsightsService } from './services/facebookInsights.js';
+        import { GoogleAdsService } from './services/googleAdsService.js';
+
+        // Estado dos steps
+        function updateStep(stepId, state) {
+            const step = document.getElementById(stepId);
+            step.classList.remove('bg-gray-50', 'border-gray-200', 'opacity-50', 'bg-blue-50', 'border-blue-200', 'bg-green-50', 'border-green-200', 'bg-red-50', 'border-red-200');
+            const spinner = step.querySelector('.animate-spin');
+            const icon = step.querySelector('.rounded-full');
+            const text = step.querySelector('span');
+
+            if (state === 'loading') {
+                step.classList.add('bg-blue-50', 'border-blue-200');
+                step.classList.remove('opacity-50');
+                if (spinner) spinner.classList.remove('hidden');
+                if (icon) icon.classList.add('border-blue-600');
+                if (text) text.classList.add('text-blue-900', 'font-medium');
+            } else if (state === 'success') {
+                step.classList.add('bg-green-50', 'border-green-200');
+                step.classList.remove('opacity-50');
+                if (spinner) spinner.classList.add('hidden');
+                if (icon) {
+                    icon.classList.remove('border-gray-300', 'border-2');
+                    icon.classList.add('bg-green-600');
+                    icon.innerHTML = '<i class="fas fa-check text-white text-xs"></i>';
+                }
+                if (text) text.classList.add('text-green-900', 'font-medium');
+            } else if (state === 'error') {
+                step.classList.add('bg-red-50', 'border-red-200');
+                step.classList.remove('opacity-50');
+                if (spinner) spinner.classList.add('hidden');
+                if (icon) {
+                    icon.classList.remove('border-gray-300', 'border-2');
+                    icon.classList.add('bg-red-600');
+                    icon.innerHTML = '<i class="fas fa-times text-white text-xs"></i>';
+                }
+                if (text) text.classList.add('text-red-900', 'font-medium');
+            }
+        }
+
+        function showError(message) {
+            document.getElementById('errorText').textContent = message;
+            document.getElementById('errorState').classList.remove('hidden');
+            document.getElementById('progressSteps').classList.add('opacity-50');
+        }
+
+        function showSuccess() {
+            document.getElementById('iconContainer').innerHTML = '<i class="fas fa-check text-white text-2xl"></i>';
+            document.getElementById('iconContainer').classList.remove('animate-pulse');
+            document.getElementById('mainTitle').textContent = 'Apresentação Concluída!';
+            document.getElementById('mainSubtitle').textContent = 'Sua apresentação foi gerada com sucesso';
+            document.getElementById('progressSteps').classList.add('hidden');
+            document.getElementById('successState').classList.remove('hidden');
+        }
+
+        // Função principal
+        async function processPresentation() {
+            try {
+                // STEP 1: Carregar configurações
+                updateStep('step1', 'loading');
+                const presentationData = JSON.parse(localStorage.getItem('presentationData') || '{}');
+                
+                if (!presentationData.unitId) {
+                    throw new Error('Dados da apresentação não encontrados');
+                }
+
+                console.log('📊 Dados da apresentação:', presentationData);
+                await new Promise(resolve => setTimeout(resolve, 500)); // Simular delay
+                updateStep('step1', 'success');
+
+                // STEP 2: Buscar dados de anúncios
+                updateStep('step2', 'loading');
+                const { unitData, startDate, endDate } = presentationData;
+                
+                // Detectar plataformas vinculadas
+                const hasMeta = unitData.metaAdAccountId && unitData.metaAdAccountId.trim() !== '';
+                const hasGoogle = unitData.googleAdAccountId && unitData.googleAdAccountId.trim() !== '';
+                
+                console.log('🎯 Plataformas detectadas:', { hasMeta, hasGoogle });
+
+                let metaMetrics = null;
+                let googleMetrics = null;
+
+                // Buscar Meta Ads se disponível
+                if (hasMeta) {
+                    console.log('📱 Buscando dados Meta Ads...');
+                    const token = fbAuth.getAccessToken();
+                    if (token) {
+                        const fbService = new FacebookInsightsService(token);
+                        metaMetrics = await fbService.getAccountInsights(
+                            unitData.metaAdAccountId,
+                            startDate,
+                            endDate
+                        );
+                        console.log('✅ Meta Ads:', metaMetrics);
+                    }
+                }
+
+                // Buscar Google Ads se disponível
+                if (hasGoogle) {
+                    console.log('🔍 Buscando dados Google Ads...');
+                    await googleAuth.initialize();
+                    const gaService = new GoogleAdsService();
+                    googleMetrics = await gaService.getAccountInsights(startDate, endDate);
+                    console.log('✅ Google Ads:', googleMetrics);
+                }
+
+                updateStep('step2', 'success');
+
+                // STEP 3: Processar métricas
+                updateStep('step3', 'loading');
+                console.log('📊 Processando métricas...');
+                
+                // TODO: Filtrar dados da planilha por fontes e exclusões
+                // TODO: Calcular métricas totais
+                
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                updateStep('step3', 'success');
+
+                // STEP 4: Gerar apresentação
+                updateStep('step4', 'loading');
+                console.log('🎨 Gerando HTML da apresentação...');
+                
+                // TODO: Gerar HTML baseado em apresentacao-preview.html
+                // TODO: Incluir páginas condicionais (Meta/Google/Ambos)
+                
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                updateStep('step4', 'success');
+
+                // STEP 5: Salvar apresentação
+                updateStep('step5', 'loading');
+                console.log('💾 Salvando apresentação...');
+                
+                // Salvar no Firestore
+                const presentationDoc = {
+                    name: presentationData.presentationName,
+                    unitId: presentationData.unitId,
+                    unitName: presentationData.unitName,
+                    startDate: presentationData.startDate,
+                    endDate: presentationData.endDate,
+                    platforms: {
+                        meta: hasMeta,
+                        google: hasGoogle
+                    },
+                    metrics: {
+                        meta: metaMetrics,
+                        google: googleMetrics
+                    },
+                    createdAt: new Date().toISOString(),
+                    createdBy: auth.currentUser.uid
+                };
+
+                const savedPresentation = await presentationsService.savePresentation(
+                    presentationData.projectId,
+                    presentationDoc
+                );
+
+                console.log('✅ Apresentação salva:', savedPresentation.id);
+                
+                // Salvar ID para download posterior
+                window.savedPresentationId = savedPresentation.id;
+                
+                updateStep('step5', 'success');
+
+                // Mostrar sucesso
+                setTimeout(() => {
+                    showSuccess();
+                }, 500);
+
+            } catch (error) {
+                console.error('❌ Erro ao processar apresentação:', error);
+                
+                // Marcar step atual como erro
+                for (let i = 1; i <= 5; i++) {
+                    const step = document.getElementById(`step${i}`);
+                    if (step.classList.contains('bg-blue-50')) {
+                        updateStep(`step${i}`, 'error');
+                        break;
+                    }
+                }
+                
+                showError(error.message);
+            }
+        }
+
+        // Download PDF
+        document.getElementById('downloadBtn')?.addEventListener('click', () => {
+            // TODO: Implementar download do PDF
+            alert('Funcionalidade de download em desenvolvimento');
+        });
+
+        // Iniciar quando autenticado
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                await processPresentation();
+            } else {
+                window.location.href = '/login.html';
+            }
+        });
+    </script>
+</body>
+</html>
+

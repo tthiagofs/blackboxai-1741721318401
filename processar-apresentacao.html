@@ -98,14 +98,34 @@
     </div>
 
     <script type="module">
+        console.log('🚀 SCRIPT INICIADO - processar-apresentacao.html');
+        console.log('📍 URL atual:', window.location.href);
+        console.log('📦 localStorage keys:', Object.keys(localStorage));
+        
         import { auth, db } from './config/firebase.js';
+        console.log('✅ Firebase importado');
+        
         import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+        console.log('✅ onAuthStateChanged importado');
+        
         import { collection, addDoc, getDoc, doc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+        console.log('✅ Firestore importado');
+        
         import { presentationsService } from './services/presentationsService.js';
+        console.log('✅ presentationsService importado');
+        
         import { fbAuth } from './auth.js';
+        console.log('✅ fbAuth importado');
+        
         import { googleAuth } from './authGoogle.js';
+        console.log('✅ googleAuth importado');
+        
         import { FacebookInsightsService } from './services/facebookInsights.js';
+        console.log('✅ FacebookInsightsService importado');
+        
         import { GoogleAdsService } from './services/googleAdsService.js';
+        console.log('✅ GoogleAdsService importado');
+        
         import { 
             filterSpreadsheetByPlatform, 
             extractMessages, 
@@ -115,7 +135,11 @@
             formatNumber,
             formatDate
         } from './processar-apresentacao.js';
+        console.log('✅ processar-apresentacao.js importado');
+        
         import { generatePresentationHTML } from './gerar-html-apresentacao.js';
+        console.log('✅ gerar-html-apresentacao.js importado');
+        console.log('🎯 TODOS OS IMPORTS CONCLUÍDOS!');
 
         // Estado dos steps
         function updateStep(stepId, state) {

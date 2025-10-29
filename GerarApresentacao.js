@@ -17,6 +17,53 @@ import {
 
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
+// Função para atualizar estado visual dos steps do modal
+function updateModalStep(stepElement, state) {
+    if (!stepElement) return;
+    
+    stepElement.classList.remove('bg-gray-50', 'border-gray-200', 'opacity-50', 'bg-blue-50', 'border-blue-200', 'bg-green-50', 'border-green-200', 'bg-red-50', 'border-red-200');
+    const spinner = stepElement.querySelector('.animate-spin');
+    const icon = stepElement.querySelector('.rounded-full');
+    const text = stepElement.querySelector('span');
+
+    if (state === 'loading') {
+        stepElement.classList.add('bg-blue-50', 'border-blue-200');
+        stepElement.classList.remove('opacity-50');
+        if (spinner) spinner.classList.remove('hidden');
+        if (icon) icon.classList.add('border-blue-600');
+        if (text) {
+            text.classList.add('text-blue-900', 'font-medium');
+            text.classList.remove('text-gray-600');
+        }
+    } else if (state === 'success') {
+        stepElement.classList.add('bg-green-50', 'border-green-200');
+        stepElement.classList.remove('opacity-50');
+        if (spinner) spinner.classList.add('hidden');
+        if (icon) {
+            icon.classList.remove('border-gray-300', 'border-2', 'border-blue-600');
+            icon.classList.add('bg-green-600');
+            icon.innerHTML = '<i class="fas fa-check text-white text-xs"></i>';
+        }
+        if (text) {
+            text.classList.add('text-green-900', 'font-medium');
+            text.classList.remove('text-gray-600');
+        }
+    } else if (state === 'error') {
+        stepElement.classList.add('bg-red-50', 'border-red-200');
+        stepElement.classList.remove('opacity-50');
+        if (spinner) spinner.classList.add('hidden');
+        if (icon) {
+            icon.classList.remove('border-gray-300', 'border-2', 'border-blue-600');
+            icon.classList.add('bg-red-600');
+            icon.innerHTML = '<i class="fas fa-times text-white text-xs"></i>';
+        }
+        if (text) {
+            text.classList.add('text-red-900', 'font-medium');
+            text.classList.remove('text-gray-600');
+        }
+    }
+}
+
 // Variável global para armazenar a logo do projeto
 let currentProjectLogo = '';
 
@@ -1442,35 +1489,154 @@ async function generateCompleteReport() {
             black: reportSeparateBlackMetrics ? 'SIM' : 'NÃO'
         });
 
-        // ========== GERAR APRESENTAÇÃO ==========
-        // Salvar dados no localStorage para processamento
-        const presentationData = {
-            presentationName: `Apresentação ${accountName} - ${formatDateISOToBR(startDate)} a ${formatDateISOToBR(endDate)}`,
-            unitId: selectedUnit?.id || unitId,
-            unitName: accountName,
-            unitData: selectedUnit || {},
-            startDate,
-            endDate,
-            projectId: localStorage.getItem('currentProject'),
-            // Métricas
-            metaMetrics: separateMetaMetrics,
-            googleMetrics: separateGoogleMetrics,
-            blackMetrics: separateBlackMetrics,
-            // Dados manuais
-            budgetsCompleted,
-            salesCount,
-            revenue,
-            performanceAnalysis: '', // Será preenchido depois se quiser
-            // Configurações
-            hasBlack,
-            hasMultiplePlatforms
-        };
-
-        console.log('📊 Redirecionando para processar apresentação...', presentationData);
-        localStorage.setItem('presentationData', JSON.stringify(presentationData));
+        // ========== GERAR APRESENTAÇÃO (NA MESMA TELA) ==========
+        console.log('🎨 Iniciando geração de apresentação na mesma tela...');
         
-        // Redirecionar para página de processamento
-        window.location.href = '/processar-apresentacao.html';
+        // Abrir modal de progresso
+        const progressModal = document.getElementById('progressModal');
+        const modalStep1 = document.getElementById('modalStep1');
+        const modalStep2 = document.getElementById('modalStep2');
+        const modalStep3 = document.getElementById('modalStep3');
+        const modalErrorState = document.getElementById('modalErrorState');
+        const modalErrorText = document.getElementById('modalErrorText');
+        const modalSuccessState = document.getElementById('modalSuccessState');
+        const modalDownloadBtn = document.getElementById('modalDownloadBtn');
+        const modalProgressSteps = document.getElementById('modalProgressSteps');
+        
+        progressModal.classList.remove('hidden');
+        
+        try {
+            // STEP 1: Validar dados
+            console.log('✅ STEP 1: Validando dados...');
+            updateModalStep(modalStep1, 'loading');
+            await delay(300);
+            
+            const presentationData = {
+                presentationName: `Apresentação ${accountName} - ${formatDateISOToBR(startDate)} a ${formatDateISOToBR(endDate)}`,
+                unitId: selectedUnit?.id || unitId,
+                unitName: accountName,
+                unitData: selectedUnit || {},
+                startDate,
+                endDate,
+                projectId: localStorage.getItem('currentProject'),
+                // Métricas
+                metaMetrics: separateMetaMetrics,
+                googleMetrics: separateGoogleMetrics,
+                blackMetrics: separateBlackMetrics,
+                // Melhores anúncios
+                bestAds: bestAds,
+                // Dados manuais
+                budgetsCompleted,
+                salesCount,
+                revenue,
+                performanceAnalysis: performanceAnalysis || '',
+                // Configurações
+                hasBlack,
+                hasMultiplePlatforms
+            };
+            
+            console.log('📊 Dados validados:', presentationData);
+            updateModalStep(modalStep1, 'success');
+            
+            // STEP 2: Gerar HTML
+            console.log('🎨 STEP 2: Gerando HTML da apresentação...');
+            updateModalStep(modalStep2, 'loading');
+            await delay(300);
+            
+            // Importar função de geração de HTML
+            const { generatePresentationHTML } = await import('./gerar-html-apresentacao.js?v=1.0');
+            
+            const presentationHTML = generatePresentationHTML({
+                unitName: presentationData.unitName,
+                startDate: presentationData.startDate,
+                endDate: presentationData.endDate,
+                hasMeta: !!separateMetaMetrics,
+                hasGoogle: !!separateGoogleMetrics,
+                metaMetrics: separateMetaMetrics,
+                googleMetrics: separateGoogleMetrics,
+                metaTop3Ads: bestAds.filter(ad => ad.platform === 'meta').slice(0, 3),
+                performanceAnalysis: performanceAnalysis || ''
+            });
+            
+            console.log('✅ HTML gerado com sucesso');
+            updateModalStep(modalStep2, 'success');
+            
+            // STEP 3: Salvar no Firestore
+            console.log('💾 STEP 3: Salvando apresentação...');
+            updateModalStep(modalStep3, 'loading');
+            await delay(300);
+            
+            const { presentationsService } = await import('./services/presentationsService.js?v=1.0');
+            
+            const presentationDoc = {
+                name: presentationData.presentationName,
+                unitId: presentationData.unitId,
+                unitName: presentationData.unitName,
+                startDate: presentationData.startDate,
+                endDate: presentationData.endDate,
+                platforms: {
+                    meta: !!separateMetaMetrics,
+                    google: !!separateGoogleMetrics
+                },
+                metrics: {
+                    meta: separateMetaMetrics,
+                    google: separateGoogleMetrics,
+                    black: separateBlackMetrics
+                },
+                html: presentationHTML,
+                createdAt: new Date().toISOString(),
+                createdBy: fbAuth.getCurrentUser()?.uid
+            };
+            
+            const savedPresentation = await presentationsService.savePresentation(
+                presentationData.projectId,
+                presentationDoc
+            );
+            
+            console.log('✅ Apresentação salva:', savedPresentation.id);
+            updateModalStep(modalStep3, 'success');
+            
+            // Salvar dados para download
+            window.currentPresentationHTML = presentationHTML;
+            window.currentPresentationName = presentationData.presentationName;
+            
+            // Mostrar sucesso
+            await delay(500);
+            modalProgressSteps.classList.add('hidden');
+            modalSuccessState.classList.remove('hidden');
+            
+            // Adicionar evento de download
+            modalDownloadBtn.onclick = () => {
+                console.log('📥 Iniciando download do PDF...');
+                const printWindow = window.open('', '_blank');
+                printWindow.document.write(presentationHTML);
+                printWindow.document.close();
+                printWindow.onload = () => {
+            setTimeout(() => {
+                        printWindow.print();
+            }, 500);
+                };
+            };
+            
+        } catch (error) {
+            console.error('❌ Erro ao gerar apresentação:', error);
+            
+            // Marcar step atual como erro
+            const steps = [modalStep1, modalStep2, modalStep3];
+            for (const step of steps) {
+                if (step.classList.contains('bg-blue-50')) {
+                    updateModalStep(step, 'error');
+                    break;
+                }
+            }
+            
+            // Mostrar erro
+            modalProgressSteps.classList.add('opacity-50');
+            modalErrorState.classList.remove('hidden');
+            modalErrorText.textContent = error.message || 'Erro desconhecido';
+        }
+        
+        return; // Não continuar com o resto da função
         
         // Exibir sugestões de análise (SOMAR TODAS AS PLATAFORMAS)
         console.log('🔍 [SUGESTÕES] Iniciando cálculo...');

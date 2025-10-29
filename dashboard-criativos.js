@@ -331,21 +331,8 @@ async function fetchCreativesFromMetaAds(projectId, unitId, dates) {
       try {
         const creativeData = await fbService.getCreativeData(ad.id);
         
-        // Debug: verificar se recebeu URL válida
-        if (!creativeData.imageUrl || creativeData.imageUrl.includes('placeholder')) {
-          console.warn(`⚠️ "${ad.name}": sem imagem válida (${creativeData.type})`);
-        }
-        
-        const oldUrl = ad.thumbnailUrl;
         ad.thumbnailUrl = creativeData.imageUrl || ad.thumbnailUrl;
         ad.type = creativeData.type || ad.type;
-        
-        // Log URL completa dos primeiros 3 para teste
-        if (top10.indexOf(ad) < 3) {
-          console.log(`🖼️ "${ad.name}" - URL completa:`, ad.thumbnailUrl);
-        }
-        
-        console.log(`📝 "${ad.name}": ${oldUrl.includes('Carregando') ? 'ATUALIZADO' : 'MANTIDO'} (${ad.type})`);
       } catch (error) {
         console.error(`❌ Erro ao buscar creative do ad ${ad.id}:`, error);
       }
@@ -503,8 +490,7 @@ function renderCreatives(creatives) {
       <div class="flex items-start gap-4 p-4 border border-gray-200 rounded-lg hover:shadow-md transition-shadow">
         <div class="flex-shrink-0">
           <img src="${creative.thumbnailUrl || 'https://via.placeholder.com/200x200?text=Sem+Imagem'}" alt="${creative.name}" class="w-32 h-32 object-cover rounded-lg border border-gray-200" 
-               onerror="if(!this.hasAttribute('data-error-handled')){this.setAttribute('data-error-handled','true');console.warn('❌ Erro ao carregar imagem:', '${creative.name}', this.src);this.src='https://via.placeholder.com/200x200?text=Sem+Imagem';}" 
-               onload="console.log('✅ Imagem carregada:', '${creative.name}');"
+               onerror="if(!this.hasAttribute('data-error-handled')){this.setAttribute('data-error-handled','true');this.src='https://via.placeholder.com/200x200?text=Sem+Imagem';}" 
                loading="lazy">
           <span class="text-xs text-gray-500 mt-1 block text-center">${typeIcon} ${creative.type === 'video' ? 'Vídeo' : creative.type === 'carousel' ? 'Carrossel' : 'Imagem'}</span>
         </div>

@@ -227,8 +227,8 @@ export class FacebookInsightsService {
     // Dados do criativo com fallback
     async getCreativeData(adId) {
         try {
-            // Buscar creative com effective_object_story_id para posts existentes
-            const url = `/${adId}?fields=creative{thumbnail_url,image_hash,image_url,object_story_spec,effective_object_story_id,asset_feed_spec}&access_token=${this.accessToken}`;
+            // Buscar creative com TODOS os campos possíveis de mídia
+            const url = `/${adId}?fields=creative{thumbnail_url,image_hash,image_url,video_id,object_story_spec,effective_object_story_id,asset_feed_spec}&access_token=${this.accessToken}`;
             const response = await new Promise((resolve, reject) => {
                 const timeout = setTimeout(() => {
                     reject(new Error('Timeout ao buscar dados do criativo'));
@@ -252,9 +252,41 @@ export class FacebookInsightsService {
                 console.log(`🔍 Creative recebido para ad ${adId}:`, {
                     has_effective_object_story_id: !!creative.effective_object_story_id,
                     has_object_story_spec: !!creative.object_story_spec,
+                    has_video_id: !!creative.video_id,
                     effective_object_story_id: creative.effective_object_story_id,
+                    video_id: creative.video_id,
                     thumbnail_url: creative.thumbnail_url ? creative.thumbnail_url.substring(0, Math.min(50, creative.thumbnail_url.length)) : null
                 });
+                
+                // SE TEM VIDEO_ID: Buscar thumbnail de alta qualidade do vídeo
+                if (creative.video_id) {
+                    console.log(`   🎥 TEM VIDEO_ID! Buscando thumbnail HD do vídeo: ${creative.video_id}`);
+                    try {
+                        // Buscar thumbnail de alta qualidade do vídeo
+                        const videoUrl = `/${creative.video_id}?fields=picture,source&access_token=${this.accessToken}`;
+                        const videoResponse = await new Promise((resolve) => {
+                            FB.api(videoUrl, (res) => resolve(res));
+                        });
+                        
+                        if (videoResponse && !videoResponse.error) {
+                            console.log('   ✅ Dados do vídeo recebidos:', {
+                                has_picture: !!videoResponse.picture,
+                                has_source: !!videoResponse.source
+                            });
+                            
+                            // picture = thumbnail HD, source = URL do vídeo completo
+                            if (videoResponse.picture) {
+                                imageUrl = videoResponse.picture;
+                                type = 'video';
+                                console.log('   🎬 Usando thumbnail HD do vídeo!');
+                                console.log(`   📸 URL: ${imageUrl.substring(0, 100)}...`);
+                                return { imageUrl, type };
+                            }
+                        }
+                    } catch (err) {
+                        console.warn('   ⚠️ Erro ao buscar vídeo, usando fallback:', err.message);
+                    }
+                }
                 
                 // VERIFICAR SE VAI ENTRAR NA CONDIÇÃO
                 if (creative.effective_object_story_id && !creative.object_story_spec) {

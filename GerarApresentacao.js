@@ -20,6 +20,9 @@ const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 // Variável global para armazenar a logo do projeto
 let currentProjectLogo = '';
 
+// Variável global para armazenar a unidade selecionada
+let selectedUnit = null;
+
 // Carregar logo do projeto
 async function loadProjectLogo() {
     try {
@@ -123,6 +126,7 @@ function handleUnitSelection(e) {
     if (!selectedOption || !selectedOption.dataset.unit) return;
     
     const unit = JSON.parse(selectedOption.dataset.unit);
+    selectedUnit = unit; // Armazenar globalmente
     const linkedAccounts = unit.linkedAccounts || {};
     const hasMeta = linkedAccounts.meta?.id;
     const hasGoogle = linkedAccounts.google?.id;
@@ -1504,20 +1508,34 @@ async function generateCompleteReport() {
         console.timeEnd('⏱️ GERAÇÃO COMPLETA DO RELATÓRIO');
 
     } catch (error) {
-        console.error('Erro ao gerar relatório:', error);
+        console.error('❌ Erro ao gerar apresentação:', error);
         
         // Verificar se o erro é de token expirado
         if (error.message === 'TOKEN_EXPIRED' || error.message.includes('Session has expired')) {
-            alert('⚠️ Sua sessão do Facebook expirou!\n\nPor favor, vá até a tela de CONEXÕES e faça login novamente no Facebook.');
-            
-            // Redirecionar para a tela de conexões após 1 segundo
-            setTimeout(() => {
-                if (confirm('Deseja ir para a tela de CONEXÕES agora?')) {
-                    window.location.href = '/conexoes.html?tokenExpired=true';
-                }
-            }, 1000);
-            } else {
-            alert('Erro ao gerar relatório. Tente novamente.');
+            console.error('🔴 Token do Facebook expirado! Vá até CONEXÕES e faça login novamente.');
+        }
+        
+        // Mostrar erro inline ao invés de alert
+        const reportContainer = document.getElementById('reportContainer');
+        if (reportContainer) {
+            reportContainer.innerHTML = `
+                <div class="max-w-2xl mx-auto mt-8 bg-red-50 border-2 border-red-200 rounded-xl p-6">
+                    <div class="flex items-start gap-4">
+                        <i class="fas fa-exclamation-circle text-red-600 text-3xl"></i>
+                        <div>
+                            <h3 class="text-xl font-bold text-red-900 mb-2">Erro ao Gerar Apresentação</h3>
+                            <p class="text-red-800 mb-4">${error.message || 'Erro desconhecido. Tente novamente.'}</p>
+                            ${error.message && (error.message.includes('TOKEN_EXPIRED') || error.message.includes('Session has expired')) 
+                                ? '<p class="text-sm text-red-700 bg-red-100 p-3 rounded-lg"><strong>Solução:</strong> Vá até <a href="/conexoes.html" class="underline font-semibold">Conexões</a> e faça login novamente no Facebook.</p>'
+                                : ''
+                            }
+                            <button onclick="window.location.reload()" class="mt-4 bg-red-600 text-white px-6 py-2 rounded-lg hover:bg-red-700 transition-all">
+                                <i class="fas fa-redo mr-2"></i>Tentar Novamente
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
         }
         
         console.timeEnd('⏱️ GERAÇÃO COMPLETA DO RELATÓRIO');

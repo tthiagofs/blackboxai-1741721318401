@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gerar Apresentação - Insightflow</title>
+    <title>Gerar Relatório - Insightflow</title>
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <!-- Font Awesome -->
@@ -172,7 +172,7 @@ ul.list-disc li br {
         <!-- Sidebar -->
         <aside class="w-56 bg-white flex flex-col border-r border-gray-200">
             <div class="p-6">
-                <h1 class="text-xl font-bold text-gray-800">Apresentações</h1>
+                <h1 class="text-xl font-bold text-gray-800">Relatórios</h1>
             </div>
             
             <nav class="flex-1 px-3">
@@ -204,8 +204,8 @@ ul.list-disc li br {
             <div>
             <!-- Header -->
             <div class="text-center mb-8">
-                <h1 class="text-4xl font-bold text-gray-800 mb-2">Gerar Apresentação</h1>
-                <p class="text-lg text-gray-600">Configure os parâmetros e gere sua apresentação personalizada</p>
+                <h1 class="text-4xl font-bold text-gray-800 mb-2">Gerar Relatório</h1>
+                <p class="text-lg text-gray-600">Configure os parâmetros e gere seu relatório personalizado</p>
             </div>
 
             <div id="mainContent">
@@ -271,9 +271,9 @@ ul.list-disc li br {
                 </div>
             </div>
 
-            <!-- Card: Período da Apresentação -->
+            <!-- Card: Período do Relatório -->
             <div class="bg-white rounded-2xl shadow-md p-6 border border-gray-100">
-                <h3 class="text-lg font-semibold text-gray-800 mb-4">Período da Apresentação</h3>
+                <h3 class="text-lg font-semibold text-gray-800 mb-4">Período do Relatório</h3>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">
                 <div>
                         <label for="startDate" class="block text-sm font-medium text-gray-700 mb-2">Data de Início</label>
@@ -406,17 +406,17 @@ ul.list-disc li br {
             <!-- Botões Gerar e Salvar Relatório -->
             <div class="flex gap-4">
             <button type="submit"
-                    class="flex-1 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold py-4 px-6 rounded-xl transition duration-300 transform hover:scale-[1.02] shadow-lg flex items-center justify-center">
-                    <i class="fas fa-presentation mr-3 text-xl"></i>
-                    <span class="text-lg">Gerar Apresentação</span>
+                    class="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-bold py-4 px-6 rounded-xl transition duration-300 transform hover:scale-[1.02] shadow-lg flex items-center justify-center">
+                    <i class="fas fa-chart-bar mr-3 text-xl"></i>
+                    <span class="text-lg">Gerar Relatório</span>
                 </button>
                 
-                <!-- Botão Salvar Apresentação (aparece após gerar) -->
+                <!-- Botão Salvar Relatório (aparece após gerar) -->
                 <button type="button" id="saveReportBtn" style="display: none;"
                     class="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold py-4 px-6 rounded-xl transition duration-300 transform hover:scale-[1.02] shadow-lg flex items-center justify-center">
                     <i class="fas fa-save mr-3 text-xl"></i>
-                    <span class="text-lg">Salvar Apresentação</span>
-                </button>
+                    <span class="text-lg">Salvar Relatório</span>
+            </button>
             </div>
         </form>
 
@@ -432,10 +432,10 @@ ul.list-disc li br {
             <!-- Container do Relatório Gerado -->
         <div id="reportContainer" class="mt-8 space-y-8"></div>
 
-            <!-- Card: Análise da Apresentação (aparece após gerar) -->
+            <!-- Card: Análise do Relatório (aparece após gerar) -->
             <div id="analysisSection" style="display: none;" class="mt-8 bg-white rounded-2xl shadow-md p-6 border border-gray-100">
                 <h3 class="text-lg font-semibold text-gray-800 mb-4">
-                    <i class="fas fa-comment-dots mr-2 text-purple-600"></i>Próximos Passos (opcional)
+                    <i class="fas fa-comment-dots mr-2 text-purple-600"></i>Análise do Relatório
                 </h3>
                 
                 <!-- Sugestões Automáticas -->
@@ -468,10 +468,10 @@ ul.list-disc li br {
                     name="performanceAnalysis"
                     rows="8"
                     class="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition resize-none"
-                    placeholder="Adicione observações e sugestões que aparecerão na página 'Próximos Passos' da apresentação."
+                    placeholder="Suas análises aparecerão aqui. Clique nas sugestões acima para adicioná-las automaticamente."
                 ></textarea>
                 <p class="text-xs text-gray-500 mt-2">
-                    <i class="fas fa-info-circle mr-1"></i>Campo opcional. Este texto será incluído na apresentação.
+                    <i class="fas fa-info-circle mr-1"></i>Campo opcional. Clique nas sugestões acima ou digite sua própria análise. Pressione Enter 2x para criar novo parágrafo com marcador.
                 </p>
                 
                 <!-- Botão Gerar Relatório Final -->
@@ -722,37 +722,37 @@ ul.list-disc li br {
     
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script async defer crossorigin="anonymous" src="https://connect.facebook.net/en_US/sdk.js"></script>
-    <script type="module" src="GerarApresentacao.js?v=1.0"></script>
+    <script type="module" src="RelatorioCompleto.js?v=6.0"></script>
     
-    <!-- Script para Salvar Apresentação -->
+    <!-- Script para Salvar Relatório -->
     <script type="module">
-        import { presentationsService } from './services/presentationsService.js?v=1.0';
+        import { reportsService } from './services/reportsService.js?v=1.0';
         
-        // Variável global para armazenar dados da apresentação gerada
-        window.currentPresentationData = null;
+        // Variável global para armazenar dados do relatório gerado
+        window.currentReportData = null;
         
-        // Função para resetar o botão de salvar (ao gerar nova apresentação)
+        // Função para resetar o botão de salvar (ao gerar novo relatório)
         window.resetSaveButton = () => {
-            console.log('🔄 Resetando botão de salvar apresentação...');
+            console.log('🔄 Resetando botão de salvar relatório...');
             const saveBtn = document.getElementById('saveReportBtn');
             if (saveBtn) {
                 saveBtn.style.display = 'none';
                 saveBtn.disabled = false;
                 saveBtn.className = 'flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold py-4 px-6 rounded-xl transition duration-300 transform hover:scale-[1.02] shadow-lg flex items-center justify-center';
-                saveBtn.innerHTML = '<i class="fas fa-save mr-3 text-xl"></i><span class="text-lg">Salvar Apresentação</span>';
+                saveBtn.innerHTML = '<i class="fas fa-save mr-3 text-xl"></i><span class="text-lg">Salvar Relatório</span>';
                 console.log('✅ Botão resetado');
             }
         };
         
-        // Função para mostrar botão de salvar (será chamada após gerar a apresentação)
+        // Função para mostrar botão de salvar (será chamada após gerar o relatório)
         window.showSaveButton = () => {
-            console.log('🔘 Mostrando botão de salvar apresentação...');
+            console.log('🔘 Mostrando botão de salvar relatório...');
             const saveBtn = document.getElementById('saveReportBtn');
             if (saveBtn) {
                 // Resetar o botão antes de mostrar
                 saveBtn.disabled = false;
                 saveBtn.className = 'flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold py-4 px-6 rounded-xl transition duration-300 transform hover:scale-[1.02] shadow-lg flex items-center justify-center';
-                saveBtn.innerHTML = '<i class="fas fa-save mr-3 text-xl"></i><span class="text-lg">Salvar Apresentação</span>';
+                saveBtn.innerHTML = '<i class="fas fa-save mr-3 text-xl"></i><span class="text-lg">Salvar Relatório</span>';
                 saveBtn.style.display = 'flex';
                 console.log('✅ Botão de salvar exibido');
             } else {
@@ -760,7 +760,7 @@ ul.list-disc li br {
             }
         };
         
-        // Botão Salvar Apresentação
+        // Botão Salvar Relatório
         const saveReportBtn = document.getElementById('saveReportBtn');
         if (saveReportBtn) {
             saveReportBtn.addEventListener('click', async () => {
@@ -771,8 +771,8 @@ ul.list-disc li br {
                     return;
                 }
 
-                if (!window.currentPresentationData) {
-                    alert('Erro: Nenhuma apresentação foi gerada ainda');
+                if (!window.currentReportData) {
+                    alert('Erro: Nenhum relatório foi gerado ainda');
                     return;
                 }
 
@@ -781,27 +781,27 @@ ul.list-disc li br {
                 saveReportBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-3 text-xl"></i><span class="text-lg">Salvando...</span>';
 
                 try {
-                    const result = await presentationsService.savePresentation(projectId, window.currentPresentationData);
+                    const result = await reportsService.saveReport(projectId, window.currentReportData);
                     
                     if (result.success) {
                         // Mudar botão para indicar sucesso (verde) e MANTER DESABILITADO
                         saveReportBtn.disabled = true;
                         saveReportBtn.className = 'flex-1 bg-gradient-to-r from-green-600 to-green-700 text-white font-bold py-4 px-6 rounded-xl shadow-lg flex items-center justify-center opacity-75 cursor-not-allowed';
-                        saveReportBtn.innerHTML = '<i class="fas fa-check mr-3 text-xl"></i><span class="text-lg">Apresentação Salva!</span>';
+                        saveReportBtn.innerHTML = '<i class="fas fa-check mr-3 text-xl"></i><span class="text-lg">Relatório Salvo!</span>';
                         
-                        console.log('✅ Apresentação salva com sucesso!');
+                        console.log('✅ Relatório salvo com sucesso!');
                         
-                        // NÃO redirecionar - usuário pode gerar outra apresentação
+                        // NÃO redirecionar - usuário pode gerar outro relatório
                     } else {
-                        alert('❌ Erro ao salvar apresentação: ' + result.error);
+                        alert('❌ Erro ao salvar relatório: ' + result.error);
                         saveReportBtn.disabled = false;
-                        saveReportBtn.innerHTML = '<i class="fas fa-save mr-3 text-xl"></i><span class="text-lg">Salvar Apresentação</span>';
+                        saveReportBtn.innerHTML = '<i class="fas fa-save mr-3 text-xl"></i><span class="text-lg">Salvar Relatório</span>';
                     }
                 } catch (error) {
-                    console.error('Erro ao salvar apresentação:', error);
-                    alert('❌ Erro ao salvar apresentação. Tente novamente.');
+                    console.error('Erro ao salvar relatório:', error);
+                    alert('❌ Erro ao salvar relatório. Tente novamente.');
                     saveReportBtn.disabled = false;
-                    saveReportBtn.innerHTML = '<i class="fas fa-save mr-3 text-xl"></i><span class="text-lg">Salvar Apresentação</span>';
+                    saveReportBtn.innerHTML = '<i class="fas fa-save mr-3 text-xl"></i><span class="text-lg">Salvar Relatório</span>';
                 }
             });
         }

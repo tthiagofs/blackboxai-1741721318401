@@ -249,79 +249,46 @@ export class FacebookInsightsService {
                 let imageUrl = 'https://via.placeholder.com/200x200?text=Sem+Imagem';
                 let type = 'image'; // padrão
                 
-                // TENTAR USAR IMAGE_CROPS para melhor qualidade (não precisa permissões extras!)
-                if (creative.image_crops && creative.image_crops['100x100']) {
-                    const crop = creative.image_crops['100x100'][0];
-                    if (crop && crop.url) {
-                        imageUrl = crop.url;
-                        type = 'image';
-                        return { imageUrl, type };
-                    }
+                // Primeiro: Sempre tentar thumbnail_url (melhor qualidade para TODOS os tipos)
+                if (creative.thumbnail_url) {
+                    imageUrl = creative.thumbnail_url;
                 }
                 
-                // PARA "USAR POST EXISTENTE": usar thumbnail_url direto (não temos permissão para buscar post)
-                if (creative.effective_object_story_id && !creative.object_story_spec) {
-                    // Usar thumbnail_url diretamente
-                    if (creative.thumbnail_url) {
-                        imageUrl = creative.thumbnail_url;
-                        
-                        // Detectar tipo pela URL
-                        const urlLower = creative.thumbnail_url.toLowerCase();
-                        const isLikelyVideo = urlLower.includes('/v/t15') || 
-                                             urlLower.includes('video') || 
-                                             urlLower.includes('t15.5256');
-                        
-                        type = isLikelyVideo ? 'video' : 'image';
-                    }
-                }
-                // PARA "CRIAR ANÚNCIO": usar object_story_spec
-                else if (creative.object_story_spec) {
+                // Detectar tipo baseado em object_story_spec
+                if (creative.object_story_spec) {
                     // Vídeo
                     if (creative.object_story_spec.video_data) {
                         type = 'video';
-                        imageUrl = creative.object_story_spec.video_data.image_url || creative.thumbnail_url || imageUrl;
+                        // Se não tinha thumbnail, tentar video image_url
+                        if (!creative.thumbnail_url && creative.object_story_spec.video_data.image_url) {
+                            imageUrl = creative.object_story_spec.video_data.image_url;
+                        }
                     }
                     // Carrossel
                     else if (creative.object_story_spec.link_data?.child_attachments) {
                         type = 'carousel';
-                        imageUrl = creative.object_story_spec.link_data.picture || creative.thumbnail_url || imageUrl;
+                        // Se não tinha thumbnail, tentar link_data picture
+                        if (!creative.thumbnail_url && creative.object_story_spec.link_data.picture) {
+                            imageUrl = creative.object_story_spec.link_data.picture;
+                        }
                     }
                     // Imagem estática
-                    else if (creative.object_story_spec.link_data) {
+                    else if (creative.object_story_spec.link_data?.picture || creative.object_story_spec.link_data) {
                         type = 'image';
-                        imageUrl = creative.object_story_spec.link_data.picture || creative.image_url || creative.thumbnail_url || imageUrl;
+                        // Se não tinha thumbnail, tentar outras fontes
+                        if (!creative.thumbnail_url) {
+                            if (creative.image_url) {
+                                imageUrl = creative.image_url;
+                            } else if (creative.object_story_spec.link_data?.picture) {
+                                imageUrl = creative.object_story_spec.link_data.picture;
+                            }
+                        }
                     }
                 }
                 
                 // Detectar carrossel via asset_feed_spec
                 if (creative.asset_feed_spec) {
                     type = 'carousel';
-                }
-                
-                // Se tiver image_hash, buscar imagem de ALTA QUALIDADE usando a Graph API
-                if (creative.image_hash && type === 'image') {
-                    try {
-                        const imageHashUrl = `/${creative.image_hash}?fields=url_128&access_token=${this.accessToken}`;
-                        const imageHashResponse = await new Promise((resolve) => {
-                            FB.api(imageHashUrl, (res) => resolve(res));
-                        });
-                        
-                        if (imageHashResponse && imageHashResponse.url_128) {
-                            // url_128 é uma versão de alta qualidade - substituir 128 por tamanho maior
-                            imageUrl = imageHashResponse.url_128.replace('_128.', '_720.');
-                        }
-                    } catch (err) {
-                        console.warn('Erro ao buscar imagem de alta qualidade via image_hash:', err);
-                    }
-                }
-                
-                // Fallback final
-                if (!imageUrl || imageUrl === 'https://via.placeholder.com/200x200?text=Sem+Imagem') {
-                    if (creative.thumbnail_url) {
-                        imageUrl = creative.thumbnail_url;
-                    } else if (creative.image_url) {
-                        imageUrl = creative.image_url;
-                    }
                 }
                 
                 return { imageUrl, type };

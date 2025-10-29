@@ -224,23 +224,7 @@ async function searchCreatives() {
       return;
     }
 
-    console.log('🔍 Buscando criativos:', { projectId, period, orderBy, unitId, dates });
-
-    // Verificar permissões do Facebook
-    FB.api('/me/permissions', (response) => {
-      if (response && !response.error) {
-        console.log('🔑 Permissões do Facebook:', response.data);
-        const granted = response.data.filter(p => p.status === 'granted').map(p => p.permission);
-        console.log('✅ Permissões concedidas:', granted);
-        
-        if (!granted.includes('instagram_basic')) {
-          console.warn('⚠️ Permissão instagram_basic NÃO concedida!');
-        }
-        if (!granted.includes('pages_read_engagement')) {
-          console.warn('⚠️ Permissão pages_read_engagement NÃO concedida!');
-        }
-      }
-    });
+    console.log('🔍 Iniciando busca de criativos...');
 
     // Buscar dados do Meta Ads
     const creatives = await fetchCreativesFromMetaAds(projectId, unitId, dates);
@@ -293,31 +277,21 @@ function showError(message) {
 // Buscar criativos do Meta Ads (usando fbAuth do localStorage, igual à Visão Geral)
 async function fetchCreativesFromMetaAds(projectId, unitId, dates) {
   try {
-    console.log('📊 Buscando criativos do Meta Ads...');
-    console.log('   Projeto:', projectId);
-    console.log('   Unidade:', unitId);
-    console.log('   Período:', dates);
-
     // Verificar se tem token do Facebook (igual à Visão Geral)
     const fbToken = fbAuth?.getAccessToken && fbAuth.getAccessToken();
     if (!fbToken) {
       throw new Error('Nenhuma conta Meta Ads conectada. Por favor, conecte uma conta em Conexões.');
     }
-    console.log('✅ Token do Facebook encontrado');
 
     // Buscar unidades do projeto
-    console.log('🔍 Buscando unidades do projeto...');
     const allUnits = await unitsService.listUnits(projectId);
-    console.log(`✅ ${allUnits.length} unidade(s) encontrada(s)`);
     
     // Filtrar unidades com contas Meta vinculadas
     let targetUnits = allUnits.filter(u => u.linkedAccounts?.meta?.id);
-    console.log(`🎯 ${targetUnits.length} unidade(s) com Meta vinculado`);
     
     // Se não for "all", filtrar pela unidade específica
     if (unitId !== 'all' && unitId) {
       targetUnits = targetUnits.filter(u => u.id === unitId);
-      console.log(`🔎 Filtrando por unitId: ${unitId} → ${targetUnits.length} unidade(s)`);
     }
 
     if (targetUnits.length === 0) {
@@ -332,49 +306,41 @@ async function fetchCreativesFromMetaAds(projectId, unitId, dates) {
     // Para cada unidade com Meta vinculado
     for (const unit of targetUnits) {
       const metaAccountId = unit.linkedAccounts.meta.id;
-      console.log(`🔍 Buscando anúncios da unidade "${unit.name}" (Meta: ${metaAccountId})`);
 
       try {
         // Buscar TODOS os anúncios com dados (usando a API do Facebook)
         const url = `/${metaAccountId}/insights?level=ad&fields=ad_id,ad_name,spend,impressions,clicks,actions&time_range={'since':'${dates.start}','until':'${dates.end}'}&limit=100&access_token=${fbToken}`;
         const adsData = await fbService.fetchWithPagination(url, [], true);
 
-        console.log(`   ✅ ${adsData.length} anúncios encontrados para ${unit.name}`);
-
         // Processar APENAS métricas (SEM buscar creative ainda)
         const processedAds = processAdsDataFast(adsData, unit.name);
         allAds = allAds.concat(processedAds);
 
       } catch (error) {
-        console.error(`   ❌ Erro ao buscar ads da conta ${metaAccountId}:`, error);
+        console.error(`❌ Erro ao buscar ads da conta ${metaAccountId}:`, error);
       }
     }
 
-    console.log(`📊 Total de ${allAds.length} anúncios processados (métricas)`);
-    
     // OTIMIZAÇÃO: Ordenar ANTES de buscar creatives
     const orderByElement = document.getElementById('orderBy');
     const orderBy = orderByElement ? orderByElement.value : 'impressions'; // Padrão: impressões
-    console.log(`📊 Ordenando por: ${orderBy}`);
     sortCreatives(allAds, orderBy);
     
     // Buscar creative APENAS do TOP 10
     const top10 = allAds.slice(0, 10);
-    console.log(`🎯 Buscando creatives apenas dos TOP ${top10.length} anúncios`);
+    console.log(`🎯 Buscando imagens dos TOP ${top10.length} criativos...`);
     
     for (const ad of top10) {
       try {
-        console.log(`🔍 Buscando creative para: ${ad.name} (ID: ${ad.id})`);
         const creativeData = await fbService.getCreativeData(ad.id);
         ad.thumbnailUrl = creativeData.imageUrl || ad.thumbnailUrl;
         ad.type = creativeData.type || ad.type;
-        console.log(`   ✅ Creative recebido`);
       } catch (error) {
-        console.error(`   ❌ Erro ao buscar creative do ad ${ad.id}:`, error);
+        console.error(`❌ Erro ao buscar creative do ad ${ad.id}:`, error);
       }
     }
     
-    console.log(`✅ Busca completa! ${allAds.length} anúncios, ${top10.length} com preview HD`);
+    console.log(`✅ ${allAds.length} anúncios encontrados, ${top10.length} com preview em alta qualidade`);
     return allAds;
 
   } catch (error) {
@@ -524,8 +490,8 @@ function renderCreatives(creatives) {
     return `
       <div class="flex items-start gap-4 p-4 border border-gray-200 rounded-lg hover:shadow-md transition-shadow">
         <div class="flex-shrink-0">
-          <img src="${creative.thumbnailUrl}" alt="${creative.name}" class="w-32 h-32 object-cover rounded-lg border border-gray-200" 
-               onerror="this.src='https://via.placeholder.com/200x200?text=Sem+Imagem'" 
+          <img src="${creative.thumbnailUrl || 'https://via.placeholder.com/200x200?text=Sem+Imagem'}" alt="${creative.name}" class="w-32 h-32 object-cover rounded-lg border border-gray-200" 
+               onerror="if(!this.hasAttribute('data-error-handled')){this.setAttribute('data-error-handled','true');this.src='https://via.placeholder.com/200x200?text=Sem+Imagem';}" 
                loading="lazy">
           <span class="text-xs text-gray-500 mt-1 block text-center">${typeIcon} ${creative.type === 'video' ? 'Vídeo' : creative.type === 'carousel' ? 'Carrossel' : 'Imagem'}</span>
         </div>

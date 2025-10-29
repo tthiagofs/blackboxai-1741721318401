@@ -1495,6 +1495,15 @@ async function generateCompleteReport() {
         // Importar função de geração de HTML
         const { generatePresentationHTML } = await import('./gerar-html-apresentacao.js?v=1.2');
         
+        // Log das métricas que serão enviadas
+        console.log('📊 Métricas que serão enviadas para a apresentação:', {
+            metaMetrics: separateMetaMetrics,
+            googleMetrics: separateGoogleMetrics,
+            budgetsCompleted,
+            salesCount,
+            revenue
+        });
+        
         const presentationHTML = generatePresentationHTML({
             unitName: accountName,
             startDate,
@@ -1646,6 +1655,8 @@ function calculateMetricsForSelection(selectedCampaigns, selectedAdSets, campaig
     let totalSpend = 0;
     let totalReach = 0;
     let totalConversations = 0;
+    let totalClicks = 0;
+    let totalConversions = 0;
 
     if (selectedCampaigns.size > 0) {
         for (const campaignId of selectedCampaigns) {
@@ -1653,7 +1664,14 @@ function calculateMetricsForSelection(selectedCampaigns, selectedAdSets, campaig
             if (campaign && campaign.insights) {
                 totalSpend += campaign.insights.spend || 0;
                 totalReach += parseInt(campaign.insights.reach || 0);
+                totalClicks += parseInt(campaign.insights.clicks || 0);
                 totalConversations += extractMessages(campaign.insights.actions || []);
+                
+                // Buscar conversões (leads)
+                if (campaign.insights.actions) {
+                    const leadAction = campaign.insights.actions.find(a => a.action_type === 'lead');
+                    if (leadAction) totalConversions += parseInt(leadAction.value || 0);
+                }
             }
         }
     } else if (selectedAdSets.size > 0) {
@@ -1662,7 +1680,14 @@ function calculateMetricsForSelection(selectedCampaigns, selectedAdSets, campaig
             if (adSet && adSet.insights) {
                 totalSpend += adSet.insights.spend || 0;
                 totalReach += parseInt(adSet.insights.reach || 0);
+                totalClicks += parseInt(adSet.insights.clicks || 0);
                 totalConversations += extractMessages(adSet.insights.actions || []);
+                
+                // Buscar conversões (leads)
+                if (adSet.insights.actions) {
+                    const leadAction = adSet.insights.actions.find(a => a.action_type === 'lead');
+                    if (leadAction) totalConversions += parseInt(leadAction.value || 0);
+                }
             }
         }
             } else {
@@ -1671,7 +1696,14 @@ function calculateMetricsForSelection(selectedCampaigns, selectedAdSets, campaig
             if (campaign && campaign.insights) {
                 totalSpend += campaign.insights.spend || 0;
                 totalReach += parseInt(campaign.insights.reach || 0);
+                totalClicks += parseInt(campaign.insights.clicks || 0);
                 totalConversations += extractMessages(campaign.insights.actions || []);
+                
+                // Buscar conversões (leads)
+                if (campaign.insights.actions) {
+                    const leadAction = campaign.insights.actions.find(a => a.action_type === 'lead');
+                    if (leadAction) totalConversions += parseInt(leadAction.value || 0);
+                }
             }
         });
     }
@@ -1681,6 +1713,8 @@ function calculateMetricsForSelection(selectedCampaigns, selectedAdSets, campaig
     return {
         spend: totalSpend,
         reach: totalReach,
+        clicks: totalClicks,
+        conversions: totalConversions,
         conversations: totalConversations,
         costPerConversation
     };

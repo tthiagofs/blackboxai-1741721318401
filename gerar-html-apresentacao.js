@@ -466,34 +466,34 @@ function getStyles() {
     .resultados-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 25px;
+      gap: 20px;
     }
 
     .resultados-column {
       display: flex;
       flex-direction: column;
-      gap: 20px;
+      gap: 15px;
     }
 
     .card-white {
       background: white;
       border-radius: 12px;
-      padding: 20px 25px;
+      padding: 16px 20px;
       box-shadow: 0 4px 12px rgba(0,0,0,0.08);
     }
 
     .card-purple {
       background: linear-gradient(135deg, #7B4397 0%, #6B3387 100%);
       border-radius: 12px;
-      padding: 20px 25px;
+      padding: 16px 20px;
       box-shadow: 0 4px 12px rgba(123,67,151,0.3);
     }
 
     .card-label {
-      font-size: 16px;
+      font-size: 14px;
       color: #666;
       font-weight: 500;
-      margin-bottom: 8px;
+      margin-bottom: 6px;
     }
 
     .card-purple .card-label {
@@ -501,10 +501,12 @@ function getStyles() {
     }
 
     .card-value {
-      font-size: 28px;
+      font-size: 24px;
       font-weight: 700;
       color: #2563A8;
-      line-height: 1.2;
+      line-height: 1.1;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
     .card-purple .card-value {

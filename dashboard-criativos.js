@@ -363,11 +363,13 @@ async function processAdsData(adsData, fbService, accessToken, unitName) {
     let type = 'image';
     
     try {
+      console.log(`🔍 Buscando creative para anúncio: ${ad.ad_name} (ID: ${ad.ad_id})`);
       const creativeData = await fbService.getCreativeData(ad.ad_id);
+      console.log(`   ✅ Creative recebido:`, { type: creativeData.type, imageUrl: creativeData.imageUrl?.substring(0, 60) + '...' });
       thumbnailUrl = creativeData.imageUrl || thumbnailUrl;
-      type = creativeData.type || 'image'; // Agora pega o tipo retornado
+      type = creativeData.type || 'image';
     } catch (error) {
-      console.warn(`Erro ao buscar creative do ad ${ad.ad_id}:`, error);
+      console.error(`❌ Erro ao buscar creative do ad ${ad.ad_id}:`, error);
     }
 
     const impressions = parseInt(ad.impressions || 0);

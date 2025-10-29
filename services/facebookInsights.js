@@ -249,6 +249,13 @@ export class FacebookInsightsService {
                 let imageUrl = 'https://via.placeholder.com/200x200?text=Sem+Imagem';
                 let type = 'image'; // padrão
                 
+                console.log(`🔍 Creative recebido para ad ${adId}:`, {
+                    has_effective_object_story_id: !!creative.effective_object_story_id,
+                    has_object_story_spec: !!creative.object_story_spec,
+                    effective_object_story_id: creative.effective_object_story_id,
+                    thumbnail_url: creative.thumbnail_url?.substring(0, 50)
+                });
+                
                 // PARA "USAR POST EXISTENTE": buscar dados do post original (Stories, Reels, Feed)
                 if (creative.effective_object_story_id && !creative.object_story_spec) {
                     try {

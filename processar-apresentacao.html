@@ -116,6 +116,7 @@
             formatNumber,
             formatDate
         } from './processar-apresentacao.js';
+        import { generatePresentationHTML } from './gerar-html-apresentacao.js';
 
         // Estado dos steps
         function updateStep(stepId, state) {
@@ -301,10 +302,20 @@
                 updateStep('step4', 'loading');
                 console.log('🎨 Gerando HTML da apresentação...');
                 
-                // TODO: Gerar HTML baseado em apresentacao-preview.html
-                // TODO: Incluir páginas condicionais (Meta/Google/Ambos)
+                // Gerar HTML da apresentação
+                const presentationHTML = generatePresentationHTML({
+                    unitName: presentationData.unitName,
+                    startDate: presentationData.startDate,
+                    endDate: presentationData.endDate,
+                    hasMeta,
+                    hasGoogle,
+                    metaMetrics: metaConsolidated,
+                    googleMetrics: googleConsolidated,
+                    metaTop3Ads
+                });
+
+                console.log('✅ HTML gerado com sucesso');
                 
-                await new Promise(resolve => setTimeout(resolve, 1000));
                 updateStep('step4', 'success');
 
                 // STEP 5: Salvar apresentação
@@ -323,9 +334,10 @@
                         google: hasGoogle
                     },
                     metrics: {
-                        meta: metaMetrics,
-                        google: googleMetrics
+                        meta: metaConsolidated,
+                        google: googleConsolidated
                     },
+                    html: presentationHTML, // Salvar HTML gerado
                     createdAt: new Date().toISOString(),
                     createdBy: auth.currentUser.uid
                 };
@@ -337,8 +349,12 @@
 
                 console.log('✅ Apresentação salva:', savedPresentation.id);
                 
-                // Salvar ID para download posterior
-                window.savedPresentationId = savedPresentation.id;
+                // Salvar dados para download posterior
+                window.presentationData = {
+                    id: savedPresentation.id,
+                    html: presentationHTML,
+                    name: presentationData.presentationName
+                };
                 
                 updateStep('step5', 'success');
 
@@ -365,8 +381,24 @@
 
         // Download PDF
         document.getElementById('downloadBtn')?.addEventListener('click', () => {
-            // TODO: Implementar download do PDF
-            alert('Funcionalidade de download em desenvolvimento');
+            if (!window.presentationData || !window.presentationData.html) {
+                alert('HTML da apresentação não encontrado');
+                return;
+            }
+
+            console.log('📥 Iniciando download do PDF...');
+            
+            // Abrir HTML em nova janela para impressão/download
+            const printWindow = window.open('', '_blank');
+            printWindow.document.write(window.presentationData.html);
+            printWindow.document.close();
+            
+            // Aguardar carregamento e acionar impressão
+            printWindow.onload = () => {
+                setTimeout(() => {
+                    printWindow.print();
+                }, 500);
+            };
         });
 
         // Iniciar quando autenticado

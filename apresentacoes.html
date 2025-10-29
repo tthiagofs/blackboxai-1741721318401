@@ -1,0 +1,867 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Projeto - Insightflow</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .logo-upload-container {
+            position: relative;
+            width: 80px;
+            height: 80px;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 2px dashed #3B82F6;
+            background: #EFF6FF;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .logo-upload-container:hover {
+            border-color: #2563EB;
+            background: #DBEAFE;
+        }
+        .logo-upload-container.has-image {
+            border: 2px solid #E5E7EB;
+            background: white;
+        }
+        .logo-upload-container img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .project-name-editable {
+            cursor: pointer;
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 4px 8px;
+            border-radius: 6px;
+            transition: all 0.2s ease;
+        }
+        .project-name-editable:hover {
+            background: #F3F4F6;
+        }
+        .project-name-editable .edit-icon {
+            opacity: 0;
+            transition: opacity 0.2s ease;
+        }
+        .project-name-editable:hover .edit-icon {
+            opacity: 1;
+        }
+        .report-card {
+            position: relative;
+            transition: all 0.3s ease;
+        }
+        .report-card.selected {
+            border-color: #3B82F6 !important;
+            background: #EFF6FF !important;
+        }
+        .report-card .checkbox {
+            display: none;
+            position: absolute;
+            top: 12px;
+            left: 12px;
+            width: 20px;
+            height: 20px;
+            border: 2px solid #D1D5DB;
+            border-radius: 4px;
+            background: white;
+            cursor: pointer;
+            z-index: 10;
+        }
+        .report-card .checkbox.show {
+            display: block;
+        }
+        .report-card .checkbox.checked {
+            background: #3B82F6;
+            border-color: #3B82F6;
+        }
+        .report-card .checkbox.checked::after {
+            content: '✓';
+            color: white;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .platform-icon-facebook {
+            color: #1877F2;
+        }
+        .platform-icon-instagram {
+            background: linear-gradient(45deg, #f09433 0%,#e6683c 25%,#dc2743 50%,#cc2366 75%,#bc1888 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .platform-icon-google {
+            color: #EA4335;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen font-sans m-0 p-0">
+    <!-- Proteção de Auth -->
+    <script type="module">
+        import { auth } from './config/firebase.js';
+        import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+        
+        onAuthStateChanged(auth, (user) => {
+            if (!user) {
+                window.location.href = '/login.html';
+                return;
+            }
+        });
+    </script>
+
+    <!-- Container Principal -->
+    <div class="flex min-h-screen w-full bg-gray-50">
+        <!-- Sidebar Unificada -->
+        <div id="app-sidebar"></div>
+
+        <!-- Conteúdo Principal -->
+        <main class="flex-1 p-10">
+            <!-- Header do Projeto -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
+                <!-- Botão Voltar -->
+                <button onclick="window.location.href='/home.html'" class="mb-4 text-gray-600 hover:text-gray-900 transition-colors flex items-center text-sm">
+                    <i class="fas fa-arrow-left mr-2"></i>
+                    Voltar
+                </button>
+
+                <!-- Logo e Nome do Projeto -->
+                <div class="flex items-center gap-4 mb-6">
+                    <!-- Upload de Logo -->
+                    <div>
+                        <div class="logo-upload-container" id="logoContainer">
+                            <input type="file" id="logoInput" accept="image/*" class="hidden">
+                            <i class="fas fa-camera text-3xl text-blue-600" id="uploadIcon"></i>
+                            <img id="logoPreview" class="hidden" alt="Logo do Projeto">
+                        </div>
+                        <p class="text-xs text-gray-500 text-center mt-2">
+                            Clique para adicionar logo<br>
+                            <span class="text-gray-400">PNG/JPG • 200x200px • Máx 2MB</span>
+                        </p>
+                    </div>
+
+                    <!-- Nome e Descrição -->
+                    <div class="flex-1">
+                        <div class="project-name-editable" id="projectNameEditable">
+                            <h1 id="projectName" class="text-3xl font-bold text-gray-900">Carregando...</h1>
+                            <i class="fas fa-pencil-alt text-gray-400 text-sm edit-icon"></i>
+                        </div>
+                        <p class="text-sm text-gray-600 mt-1">Gerencie as apresentações deste projeto</p>
+                    </div>
+
+                    <!-- Botão Gerar Apresentação -->
+                    <button 
+                        id="generatePresentationBtn"
+                        class="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white px-6 py-3 rounded-xl font-semibold transition-all transform hover:scale-105 shadow-lg flex items-center"
+                    >
+                        <i class="fas fa-plus mr-2"></i>
+                        Gerar Apresentação
+                    </button>
+                </div>
+
+                <!-- Cards de Estatísticas -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <!-- Total de Apresentações -->
+                    <div class="bg-gradient-to-br from-purple-50 to-pink-50 border border-purple-200 rounded-xl p-4">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-sm text-gray-600 mb-1">Total de Apresentações</p>
+                                <h3 id="totalPresentations" class="text-3xl font-bold text-purple-600">0</h3>
+                            </div>
+                            <div class="w-12 h-12 bg-purple-600 rounded-lg flex items-center justify-center">
+                                <i class="fas fa-presentation text-2xl text-white"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Última Apresentação -->
+                    <div class="bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-xl p-4">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-sm text-gray-600 mb-1">Última Apresentação</p>
+                                <h3 id="lastPresentation" class="text-lg font-bold text-green-600">-</h3>
+                            </div>
+                            <div class="w-12 h-12 bg-green-600 rounded-lg flex items-center justify-center">
+                                <i class="fas fa-clock text-2xl text-white"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Plataformas -->
+                    <div class="bg-gradient-to-br from-purple-50 to-pink-50 border border-purple-200 rounded-xl p-4">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-sm text-gray-600 mb-1">Plataformas</p>
+                                <div id="platformsStats" class="flex items-center gap-2 mt-2">
+                                    <span class="text-sm text-gray-500">Carregando...</span>
+                                </div>
+                            </div>
+                            <div class="w-12 h-12 bg-purple-600 rounded-lg flex items-center justify-center">
+                                <i class="fas fa-globe text-2xl text-white"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Seção de Relatórios -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                <!-- Toolbar -->
+                <div class="flex items-center justify-between mb-6">
+                    <h2 class="text-xl font-bold text-gray-900 flex items-center">
+                        <i class="fas fa-folder-open mr-2 text-purple-600"></i>
+                        Apresentações Salvas
+                    </h2>
+
+                    <!-- Controles -->
+                    <div class="flex items-center gap-3">
+                        <!-- Modo Normal -->
+                        <div id="normalControls" class="flex items-center gap-3">
+                            <!-- Ordenação -->
+                            <div class="relative">
+                                <button id="sortButton" class="px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2">
+                                    <i class="fas fa-sort"></i>
+                                    <span id="sortLabel">Mais Recentes</span>
+                                    <i class="fas fa-chevron-down text-xs"></i>
+                                </button>
+                                <!-- Dropdown de Ordenação -->
+                                <div id="sortDropdown" class="hidden absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-10">
+                                    <button onclick="setSortMode('recent')" class="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2">
+                                        <i class="fas fa-clock text-gray-400"></i>
+                                        Mais Recentes
+                                    </button>
+                                    <button onclick="setSortMode('oldest')" class="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2">
+                                        <i class="fas fa-history text-gray-400"></i>
+                                        Mais Antigos
+                                    </button>
+                                    <button onclick="setSortMode('nameAZ')" class="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2">
+                                        <i class="fas fa-sort-alpha-down text-gray-400"></i>
+                                        Nome (A-Z)
+                                    </button>
+                                    <button onclick="setSortMode('nameZA')" class="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2">
+                                        <i class="fas fa-sort-alpha-up text-gray-400"></i>
+                                        Nome (Z-A)
+                                    </button>
+                                    <button onclick="setSortMode('platform')" class="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2">
+                                        <i class="fas fa-layer-group text-gray-400"></i>
+                                        Plataforma
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Botão Selecionar -->
+                            <button id="selectModeBtn" class="px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2">
+                                <i class="fas fa-check-square"></i>
+                                Selecionar
+                            </button>
+                        </div>
+
+                        <!-- Modo Seleção -->
+                        <div id="selectionControls" class="hidden flex items-center gap-3">
+                            <!-- Selecionar Todos -->
+                            <button id="selectAllBtn" class="px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 hover:bg-gray-50">
+                                Selecionar Todos
+                            </button>
+
+                            <!-- Excluir Selecionados -->
+                            <button id="deleteSelectedBtn" class="px-4 py-2 bg-red-600 text-white rounded-lg text-sm hover:bg-red-700 flex items-center gap-2">
+                                <i class="fas fa-trash"></i>
+                                Excluir (<span id="selectedCount">0</span>)
+                            </button>
+
+                            <!-- Cancelar -->
+                            <button id="cancelSelectBtn" class="px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 hover:bg-gray-50">
+                                Cancelar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Loading State -->
+                <div id="presentationsLoading" class="text-center py-12">
+                    <div class="animate-spin rounded-full h-12 w-12 border-b-4 border-purple-600 mx-auto mb-4"></div>
+                    <p class="text-gray-600">Carregando apresentações...</p>
+                </div>
+
+                <!-- Empty State -->
+                <div id="presentationsEmpty" class="hidden text-center py-12">
+                    <div class="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <i class="fas fa-presentation text-5xl text-gray-300"></i>
+                    </div>
+                    <h4 class="text-xl font-bold text-gray-800 mb-2">Nenhuma apresentação salva</h4>
+                    <p class="text-gray-600 mb-6">Gere sua primeira apresentação para começar</p>
+                    <button onclick="document.getElementById('generatePresentationBtn').click()" class="bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700 transition-all">
+                        <i class="fas fa-plus mr-2"></i>
+                        Gerar Primeira Apresentação
+                    </button>
+                </div>
+
+                <!-- Grid de Apresentações -->
+                <div id="presentationsGrid" class="hidden grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <!-- Cards serão inseridos aqui via JavaScript -->
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script type="module">
+        import { auth, db } from './config/firebase.js';
+        import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+        import { doc, updateDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+        import { authService } from './services/authService.js?v=1.4';
+        import { projectsService } from './services/projects.js?v=1.3';
+        import { reportsService } from './services/reportsService.js?v=1.0';
+
+        const projectNameEl = document.getElementById('projectName');
+        const projectNameEditable = document.getElementById('projectNameEditable');
+        const generateReportBtn = document.getElementById('generateReportBtn');
+        const reportsLoading = document.getElementById('reportsLoading');
+        const reportsEmpty = document.getElementById('reportsEmpty');
+        const reportsGrid = document.getElementById('reportsGrid');
+        const totalReports = document.getElementById('totalReports');
+        const lastReport = document.getElementById('lastReport');
+        const platformsStats = document.getElementById('platformsStats');
+        const logoContainer = document.getElementById('logoContainer');
+        const logoInput = document.getElementById('logoInput');
+        const logoPreview = document.getElementById('logoPreview');
+        const uploadIcon = document.getElementById('uploadIcon');
+        const sortButton = document.getElementById('sortButton');
+        const sortDropdown = document.getElementById('sortDropdown');
+        const sortLabel = document.getElementById('sortLabel');
+        const selectModeBtn = document.getElementById('selectModeBtn');
+        const normalControls = document.getElementById('normalControls');
+        const selectionControls = document.getElementById('selectionControls');
+        const selectAllBtn = document.getElementById('selectAllBtn');
+        const deleteSelectedBtn = document.getElementById('deleteSelectedBtn');
+        const cancelSelectBtn = document.getElementById('cancelSelectBtn');
+        const selectedCount = document.getElementById('selectedCount');
+
+        let currentProjectId = null;
+        let currentProject = null;
+        let allReports = [];
+        let currentSortMode = 'recent';
+        let isSelectionMode = false;
+        let selectedReports = new Set();
+
+        // Pegar ID do projeto da URL
+        const urlParams = new URLSearchParams(window.location.search);
+        currentProjectId = urlParams.get('id');
+
+        if (!currentProjectId) {
+            alert('Projeto não encontrado');
+            window.location.href = '/home.html';
+        }
+
+        // Links do menu agora são gerenciados pela sidebar unificada
+
+        // Botão Gerar Relatório
+        generateReportBtn.addEventListener('click', () => {
+            localStorage.setItem('currentProject', currentProjectId);
+            window.location.href = '/tipo-relatorio.html';
+        });
+
+        // Upload de Logo
+        logoContainer.addEventListener('click', () => {
+            logoInput.click();
+        });
+
+        // Adicionar tooltip com orientações
+        logoContainer.title = 'Clique para adicionar logo\nFormato: PNG ou JPG\nTamanho ideal: 200x200px\nMáximo: 2MB';
+
+        logoInput.addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            // Validar tipo de arquivo
+            if (!file.type.startsWith('image/')) {
+                alert('Por favor, selecione uma imagem válida (PNG ou JPG)');
+                return;
+            }
+
+            // Validar tamanho (máx 2MB)
+            if (file.size > 2 * 1024 * 1024) {
+                alert('A imagem deve ter no máximo 2MB');
+                return;
+            }
+
+            try {
+                console.log('📤 Processando logo...', { projectId: currentProjectId, fileName: file.name, size: file.size });
+
+                // Converter imagem para Base64
+                const reader = new FileReader();
+                reader.onload = async (e) => {
+                    const base64Image = e.target.result;
+                    
+                    // Mostrar preview imediatamente
+                    logoPreview.src = base64Image;
+                    logoPreview.classList.remove('hidden');
+                    uploadIcon.classList.add('hidden');
+                    logoContainer.classList.add('has-image');
+
+                    try {
+                        // Salvar Base64 no Firestore
+                        const projectRef = doc(db, 'projects', currentProjectId);
+                        await updateDoc(projectRef, {
+                            logoUrl: base64Image,
+                            updatedAt: serverTimestamp()
+                        });
+
+                        console.log('✅ Logo salva com sucesso no Firestore!', {
+                            projectId: currentProjectId,
+                            logoSize: Math.round(base64Image.length / 1024) + 'KB'
+                        });
+                        
+                        // Atualizar o projeto atual
+                        currentProject = await projectsService.getProject(currentProjectId);
+                        console.log('✅ Projeto atualizado:', currentProject);
+                        
+                        alert('✅ Logo salva com sucesso!\n\nFormato ideal: PNG ou JPG\nTamanho: 200x200px\nA logo será exibida nos relatórios.');
+                    } catch (error) {
+                        console.error('❌ Erro ao salvar logo:', error);
+                        alert('Erro ao salvar logo. Tente novamente.\n\n' + error.message);
+                        
+                        // Reverter preview em caso de erro
+                        logoPreview.classList.add('hidden');
+                        uploadIcon.classList.remove('hidden');
+                        logoContainer.classList.remove('has-image');
+                    }
+                };
+                
+                reader.onerror = (error) => {
+                    console.error('❌ Erro ao ler arquivo:', error);
+                    alert('Erro ao processar a imagem. Tente novamente.');
+                };
+                
+                reader.readAsDataURL(file);
+                
+            } catch (error) {
+                console.error('❌ Erro ao processar logo:', error);
+                alert('Erro ao processar a logo. Tente novamente.\n\n' + error.message);
+            }
+        });
+
+        // Edição do Nome do Projeto
+        projectNameEditable.addEventListener('click', async () => {
+            const currentName = projectNameEl.textContent;
+            const newName = prompt('Digite o novo nome do projeto:', currentName);
+
+            if (newName && newName.trim() !== '' && newName !== currentName) {
+                try {
+                    const projectRef = doc(db, 'projects', currentProjectId);
+                    await updateDoc(projectRef, {
+                        name: newName.trim(),
+                        updatedAt: new Date().toISOString()
+                    });
+
+                    projectNameEl.textContent = newName.trim();
+                    console.log('✅ Nome do projeto atualizado!');
+                } catch (error) {
+                    console.error('❌ Erro ao atualizar nome:', error);
+                    alert('Erro ao atualizar nome do projeto');
+                }
+            }
+        });
+
+        // Ordenação
+        sortButton.addEventListener('click', () => {
+            sortDropdown.classList.toggle('hidden');
+        });
+
+        // Fechar dropdown ao clicar fora
+        document.addEventListener('click', (e) => {
+            if (!sortButton.contains(e.target) && !sortDropdown.contains(e.target)) {
+                sortDropdown.classList.add('hidden');
+            }
+        });
+
+        window.setSortMode = (mode) => {
+            currentSortMode = mode;
+            sortDropdown.classList.add('hidden');
+
+            const labels = {
+                'recent': 'Mais Recentes',
+                'oldest': 'Mais Antigos',
+                'nameAZ': 'Nome (A-Z)',
+                'nameZA': 'Nome (Z-A)',
+                'platform': 'Plataforma'
+            };
+
+            sortLabel.textContent = labels[mode];
+            renderReports(sortReports(allReports));
+        };
+
+        function sortReports(reports) {
+            const sorted = [...reports];
+
+            switch (currentSortMode) {
+                case 'recent':
+                    return sorted.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+                case 'oldest':
+                    return sorted.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+                case 'nameAZ':
+                    return sorted.sort((a, b) => a.reportName.localeCompare(b.reportName));
+                case 'nameZA':
+                    return sorted.sort((a, b) => b.reportName.localeCompare(a.reportName));
+                case 'platform':
+                    return sorted.sort((a, b) => {
+                        const order = { 'meta': 1, 'google': 2, 'both': 3 };
+                        return (order[a.platform] || 4) - (order[b.platform] || 4);
+                    });
+                default:
+                    return sorted;
+            }
+        }
+
+        // Modo de Seleção
+        selectModeBtn.addEventListener('click', () => {
+            isSelectionMode = true;
+            normalControls.classList.add('hidden');
+            selectionControls.classList.remove('hidden');
+            updateReportCards();
+        });
+
+        cancelSelectBtn.addEventListener('click', () => {
+            isSelectionMode = false;
+            selectedReports.clear();
+            normalControls.classList.remove('hidden');
+            selectionControls.classList.add('hidden');
+            updateReportCards();
+        });
+
+        selectAllBtn.addEventListener('click', () => {
+            const allSelected = selectedReports.size === allReports.length;
+
+            if (allSelected) {
+                // Desmarcar todos
+                selectedReports.clear();
+                selectAllBtn.textContent = 'Selecionar Todos';
+            } else {
+                // Selecionar todos
+                allReports.forEach(report => selectedReports.add(report.id));
+                selectAllBtn.textContent = 'Desmarcar Todos';
+            }
+
+            updateReportCards();
+        });
+
+        deleteSelectedBtn.addEventListener('click', async () => {
+            if (selectedReports.size === 0) return;
+
+            if (!confirm(`Tem certeza que deseja excluir ${selectedReports.size} relatório(s)?`)) {
+                return;
+            }
+
+            try {
+                // Excluir todos os relatórios selecionados
+                const deletePromises = Array.from(selectedReports).map(reportId => 
+                    reportsService.deleteReport(currentProjectId, reportId)
+                );
+
+                await Promise.all(deletePromises);
+
+                // Sair do modo de seleção
+                isSelectionMode = false;
+                selectedReports.clear();
+                normalControls.classList.remove('hidden');
+                selectionControls.classList.add('hidden');
+
+                // Recarregar relatórios
+                await loadReports();
+            } catch (error) {
+                console.error('❌ Erro ao excluir relatórios:', error);
+                alert('Erro ao excluir relatórios. Tente novamente.');
+            }
+        });
+
+        function updateReportCards() {
+            const cards = document.querySelectorAll('.report-card');
+            
+            cards.forEach(card => {
+                const reportId = card.dataset.reportId;
+                const checkbox = card.querySelector('.checkbox');
+                const isSelected = selectedReports.has(reportId);
+
+                if (isSelectionMode) {
+                    checkbox.classList.add('show');
+                    if (isSelected) {
+                        checkbox.classList.add('checked');
+                        card.classList.add('selected');
+                    } else {
+                        checkbox.classList.remove('checked');
+                        card.classList.remove('selected');
+                    }
+                } else {
+                    checkbox.classList.remove('show');
+                    checkbox.classList.remove('checked');
+                    card.classList.remove('selected');
+                }
+            });
+
+            // Atualizar contador
+            selectedCount.textContent = selectedReports.size;
+
+            // Atualizar texto do botão "Selecionar Todos"
+            if (selectedReports.size === allReports.length && allReports.length > 0) {
+                selectAllBtn.textContent = 'Desmarcar Todos';
+            } else {
+                selectAllBtn.textContent = 'Selecionar Todos';
+            }
+        }
+
+        window.toggleReportSelection = (reportId) => {
+            if (!isSelectionMode) return;
+
+            if (selectedReports.has(reportId)) {
+                selectedReports.delete(reportId);
+            } else {
+                selectedReports.add(reportId);
+            }
+
+            updateReportCards();
+        };
+
+        // Carregar dados do projeto
+        async function loadProject() {
+            try {
+                const projects = await projectsService.listProjects();
+                const project = projects.find(p => p.id === currentProjectId);
+                
+                if (project) {
+                    currentProject = project;
+                    projectNameEl.textContent = project.name;
+
+                    // Carregar logo se existir
+                    if (project.logoUrl) {
+                        logoPreview.src = project.logoUrl;
+                        logoPreview.classList.remove('hidden');
+                        uploadIcon.classList.add('hidden');
+                        logoContainer.classList.add('has-image');
+                    }
+                } else {
+                    projectNameEl.textContent = 'Projeto não encontrado';
+                }
+            } catch (error) {
+                console.error('Erro ao carregar projeto:', error);
+                projectNameEl.textContent = 'Erro ao carregar';
+            }
+        }
+
+        // Carregar relatórios salvos
+        async function loadReports() {
+            try {
+                reportsLoading.classList.remove('hidden');
+                reportsEmpty.classList.add('hidden');
+                reportsGrid.classList.add('hidden');
+
+                const reports = await reportsService.listReports(currentProjectId);
+                allReports = reports;
+                
+                reportsLoading.classList.add('hidden');
+                
+                if (reports.length === 0) {
+                    reportsEmpty.classList.remove('hidden');
+                    totalReports.textContent = '0';
+                    lastReport.textContent = '-';
+                    platformsStats.innerHTML = '<span class="text-sm text-gray-500">Nenhuma</span>';
+                } else {
+                    reportsGrid.classList.remove('hidden');
+                    updateStatistics(reports);
+                    renderReports(sortReports(reports));
+                }
+            } catch (error) {
+                console.error('Erro ao carregar relatórios:', error);
+                reportsLoading.classList.add('hidden');
+                reportsEmpty.classList.remove('hidden');
+            }
+        }
+
+        // Atualizar estatísticas
+        function updateStatistics(reports) {
+            // Total de Relatórios
+            totalReports.textContent = reports.length;
+
+            // Último Relatório
+            const sortedByDate = [...reports].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+            if (sortedByDate.length > 0) {
+                const last = new Date(sortedByDate[0].createdAt);
+                const now = new Date();
+                const diffMs = now - last;
+                const diffMins = Math.floor(diffMs / 60000);
+                const diffHours = Math.floor(diffMs / 3600000);
+                const diffDays = Math.floor(diffMs / 86400000);
+
+                let timeAgo = '';
+                if (diffMins < 60) {
+                    timeAgo = `${diffMins}min atrás`;
+                } else if (diffHours < 24) {
+                    timeAgo = `${diffHours}h atrás`;
+                } else {
+                    timeAgo = `${diffDays}d atrás`;
+                }
+
+                lastReport.textContent = timeAgo;
+            } else {
+                lastReport.textContent = '-';
+            }
+
+            // Plataformas
+            const platformCounts = {
+                meta: 0,
+                google: 0,
+                both: 0
+            };
+
+            reports.forEach(report => {
+                if (platformCounts.hasOwnProperty(report.platform)) {
+                    platformCounts[report.platform]++;
+                }
+            });
+
+            let platformsHTML = '';
+            if (platformCounts.meta > 0 || platformCounts.both > 0) {
+                platformsHTML += `<div class="flex items-center gap-1"><i class="fab fa-facebook platform-icon-facebook text-lg"></i><span class="text-xs text-gray-600">${platformCounts.meta + platformCounts.both}</span></div>`;
+            }
+            if (platformCounts.google > 0 || platformCounts.both > 0) {
+                platformsHTML += `<div class="flex items-center gap-1"><i class="fab fa-google platform-icon-google text-lg"></i><span class="text-xs text-gray-600">${platformCounts.google + platformCounts.both}</span></div>`;
+            }
+
+            if (platformsHTML === '') {
+                platformsHTML = '<span class="text-sm text-gray-500">Nenhuma</span>';
+            }
+
+            platformsStats.innerHTML = platformsHTML;
+        }
+
+        // Renderizar relatórios
+        function renderReports(reports) {
+            reportsGrid.innerHTML = reports.map(report => {
+                const createdDate = new Date(report.createdAt).toLocaleString('pt-BR', {
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+
+                // Definir ícones baseado na plataforma
+                let platformIcons = '';
+                if (report.platform === 'meta') {
+                    platformIcons = '<i class="fab fa-facebook platform-icon-facebook text-2xl"></i><i class="fab fa-instagram platform-icon-instagram text-2xl ml-1"></i>';
+                } else if (report.platform === 'google') {
+                    platformIcons = '<i class="fab fa-google platform-icon-google text-2xl"></i>';
+                } else if (report.platform === 'both') {
+                    platformIcons = '<i class="fab fa-facebook platform-icon-facebook text-2xl"></i><i class="fab fa-instagram platform-icon-instagram text-2xl ml-1"></i><i class="fab fa-google platform-icon-google text-2xl ml-1"></i>';
+                }
+
+                return `
+                    <div class="report-card bg-white border-2 border-gray-200 rounded-xl p-5 hover:shadow-lg transition-all cursor-pointer" 
+                         data-report-id="${report.id}"
+                         onclick="handleReportCardClick('${report.id}', event)">
+                        <!-- Checkbox para seleção -->
+                        <div class="checkbox"></div>
+
+                        <!-- Ícones das Plataformas -->
+                        <div class="flex items-center gap-2 mb-4">
+                            ${platformIcons}
+                        </div>
+
+                        <!-- Nome do Relatório -->
+                        <h4 class="text-lg font-bold text-gray-900 mb-2">${report.reportName}</h4>
+
+                        <!-- Data do Relatório -->
+                        <p class="text-sm text-gray-600 mb-1 flex items-center gap-2">
+                            <i class="fas fa-calendar text-blue-600"></i>
+                            ${report.dateRange}
+                        </p>
+
+                        <!-- Data de Salvamento -->
+                        <p class="text-xs text-gray-500 mb-4 flex items-center gap-2">
+                            <i class="fas fa-clock"></i>
+                            Salvo em: ${createdDate}
+                        </p>
+
+                        <!-- Botões de Ação -->
+                        <div class="flex gap-2">
+                            <button onclick="openReport('${report.id}', event)" class="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition-all">
+                                <i class="fas fa-folder-open mr-1"></i>
+                                Abrir
+                            </button>
+                            <button onclick="deleteReport('${report.id}', event)" class="px-4 py-2 bg-red-600 text-white rounded-lg text-sm hover:bg-red-700 transition-all">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            // Atualizar checkboxes se estiver em modo de seleção
+            if (isSelectionMode) {
+                updateReportCards();
+            }
+        }
+
+        // Manipular clique no card
+        window.handleReportCardClick = (reportId, event) => {
+            if (isSelectionMode) {
+                // Prevenir ações de botões
+                if (event.target.closest('button')) return;
+
+                toggleReportSelection(reportId);
+            }
+        };
+
+        // Abrir relatório
+        window.openReport = (reportId, event) => {
+            if (event) event.stopPropagation();
+            if (isSelectionMode) return;
+
+            console.log('Abrindo relatório:', reportId);
+            localStorage.setItem('currentProject', currentProjectId);
+            localStorage.setItem('currentReport', reportId);
+            const timestamp = new Date().getTime();
+            window.location.href = `/visualizar-relatorio.html?report=${reportId}&_t=${timestamp}`;
+        };
+
+        // Deletar relatório
+        window.deleteReport = async (reportId, event) => {
+            if (event) event.stopPropagation();
+            if (isSelectionMode) return;
+
+            if (!confirm('Tem certeza que deseja excluir este relatório?')) {
+                return;
+            }
+
+            try {
+                await reportsService.deleteReport(currentProjectId, reportId);
+                await loadReports();
+            } catch (error) {
+                console.error('Erro ao deletar relatório:', error);
+                alert('Erro ao deletar relatório');
+            }
+        };
+
+        // Carregar dados do usuário e mostrar link admin
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                // Admin check agora é feito pela sidebar unificada
+                await loadProject();
+                await loadReports();
+            }
+        });
+    </script>
+    <script type="module">
+        import { initSidebar } from './components/sidebar.js';
+        initSidebar('projeto');
+    </script>
+</body>
+</html>

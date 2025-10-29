@@ -44,12 +44,12 @@ function renderSidebar(currentPage) {
   const sidebarContainer = document.getElementById('app-sidebar');
   if (!sidebarContainer) return;
 
-  // Sub-abas só aparecem quando estiver DENTRO do projeto (projeto.html ou unidades.html)
+  // Sub-abas só aparecem quando estiver DENTRO do projeto (projeto.html, unidades.html ou apresentacoes.html)
   // NÃO aparecem em home.html (lista de projetos)
-  const showSubMenus = ['projeto', 'relatorios', 'unidades'].includes(currentPage);
+  const showSubMenus = ['projeto', 'relatorios', 'unidades', 'apresentacoes'].includes(currentPage);
   
   // Verificar se está em uma das sub-páginas da Tela Inicial
-  const isHomeSection = ['home', 'projeto', 'relatorios', 'unidades'].includes(currentPage);
+  const isHomeSection = ['home', 'projeto', 'relatorios', 'unidades', 'apresentacoes'].includes(currentPage);
 
   // Pegar projectId da URL atual (se existir)
   const urlParams = new URLSearchParams(window.location.search);
@@ -58,6 +58,7 @@ function renderSidebar(currentPage) {
   // Construir URLs das sub-abas com o projectId
   const projetoUrl = projectId ? `/projeto.html?id=${projectId}` : '/projeto.html';
   const unidadesUrl = projectId ? `/unidades.html?projectId=${projectId}` : '/unidades.html';
+  const apresentacoesUrl = projectId ? `/apresentacoes.html?id=${projectId}` : '/apresentacoes.html';
 
   const sidebarHTML = `
     <aside class="w-64 bg-white shadow-lg border-r border-gray-200 flex flex-col">
@@ -79,6 +80,12 @@ function renderSidebar(currentPage) {
         <a href="${projetoUrl}" class="flex items-center px-3 py-2 mb-1 ml-6 border-l-4 ${currentPage === 'projeto' || currentPage === 'relatorios' ? 'border-blue-600 bg-blue-50 text-blue-600' : 'border-transparent text-gray-600 hover:bg-gray-50'} transition-all">
           <i class="fas fa-file-alt mr-2 text-xs"></i>
           <span class="text-xs">Relatórios</span>
+        </a>
+        
+        <!-- Sub-aba: Apresentações -->
+        <a href="${apresentacoesUrl}" class="flex items-center px-3 py-2 mb-1 ml-6 border-l-4 ${currentPage === 'apresentacoes' ? 'border-blue-600 bg-blue-50 text-blue-600' : 'border-transparent text-gray-600 hover:bg-gray-50'} transition-all">
+          <i class="fas fa-presentation mr-2 text-xs"></i>
+          <span class="text-xs">Apresentações</span>
         </a>
         
         <!-- Sub-aba: Unidades -->

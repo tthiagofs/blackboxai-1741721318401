@@ -362,21 +362,30 @@ export class FacebookInsightsService {
                             
                             console.log(`   📸 URL final: ${imageUrl.substring(0, 80)}...`);
                         } else {
-                            console.error('❌❌❌ POST RESPONSE TEM ERRO OU É VAZIO!', {
-                                hasResponse: !!postResponse,
-                                hasError: !!postResponse?.error,
-                                errorMessage: postResponse?.error?.message,
-                                errorType: postResponse?.error?.type,
-                                errorCode: postResponse?.error?.code,
-                                errorSubcode: postResponse?.error?.error_subcode,
-                                fullError: postResponse?.error,
-                                fullResponse: postResponse
-                            });
-                            console.error('❌ DETALHES DO ERRO:');
-                            console.error('   Mensagem:', postResponse?.error?.message);
-                            console.error('   Tipo:', postResponse?.error?.type);
-                            console.error('   Código:', postResponse?.error?.code);
-                            console.error('   Post ID:', creative.effective_object_story_id);
+                            console.warn('⚠️ Sem permissão para acessar post orgânico, usando FALLBACK inteligente');
+                            console.warn('   Erro:', postResponse?.error?.message);
+                            
+                            // FALLBACK: Usar thumbnail_url e detectar tipo pela URL ou nome do arquivo
+                            if (creative.thumbnail_url) {
+                                imageUrl = creative.thumbnail_url;
+                                
+                                // Detectar se é vídeo pela URL do thumbnail
+                                // URLs de vídeo geralmente contém "video", "scontent", "fna.fbcdn.net/v/t15"
+                                const urlLower = creative.thumbnail_url.toLowerCase();
+                                const isLikelyVideo = urlLower.includes('/v/t15') || 
+                                                     urlLower.includes('video') || 
+                                                     urlLower.includes('t15.5256');
+                                
+                                if (isLikelyVideo) {
+                                    type = 'video';
+                                    console.log('   🎬 Detectado como VÍDEO (pela URL do thumbnail)');
+                                } else {
+                                    type = 'image';
+                                    console.log('   📷 Detectado como IMAGEM (pela URL do thumbnail)');
+                                }
+                                
+                                console.log('   ✅ Usando thumbnail_url como fallback');
+                            }
                         }
                     } catch (err) {
                         console.error('❌❌❌ EXCEÇÃO CAPTURADA ao buscar post existente:', err);

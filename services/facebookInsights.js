@@ -258,45 +258,8 @@ export class FacebookInsightsService {
                     thumbnail_url: creative.thumbnail_url ? creative.thumbnail_url.substring(0, Math.min(50, creative.thumbnail_url.length)) : null
                 });
                 
-                // SE TEM VIDEO_ID: Buscar thumbnail de alta qualidade do vídeo
-                if (creative.video_id) {
-                    console.log(`   🎥 TEM VIDEO_ID! Buscando thumbnail HD do vídeo: ${creative.video_id}`);
-                    try {
-                        // Buscar thumbnail de alta qualidade do vídeo
-                        const videoUrl = `/${creative.video_id}?fields=picture,source&access_token=${this.accessToken}`;
-                        console.log(`   📡 Chamando FB.api para vídeo...`);
-                        
-                        const videoResponse = await new Promise((resolve) => {
-                            FB.api(videoUrl, (res) => {
-                                console.log(`   🔙 FB.api vídeo retornou:`, res);
-                                resolve(res);
-                            });
-                        });
-                        
-                        if (videoResponse && !videoResponse.error) {
-                            console.log('   ✅ Dados do vídeo recebidos:', {
-                                has_picture: !!videoResponse.picture,
-                                has_source: !!videoResponse.source,
-                                picture_url: videoResponse.picture ? videoResponse.picture.substring(0, 100) : null
-                            });
-                            
-                            // picture = thumbnail HD, source = URL do vídeo completo
-                            if (videoResponse.picture) {
-                                imageUrl = videoResponse.picture;
-                                type = 'video';
-                                console.log('   🎬 Usando thumbnail HD do vídeo!');
-                                console.log(`   📸 URL HD: ${imageUrl.substring(0, 100)}...`);
-                                return { imageUrl, type };
-                            } else {
-                                console.warn('   ⚠️ Vídeo retornou mas SEM picture!');
-                            }
-                        } else {
-                            console.error('   ❌ Erro ao buscar vídeo:', videoResponse?.error);
-                        }
-                    } catch (err) {
-                        console.error('   ❌ Exceção ao buscar vídeo:', err);
-                    }
-                }
+                // NOTA: video_id existe mas requer permissões especiais que não temos
+                // Por isso, vamos usar thumbnail_url para posts existentes (qualidade limitada)
                 
                 // VERIFICAR SE VAI ENTRAR NA CONDIÇÃO
                 if (creative.effective_object_story_id && !creative.object_story_spec) {
@@ -427,7 +390,8 @@ export class FacebookInsightsService {
                                     console.log('   📷 Detectado como IMAGEM (pela URL do thumbnail)');
                                 }
                                 
-                                console.log('   ✅ Usando thumbnail_url original (Facebook valida hash)');
+                                console.warn('   ⚠️ Post existente: usando thumbnail_url (qualidade limitada)');
+                                console.warn('   ℹ️ Facebook requer permissões extras para acessar o post original');
                                 console.log(`   📸 URL: ${imageUrl.substring(0, 100)}...`);
                             }
                         }
@@ -439,10 +403,13 @@ export class FacebookInsightsService {
                 }
                 // PARA "CRIAR ANÚNCIO": usar object_story_spec
                 else if (creative.object_story_spec) {
+                    console.log('   📝 Anúncio criado (object_story_spec disponível)');
                     // Vídeo
                     if (creative.object_story_spec.video_data) {
                         type = 'video';
                         imageUrl = creative.object_story_spec.video_data.image_url || creative.thumbnail_url || imageUrl;
+                        console.log('   🎬 Vídeo criado - usando video_data.image_url');
+                        console.log(`   📸 URL: ${imageUrl.substring(0, 100)}...`);
                     }
                     // Carrossel
                     else if (creative.object_story_spec.link_data?.child_attachments) {

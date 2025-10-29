@@ -3,10 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Preview Apresentação - Oral Centter</title>
+  <title>Relatório de Resultados - Oral Centter</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
-
     * {
       margin: 0;
       padding: 0;
@@ -14,150 +15,132 @@
     }
 
     body {
-      font-family: 'Inter', 'Segoe UI', sans-serif;
-      background: linear-gradient(135deg, #e8eaf6 0%, #f5f5f5 100%);
-      padding: 20px;
+      font-family: 'Poppins', sans-serif;
+      background: #f0f0f0;
+      overflow-x: hidden;
     }
 
-    /* Container para cada página */
     .page {
-      width: 1200px;
-      height: 675px; /* 16:9 ratio */
-      margin: 20px auto;
+      width: 1920px;
+      height: 1080px;
       background: white;
-      box-shadow: 0 10px 40px rgba(0,0,0,0.12);
-      border-radius: 8px;
-      page-break-after: always;
+      margin: 20px auto;
       position: relative;
       overflow: hidden;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.1);
     }
 
     /* === PÁGINA 1 - CAPA === */
     .capa {
-      background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+      background: linear-gradient(180deg, #ffffff 0%, #f5f5f5 100%);
       display: flex;
       flex-direction: column;
-      align-items: center;
       justify-content: center;
+      padding: 80px 100px;
       position: relative;
     }
 
-    .capa::before {
-      content: '';
+    .capa-logo-horizontal {
       position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: radial-gradient(ellipse at top right, rgba(43, 127, 204, 0.08) 0%, transparent 50%);
-      pointer-events: none;
-    }
-
-    .capa-logo {
-      position: absolute;
-      top: 50px;
-      left: 50%;
-      transform: translateX(-50%);
-      text-align: center;
-    }
-
-    .logo-circle {
-      width: 90px;
-      height: 90px;
-      border: 6px solid #2B7FCC;
-      border-radius: 50%;
-      margin: 0 auto 15px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      box-shadow: 0 4px 20px rgba(43, 127, 204, 0.2);
-      background: white;
-    }
-
-    .logo-smile {
-      width: 50px;
-      height: 25px;
-      border: 5px solid #2B7FCC;
-      border-top: none;
-      border-radius: 0 0 50px 50px;
-    }
-
-    .logo-text {
-      font-size: 44px;
-      font-weight: 800;
-      color: #2B7FCC;
-      letter-spacing: -1px;
-    }
-
-    .logo-text span {
-      color: #6B46C1;
+      top: 60px;
+      left: 100px;
+      height: 70px;
     }
 
     .capa-content {
-      text-align: left;
+      max-width: 900px;
       z-index: 2;
-      margin-top: -50px;
     }
 
     .capa-title {
-      font-size: 72px;
+      font-size: 80px;
       font-weight: 700;
-      color: #2B7FCC;
+      color: #1e5091;
       line-height: 1.1;
-      margin-bottom: 10px;
-      letter-spacing: 0px;
+      margin-bottom: 60px;
+      letter-spacing: -1px;
     }
 
-    .capa-subtitle {
-      font-size: 46px;
-      font-weight: 300;
-      color: #333;
+    .capa-title .destaque {
+      font-weight: 800;
+      color: #2563A8;
+    }
+
+    .capa-unidade {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      font-size: 42px;
+      font-weight: 700;
+      color: #2563A8;
       margin-bottom: 30px;
-      letter-spacing: 6px;
+    }
+
+    .capa-unidade-icon {
+      width: 45px;
+      height: 45px;
+      fill: #2563A8;
     }
 
     .capa-periodo {
       display: inline-block;
-      background: #2B7FCC;
-      border-radius: 50px;
-      padding: 15px 50px;
-      font-size: 24px;
-      color: white;
+      border: 4px solid #2563A8;
+      border-radius: 12px;
+      padding: 18px 45px;
+      font-size: 32px;
+      color: #2563A8;
       font-weight: 400;
-      letter-spacing: 0px;
+      background: white;
     }
 
     .capa-rocket {
       position: absolute;
-      bottom: 30px;
-      right: 80px;
-      font-size: 300px;
-      transform: rotate(-15deg);
-      opacity: 0.85;
-      filter: drop-shadow(0 10px 30px rgba(0,0,0,0.15));
+      bottom: 120px;
+      right: 150px;
+      width: 650px;
+      height: 650px;
+      z-index: 1;
+    }
+
+    .capa-footer {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 25px;
+      background: linear-gradient(90deg, #1e7fd4 0%, #2563A8 100%);
     }
 
     /* === PÁGINA 2 - RESULTADOS === */
     .resultados {
-      padding: 55px 80px;
-      background: linear-gradient(135deg, #ffffff 0%, #fafafa 100%);
+      padding: 70px 100px;
+      background: #ffffff;
+      position: relative;
+    }
+
+    .resultados-logo-horizontal {
+      position: absolute;
+      top: 60px;
+      right: 100px;
+      height: 65px;
+    }
+
+    .resultados-header {
+      margin-bottom: 50px;
     }
 
     .resultados-title {
       font-size: 48px;
-      font-weight: 700;
-      color: #6B46C1;
+      font-weight: 600;
+      color: #7B4397;
       margin-bottom: 5px;
-      text-transform: uppercase;
-      line-height: 1.2;
-      letter-spacing: 0px;
+      letter-spacing: 2px;
     }
 
     .resultados-subtitle {
-      font-size: 32px;
-      font-weight: 300;
-      color: #6B46C1;
-      margin-bottom: 40px;
+      font-size: 56px;
+      font-weight: 700;
+      color: #2563A8;
       letter-spacing: 0px;
     }
 
@@ -165,127 +148,83 @@
       display: grid;
       grid-template-columns: 1fr 1.3fr;
       gap: 50px;
-      align-items: center;
     }
 
-    /* Cards da esquerda */
-    .cards-left {
+    .resultados-left {
       display: flex;
       flex-direction: column;
-      gap: 18px;
+      gap: 20px;
     }
 
-    .card-metric {
-      border: 3px solid #6B46C1;
-      border-radius: 18px;
-      padding: 20px 30px;
+    .card-white {
+      border: 4px solid #2563A8;
+      border-radius: 15px;
+      padding: 22px 35px;
       background: white;
       display: flex;
       justify-content: space-between;
       align-items: center;
     }
 
-    .card-metric-label {
-      font-size: 18px;
-      color: #6B46C1;
-      font-weight: 500;
-      text-transform: uppercase;
-      letter-spacing: 0px;
+    .card-white-label {
+      font-size: 28px;
+      color: #333;
+      font-weight: 400;
     }
 
-    .card-metric-value {
-      font-size: 34px;
-      color: #6B46C1;
-      font-weight: 700;
+    .card-white-value {
+      font-size: 38px;
+      color: #2563A8;
+      font-weight: 600;
     }
 
-    /* Funil da direita */
-    .funnel-container {
+    .resultados-right {
       display: flex;
       flex-direction: column;
-      gap: 12px;
-      padding: 15px 0;
-      position: relative;
+      gap: 20px;
     }
 
-    .funnel-container::before {
-      content: '';
-      position: absolute;
-      left: 0;
-      top: 0;
-      width: 100%;
-      height: 100%;
-      background: linear-gradient(to bottom, 
-        transparent 0%, 
-        rgba(107, 70, 193, 0.03) 25%,
-        rgba(107, 70, 193, 0.05) 50%,
-        rgba(107, 70, 193, 0.08) 75%,
-        rgba(107, 70, 193, 0.1) 100%
-      );
-      border-radius: 20px;
-      pointer-events: none;
-      z-index: 0;
-    }
-
-    .funnel-step {
-      display: flex;
+    .card-purple {
+      border-radius: 15px;
+      background: linear-gradient(90deg, #7B4397 0%, #8B4FA5 100%);
+      padding: 22px 40px;
+      display: grid;
+      grid-template-columns: 1fr auto;
       align-items: center;
-      justify-content: space-between;
-      position: relative;
-      z-index: 1;
+      gap: 25px;
     }
 
-    .funnel-bar {
-      background: linear-gradient(135deg, #001B5E 0%, #002880 100%);
-      border-radius: 0 50px 50px 0;
-      padding: 20px 35px;
+    .card-purple-metric {
+      font-size: 32px;
       color: white;
-      font-size: 22px;
-      font-weight: 700;
-      flex-grow: 1;
-      transition: all 0.3s ease;
-      position: relative;
-      box-shadow: 0 4px 15px rgba(0, 27, 94, 0.25);
-      letter-spacing: 0.5px;
+      font-weight: 500;
     }
 
-    .funnel-bar::before {
-      content: '';
-      position: absolute;
-      left: 0;
-      top: 50%;
-      transform: translateY(-50%);
-      width: 8px;
-      height: 60%;
-      background: rgba(255,255,255,0.2);
-      border-radius: 0 10px 10px 0;
-    }
-
-    .funnel-step:nth-child(1) .funnel-bar { width: 100%; }
-    .funnel-step:nth-child(2) .funnel-bar { width: 90%; }
-    .funnel-step:nth-child(3) .funnel-bar { width: 78%; }
-    .funnel-step:nth-child(4) .funnel-bar { width: 65%; }
-
-    .funnel-metric {
+    .card-purple-cost {
       background: white;
-      border: 3px solid #6B46C1;
-      border-radius: 50px;
-      padding: 20px 32px;
-      margin-left: 18px;
-      min-width: 230px;
-      text-align: center;
-      font-size: 19px;
-      color: #6B46C1;
-      font-weight: 700;
-      box-shadow: 0 4px 15px rgba(107, 70, 193, 0.1);
-      letter-spacing: 0.5px;
+      border-radius: 10px;
+      padding: 12px 30px;
+      font-size: 28px;
+      color: #333;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    .resultados-footer {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 25px;
+      background: linear-gradient(90deg, #7B4397 0%, #8B4FA5 100%);
     }
 
     /* === PÁGINA 3 - RANKING === */
     .ranking {
-      background: linear-gradient(135deg, #6B46C1 0%, #8B5DC9 50%, #5B3A99 100%);
-      padding: 55px 80px;
+      background: #7B4397;
+      padding: 80px 100px;
       position: relative;
+      overflow: hidden;
     }
 
     .ranking::before {
@@ -293,20 +232,36 @@
       position: absolute;
       top: 0;
       left: 0;
-      width: 100%;
-      height: 100%;
-      background: radial-gradient(ellipse at bottom left, rgba(255,255,255,0.1) 0%, transparent 50%);
+      right: 0;
+      bottom: 0;
+      background-image: 
+        repeating-linear-gradient(
+          45deg,
+          transparent,
+          transparent 100px,
+          rgba(255,255,255,0.02) 100px,
+          rgba(255,255,255,0.02) 200px
+        );
       pointer-events: none;
     }
 
+    .ranking-logo-circle {
+      position: absolute;
+      top: 70px;
+      right: 100px;
+      width: 120px;
+      height: 120px;
+      z-index: 2;
+    }
+
     .ranking-title {
-      font-size: 64px;
+      font-size: 72px;
       font-weight: 700;
       color: white;
-      margin-bottom: 50px;
+      margin-bottom: 60px;
       text-transform: uppercase;
-      line-height: 1.1;
-      letter-spacing: 0px;
+      line-height: 1.15;
+      letter-spacing: 2px;
       position: relative;
       z-index: 1;
     }
@@ -314,40 +269,27 @@
     .ranking-cards {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
-      gap: 35px;
+      gap: 40px;
       position: relative;
       z-index: 1;
     }
 
     .ranking-card {
       background: white;
-      border-radius: 20px;
+      border-radius: 18px;
       overflow: hidden;
-      box-shadow: 0 8px 30px rgba(0,0,0,0.2);
+      box-shadow: 0 8px 30px rgba(0,0,0,0.25);
     }
 
     .ranking-card-image {
       width: 100%;
-      height: 270px;
+      height: 380px;
       background: linear-gradient(135deg, #e0e0e0 0%, #f5f5f5 100%);
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 16px;
-      color: #999;
-      overflow: hidden;
       position: relative;
-    }
-
-    .ranking-card-image::after {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: linear-gradient(to bottom, transparent 60%, rgba(0,0,0,0.1) 100%);
-      pointer-events: none;
+      overflow: hidden;
     }
 
     .ranking-card-image img {
@@ -356,78 +298,125 @@
       object-fit: cover;
     }
 
-    .ranking-card-footer {
+    .ranking-card-play {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 80px;
+      height: 80px;
+      background: rgba(255,255,255,0.95);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+
+    .ranking-card-play::after {
+      content: '';
+      width: 0;
+      height: 0;
+      border-left: 25px solid #7B4397;
+      border-top: 15px solid transparent;
+      border-bottom: 15px solid transparent;
+      margin-left: 5px;
+    }
+
+    .ranking-card-info {
       background: white;
-      padding: 22px;
+      padding: 25px;
       text-align: center;
     }
 
     .ranking-card-leads {
-      font-size: 22px;
-      color: #001B5E;
+      font-size: 26px;
+      color: #1e5091;
       font-weight: 700;
       margin-bottom: 5px;
-      letter-spacing: 0px;
     }
 
     .ranking-card-cpl {
-      font-size: 26px;
-      color: #6B46C1;
+      font-size: 30px;
+      color: #7B4397;
       font-weight: 700;
-      letter-spacing: 0px;
     }
 
     /* === PÁGINA 4 - PRÓXIMOS PASSOS === */
     .proximos-passos {
       display: grid;
-      grid-template-columns: 45% 55%;
+      grid-template-columns: 40% 60%;
+      height: 100%;
     }
 
     .passos-left {
-      background: linear-gradient(135deg, #001B5E 0%, #002880 50%, #003399 100%);
-      padding: 80px 60px;
+      background: linear-gradient(135deg, #1976D2 0%, #1e5091 100%);
+      padding: 100px 70px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      position: relative;
+    }
+
+    .passos-title {
+      font-size: 68px;
+      font-weight: 700;
+      color: white;
+      text-transform: uppercase;
+      line-height: 1.1;
+      letter-spacing: 1px;
+    }
+
+    .passos-stepper {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      margin-top: auto;
+    }
+
+    .passos-step {
+      width: 70px;
+      height: 70px;
+      border-radius: 50%;
+      border: 4px solid white;
+      background: white;
       display: flex;
       align-items: center;
       justify-content: center;
       position: relative;
     }
 
-    .passos-left::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: radial-gradient(ellipse at center, rgba(255,255,255,0.08) 0%, transparent 60%);
-      pointer-events: none;
+    .passos-step.completed::after {
+      content: '✓';
+      font-size: 40px;
+      color: #1976D2;
+      font-weight: 700;
     }
 
-    .passos-title {
-      font-size: 60px;
-      font-weight: 700;
-      color: white;
-      text-transform: uppercase;
-      line-height: 1.1;
-      letter-spacing: 0px;
-      position: relative;
-      z-index: 1;
+    .passos-step.empty {
+      background: transparent;
+    }
+
+    .passos-step-line {
+      width: 50px;
+      height: 4px;
+      background: white;
     }
 
     .passos-right {
-      background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
-      padding: 80px 65px;
+      background: #f8f9fa;
+      padding: 100px 80px;
       display: flex;
       flex-direction: column;
-      justify-content: center;
+      justify-content: flex-start;
+      position: relative;
     }
 
-    .passos-subtitle {
-      font-size: 34px;
-      color: #333;
-      margin-bottom: 35px;
-      font-weight: 700;
-      letter-spacing: 0.5px;
+    .passos-right-title {
+      font-size: 44px;
+      color: #1e5091;
+      font-weight: 600;
+      margin-bottom: 50px;
     }
 
     .passos-list {
@@ -435,226 +424,295 @@
     }
 
     .passos-list li {
-      font-size: 22px;
-      color: #6B46C1;
-      margin-bottom: 15px;
-      padding-left: 30px;
+      font-size: 28px;
+      color: #1e5091;
+      margin-bottom: 35px;
+      padding-left: 35px;
       position: relative;
-      line-height: 1.4;
+      line-height: 1.5;
       font-weight: 400;
-      letter-spacing: 0px;
     }
 
     .passos-list li:before {
       content: "○";
       position: absolute;
       left: 0;
-      font-size: 26px;
+      font-size: 32px;
       font-weight: 700;
-      color: #6B46C1;
+      color: #1e5091;
+    }
+
+    .passos-logo-horizontal {
+      position: absolute;
+      bottom: 60px;
+      right: 80px;
+      height: 60px;
     }
 
     /* === PÁGINA 5 - OBRIGADO === */
     .obrigado {
       display: flex;
+      flex-direction: column;
       align-items: center;
       justify-content: center;
-      background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+      background: white;
       position: relative;
     }
 
-    .obrigado::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: radial-gradient(ellipse at center, rgba(107, 70, 193, 0.05) 0%, transparent 60%);
-      pointer-events: none;
+    .obrigado-logo {
+      width: 200px;
+      height: 200px;
+      margin-bottom: 50px;
     }
 
     .obrigado-text {
-      font-size: 110px;
+      font-size: 120px;
       font-weight: 700;
-      color: #6B46C1;
+      color: #2563A8;
       text-transform: uppercase;
-      letter-spacing: 0px;
-      position: relative;
-      z-index: 1;
+      letter-spacing: 2px;
     }
 
-    .obrigado-line {
-      position: absolute;
-      bottom: 0;
-      left: 0;
-      width: 100%;
-      height: 5px;
-      background: linear-gradient(90deg, 
-        transparent 0%, 
-        rgba(107, 70, 193, 0.3) 10%,
-        rgba(107, 70, 193, 0.8) 30%,
-        #6B46C1 50%,
-        rgba(107, 70, 193, 0.8) 70%,
-        rgba(107, 70, 193, 0.3) 90%,
-        transparent 100%
-      );
-      box-shadow: 0 -2px 20px rgba(107, 70, 193, 0.3);
-    }
-
-    /* Print styles */
+    /* PRINT STYLES */
     @media print {
       body {
         background: white;
-        padding: 0;
       }
       .page {
         margin: 0;
         box-shadow: none;
-        border-radius: 0;
-      }
-      .card-metric:hover,
-      .ranking-card:hover {
-        transform: none;
-      }
-    }
-
-    /* Responsividade para telas menores */
-    @media screen and (max-width: 1400px) {
-      .page {
-        width: 100%;
-        height: auto;
-        aspect-ratio: 16/9;
+        page-break-after: always;
       }
     }
   </style>
 </head>
 <body>
 
-  <!-- PÁGINA 1 - CAPA -->
+  <!-- ===== PÁGINA 1 - CAPA ===== -->
   <div class="page capa">
-    <div class="capa-logo">
-      <div class="logo-circle">
-        <div class="logo-smile"></div>
-      </div>
-      <div class="logo-text">Oral <span>Centter</span></div>
-    </div>
+    <!-- Logo Horizontal -->
+    <svg class="capa-logo-horizontal" viewBox="0 0 300 70" xmlns="http://www.w3.org/2000/svg">
+      <!-- Ícone do sorriso -->
+      <circle cx="35" cy="35" r="30" fill="none" stroke="#2563A8" stroke-width="5"/>
+      <path d="M 20 40 Q 35 50 50 40" fill="none" stroke="#2563A8" stroke-width="5" stroke-linecap="round"/>
+      <!-- Texto -->
+      <text x="75" y="35" font-family="Poppins" font-size="28" font-weight="700" fill="#2563A8">Oral</text>
+      <text x="145" y="35" font-family="Poppins" font-size="28" font-weight="400" fill="#666">Centter</text>
+      <text x="75" y="52" font-family="Poppins" font-size="9" font-weight="400" fill="#999" letter-spacing="1">CLÍNICAS ODONTOLÓGICAS</text>
+    </svg>
 
     <div class="capa-content">
-      <h1 class="capa-title">RELATÓRIO DE<br>RESULTADOS</h1>
-      <p class="capa-subtitle">JAÍBA</p>
-      <div class="capa-periodo">01 a 30 de Setembro 2025</div>
+      <h1 class="capa-title">
+        RELATÓRIO DE<br>
+        <span class="destaque">RESULTADOS</span>
+      </h1>
+
+      <div class="capa-unidade">
+        <svg class="capa-unidade-icon" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+        </svg>
+        <span>Januária</span>
+      </div>
+
+      <div class="capa-periodo">
+        01 a 31 de Julho 2025
+      </div>
     </div>
 
-    <div class="capa-rocket">🚀</div>
+    <!-- Foguete 3D (SVG ilustrativo) -->
+    <svg class="capa-rocket" viewBox="0 0 500 500" xmlns="http://www.w3.org/2000/svg">
+      <!-- Círculo de fundo -->
+      <circle cx="250" cy="250" r="220" fill="#E3F2FD" opacity="0.6"/>
+      <!-- Estrelas decorativas -->
+      <polygon points="150,100 155,115 170,115 158,123 163,138 150,130 137,138 142,123 130,115 145,115" fill="#64B5F6" opacity="0.7"/>
+      <polygon points="380,280 383,288 391,288 385,293 388,301 380,296 372,301 375,293 369,288 377,288" fill="#64B5F6" opacity="0.7"/>
+      <polygon points="420,180 423,188 431,188 425,193 428,201 420,196 412,201 415,193 409,188 417,188" fill="#90CAF9" opacity="0.6"/>
+      
+      <!-- Foguete -->
+      <!-- Corpo principal -->
+      <ellipse cx="250" cy="280" rx="55" ry="150" fill="#42A5F5" transform="rotate(-25 250 280)"/>
+      <ellipse cx="250" cy="280" rx="45" ry="145" fill="#1E88E5" transform="rotate(-25 250 280)"/>
+      <ellipse cx="250" cy="280" rx="35" ry="140" fill="#1976D2" transform="rotate(-25 250 280)"/>
+      
+      <!-- Ponta do foguete -->
+      <path d="M 200 150 L 250 100 L 300 150 Q 280 170 250 175 Q 220 170 200 150 Z" fill="#1565C0"/>
+      <path d="M 210 155 L 250 110 L 290 155 Q 275 170 250 173 Q 225 170 210 155 Z" fill="#0D47A1"/>
+      
+      <!-- Janela -->
+      <circle cx="250" cy="240" r="25" fill="#81D4FA" opacity="0.8"/>
+      <circle cx="250" cy="240" r="20" fill="#B3E5FC"/>
+      
+      <!-- Aletas -->
+      <path d="M 180 320 L 150 380 L 200 350 Z" fill="#1565C0" transform="rotate(-25 250 280)"/>
+      <path d="M 320 320 L 350 380 L 300 350 Z" fill="#0D47A1" transform="rotate(-25 250 280)"/>
+      
+      <!-- Fogo/Propulsão -->
+      <ellipse cx="240" cy="420" rx="30" ry="50" fill="#FF6F00" opacity="0.8" transform="rotate(-25 250 280)"/>
+      <ellipse cx="240" cy="420" rx="20" ry="40" fill="#FF8F00" opacity="0.9" transform="rotate(-25 250 280)"/>
+      <ellipse cx="240" cy="420" rx="12" ry="30" fill="#FFA726" opacity="0.95" transform="rotate(-25 250 280)"/>
+      <ellipse cx="240" cy="430" rx="8" ry="20" fill="#FFB74D" transform="rotate(-25 250 280)"/>
+    </svg>
+
+    <div class="capa-footer"></div>
   </div>
 
-  <!-- PÁGINA 2 - RESULTADOS -->
+  <!-- ===== PÁGINA 2 - RESULTADOS ===== -->
   <div class="page resultados">
-    <h2 class="resultados-title">RESULTADOS</h2>
-    <h3 class="resultados-subtitle">TRÁFEGO PAGO White</h3>
+    <!-- Logo Horizontal -->
+    <svg class="resultados-logo-horizontal" viewBox="0 0 300 70" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="35" cy="35" r="30" fill="none" stroke="#2563A8" stroke-width="5"/>
+      <path d="M 20 40 Q 35 50 50 40" fill="none" stroke="#2563A8" stroke-width="5" stroke-linecap="round"/>
+      <text x="75" y="35" font-family="Poppins" font-size="28" font-weight="700" fill="#2563A8">Oral</text>
+      <text x="145" y="35" font-family="Poppins" font-size="28" font-weight="400" fill="#666">Centter</text>
+      <text x="75" y="52" font-family="Poppins" font-size="9" font-weight="400" fill="#999" letter-spacing="1">CLÍNICAS ODONTOLÓGICAS</text>
+    </svg>
+
+    <div class="resultados-header">
+      <div class="resultados-title">RESULTADOS</div>
+      <div class="resultados-subtitle">TRÁFEGO PAGO</div>
+    </div>
 
     <div class="resultados-container">
-      <!-- Cards da esquerda -->
-      <div class="cards-left">
-        <div class="card-metric">
-          <span class="card-metric-label">Investimento</span>
-          <span class="card-metric-value">R$ 1.481,17</span>
+      <!-- Coluna Esquerda - Cards Brancos -->
+      <div class="resultados-left">
+        <div class="card-white">
+          <span class="card-white-label">Investimento</span>
+          <span class="card-white-value">R$ 1.453,22</span>
         </div>
-        <div class="card-metric">
-          <span class="card-metric-label">Faturamento</span>
-          <span class="card-metric-value">R$ 83.185</span>
+        <div class="card-white">
+          <span class="card-white-label">Faturamento</span>
+          <span class="card-white-value">R$ 18.132,93</span>
         </div>
-        <div class="card-metric">
-          <span class="card-metric-label">Ticket Médio</span>
-          <span class="card-metric-value">R$ 3.327</span>
+        <div class="card-white">
+          <span class="card-white-label">Ticket médio</span>
+          <span class="card-white-value">R$ 1.132,93</span>
         </div>
-        <div class="card-metric">
-          <span class="card-metric-label">ROI</span>
-          <span class="card-metric-value">14.04</span>
+        <div class="card-white">
+          <span class="card-white-label">Roi</span>
+          <span class="card-white-value">1.22</span>
         </div>
       </div>
 
-      <!-- Funil da direita -->
-      <div class="funnel-container">
-        <div class="funnel-step">
-          <div class="funnel-bar">667 Cliques</div>
-          <div class="funnel-metric">CPC | R$ 2,19</div>
+      <!-- Coluna Direita - Cards Roxos -->
+      <div class="resultados-right">
+        <div class="card-purple">
+          <span class="card-purple-metric">174.729 | Cliques</span>
+          <span class="card-purple-cost">CPC | R$ 6,48</span>
         </div>
-        <div class="funnel-step">
-          <div class="funnel-bar">110 Leads</div>
-          <div class="funnel-metric">CPL | R$ 12,89</div>
+        <div class="card-purple">
+          <span class="card-purple-metric">677 | Leads</span>
+          <span class="card-purple-cost">CPL | R$ 1,67</span>
         </div>
-        <div class="funnel-step">
-          <div class="funnel-bar">51 Orçamentos</div>
-          <div class="funnel-metric">CPO | R$ 73,89</div>
+        <div class="card-purple">
+          <span class="card-purple-metric">52 | Orçamentos</span>
+          <span class="card-purple-cost">CPO | R$ 18,21</span>
         </div>
-        <div class="funnel-step">
-          <div class="funnel-bar">25 Fechamentos</div>
-          <div class="funnel-metric">CAC | R$ 117,0</div>
+        <div class="card-purple">
+          <span class="card-purple-metric">10 | Vendas</span>
+          <span class="card-purple-cost">CPV | R$ 18,21</span>
         </div>
       </div>
     </div>
+
+    <div class="resultados-footer"></div>
   </div>
 
-  <!-- PÁGINA 3 - RANKING -->
+  <!-- ===== PÁGINA 3 - RANKING ===== -->
   <div class="page ranking">
+    <!-- Logo Circular Branco -->
+    <svg class="ranking-logo-circle" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="60" cy="60" r="55" fill="white"/>
+      <circle cx="60" cy="60" r="40" fill="none" stroke="#7B4397" stroke-width="6"/>
+      <path d="M 40 65 Q 60 80 80 65" fill="none" stroke="#7B4397" stroke-width="6" stroke-linecap="round"/>
+    </svg>
+
     <h2 class="ranking-title">RANKING<br>ANÚNCIOS</h2>
 
     <div class="ranking-cards">
+      <!-- Card 1 -->
       <div class="ranking-card">
         <div class="ranking-card-image">
-          <img src="https://via.placeholder.com/400x280/cccccc/666666?text=Anuncio+1" alt="Anúncio 1">
+          <img src="https://via.placeholder.com/400x380/e0e0e0/666?text=Anúncio+1" alt="Anúncio 1">
         </div>
-        <div class="ranking-card-footer">
-          <div class="ranking-card-leads">18 Leads</div>
-          <div class="ranking-card-cpl">R$14,45</div>
+        <div class="ranking-card-info">
+          <div class="ranking-card-leads">14 Leads</div>
+          <div class="ranking-card-cpl">R$12,32</div>
         </div>
       </div>
 
+      <!-- Card 2 -->
       <div class="ranking-card">
         <div class="ranking-card-image">
-          <img src="https://via.placeholder.com/400x280/cccccc/666666?text=Anuncio+2" alt="Anúncio 2">
+          <img src="https://via.placeholder.com/400x380/e0e0e0/666?text=Anúncio+2" alt="Anúncio 2">
+          <div class="ranking-card-play"></div>
         </div>
-        <div class="ranking-card-footer">
-          <div class="ranking-card-leads">16 Leads</div>
-          <div class="ranking-card-cpl">R$12,12</div>
+        <div class="ranking-card-info">
+          <div class="ranking-card-leads">9 Leads</div>
+          <div class="ranking-card-cpl">R$15,56</div>
         </div>
       </div>
 
+      <!-- Card 3 -->
       <div class="ranking-card">
         <div class="ranking-card-image">
-          <img src="https://via.placeholder.com/400x280/cccccc/666666?text=Anuncio+3" alt="Anúncio 3">
+          <img src="https://via.placeholder.com/400x380/e0e0e0/666?text=Anúncio+3" alt="Anúncio 3">
+          <div class="ranking-card-play"></div>
         </div>
-        <div class="ranking-card-footer">
-          <div class="ranking-card-leads">13 Leads</div>
-          <div class="ranking-card-cpl">R$8,89</div>
+        <div class="ranking-card-info">
+          <div class="ranking-card-leads">9 Leads</div>
+          <div class="ranking-card-cpl">R$15,56</div>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- PÁGINA 4 - PRÓXIMOS PASSOS -->
+  <!-- ===== PÁGINA 4 - PRÓXIMOS PASSOS ===== -->
   <div class="page proximos-passos">
+    <!-- Lado Esquerdo - Azul -->
     <div class="passos-left">
       <h2 class="passos-title">PRÓXIMOS<br>PASSOS</h2>
+      
+      <div class="passos-stepper">
+        <div class="passos-step completed"></div>
+        <div class="passos-step-line"></div>
+        <div class="passos-step completed"></div>
+        <div class="passos-step-line"></div>
+        <div class="passos-step completed"></div>
+        <div class="passos-step-line"></div>
+        <div class="passos-step empty"></div>
+      </div>
     </div>
+
+    <!-- Lado Direito - Branco -->
     <div class="passos-right">
-      <h3 class="passos-subtitle">• Orientações:</h3>
+      <h3 class="passos-right-title">Orientações:</h3>
+      
       <ul class="passos-list">
-        <li>Aumento de investimento</li>
-        <li>Continuar com a produção de conteúdos em vídeo.</li>
-        <li>Provas sociais.</li>
+        <li>Precisamos de novos conteúdos para diminuir a frequência de visualização dos anúncios;</li>
+        <li>As campanhas de mensagem serão pausadas em breve.</li>
       </ul>
+
+      <!-- Logo Horizontal -->
+      <svg class="passos-logo-horizontal" viewBox="0 0 300 70" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="35" cy="35" r="30" fill="none" stroke="#2563A8" stroke-width="5"/>
+        <path d="M 20 40 Q 35 50 50 40" fill="none" stroke="#2563A8" stroke-width="5" stroke-linecap="round"/>
+        <text x="75" y="35" font-family="Poppins" font-size="28" font-weight="700" fill="#2563A8">Oral</text>
+        <text x="145" y="35" font-family="Poppins" font-size="28" font-weight="400" fill="#666">Centter</text>
+        <text x="75" y="52" font-family="Poppins" font-size="9" font-weight="400" fill="#999" letter-spacing="1">CLÍNICAS ODONTOLÓGICAS</text>
+      </svg>
     </div>
   </div>
 
-  <!-- PÁGINA 5 - OBRIGADO -->
+  <!-- ===== PÁGINA 5 - OBRIGADO ===== -->
   <div class="page obrigado">
-    <h2 class="obrigado-text">OBRIGADO</h2>
-    <div class="obrigado-line"></div>
+    <!-- Logo Circular Azul -->
+    <svg class="obrigado-logo" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="100" cy="100" r="90" fill="none" stroke="#2563A8" stroke-width="12"/>
+      <path d="M 60 110 Q 100 145 140 110" fill="none" stroke="#2563A8" stroke-width="12" stroke-linecap="round"/>
+    </svg>
+
+    <h1 class="obrigado-text">OBRIGADO!</h1>
   </div>
 
 </body>
 </html>
-

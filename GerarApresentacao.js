@@ -1567,6 +1567,7 @@ async function generateCompleteReport() {
             await delay(300);
             
             const { presentationsService } = await import('./services/presentationsService.js?v=1.0');
+            const { auth } = await import('./config/firebase.js');
             
             const presentationDoc = {
                 name: presentationData.presentationName,
@@ -1585,7 +1586,7 @@ async function generateCompleteReport() {
                 },
                 html: presentationHTML,
                 createdAt: new Date().toISOString(),
-                createdBy: fbAuth.getCurrentUser()?.uid
+                createdBy: auth.currentUser?.uid
             };
             
             const savedPresentation = await presentationsService.savePresentation(

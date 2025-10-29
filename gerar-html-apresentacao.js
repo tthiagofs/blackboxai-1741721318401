@@ -20,8 +20,21 @@ export function generatePresentationHTML(params) {
         hasGoogle,
         metaMetrics,
         googleMetrics,
-        metaTop3Ads
+        metaTop3Ads,
+        performanceAnalysis,
+        budgetsCompleted,
+        salesCount,
+        revenue
     } = params;
+
+    console.log('📄 Gerando apresentação com dados:', {
+        unitName,
+        hasMeta,
+        hasGoogle,
+        metaMetrics: metaMetrics ? 'Presente' : 'Ausente',
+        googleMetrics: googleMetrics ? 'Presente' : 'Ausente',
+        adsCount: metaTop3Ads?.length || 0
+    });
 
     const pages = [];
 
@@ -30,7 +43,7 @@ export function generatePresentationHTML(params) {
 
     // PÁGINA 2: Resultados Meta (se disponível)
     if (hasMeta && metaMetrics) {
-        pages.push(generateResultsPage(metaMetrics, 'Meta Ads'));
+        pages.push(generateResultsPage(metaMetrics, 'Meta Ads', budgetsCompleted, salesCount, revenue));
     }
 
     // PÁGINA 3: Ranking de Anúncios Meta (se disponível)
@@ -40,11 +53,11 @@ export function generatePresentationHTML(params) {
 
     // PÁGINA 4: Resultados Google (se disponível)
     if (hasGoogle && googleMetrics) {
-        pages.push(generateResultsPage(googleMetrics, 'Google Ads'));
+        pages.push(generateResultsPage(googleMetrics, 'Google Ads', budgetsCompleted, salesCount, revenue));
     }
 
     // PÁGINA 5: Próximos Passos
-    pages.push(generateNextStepsPage());
+    pages.push(generateNextStepsPage(performanceAnalysis));
 
     // PÁGINA 6: Obrigado
     pages.push(generateThankYouPage());
@@ -95,7 +108,33 @@ function generateCoverPage(unitName, startDate, endDate) {
 /**
  * Gerar página de resultados
  */
-function generateResultsPage(metrics, platformName) {
+function generateResultsPage(metrics, platformName, budgetsCompleted, salesCount, revenue) {
+    // Usar dados da API de anúncios
+    const invested = metrics?.spend || 0;
+    const clicks = metrics?.clicks || 0;
+    const cpc = clicks > 0 ? invested / clicks : 0;
+    const leads = metrics?.conversions || 0;
+    const cpl = leads > 0 ? invested / leads : 0;
+    const messages = metrics?.conversations || 0;
+    const cpa = messages > 0 ? invested / messages : 0;
+    
+    // Usar dados manuais da planilha
+    const sales = salesCount || 0;
+    const faturamento = revenue || 0;
+    
+    console.log('📊 Dados da página de resultados:', {
+        platformName,
+        invested,
+        clicks,
+        cpc,
+        leads,
+        cpl,
+        messages,
+        cpa,
+        sales,
+        faturamento
+    });
+    
     return `
     <div class="page resultados">
         <!-- Logo Horizontal -->
@@ -113,20 +152,20 @@ function generateResultsPage(metrics, platformName) {
             <div class="resultados-column">
                 <div class="card-white">
                     <div class="card-label">Investimento</div>
-                    <div class="card-value">${formatCurrency(metrics.invested)}</div>
+                    <div class="card-value">${formatCurrency(invested)}</div>
                 </div>
                 <div class="card-white">
                     <div class="card-label">Cliques</div>
-                    <div class="card-value">${formatNumber(metrics.clicks)}</div>
+                    <div class="card-value">${formatNumber(clicks)}</div>
                 </div>
                 <div class="card-white">
                     <div class="card-label">CPC</div>
-                    <div class="card-value">${formatCurrency(metrics.cpc)}</div>
+                    <div class="card-value">${formatCurrency(cpc)}</div>
                 </div>
                 ${platformName.includes('Meta') ? `
                 <div class="card-white">
                     <div class="card-label">Leads</div>
-                    <div class="card-value">${formatNumber(metrics.leads)}</div>
+                    <div class="card-value">${formatNumber(leads)}</div>
                 </div>
                 ` : ''}
             </div>
@@ -136,24 +175,24 @@ function generateResultsPage(metrics, platformName) {
                 ${platformName.includes('Meta') ? `
                 <div class="card-purple">
                     <div class="card-label">CPL</div>
-                    <div class="card-value">${formatCurrency(metrics.cpl)}</div>
+                    <div class="card-value">${formatCurrency(cpl)}</div>
                 </div>
                 <div class="card-purple">
                     <div class="card-label">Mensagens</div>
-                    <div class="card-value">${formatNumber(metrics.messages)}</div>
+                    <div class="card-value">${formatNumber(messages)}</div>
                 </div>
                 <div class="card-purple">
                     <div class="card-label">CPA</div>
-                    <div class="card-value">${formatCurrency(metrics.cpa)}</div>
+                    <div class="card-value">${formatCurrency(cpa)}</div>
                 </div>
                 ` : ''}
                 <div class="card-purple">
                     <div class="card-label">Vendas</div>
-                    <div class="card-value">${formatNumber(metrics.sales)}</div>
+                    <div class="card-value">${formatNumber(sales)}</div>
                 </div>
                 <div class="card-purple">
                     <div class="card-label">Faturamento</div>
-                    <div class="card-value">${formatCurrency(metrics.revenue)}</div>
+                    <div class="card-value">${formatCurrency(faturamento)}</div>
                 </div>
             </div>
         </div>
@@ -168,34 +207,41 @@ function generateResultsPage(metrics, platformName) {
  * Gerar página de ranking de anúncios
  */
 function generateRankingPage(ads) {
-    const adsHTML = ads.slice(0, 3).map((ad, index) => `
+    console.log('🏆 Gerando ranking com anúncios:', ads);
+    
+    const adsHTML = ads.slice(0, 3).map((ad, index) => {
+        // Calcular CPL
+        const cpl = ad.conversions > 0 ? ad.spend / ad.conversions : 0;
+        
+        return `
         <div class="ranking-card">
             <div class="ranking-badge">${index + 1}º</div>
             <div class="ranking-thumbnail">
-                ${ad.type === 'video' 
-                    ? `<video src="${ad.thumbnailUrl}" autoplay loop muted playsinline style="width:100%;height:100%;object-fit:cover;border-radius:12px;"></video>`
-                    : `<img src="${ad.thumbnailUrl}" alt="${ad.name}" style="width:100%;height:100%;object-fit:cover;border-radius:12px;">`
+                ${ad.imageUrl 
+                    ? `<img src="${ad.imageUrl}" alt="${ad.name}" style="width:100%;height:100%;object-fit:cover;border-radius:12px;" onerror="this.src='https://via.placeholder.com/300x300?text=Sem+Imagem'">`
+                    : `<div style="width:100%;height:100%;background:#f3f4f6;display:flex;align-items:center;justify-content:center;border-radius:12px;color:#9ca3af;">Sem Imagem</div>`
                 }
             </div>
             <div class="ranking-info">
-                <div class="ranking-name">${ad.name}</div>
+                <div class="ranking-name">${ad.name || 'Anúncio sem nome'}</div>
                 <div class="ranking-stats">
                     <div class="ranking-stat">
                         <span class="ranking-stat-label">Impressões</span>
-                        <span class="ranking-stat-value">${formatNumber(ad.impressions)}</span>
+                        <span class="ranking-stat-value">${formatNumber(ad.impressions || 0)}</span>
                     </div>
                     <div class="ranking-stat">
                         <span class="ranking-stat-label">Leads</span>
-                        <span class="ranking-stat-value">${formatNumber(ad.leads)}</span>
+                        <span class="ranking-stat-value">${formatNumber(ad.conversions || 0)}</span>
                     </div>
                     <div class="ranking-stat">
                         <span class="ranking-stat-label">CPL</span>
-                        <span class="ranking-stat-value">${formatCurrency(ad.cpl)}</span>
+                        <span class="ranking-stat-value">${formatCurrency(cpl)}</span>
                     </div>
                 </div>
             </div>
         </div>
-    `).join('');
+        `;
+    }).join('');
 
     return `
     <div class="page ranking">
@@ -229,7 +275,8 @@ function generateRankingPage(ads) {
 /**
  * Gerar página de próximos passos
  */
-function generateNextStepsPage() {
+function generateNextStepsPage(performanceAnalysis) {
+    const analysisText = performanceAnalysis || 'Análise de desempenho não fornecida.';
     return `
     <div class="page proximos-passos">
         <div class="proximos-left">

@@ -1489,153 +1489,69 @@ async function generateCompleteReport() {
             black: reportSeparateBlackMetrics ? 'SIM' : 'NÃO'
         });
 
-        // ========== GERAR APRESENTAÇÃO (NA MESMA TELA) ==========
-        console.log('🎨 Iniciando geração de apresentação na mesma tela...');
+        // ========== RENDERIZAR APRESENTAÇÃO NA TELA ==========
+        console.log('🎨 Renderizando apresentação na tela...');
         
-        // Abrir modal de progresso
-        const progressModal = document.getElementById('progressModal');
-        const modalStep1 = document.getElementById('modalStep1');
-        const modalStep2 = document.getElementById('modalStep2');
-        const modalStep3 = document.getElementById('modalStep3');
-        const modalErrorState = document.getElementById('modalErrorState');
-        const modalErrorText = document.getElementById('modalErrorText');
-        const modalSuccessState = document.getElementById('modalSuccessState');
-        const modalDownloadBtn = document.getElementById('modalDownloadBtn');
-        const modalProgressSteps = document.getElementById('modalProgressSteps');
+        // Importar função de geração de HTML
+        const { generatePresentationHTML } = await import('./gerar-html-apresentacao.js?v=1.1');
         
-        progressModal.classList.remove('hidden');
+        const presentationHTML = generatePresentationHTML({
+            unitName: accountName,
+            startDate,
+            endDate,
+            hasMeta: !!separateMetaMetrics,
+            hasGoogle: !!separateGoogleMetrics,
+            metaMetrics: separateMetaMetrics,
+            googleMetrics: separateGoogleMetrics,
+            metaTop3Ads: bestAds.filter(ad => ad.platform === 'meta').slice(0, 3),
+            performanceAnalysis: performanceAnalysis || '',
+            budgetsCompleted,
+            salesCount,
+            revenue
+        });
         
-        try {
-            // STEP 1: Validar dados
-            console.log('✅ STEP 1: Validando dados...');
-            updateModalStep(modalStep1, 'loading');
-            await delay(300);
+        console.log('✅ HTML gerado com sucesso');
+        
+        // Exibir HTML no container
+        const reportContainer = document.getElementById('reportContainer');
+        if (reportContainer) {
+            reportContainer.innerHTML = presentationHTML;
+            reportContainer.style.display = 'block';
             
-            const presentationData = {
-                presentationName: `Apresentação ${accountName} - ${formatDateISOToBR(startDate)} a ${formatDateISOToBR(endDate)}`,
-                unitId: selectedUnit?.id || unitId,
-                unitName: accountName,
-                unitData: selectedUnit || {},
-                startDate,
-                endDate,
-                projectId: localStorage.getItem('currentProject'),
-                // Métricas
-                metaMetrics: separateMetaMetrics,
-                googleMetrics: separateGoogleMetrics,
-                blackMetrics: separateBlackMetrics,
-                // Melhores anúncios
-                bestAds: bestAds,
-                // Dados manuais
-                budgetsCompleted,
-                salesCount,
-                revenue,
-                performanceAnalysis: performanceAnalysis || '',
-                // Configurações
-                hasBlack,
-                hasMultiplePlatforms
-            };
-            
-            console.log('📊 Dados validados:', presentationData);
-            updateModalStep(modalStep1, 'success');
-            
-            // STEP 2: Gerar HTML
-            console.log('🎨 STEP 2: Gerando HTML da apresentação...');
-            updateModalStep(modalStep2, 'loading');
-            await delay(300);
-            
-            // Importar função de geração de HTML
-            const { generatePresentationHTML } = await import('./gerar-html-apresentacao.js?v=1.0');
-            
-            const presentationHTML = generatePresentationHTML({
-                unitName: presentationData.unitName,
-                startDate: presentationData.startDate,
-                endDate: presentationData.endDate,
-                hasMeta: !!separateMetaMetrics,
-                hasGoogle: !!separateGoogleMetrics,
-                metaMetrics: separateMetaMetrics,
-                googleMetrics: separateGoogleMetrics,
-                metaTop3Ads: bestAds.filter(ad => ad.platform === 'meta').slice(0, 3),
-                performanceAnalysis: performanceAnalysis || ''
-            });
-            
-            console.log('✅ HTML gerado com sucesso');
-            updateModalStep(modalStep2, 'success');
-            
-            // STEP 3: Salvar no Firestore
-            console.log('💾 STEP 3: Salvando apresentação...');
-            updateModalStep(modalStep3, 'loading');
-            await delay(300);
-            
-            const { presentationsService } = await import('./services/presentationsService.js?v=1.0');
-            const { auth } = await import('./config/firebase.js');
-            
-            const presentationDoc = {
-                name: presentationData.presentationName,
-                unitId: presentationData.unitId,
-                unitName: presentationData.unitName,
-                startDate: presentationData.startDate,
-                endDate: presentationData.endDate,
-                platforms: {
-                    meta: !!separateMetaMetrics,
-                    google: !!separateGoogleMetrics
-                },
-                metrics: {
-                    meta: separateMetaMetrics,
-                    google: separateGoogleMetrics,
-                    black: separateBlackMetrics
-                },
-                html: presentationHTML,
-                createdAt: new Date().toISOString(),
-                createdBy: auth.currentUser?.uid
-            };
-            
-            const savedPresentation = await presentationsService.savePresentation(
-                presentationData.projectId,
-                presentationDoc
-            );
-            
-            console.log('✅ Apresentação salva:', savedPresentation.id);
-            updateModalStep(modalStep3, 'success');
-            
-            // Salvar dados para download
-            window.currentPresentationHTML = presentationHTML;
-            window.currentPresentationName = presentationData.presentationName;
-            
-            // Mostrar sucesso
-            await delay(500);
-            modalProgressSteps.classList.add('hidden');
-            modalSuccessState.classList.remove('hidden');
-            
-            // Adicionar evento de download
-            modalDownloadBtn.onclick = () => {
-                console.log('📥 Iniciando download do PDF...');
-                const printWindow = window.open('', '_blank');
-                printWindow.document.write(presentationHTML);
-                printWindow.document.close();
-                printWindow.onload = () => {
+            // Scroll suave até a apresentação
             setTimeout(() => {
-                        printWindow.print();
-            }, 500);
-                };
-            };
-            
-        } catch (error) {
-            console.error('❌ Erro ao gerar apresentação:', error);
-            
-            // Marcar step atual como erro
-            const steps = [modalStep1, modalStep2, modalStep3];
-            for (const step of steps) {
-                if (step.classList.contains('bg-blue-50')) {
-                    updateModalStep(step, 'error');
-                    break;
-                }
-            }
-            
-            // Mostrar erro
-            modalProgressSteps.classList.add('opacity-50');
-            modalErrorState.classList.remove('hidden');
-            modalErrorText.textContent = error.message || 'Erro desconhecido';
+                reportContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }, 100);
         }
+        
+        // Salvar dados para posterior salvamento no Firebase (quando clicar em "Salvar")
+        window.currentPresentationData = {
+            presentationName: `Apresentação ${accountName} - ${formatDateISOToBR(startDate)} a ${formatDateISOToBR(endDate)}`,
+            unitId: selectedUnit?.id || unitId,
+            unitName: accountName,
+            unitData: selectedUnit || {},
+            startDate,
+            endDate,
+            projectId: localStorage.getItem('currentProject'),
+            // Métricas
+            metaMetrics: separateMetaMetrics,
+            googleMetrics: separateGoogleMetrics,
+            blackMetrics: separateBlackMetrics,
+            // Melhores anúncios
+            bestAds: bestAds,
+            // Dados manuais
+            budgetsCompleted,
+            salesCount,
+            revenue,
+            performanceAnalysis: performanceAnalysis || '',
+            // HTML gerado
+            html: presentationHTML,
+            // Configurações
+            hasBlack,
+            hasMultiplePlatforms
+        };
+        
+        console.log('💾 Dados salvos para posterior salvamento no Firebase');
         
         return; // Não continuar com o resto da função
         

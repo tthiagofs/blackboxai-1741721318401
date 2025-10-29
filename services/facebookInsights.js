@@ -344,7 +344,9 @@ export class FacebookInsightsService {
                             console.log(`   📸 URL final: ${imageUrl.substring(0, 80)}...`);
                         }
                     } catch (err) {
-                        console.error('❌ Erro ao buscar post existente:', err);
+                        console.error('❌ ERRO ao buscar post existente:', err);
+                        console.error('   Stack:', err.stack);
+                        console.error('   Message:', err.message);
                     }
                 }
                 // PARA "CRIAR ANÚNCIO": usar object_story_spec

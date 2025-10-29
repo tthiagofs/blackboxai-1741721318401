@@ -227,7 +227,7 @@ export class FacebookInsightsService {
     // Dados do criativo com fallback
     async getCreativeData(adId) {
         try {
-            // Buscar creative com thumbnail_url que é a melhor qualidade
+            // Buscar creative com image_hash para pegar imagem de alta qualidade
             const url = `/${adId}?fields=creative{thumbnail_url,image_hash,image_url,object_story_spec,effective_object_story_id,asset_feed_spec}&access_token=${this.accessToken}`;
             const response = await new Promise((resolve, reject) => {
                 const timeout = setTimeout(() => {
@@ -249,40 +249,22 @@ export class FacebookInsightsService {
                 let imageUrl = 'https://via.placeholder.com/200x200?text=Sem+Imagem';
                 let type = 'image'; // padrão
                 
-                // Primeiro: Sempre tentar thumbnail_url (melhor qualidade para TODOS os tipos)
-                if (creative.thumbnail_url) {
-                    imageUrl = creative.thumbnail_url;
-                }
-                
                 // Detectar tipo baseado em object_story_spec
                 if (creative.object_story_spec) {
                     // Vídeo
                     if (creative.object_story_spec.video_data) {
                         type = 'video';
-                        // Se não tinha thumbnail, tentar video image_url
-                        if (!creative.thumbnail_url && creative.object_story_spec.video_data.image_url) {
-                            imageUrl = creative.object_story_spec.video_data.image_url;
-                        }
+                        imageUrl = creative.object_story_spec.video_data.image_url || creative.thumbnail_url || imageUrl;
                     }
                     // Carrossel
                     else if (creative.object_story_spec.link_data?.child_attachments) {
                         type = 'carousel';
-                        // Se não tinha thumbnail, tentar link_data picture
-                        if (!creative.thumbnail_url && creative.object_story_spec.link_data.picture) {
-                            imageUrl = creative.object_story_spec.link_data.picture;
-                        }
+                        imageUrl = creative.object_story_spec.link_data.picture || creative.thumbnail_url || imageUrl;
                     }
                     // Imagem estática
-                    else if (creative.object_story_spec.link_data?.picture || creative.object_story_spec.link_data) {
+                    else if (creative.object_story_spec.link_data) {
                         type = 'image';
-                        // Se não tinha thumbnail, tentar outras fontes
-                        if (!creative.thumbnail_url) {
-                            if (creative.image_url) {
-                                imageUrl = creative.image_url;
-                            } else if (creative.object_story_spec.link_data?.picture) {
-                                imageUrl = creative.object_story_spec.link_data.picture;
-                            }
-                        }
+                        imageUrl = creative.object_story_spec.link_data.picture || creative.image_url || creative.thumbnail_url || imageUrl;
                     }
                 }
                 
@@ -291,9 +273,28 @@ export class FacebookInsightsService {
                     type = 'carousel';
                 }
                 
+                // Se tiver image_hash, buscar imagem de ALTA QUALIDADE usando a Graph API
+                if (creative.image_hash) {
+                    try {
+                        const imageHashUrl = `/${creative.image_hash}?fields=url_128&access_token=${this.accessToken}`;
+                        const imageHashResponse = await new Promise((resolve) => {
+                            FB.api(imageHashUrl, (res) => resolve(res));
+                        });
+                        
+                        if (imageHashResponse && imageHashResponse.url_128) {
+                            // url_128 é uma versão de alta qualidade - substituir 128 por tamanho maior
+                            imageUrl = imageHashResponse.url_128.replace('_128.', '_720.');
+                        }
+                    } catch (err) {
+                        console.warn('Erro ao buscar imagem de alta qualidade via image_hash:', err);
+                    }
+                }
+                
                 // Fallback final
                 if (!imageUrl || imageUrl === 'https://via.placeholder.com/200x200?text=Sem+Imagem') {
-                    if (creative.image_url) {
+                    if (creative.thumbnail_url) {
+                        imageUrl = creative.thumbnail_url;
+                    } else if (creative.image_url) {
                         imageUrl = creative.image_url;
                     }
                 }

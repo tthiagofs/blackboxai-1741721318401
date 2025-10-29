@@ -112,27 +112,27 @@ function generateResultsPage(metrics, platformName, budgetsCompleted, salesCount
     // Usar dados da API de anúncios
     const invested = metrics?.spend || 0;
     const clicks = metrics?.clicks || 0;
-    const cpc = clicks > 0 ? invested / clicks : 0;
     const leads = metrics?.conversions || 0;
-    const cpl = leads > 0 ? invested / leads : 0;
-    const messages = metrics?.conversations || 0;
-    const cpa = messages > 0 ? invested / messages : 0;
     
     // Usar dados manuais da planilha
     const sales = salesCount || 0;
     const faturamento = revenue || 0;
+    const orcamentos = budgetsCompleted || 0;
+    
+    // Calcular métricas derivadas
+    const ticketMedio = sales > 0 ? faturamento / sales : 0;
+    const roi = invested > 0 ? (faturamento * 0.25) / invested : 0;
     
     console.log('📊 Dados da página de resultados:', {
         platformName,
         invested,
+        faturamento,
+        ticketMedio,
+        roi,
         clicks,
-        cpc,
         leads,
-        cpl,
-        messages,
-        cpa,
-        sales,
-        faturamento
+        orcamentos,
+        sales
     });
     
     return `
@@ -155,44 +155,36 @@ function generateResultsPage(metrics, platformName, budgetsCompleted, salesCount
                     <div class="card-value">${formatCurrency(invested)}</div>
                 </div>
                 <div class="card-white">
-                    <div class="card-label">Cliques</div>
-                    <div class="card-value">${formatNumber(clicks)}</div>
+                    <div class="card-label">Faturamento</div>
+                    <div class="card-value">${formatCurrency(faturamento)}</div>
                 </div>
                 <div class="card-white">
-                    <div class="card-label">CPC</div>
-                    <div class="card-value">${formatCurrency(cpc)}</div>
+                    <div class="card-label">Ticket Médio</div>
+                    <div class="card-value">${formatCurrency(ticketMedio)}</div>
                 </div>
-                ${platformName.includes('Meta') ? `
                 <div class="card-white">
-                    <div class="card-label">Leads</div>
-                    <div class="card-value">${formatNumber(leads)}</div>
+                    <div class="card-label">ROI</div>
+                    <div class="card-value">${roi.toFixed(2)}</div>
                 </div>
-                ` : ''}
             </div>
 
             <!-- Cards Roxos (Direita) -->
             <div class="resultados-column">
-                ${platformName.includes('Meta') ? `
                 <div class="card-purple">
-                    <div class="card-label">CPL</div>
-                    <div class="card-value">${formatCurrency(cpl)}</div>
+                    <div class="card-label">Cliques</div>
+                    <div class="card-value">${formatNumber(clicks)}</div>
                 </div>
                 <div class="card-purple">
-                    <div class="card-label">Mensagens</div>
-                    <div class="card-value">${formatNumber(messages)}</div>
+                    <div class="card-label">Leads</div>
+                    <div class="card-value">${formatNumber(leads)}</div>
                 </div>
                 <div class="card-purple">
-                    <div class="card-label">CPA</div>
-                    <div class="card-value">${formatCurrency(cpa)}</div>
+                    <div class="card-label">Orçamentos</div>
+                    <div class="card-value">${formatNumber(orcamentos)}</div>
                 </div>
-                ` : ''}
                 <div class="card-purple">
-                    <div class="card-label">Vendas</div>
+                    <div class="card-label">Fechamentos</div>
                     <div class="card-value">${formatNumber(sales)}</div>
-                </div>
-                <div class="card-purple">
-                    <div class="card-label">Faturamento</div>
-                    <div class="card-value">${formatCurrency(faturamento)}</div>
                 </div>
             </div>
         </div>
@@ -210,8 +202,9 @@ function generateRankingPage(ads) {
     console.log('🏆 Gerando ranking com anúncios:', ads);
     
     const adsHTML = ads.slice(0, 3).map((ad, index) => {
-        // Calcular CPL
-        const cpl = ad.conversions > 0 ? ad.spend / ad.conversions : 0;
+        // Calcular Custo por Mensagem (CPA)
+        const messages = ad.messages || 0;
+        const costPerMessage = messages > 0 ? ad.spend / messages : 0;
         
         return `
         <div class="ranking-card">
@@ -226,16 +219,12 @@ function generateRankingPage(ads) {
                 <div class="ranking-name">${ad.name || 'Anúncio sem nome'}</div>
                 <div class="ranking-stats">
                     <div class="ranking-stat">
-                        <span class="ranking-stat-label">Impressões</span>
-                        <span class="ranking-stat-value">${formatNumber(ad.impressions || 0)}</span>
+                        <span class="ranking-stat-label">Mensagens</span>
+                        <span class="ranking-stat-value">${formatNumber(messages)}</span>
                     </div>
                     <div class="ranking-stat">
-                        <span class="ranking-stat-label">Leads</span>
-                        <span class="ranking-stat-value">${formatNumber(ad.conversions || 0)}</span>
-                    </div>
-                    <div class="ranking-stat">
-                        <span class="ranking-stat-label">CPL</span>
-                        <span class="ranking-stat-value">${formatCurrency(cpl)}</span>
+                        <span class="ranking-stat-label">Custo por Mensagem</span>
+                        <span class="ranking-stat-value">${formatCurrency(costPerMessage)}</span>
                     </div>
                 </div>
             </div>

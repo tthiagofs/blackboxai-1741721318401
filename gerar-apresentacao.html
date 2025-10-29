@@ -474,11 +474,11 @@ ul.list-disc li br {
                     <i class="fas fa-info-circle mr-1"></i>Campo opcional. Este texto será incluído na apresentação.
                 </p>
                 
-                <!-- Botão Gerar Relatório Final -->
+                <!-- Botão Atualizar Apresentação -->
                 <button type="button" id="generateFinalReportBtn"
-                    class="mt-4 w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-bold py-3 px-6 rounded-xl transition duration-300 transform hover:scale-[1.02] shadow-lg flex items-center justify-center">
-                    <i class="fas fa-check-circle mr-3 text-xl"></i>
-                    <span class="text-lg">Incluir Análise e Gerar Relatório Final</span>
+                    class="mt-4 w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold py-3 px-6 rounded-xl transition duration-300 transform hover:scale-[1.02] shadow-lg flex items-center justify-center">
+                    <i class="fas fa-sync-alt mr-3 text-xl"></i>
+                    <span class="text-lg">Atualizar Apresentação com Análise</span>
                 </button>
             </div>
 
@@ -907,6 +907,56 @@ ul.list-disc li br {
                         printWindow.print();
                     }, 500);
                 };
+            });
+        }
+        
+        // Botão Atualizar Apresentação com Análise
+        const generateFinalReportBtn = document.getElementById('generateFinalReportBtn');
+        if (generateFinalReportBtn) {
+            generateFinalReportBtn.addEventListener('click', async () => {
+                if (!window.currentPresentationData) {
+                    alert('Erro: Nenhuma apresentação foi gerada ainda');
+                    return;
+                }
+                
+                console.log('🔄 Atualizando apresentação com análise...');
+                
+                // Pegar texto de análise
+                const performanceAnalysis = document.getElementById('performanceAnalysis')?.value || '';
+                
+                // Atualizar dados da apresentação
+                window.currentPresentationData.performanceAnalysis = performanceAnalysis;
+                
+                // Importar função de geração de HTML
+                const { generatePresentationHTML } = await import('./gerar-html-apresentacao.js?v=1.3');
+                
+                // Gerar HTML atualizado
+                const updatedHTML = generatePresentationHTML({
+                    unitName: window.currentPresentationData.unitName,
+                    startDate: window.currentPresentationData.startDate,
+                    endDate: window.currentPresentationData.endDate,
+                    hasMeta: !!window.currentPresentationData.metaMetrics,
+                    hasGoogle: !!window.currentPresentationData.googleMetrics,
+                    metaMetrics: window.currentPresentationData.metaMetrics,
+                    googleMetrics: window.currentPresentationData.googleMetrics,
+                    metaTop3Ads: window.currentPresentationData.bestAds?.filter(ad => ad.platform === 'meta').slice(0, 3),
+                    performanceAnalysis: performanceAnalysis,
+                    budgetsCompleted: window.currentPresentationData.budgetsCompleted,
+                    salesCount: window.currentPresentationData.salesCount,
+                    revenue: window.currentPresentationData.revenue
+                });
+                
+                // Atualizar HTML
+                window.currentPresentationData.html = updatedHTML;
+                
+                // Atualizar container
+                const reportContainer = document.getElementById('reportContainer');
+                if (reportContainer) {
+                    reportContainer.innerHTML = updatedHTML;
+                }
+                
+                console.log('✅ Apresentação atualizada com sucesso!');
+                alert('Apresentação atualizada com sucesso! Você pode exportar para PDF ou salvar.');
             });
         }
     </script>

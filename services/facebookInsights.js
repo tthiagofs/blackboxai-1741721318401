@@ -375,7 +375,9 @@ export class FacebookInsightsService {
                                     .replace(/_s\d+x\d+/g, '')           // Remove _s200x200, _s150x150, etc
                                     .replace(/_\d+\./g, '_720.')         // Substitui _128., _256. por _720.
                                     .replace(/&width=\d+/g, '&width=1080')  // Força width maior
-                                    .replace(/&height=\d+/g, '&height=1080'); // Força height maior
+                                    .replace(/&height=\d+/g, '&height=1080') // Força height maior
+                                    .replace(/&stp=[^&]+/g, '')          // REMOVE o parâmetro stp (p64x64, etc)
+                                    .replace(/stp=[^&]+&?/g, '');        // Remove stp no início também
                                 
                                 imageUrl = thumbnailUrl;
                                 

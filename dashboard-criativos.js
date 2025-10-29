@@ -337,7 +337,9 @@ async function fetchCreativesFromMetaAds(projectId, unitId, dates) {
     console.log(`📊 Total de ${allAds.length} anúncios processados (métricas)`);
     
     // OTIMIZAÇÃO: Ordenar ANTES de buscar creatives
-    const orderBy = document.getElementById('orderBy').value;
+    const orderByElement = document.getElementById('orderBy');
+    const orderBy = orderByElement ? orderByElement.value : 'impressions'; // Padrão: impressões
+    console.log(`📊 Ordenando por: ${orderBy}`);
     sortCreatives(allAds, orderBy);
     
     // Buscar creative APENAS do TOP 10

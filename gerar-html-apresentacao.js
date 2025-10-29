@@ -112,7 +112,7 @@ function generateResultsPage(metrics, platformName, budgetsCompleted, salesCount
     // Usar dados da API de anúncios
     const invested = metrics?.spend || 0;
     const clicks = metrics?.clicks || 0;
-    const leads = metrics?.conversions || 0;
+    const messages = metrics?.conversations || 0;
     
     // Usar dados manuais da planilha
     const sales = salesCount || 0;
@@ -130,16 +130,17 @@ function generateResultsPage(metrics, platformName, budgetsCompleted, salesCount
         ticketMedio,
         roi,
         clicks,
-        leads,
+        messages,
         orcamentos,
-        sales
+        sales,
+        metricsReceived: metrics
     });
     
     return `
     <div class="page resultados">
         <!-- Logo Horizontal -->
         <svg class="resultados-logo" viewBox="0 0 200 50" xmlns="http://www.w3.org/2000/svg">
-            <text x="10" y="35" font-size="28" font-weight="700" fill="#2563A8" font-family="Poppins, sans-serif">
+            <text x="10" y="35" font-size="24" font-weight="700" fill="#2563A8" font-family="Poppins, sans-serif">
                 Oral Centter
             </text>
         </svg>
@@ -175,8 +176,8 @@ function generateResultsPage(metrics, platformName, budgetsCompleted, salesCount
                     <div class="card-value">${formatNumber(clicks)}</div>
                 </div>
                 <div class="card-purple">
-                    <div class="card-label">Leads</div>
-                    <div class="card-value">${formatNumber(leads)}</div>
+                    <div class="card-label">Mensagens</div>
+                    <div class="card-value">${formatNumber(messages)}</div>
                 </div>
                 <div class="card-purple">
                     <div class="card-label">Orçamentos</div>
@@ -282,13 +283,6 @@ function generateNextStepsPage(performanceAnalysis) {
             <ul class="proximos-list">
                 ${analysisHTML}
             </ul>
-
-            <!-- Logo -->
-            <svg class="proximos-logo" viewBox="0 0 200 50" xmlns="http://www.w3.org/2000/svg">
-                <text x="10" y="35" font-size="28" font-weight="700" fill="#2563A8" font-family="Poppins, sans-serif">
-                    Oral Centter
-                </text>
-            </svg>
         </div>
     </div>
     `;
@@ -507,9 +501,10 @@ function getStyles() {
     }
 
     .card-value {
-      font-size: 32px;
+      font-size: 28px;
       font-weight: 700;
       color: #2563A8;
+      line-height: 1.2;
     }
 
     .card-purple .card-value {

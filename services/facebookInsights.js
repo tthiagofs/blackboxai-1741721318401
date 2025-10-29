@@ -283,10 +283,16 @@ export class FacebookInsightsService {
                             });
                         });
                         
-                        console.log(`   🔍 Analisando resposta...`, { hasError: !!postResponse?.error, hasData: !!postResponse });
+                        console.log(`   🔍 Analisando resposta...`, { 
+                            hasError: !!postResponse?.error, 
+                            hasData: !!postResponse,
+                            errorMessage: postResponse?.error?.message,
+                            errorCode: postResponse?.error?.code,
+                            fullResponse: postResponse
+                        });
                         
                         if (postResponse && !postResponse.error) {
-                            console.log('📱 Post existente COMPLETO:', {
+                            console.log('✅✅✅ Post existente COMPLETO (SUCESSO):', {
                                 id: creative.effective_object_story_id,
                                 type: postResponse.type,
                                 format_type: postResponse.format_type,
@@ -355,9 +361,15 @@ export class FacebookInsightsService {
                             }
                             
                             console.log(`   📸 URL final: ${imageUrl.substring(0, 80)}...`);
+                        } else {
+                            console.error('❌❌❌ POST RESPONSE TEM ERRO OU É VAZIO!', {
+                                hasResponse: !!postResponse,
+                                hasError: !!postResponse?.error,
+                                fullError: postResponse?.error
+                            });
                         }
                     } catch (err) {
-                        console.error('❌ ERRO ao buscar post existente:', err);
+                        console.error('❌❌❌ EXCEÇÃO CAPTURADA ao buscar post existente:', err);
                         console.error('   Stack:', err.stack);
                         console.error('   Message:', err.message);
                     }

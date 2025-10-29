@@ -265,12 +265,25 @@ export class FacebookInsightsService {
                 
                 // PARA "USAR POST EXISTENTE": buscar dados do post original (Stories, Reels, Feed)
                 if (creative.effective_object_story_id && !creative.object_story_spec) {
+                    console.log(`   🔄 Iniciando busca do post: ${creative.effective_object_story_id}`);
                     try {
                         // Buscar TODOS os campos possíveis do post (funciona para Stories, Reels, Feed, Instagram)
                         const postUrl = `/${creative.effective_object_story_id}?fields=full_picture,picture,type,source,format_type,permalink_url,attachments{media_type,type,media{source,image{src,width,height}},subattachments,target{id}}&access_token=${this.accessToken}`;
-                        const postResponse = await new Promise((resolve) => {
-                            FB.api(postUrl, (res) => resolve(res));
+                        console.log(`   📡 Chamando FB.api...`);
+                        
+                        const postResponse = await new Promise((resolve, reject) => {
+                            const timeout = setTimeout(() => {
+                                reject(new Error('Timeout ao buscar post'));
+                            }, 10000);
+                            
+                            FB.api(postUrl, (res) => {
+                                clearTimeout(timeout);
+                                console.log(`   ✅ FB.api retornou:`, res);
+                                resolve(res);
+                            });
                         });
+                        
+                        console.log(`   🔍 Analisando resposta...`, { hasError: !!postResponse?.error, hasData: !!postResponse });
                         
                         if (postResponse && !postResponse.error) {
                             console.log('📱 Post existente COMPLETO:', {

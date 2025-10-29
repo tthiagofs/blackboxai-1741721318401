@@ -320,16 +320,16 @@
         import { doc, updateDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
         import { authService } from './services/authService.js?v=1.4';
         import { projectsService } from './services/projects.js?v=1.3';
-        import { reportsService } from './services/reportsService.js?v=1.0';
+        import { presentationsService } from './services/presentationsService.js?v=1.0';
 
         const projectNameEl = document.getElementById('projectName');
         const projectNameEditable = document.getElementById('projectNameEditable');
-        const generateReportBtn = document.getElementById('generateReportBtn');
-        const reportsLoading = document.getElementById('reportsLoading');
-        const reportsEmpty = document.getElementById('reportsEmpty');
-        const reportsGrid = document.getElementById('reportsGrid');
-        const totalReports = document.getElementById('totalReports');
-        const lastReport = document.getElementById('lastReport');
+        const generatePresentationBtn = document.getElementById('generatePresentationBtn');
+        const presentationsLoading = document.getElementById('presentationsLoading');
+        const presentationsEmpty = document.getElementById('presentationsEmpty');
+        const presentationsGrid = document.getElementById('presentationsGrid');
+        const totalPresentations = document.getElementById('totalPresentations');
+        const lastPresentation = document.getElementById('lastPresentation');
         const platformsStats = document.getElementById('platformsStats');
         const logoContainer = document.getElementById('logoContainer');
         const logoInput = document.getElementById('logoInput');
@@ -348,10 +348,10 @@
 
         let currentProjectId = null;
         let currentProject = null;
-        let allReports = [];
+        let allPresentations = [];
         let currentSortMode = 'recent';
         let isSelectionMode = false;
-        let selectedReports = new Set();
+        let selectedPresentations = new Set();
 
         // Pegar ID do projeto da URL
         const urlParams = new URLSearchParams(window.location.search);
@@ -364,10 +364,11 @@
 
         // Links do menu agora são gerenciados pela sidebar unificada
 
-        // Botão Gerar Relatório
-        generateReportBtn.addEventListener('click', () => {
+        // Botão Gerar Apresentação
+        generatePresentationBtn.addEventListener('click', () => {
             localStorage.setItem('currentProject', currentProjectId);
-            window.location.href = '/tipo-relatorio.html';
+            // TODO: Criar página de geração de apresentação
+            alert('Funcionalidade de gerar apresentação em desenvolvimento');
         });
 
         // Upload de Logo
@@ -497,11 +498,11 @@
             };
 
             sortLabel.textContent = labels[mode];
-            renderReports(sortReports(allReports));
+            renderPresentations(sortPresentations(allPresentations));
         };
 
-        function sortReports(reports) {
-            const sorted = [...reports];
+        function sortPresentations(presentations) {
+            const sorted = [...presentations];
 
             switch (currentSortMode) {
                 case 'recent':
@@ -509,9 +510,9 @@
                 case 'oldest':
                     return sorted.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
                 case 'nameAZ':
-                    return sorted.sort((a, b) => a.reportName.localeCompare(b.reportName));
+                    return sorted.sort((a, b) => a.presentationName.localeCompare(b.presentationName));
                 case 'nameZA':
-                    return sorted.sort((a, b) => b.reportName.localeCompare(a.reportName));
+                    return sorted.sort((a, b) => b.presentationName.localeCompare(a.presentationName));
                 case 'platform':
                     return sorted.sort((a, b) => {
                         const order = { 'meta': 1, 'google': 2, 'both': 3 };
@@ -527,69 +528,69 @@
             isSelectionMode = true;
             normalControls.classList.add('hidden');
             selectionControls.classList.remove('hidden');
-            updateReportCards();
+            updatePresentationCards();
         });
 
         cancelSelectBtn.addEventListener('click', () => {
             isSelectionMode = false;
-            selectedReports.clear();
+            selectedPresentations.clear();
             normalControls.classList.remove('hidden');
             selectionControls.classList.add('hidden');
-            updateReportCards();
+            updatePresentationCards();
         });
 
         selectAllBtn.addEventListener('click', () => {
-            const allSelected = selectedReports.size === allReports.length;
+            const allSelected = selectedPresentations.size === allPresentations.length;
 
             if (allSelected) {
                 // Desmarcar todos
-                selectedReports.clear();
+                selectedPresentations.clear();
                 selectAllBtn.textContent = 'Selecionar Todos';
             } else {
                 // Selecionar todos
-                allReports.forEach(report => selectedReports.add(report.id));
+                allPresentations.forEach(presentation => selectedPresentations.add(presentation.id));
                 selectAllBtn.textContent = 'Desmarcar Todos';
             }
 
-            updateReportCards();
+            updatePresentationCards();
         });
 
         deleteSelectedBtn.addEventListener('click', async () => {
-            if (selectedReports.size === 0) return;
+            if (selectedPresentations.size === 0) return;
 
-            if (!confirm(`Tem certeza que deseja excluir ${selectedReports.size} relatório(s)?`)) {
+            if (!confirm(`Tem certeza que deseja excluir ${selectedPresentations.size} apresentação(ões)?`)) {
                 return;
             }
 
             try {
-                // Excluir todos os relatórios selecionados
-                const deletePromises = Array.from(selectedReports).map(reportId => 
-                    reportsService.deleteReport(currentProjectId, reportId)
+                // Excluir todas as apresentações selecionadas
+                const deletePromises = Array.from(selectedPresentations).map(presentationId => 
+                    presentationsService.deletePresentation(currentProjectId, presentationId)
                 );
 
                 await Promise.all(deletePromises);
 
                 // Sair do modo de seleção
                 isSelectionMode = false;
-                selectedReports.clear();
+                selectedPresentations.clear();
                 normalControls.classList.remove('hidden');
                 selectionControls.classList.add('hidden');
 
-                // Recarregar relatórios
-                await loadReports();
+                // Recarregar apresentações
+                await loadPresentations();
             } catch (error) {
-                console.error('❌ Erro ao excluir relatórios:', error);
-                alert('Erro ao excluir relatórios. Tente novamente.');
+                console.error('❌ Erro ao excluir apresentações:', error);
+                alert('Erro ao excluir apresentações. Tente novamente.');
             }
         });
 
-        function updateReportCards() {
-            const cards = document.querySelectorAll('.report-card');
+        function updatePresentationCards() {
+            const cards = document.querySelectorAll('.presentation-card');
             
             cards.forEach(card => {
-                const reportId = card.dataset.reportId;
+                const presentationId = card.dataset.presentationId;
                 const checkbox = card.querySelector('.checkbox');
-                const isSelected = selectedReports.has(reportId);
+                const isSelected = selectedPresentations.has(presentationId);
 
                 if (isSelectionMode) {
                     checkbox.classList.add('show');
@@ -608,26 +609,26 @@
             });
 
             // Atualizar contador
-            selectedCount.textContent = selectedReports.size;
+            selectedCount.textContent = selectedPresentations.size;
 
             // Atualizar texto do botão "Selecionar Todos"
-            if (selectedReports.size === allReports.length && allReports.length > 0) {
+            if (selectedPresentations.size === allPresentations.length && allPresentations.length > 0) {
                 selectAllBtn.textContent = 'Desmarcar Todos';
             } else {
                 selectAllBtn.textContent = 'Selecionar Todos';
             }
         }
 
-        window.toggleReportSelection = (reportId) => {
+        window.togglePresentationSelection = (presentationId) => {
             if (!isSelectionMode) return;
 
-            if (selectedReports.has(reportId)) {
-                selectedReports.delete(reportId);
+            if (selectedPresentations.has(presentationId)) {
+                selectedPresentations.delete(presentationId);
             } else {
-                selectedReports.add(reportId);
+                selectedPresentations.add(presentationId);
             }
 
-            updateReportCards();
+            updatePresentationCards();
         };
 
         // Carregar dados do projeto
@@ -656,42 +657,42 @@
             }
         }
 
-        // Carregar relatórios salvos
-        async function loadReports() {
+        // Carregar apresentações salvas
+        async function loadPresentations() {
             try {
-                reportsLoading.classList.remove('hidden');
-                reportsEmpty.classList.add('hidden');
-                reportsGrid.classList.add('hidden');
+                presentationsLoading.classList.remove('hidden');
+                presentationsEmpty.classList.add('hidden');
+                presentationsGrid.classList.add('hidden');
 
-                const reports = await reportsService.listReports(currentProjectId);
-                allReports = reports;
+                const presentations = await presentationsService.listPresentations(currentProjectId);
+                allPresentations = presentations;
                 
-                reportsLoading.classList.add('hidden');
+                presentationsLoading.classList.add('hidden');
                 
-                if (reports.length === 0) {
-                    reportsEmpty.classList.remove('hidden');
-                    totalReports.textContent = '0';
-                    lastReport.textContent = '-';
+                if (presentations.length === 0) {
+                    presentationsEmpty.classList.remove('hidden');
+                    totalPresentations.textContent = '0';
+                    lastPresentation.textContent = '-';
                     platformsStats.innerHTML = '<span class="text-sm text-gray-500">Nenhuma</span>';
                 } else {
-                    reportsGrid.classList.remove('hidden');
-                    updateStatistics(reports);
-                    renderReports(sortReports(reports));
+                    presentationsGrid.classList.remove('hidden');
+                    updateStatistics(presentations);
+                    renderPresentations(sortPresentations(presentations));
                 }
             } catch (error) {
-                console.error('Erro ao carregar relatórios:', error);
-                reportsLoading.classList.add('hidden');
-                reportsEmpty.classList.remove('hidden');
+                console.error('Erro ao carregar apresentações:', error);
+                presentationsLoading.classList.add('hidden');
+                presentationsEmpty.classList.remove('hidden');
             }
         }
 
         // Atualizar estatísticas
-        function updateStatistics(reports) {
-            // Total de Relatórios
-            totalReports.textContent = reports.length;
+        function updateStatistics(presentations) {
+            // Total de Apresentações
+            totalPresentations.textContent = presentations.length;
 
-            // Último Relatório
-            const sortedByDate = [...reports].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+            // Última Apresentação
+            const sortedByDate = [...presentations].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
             if (sortedByDate.length > 0) {
                 const last = new Date(sortedByDate[0].createdAt);
                 const now = new Date();
@@ -709,9 +710,9 @@
                     timeAgo = `${diffDays}d atrás`;
                 }
 
-                lastReport.textContent = timeAgo;
+                lastPresentation.textContent = timeAgo;
             } else {
-                lastReport.textContent = '-';
+                lastPresentation.textContent = '-';
             }
 
             // Plataformas
@@ -721,9 +722,9 @@
                 both: 0
             };
 
-            reports.forEach(report => {
-                if (platformCounts.hasOwnProperty(report.platform)) {
-                    platformCounts[report.platform]++;
+            presentations.forEach(presentation => {
+                if (platformCounts.hasOwnProperty(presentation.platform)) {
+                    platformCounts[presentation.platform]++;
                 }
             });
 
@@ -742,10 +743,10 @@
             platformsStats.innerHTML = platformsHTML;
         }
 
-        // Renderizar relatórios
-        function renderReports(reports) {
-            reportsGrid.innerHTML = reports.map(report => {
-                const createdDate = new Date(report.createdAt).toLocaleString('pt-BR', {
+        // Renderizar apresentações
+        function renderPresentations(presentations) {
+            presentationsGrid.innerHTML = presentations.map(presentation => {
+                const createdDate = new Date(presentation.createdAt).toLocaleString('pt-BR', {
                     day: '2-digit',
                     month: '2-digit',
                     year: 'numeric',
@@ -755,18 +756,18 @@
 
                 // Definir ícones baseado na plataforma
                 let platformIcons = '';
-                if (report.platform === 'meta') {
+                if (presentation.platform === 'meta') {
                     platformIcons = '<i class="fab fa-facebook platform-icon-facebook text-2xl"></i><i class="fab fa-instagram platform-icon-instagram text-2xl ml-1"></i>';
-                } else if (report.platform === 'google') {
+                } else if (presentation.platform === 'google') {
                     platformIcons = '<i class="fab fa-google platform-icon-google text-2xl"></i>';
-                } else if (report.platform === 'both') {
+                } else if (presentation.platform === 'both') {
                     platformIcons = '<i class="fab fa-facebook platform-icon-facebook text-2xl"></i><i class="fab fa-instagram platform-icon-instagram text-2xl ml-1"></i><i class="fab fa-google platform-icon-google text-2xl ml-1"></i>';
                 }
 
                 return `
-                    <div class="report-card bg-white border-2 border-gray-200 rounded-xl p-5 hover:shadow-lg transition-all cursor-pointer" 
-                         data-report-id="${report.id}"
-                         onclick="handleReportCardClick('${report.id}', event)">
+                    <div class="presentation-card bg-white border-2 border-purple-200 rounded-xl p-5 hover:shadow-lg transition-all cursor-pointer" 
+                         data-presentation-id="${presentation.id}"
+                         onclick="handlePresentationCardClick('${presentation.id}', event)">
                         <!-- Checkbox para seleção -->
                         <div class="checkbox"></div>
 
@@ -775,13 +776,13 @@
                             ${platformIcons}
                         </div>
 
-                        <!-- Nome do Relatório -->
-                        <h4 class="text-lg font-bold text-gray-900 mb-2">${report.reportName}</h4>
+                        <!-- Nome da Apresentação -->
+                        <h4 class="text-lg font-bold text-gray-900 mb-2">${presentation.presentationName}</h4>
 
-                        <!-- Data do Relatório -->
+                        <!-- Data da Apresentação -->
                         <p class="text-sm text-gray-600 mb-1 flex items-center gap-2">
-                            <i class="fas fa-calendar text-blue-600"></i>
-                            ${report.dateRange}
+                            <i class="fas fa-calendar text-purple-600"></i>
+                            ${presentation.dateRange}
                         </p>
 
                         <!-- Data de Salvamento -->
@@ -792,11 +793,11 @@
 
                         <!-- Botões de Ação -->
                         <div class="flex gap-2">
-                            <button onclick="openReport('${report.id}', event)" class="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition-all">
+                            <button onclick="openPresentation('${presentation.id}', event)" class="flex-1 bg-purple-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-purple-700 transition-all">
                                 <i class="fas fa-folder-open mr-1"></i>
                                 Abrir
                             </button>
-                            <button onclick="deleteReport('${report.id}', event)" class="px-4 py-2 bg-red-600 text-white rounded-lg text-sm hover:bg-red-700 transition-all">
+                            <button onclick="deletePresentation('${presentation.id}', event)" class="px-4 py-2 bg-red-600 text-white rounded-lg text-sm hover:bg-red-700 transition-all">
                                 <i class="fas fa-trash"></i>
                             </button>
                         </div>
@@ -806,47 +807,48 @@
 
             // Atualizar checkboxes se estiver em modo de seleção
             if (isSelectionMode) {
-                updateReportCards();
+                updatePresentationCards();
             }
         }
 
         // Manipular clique no card
-        window.handleReportCardClick = (reportId, event) => {
+        window.handlePresentationCardClick = (presentationId, event) => {
             if (isSelectionMode) {
                 // Prevenir ações de botões
                 if (event.target.closest('button')) return;
 
-                toggleReportSelection(reportId);
+                togglePresentationSelection(presentationId);
             }
         };
 
-        // Abrir relatório
-        window.openReport = (reportId, event) => {
+        // Abrir apresentação
+        window.openPresentation = (presentationId, event) => {
             if (event) event.stopPropagation();
             if (isSelectionMode) return;
 
-            console.log('Abrindo relatório:', reportId);
+            console.log('Abrindo apresentação:', presentationId);
             localStorage.setItem('currentProject', currentProjectId);
-            localStorage.setItem('currentReport', reportId);
+            localStorage.setItem('currentPresentation', presentationId);
             const timestamp = new Date().getTime();
-            window.location.href = `/visualizar-relatorio.html?report=${reportId}&_t=${timestamp}`;
+            // TODO: Criar página de visualização de apresentação
+            alert('Visualização de apresentação em desenvolvimento');
         };
 
-        // Deletar relatório
-        window.deleteReport = async (reportId, event) => {
+        // Deletar apresentação
+        window.deletePresentation = async (presentationId, event) => {
             if (event) event.stopPropagation();
             if (isSelectionMode) return;
 
-            if (!confirm('Tem certeza que deseja excluir este relatório?')) {
+            if (!confirm('Tem certeza que deseja excluir esta apresentação?')) {
                 return;
             }
 
             try {
-                await reportsService.deleteReport(currentProjectId, reportId);
-                await loadReports();
+                await presentationsService.deletePresentation(currentProjectId, presentationId);
+                await loadPresentations();
             } catch (error) {
-                console.error('Erro ao deletar relatório:', error);
-                alert('Erro ao deletar relatório');
+                console.error('Erro ao deletar apresentação:', error);
+                alert('Erro ao deletar apresentação');
             }
         };
 
@@ -855,13 +857,13 @@
             if (user) {
                 // Admin check agora é feito pela sidebar unificada
                 await loadProject();
-                await loadReports();
+                await loadPresentations();
             }
         });
     </script>
     <script type="module">
         import { initSidebar } from './components/sidebar.js';
-        initSidebar('projeto');
+        initSidebar('apresentacoes');
     </script>
 </body>
 </html>

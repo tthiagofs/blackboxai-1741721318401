@@ -395,8 +395,13 @@ export class FacebookInsightsService {
                                 }
                                 
                                 console.log('   ✅ Usando thumbnail_url como fallback (ALTA QUALIDADE)');
-                                console.log('   🔗 URL original:', creative.thumbnail_url.substring(0, 80));
-                                console.log('   🔗 URL otimizada:', thumbnailUrl.substring(0, 80));
+                                console.log('   🔗 URL ORIGINAL COMPLETA:', creative.thumbnail_url);
+                                console.log('   🔗 URL OTIMIZADA COMPLETA:', thumbnailUrl);
+                                console.log('   📏 Mudanças aplicadas:', {
+                                    removeuTamanho: creative.thumbnail_url !== thumbnailUrl,
+                                    tamanhoOriginal: creative.thumbnail_url.length,
+                                    tamanhoOtimizado: thumbnailUrl.length
+                                });
                             }
                         }
                     } catch (err) {

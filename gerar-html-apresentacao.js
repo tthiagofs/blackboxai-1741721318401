@@ -191,10 +191,10 @@ function generateResultsPage(metrics, platformName, budgetsCompleted, salesCount
                 </div>
                 <div class="card-purple card-split">
                     <div class="card-split-left">
-                        <div class="card-label">${formatNumber(messages)} | Mensagens</div>
+                        <div class="card-label">${formatNumber(messages)} | Leads</div>
                     </div>
                     <div class="card-split-right">
-                        <div class="card-label">CPM | ${formatCurrency(cpl)}</div>
+                        <div class="card-label">CPL | ${formatCurrency(cpl)}</div>
                     </div>
                 </div>
                 <div class="card-purple card-split">

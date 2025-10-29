@@ -319,7 +319,7 @@ async function fetchCreativesFromMetaAds(projectId, unitId, dates) {
     }
 
     // OTIMIZAÇÃO: Ordenar ANTES de buscar creatives
-    const orderByElement = document.getElementById('orderBy');
+    const orderByElement = document.getElementById('creativeOrderBy');
     const orderBy = orderByElement ? orderByElement.value : 'impressions'; // Padrão: impressões
     sortCreatives(allAds, orderBy);
     

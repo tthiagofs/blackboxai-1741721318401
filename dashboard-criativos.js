@@ -339,8 +339,11 @@ async function fetchCreativesFromMetaAds(projectId, unitId, dates) {
           console.warn(`⚠️ "${ad.name}": sem imagem válida (${creativeData.type})`);
         }
         
+        const oldUrl = ad.thumbnailUrl;
         ad.thumbnailUrl = creativeData.imageUrl || ad.thumbnailUrl;
         ad.type = creativeData.type || ad.type;
+        
+        console.log(`📝 "${ad.name}": ${oldUrl.includes('Carregando') ? 'ATUALIZADO' : 'MANTIDO'} (${ad.type})`);
       } catch (error) {
         console.error(`❌ Erro ao buscar creative do ad ${ad.id}:`, error);
       }

@@ -309,6 +309,9 @@ export class FacebookInsightsService {
                     }
                 }
                 
+                // Log final da URL que será retornada
+                console.log(`   ✅ Retornando:`, { type, urlLength: imageUrl.length, isPlaceholder: imageUrl.includes('placeholder') });
+                
                 return { imageUrl, type };
             }
             

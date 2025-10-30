@@ -18,16 +18,16 @@
             background: white;
         }
 
-        /* Configuração de página 16:9 (uso digital) */
+        /* Configuração de página 16:9 em unidades físicas (uso digital, sem sobras) */
         @page {
-            size: 1920px 1080px;
+            size: 297mm 167mm; /* 297mm x (297*9/16)mm ≈ 167mm */
             margin: 0;
         }
 
-        /* Cada slide ocupa exatamente 1920x1080 */
+        /* Cada slide ocupa exatamente 16:9 na mesma medida física da página */
         .slide {
-            width: 1920px;
-            height: 1080px;
+            width: 297mm;
+            height: 167mm;
             page-break-after: always;
             break-after: page;
             overflow: hidden;

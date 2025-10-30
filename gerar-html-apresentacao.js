@@ -833,6 +833,28 @@ function getStyles() {
       margin: 0;
     }
 
+    /* === ANTI-DISTORTION RULES === */
+    * {
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      image-rendering: -webkit-optimize-contrast;
+      image-rendering: crisp-edges;
+    }
+    
+    .page, .page * {
+      transform: none !important;
+      filter: none !important;
+      perspective: none !important;
+      backface-visibility: visible !important;
+      will-change: auto !important;
+    }
+    
+    img {
+      image-rendering: -webkit-optimize-contrast;
+      image-rendering: crisp-edges;
+      transform: translateZ(0);
+    }
+
     /* === PRINT STYLES === */
     @media print {
       body {
@@ -845,9 +867,11 @@ function getStyles() {
       }
       .ranking-card {
         box-shadow: none !important;
+        transform: none !important;
       }
       .card-white, .card-purple {
         box-shadow: none !important;
+        transform: none !important;
       }
     }
     `;

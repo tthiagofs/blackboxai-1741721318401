@@ -6,6 +6,11 @@
   <title>Configurações do Projeto</title>
   <link rel="stylesheet" href="style.css" />
   <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* Overrides para não herdar layout/cores globais de style.css */
+    body { background: #f8fafc !important; color: #111827; display: block !important; min-height: auto !important; }
+    #app-sidebar { position: sticky; top: 0; height: 100vh; }
+  </style>
 </head>
 <body class="bg-gray-50">
   <div class="flex min-h-screen">

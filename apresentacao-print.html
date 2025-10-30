@@ -18,16 +18,16 @@
             background: white;
         }
 
-        /* Configuração de página A4 landscape (versão estável) */
+        /* Configuração de página 16:9 (uso digital) */
         @page {
-            size: A4 landscape;
+            size: 1920px 1080px;
             margin: 0;
         }
 
-        /* Cada slide ocupa a página A4 exatamente */
+        /* Cada slide ocupa exatamente 1920x1080 */
         .slide {
-            width: 297mm;
-            height: 210mm;
+            width: 1920px;
+            height: 1080px;
             page-break-after: always;
             break-after: page;
             overflow: hidden;

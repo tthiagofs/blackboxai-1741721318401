@@ -1,76 +1,64 @@
 # Regras do Firestore para Apresentações
 
-## ⚠️ IMPORTANTE: Adicionar ao Firebase Console
+## Como aplicar as regras
 
-As subcoleções `presentations` dentro de `projects` precisam das seguintes regras no Firestore:
+1. Acesse o [Firebase Console](https://console.firebase.google.com)
+2. Selecione seu projeto
+3. Vá em **Firestore Database** → **Regras**
+4. Adicione as seguintes regras:
 
 ```javascript
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     
-    // ... suas regras existentes ...
-    
-    // ADICIONAR: Regras para Apresentações
-    match /projects/{projectId}/presentations/{presentationId} {
-      // Permitir leitura se o usuário é membro do projeto
-      allow read: if request.auth != null && 
-                     exists(/databases/$(database)/documents/projects/$(projectId)) &&
-                     get(/databases/$(database)/documents/projects/$(projectId)).data.users[request.auth.uid] != null;
+    // Regra para a coleção de projetos
+    match /projects/{projectId} {
+      // Permitir leitura e escrita se o usuário está autenticado
+      allow read, write: if request.auth != null;
       
-      // Permitir criação se o usuário é membro do projeto
-      allow create: if request.auth != null && 
-                       exists(/databases/$(database)/documents/projects/$(projectId)) &&
-                       get(/databases/$(database)/documents/projects/$(projectId)).data.users[request.auth.uid] != null;
+      // Subcoleção de apresentações
+      match /presentations/{presentationId} {
+        // Permitir leitura e escrita se o usuário está autenticado
+        allow read, write: if request.auth != null;
+      }
       
-      // Permitir atualização/deleção se o usuário é membro do projeto
-      allow update, delete: if request.auth != null && 
-                                exists(/databases/$(database)/documents/projects/$(projectId)) &&
-                                get(/databases/$(database)/documents/projects/$(projectId)).data.users[request.auth.uid] != null;
+      // Subcoleção de relatórios (se ainda não existir)
+      match /reports/{reportId} {
+        allow read, write: if request.auth != null;
+      }
+      
+      // Subcoleção de unidades
+      match /units/{unitId} {
+        allow read, write: if request.auth != null;
+      }
     }
+    
+    // Outras regras já existentes...
   }
 }
 ```
 
-## Como Aplicar:
-
-1. Abra o [Firebase Console](https://console.firebase.google.com/)
-2. Selecione seu projeto
-3. Vá em **Firestore Database** > **Regras**
-4. Adicione as regras acima dentro do bloco `match /databases/{database}/documents`
-5. Clique em **Publicar**
-
-## Estrutura das Apresentações:
+## Estrutura de dados esperada
 
 ```
 projects/{projectId}/presentations/{presentationId}
   - name: string
   - unitId: string
   - unitName: string
-  - startDate: string (ISO)
-  - endDate: string (ISO)
-  - platforms: {
-      meta: boolean,
-      google: boolean
-    }
-  - metrics: {
-      meta: object,
-      google: object
-    }
-  - html: string (HTML completo da apresentação)
-  - createdAt: string (ISO)
-  - createdBy: string (userId)
+  - startDate: string
+  - endDate: string
+  - platforms: array
+  - presentationHTML: string (HTML completo da apresentação)
+  - createdAt: timestamp
+  - updatedAt: timestamp
 ```
 
-## Alternativa Temporária (Desenvolvimento):
+## Verificação
 
-Se você está em ambiente de desenvolvimento e quer testar rapidamente, pode usar regras permissivas (NÃO use em produção):
-
-```javascript
-match /projects/{projectId}/presentations/{presentationId} {
-  allow read, write: if request.auth != null;
-}
-```
-
-Isso permite que qualquer usuário autenticado acesse as apresentações. Use apenas para testes!
-
+Após aplicar as regras:
+1. Tente salvar uma apresentação
+2. Se ainda houver erro de permissão, verifique se:
+   - O usuário está autenticado (`auth.currentUser` não é `null`)
+   - O `projectId` é válido
+   - As regras foram publicadas corretamente

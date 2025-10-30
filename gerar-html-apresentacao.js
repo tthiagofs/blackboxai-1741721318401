@@ -238,12 +238,11 @@ function generateRankingPage(ads) {
             <div class="ranking-badge">${index + 1}º</div>
             <div class="ranking-thumbnail">
                 ${ad.imageUrl 
-                    ? `<img src="${ad.imageUrl}" alt="${ad.name}" style="width:100%;height:100%;object-fit:cover;border-radius:12px;" onerror="this.src='https://via.placeholder.com/300x300?text=Sem+Imagem'">`
+                    ? `<img src="${ad.imageUrl}" alt="Anúncio" style="width:100%;height:100%;object-fit:cover;border-radius:12px;" onerror="this.src='https://via.placeholder.com/300x300?text=Sem+Imagem'">`
                     : `<div style="width:100%;height:100%;background:#f3f4f6;display:flex;align-items:center;justify-content:center;border-radius:12px;color:#9ca3af;">Sem Imagem</div>`
                 }
             </div>
             <div class="ranking-info">
-                <div class="ranking-name">${ad.name || 'Anúncio sem nome'}</div>
                 <div class="ranking-stats">
                     <div class="ranking-stat">
                         <span class="ranking-stat-label">Mensagens</span>

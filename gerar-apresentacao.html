@@ -11,6 +11,9 @@
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="style.css">
+    <!-- jsPDF e html2canvas para exportação PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script>
         tailwind.config = {
             theme: {
@@ -909,7 +912,7 @@ ul.list-disc li br {
         // Botão Exportar PDF
         const exportPdfBtn = document.getElementById('exportPdfBtn');
         if (exportPdfBtn) {
-            exportPdfBtn.addEventListener('click', () => {
+            exportPdfBtn.addEventListener('click', async () => {
                 if (!window.currentPresentationData || !window.currentPresentationData.html) {
                     console.error('❌ Erro: Nenhuma apresentação foi gerada ainda');
                     return;
@@ -917,20 +920,93 @@ ul.list-disc li br {
                 
                 console.log('📥 Exportando apresentação para PDF...');
                 
-                // Abrir apresentação em nova janela para impressão
-                const printWindow = window.open('', '_blank');
-                if (printWindow) {
-                    printWindow.document.write(window.currentPresentationData.html);
-                    printWindow.document.close();
+                try {
+                    // Desabilitar botão durante exportação
+                    exportPdfBtn.disabled = true;
+                    exportPdfBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Gerando PDF...';
                     
-                    // Aguardar carregamento e acionar impressão
-                    printWindow.onload = () => {
-                        setTimeout(() => {
-                            printWindow.print();
-                        }, 500);
-                    };
-                } else {
-                    console.error('❌ Erro: Bloqueio de popup. Por favor, habilite popups para este site.');
+                    const { jsPDF } = window.jspdf;
+                    
+                    // Criar um container temporário com o HTML da apresentação
+                    const tempContainer = document.createElement('div');
+                    tempContainer.innerHTML = window.currentPresentationData.html;
+                    tempContainer.style.position = 'absolute';
+                    tempContainer.style.left = '-9999px';
+                    tempContainer.style.top = '0';
+                    tempContainer.style.width = '1280px'; // Largura da apresentação
+                    document.body.appendChild(tempContainer);
+                    
+                    // Aguardar um momento para renderização
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                    
+                    // Buscar todas as páginas da apresentação
+                    const pages = tempContainer.querySelectorAll('.page');
+                    
+                    if (pages.length === 0) {
+                        console.error('❌ Nenhuma página encontrada na apresentação');
+                        alert('Erro: Nenhuma página encontrada na apresentação');
+                        return;
+                    }
+                    
+                    console.log(`📄 Encontradas ${pages.length} páginas para exportar`);
+                    
+                    // Criar PDF (formato paisagem 16:9)
+                    const doc = new jsPDF({
+                        orientation: 'landscape',
+                        unit: 'mm',
+                        format: [297, 167] // 16:9 ratio em mm
+                    });
+                    
+                    const pdfWidth = 297;
+                    const pdfHeight = 167;
+                    
+                    // Processar cada página
+                    for (let i = 0; i < pages.length; i++) {
+                        const page = pages[i];
+                        
+                        console.log(`📸 Capturando página ${i + 1}/${pages.length}...`);
+                        
+                        // Capturar a página como imagem
+                        const canvas = await html2canvas(page, {
+                            scale: 2,
+                            useCORS: true,
+                            logging: false,
+                            backgroundColor: '#ffffff',
+                            width: 1280,
+                            height: 720
+                        });
+                        
+                        const imgData = canvas.toDataURL('image/png');
+                        
+                        // Adicionar nova página se não for a primeira
+                        if (i > 0) {
+                            doc.addPage();
+                        }
+                        
+                        // Adicionar a imagem preenchendo toda a página
+                        doc.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+                    }
+                    
+                    // Remover container temporário
+                    document.body.removeChild(tempContainer);
+                    
+                    // Salvar PDF
+                    const fileName = `${window.currentPresentationData.unitName || 'Apresentacao'}.pdf`;
+                    doc.save(fileName);
+                    
+                    console.log('✅ PDF exportado com sucesso!');
+                    
+                    // Restaurar botão
+                    exportPdfBtn.disabled = false;
+                    exportPdfBtn.innerHTML = '<i class="fas fa-file-pdf mr-2"></i>Exportar PDF';
+                    
+                } catch (error) {
+                    console.error('❌ Erro ao exportar PDF:', error);
+                    alert('Erro ao exportar PDF. Tente novamente.');
+                    
+                    // Restaurar botão
+                    exportPdfBtn.disabled = false;
+                    exportPdfBtn.innerHTML = '<i class="fas fa-file-pdf mr-2"></i>Exportar PDF';
                 }
             });
         }

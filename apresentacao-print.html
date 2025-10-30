@@ -35,6 +35,16 @@
             background: white;
         }
 
+        /* Neutralizar estilos originais da classe .page do HTML gerado */
+        .page {
+            margin: 0 !important;
+            padding: 0 !important;
+            border: none !important;
+            box-shadow: none !important;
+            width: auto !important;
+            height: auto !important;
+        }
+
         /* Último slide não precisa de quebra */
         .slide:last-child {
             page-break-after: avoid;
@@ -47,6 +57,7 @@
                 animation: none !important;
                 transition: none !important;
                 filter: none !important;
+                transform: none !important;
                 -webkit-print-color-adjust: exact !important;
                 print-color-adjust: exact !important;
             }
@@ -58,6 +69,16 @@
             .slide {
                 page-break-after: always;
                 break-after: page;
+            }
+
+            /* Garantir que cada página ocupe exatamente a folha A4 */
+            .page.slide {
+                width: 297mm !important;
+                height: 210mm !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                box-sizing: border-box;
+                overflow: hidden !important;
             }
         }
 

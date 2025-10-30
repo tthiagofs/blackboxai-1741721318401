@@ -1009,6 +1009,12 @@ ul.list-disc li br {
                 
                 // Importar função de geração de HTML
                 const { generatePresentationHTML } = await import('./gerar-html-apresentacao.js?v=1.3');
+                const { getBranding } = await import('./services/brandingService.js');
+
+                // Carregar branding do projeto (logos e uso)
+                const projectId = localStorage.getItem('currentProject');
+                let branding = {};
+                try { branding = await getBranding(projectId); } catch(e){ console.warn('Branding não encontrado', e?.message); }
                 
                 // Gerar HTML atualizado
                 const updatedHTML = generatePresentationHTML({
@@ -1023,7 +1029,8 @@ ul.list-disc li br {
                     performanceAnalysis: performanceAnalysis,
                     budgetsCompleted: window.currentPresentationData.budgetsCompleted,
                     salesCount: window.currentPresentationData.salesCount,
-                    revenue: window.currentPresentationData.revenue
+                    revenue: window.currentPresentationData.revenue,
+                    branding
                 });
                 
                 // Atualizar HTML

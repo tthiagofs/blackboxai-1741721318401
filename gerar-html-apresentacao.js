@@ -24,7 +24,8 @@ export function generatePresentationHTML(params) {
         performanceAnalysis,
         budgetsCompleted,
         salesCount,
-        revenue
+        revenue,
+        branding = {}
     } = params;
 
     console.log('📄 Gerando apresentação com dados:', {
@@ -39,7 +40,7 @@ export function generatePresentationHTML(params) {
     const pages = [];
 
     // PÁGINA 1: Capa
-    pages.push(generateCoverPage(unitName, startDate, endDate));
+    pages.push(generateCoverPage(unitName, startDate, endDate, branding));
 
     // PÁGINA 2: Resultados Meta (se disponível)
     if (hasMeta && metaMetrics) {
@@ -65,18 +66,29 @@ export function generatePresentationHTML(params) {
     return generateFullHTML(pages);
 }
 
+function pickLogo(branding, screenKey, defaultType = 'horizontal', defaultColor = 'normal') {
+    const usage = branding?.usage?.apresentacao?.[screenKey] || { type: defaultType, color: defaultColor };
+    const type = usage.type || defaultType;
+    const color = usage.color || defaultColor;
+    const map = {
+        horizontal: color === 'white' ? branding.logoHorizontalWhiteUrl : branding.logoHorizontalUrl,
+        square: color === 'white' ? branding.logoSquareWhiteUrl : branding.logoSquareUrl,
+    };
+    return map[type] || null;
+}
+
 /**
  * Gerar página de capa
  */
-function generateCoverPage(unitName, startDate, endDate) {
+function generateCoverPage(unitName, startDate, endDate, branding) {
+    const logoUrl = pickLogo(branding, 'capa', 'horizontal', 'normal');
     return `
     <div class="page slide capa">
         <!-- Logo Horizontal -->
+        ${logoUrl ? `<img class="capa-logo-horizontal" src="${logoUrl}" alt="Logo" style="height:48px;object-fit:contain;"/>` : `
         <svg class="capa-logo-horizontal" viewBox="0 0 200 50" xmlns="http://www.w3.org/2000/svg">
-            <text x="10" y="35" font-size="32" font-weight="700" fill="#2563A8" font-family="Poppins, sans-serif">
-                Oral Centter
-            </text>
-        </svg>
+            <text x="10" y="35" font-size="32" font-weight="700" fill="#2563A8" font-family="Poppins, sans-serif">Oral Centter</text>
+        </svg>`}
 
         <div class="capa-content">
             <h1 class="capa-title">
@@ -149,11 +161,8 @@ function generateResultsPage(metrics, platformName, budgetsCompleted, salesCount
     return `
     <div class="page slide resultados">
         <!-- Logo Horizontal -->
-        <svg class="resultados-logo" viewBox="0 0 200 50" xmlns="http://www.w3.org/2000/svg">
-            <text x="10" y="35" font-size="24" font-weight="700" fill="#2563A8" font-family="Poppins, sans-serif">
-                Oral Centter
-            </text>
-        </svg>
+        ${pickLogo(branding,'resultados','horizontal','normal') ? `<img class="resultados-logo" src="${pickLogo(branding,'resultados','horizontal','normal')}" alt="Logo" style="height:40px;object-fit:contain;"/>` : `
+        <svg class="resultados-logo" viewBox="0 0 200 50" xmlns="http://www.w3.org/2000/svg"><text x="10" y="35" font-size="24" font-weight="700" fill="#2563A8" font-family="Poppins, sans-serif">Oral Centter</text></svg>`}
 
         <h2 class="resultados-title">RESULTADOS TRÁFEGO PAGO</h2>
         <p class="resultados-subtitle">${platformName}</p>
@@ -260,13 +269,8 @@ function generateRankingPage(ads) {
 
     return `
     <div class="page slide ranking">
-        <!-- Logo Circular -->
-        <svg class="ranking-logo" viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg">
-            <circle cx="40" cy="40" r="38" fill="white" stroke="#2563A8" stroke-width="2"/>
-            <text x="40" y="50" font-size="14" font-weight="700" fill="#2563A8" font-family="Poppins, sans-serif" text-anchor="middle">
-                OC
-            </text>
-        </svg>
+        <!-- Logo Quadrada -->
+        ${pickLogo(branding,'ranking','square','white') ? `<img class="ranking-logo" src="${pickLogo(branding,'ranking','square','white')}" alt="Logo" style="height:64px;width:64px;object-fit:contain;"/>` : ''}
 
         <h2 class="ranking-title">RANKING ANÚNCIOS</h2>
 
@@ -319,13 +323,8 @@ function generateNextStepsPage(performanceAnalysis) {
 function generateThankYouPage() {
     return `
     <div class="page slide obrigado">
-        <!-- Logo Circular -->
-        <svg class="obrigado-logo" viewBox="0 0 150 150" xmlns="http://www.w3.org/2000/svg">
-            <circle cx="75" cy="75" r="73" fill="#2563A8"/>
-            <text x="75" y="95" font-size="36" font-weight="700" fill="white" font-family="Poppins, sans-serif" text-anchor="middle">
-                OC
-            </text>
-        </svg>
+        <!-- Logo Quadrada -->
+        ${pickLogo(branding,'obrigado','square','white') ? `<img class="obrigado-logo" src="${pickLogo(branding,'obrigado','square','white')}" alt="Logo" style="height:150px;width:150px;object-fit:contain;"/>` : ''}
 
         <div class="obrigado-content">
             <h2 class="obrigado-text">OBRIGADO!</h2>

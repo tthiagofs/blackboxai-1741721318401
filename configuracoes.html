@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Configurações do Projeto</title>
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50">
+  <div class="flex min-h-screen">
+    <div id="app-sidebar" class="w-64"></div>
+
+    <main class="flex-1 p-6">
+      <h1 class="text-2xl font-bold text-gray-800 mb-4">Configurações</h1>
+      <p class="text-sm text-gray-500 mb-6">Defina as logos do projeto e escolha onde cada uma será usada.</p>
+
+      <!-- Uploads de Logos -->
+      <section class="bg-white border rounded-xl p-4 mb-6">
+        <h2 class="font-semibold mb-3">Logos</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <label class="block text-sm font-medium">Logo Horizontal (normal)</label>
+            <input type="file" id="logoHorizontal" accept="image/*" class="mt-1" />
+            <img id="logoHorizontalPreview" class="mt-2 h-10 object-contain" />
+            <label class="block text-sm font-medium mt-4">Logo Horizontal (branca) – opcional</label>
+            <p class="text-xs text-gray-500">Boa opção para fundos escuros.</p>
+            <input type="file" id="logoHorizontalWhite" accept="image/*" class="mt-1" />
+            <img id="logoHorizontalWhitePreview" class="mt-2 h-10 object-contain bg-gray-800 p-1 rounded" />
+          </div>
+          <div>
+            <label class="block text-sm font-medium">Logo Quadrada (normal)</label>
+            <input type="file" id="logoSquare" accept="image/*" class="mt-1" />
+            <img id="logoSquarePreview" class="mt-2 h-14 w-14 object-contain" />
+            <label class="block text-sm font-medium mt-4">Logo Quadrada (branca) – opcional</label>
+            <p class="text-xs text-gray-500">Boa opção para fundos escuros.</p>
+            <input type="file" id="logoSquareWhite" accept="image/*" class="mt-1" />
+            <img id="logoSquareWhitePreview" class="mt-2 h-14 w-14 object-contain bg-gray-800 p-1 rounded" />
+          </div>
+        </div>
+      </section>
+
+      <!-- Uso por Tela da Apresentação -->
+      <section class="bg-white border rounded-xl p-4 mb-6">
+        <h2 class="font-semibold mb-3">Uso nas Telas da Apresentação</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4" id="usageForm">
+          <!-- Gerado via JS: capa, resultados, ranking, proximosPassos, obrigado -->
+        </div>
+      </section>
+
+      <!-- Relatório -->
+      <section class="bg-white border rounded-xl p-4 mb-6">
+        <h2 class="font-semibold mb-3">Uso no Relatório</h2>
+        <div class="flex items-center gap-4">
+          <label class="text-sm">Logo:</label>
+          <select id="reportLogoType" class="border rounded px-2 py-1 text-sm">
+            <option value="horizontal">Horizontal</option>
+            <option value="square">Quadrada</option>
+          </select>
+        </div>
+      </section>
+
+      <div class="flex gap-3">
+        <button id="saveBtn" class="px-4 py-2 bg-blue-600 text-white rounded-lg">Salvar Configurações</button>
+        <span id="saveMsg" class="text-sm text-gray-500"></span>
+      </div>
+    </main>
+  </div>
+
+  <script type="module">
+    import { initSidebar } from './components/sidebar.js';
+    import { uploadLogo, getBranding, saveBranding } from './services/brandingService.js';
+
+    const currentPage = 'configuracoes';
+    initSidebar(currentPage);
+
+    const params = new URLSearchParams(window.location.search);
+    const projectId = params.get('id') || params.get('projectId') || localStorage.getItem('currentProject');
+
+    const usageScreens = [
+      { key: 'capa', label: 'Capa' },
+      { key: 'resultados', label: 'Resultados' },
+      { key: 'ranking', label: 'Ranking' },
+      { key: 'proximosPassos', label: 'Próximos Passos' },
+      { key: 'obrigado', label: 'Obrigado' },
+    ];
+
+    const usageForm = document.getElementById('usageForm');
+    usageScreens.forEach(s => {
+      const wrap = document.createElement('div');
+      wrap.className = 'flex items-center gap-3';
+      wrap.innerHTML = `
+        <div class="w-40 text-sm text-gray-700">${s.label}</div>
+        <select data-field="type" data-key="${s.key}" class="border rounded px-2 py-1 text-sm">
+          <option value="horizontal">Horizontal</option>
+          <option value="square">Quadrada</option>
+        </select>
+        <select data-field="color" data-key="${s.key}" class="border rounded px-2 py-1 text-sm">
+          <option value="normal">Normal</option>
+          <option value="white">Branca</option>
+        </select>
+      `;
+      usageForm.appendChild(wrap);
+    });
+
+    // Preload branding
+    let branding = { usage: { apresentacao: {}, relatorio: {} } };
+    try {
+      branding = await getBranding(projectId);
+    } catch (e) { console.warn(e.message); }
+
+    // Preencher previews e selects
+    const setPreview = (id, url) => { const el = document.getElementById(id); if (el) el.src = url || ''; };
+    setPreview('logoHorizontalPreview', branding.logoHorizontalUrl);
+    setPreview('logoHorizontalWhitePreview', branding.logoHorizontalWhiteUrl);
+    setPreview('logoSquarePreview', branding.logoSquareUrl);
+    setPreview('logoSquareWhitePreview', branding.logoSquareWhiteUrl);
+
+    usageScreens.forEach(s => {
+      const conf = branding.usage?.apresentacao?.[s.key] || { type: 'horizontal', color: 'normal' };
+      const typeEl = usageForm.querySelector(`select[data-key="${s.key}"][data-field="type"]`);
+      const colorEl = usageForm.querySelector(`select[data-key="${s.key}"][data-field="color"]`);
+      if (typeEl) typeEl.value = conf.type;
+      if (colorEl) colorEl.value = conf.color;
+    });
+    document.getElementById('reportLogoType').value = branding.usage?.relatorio?.type || 'horizontal';
+
+    // Upload handlers
+    async function handleUpload(inputId, key) {
+      const file = document.getElementById(inputId).files[0];
+      if (!file) return null;
+      const url = await uploadLogo(projectId, file, key);
+      return url;
+    }
+
+    document.getElementById('saveBtn').addEventListener('click', async () => {
+      const saveMsg = document.getElementById('saveMsg');
+      saveMsg.textContent = 'Salvando...';
+
+      // Uploads (se houver novos arquivos)
+      const updates = { branding: {} };
+      const urls = {};
+      urls.logoHorizontalUrl = await handleUpload('logoHorizontal', 'logo-horizontal') || branding.logoHorizontalUrl;
+      urls.logoHorizontalWhiteUrl = await handleUpload('logoHorizontalWhite', 'logo-horizontal-white') || branding.logoHorizontalWhiteUrl;
+      urls.logoSquareUrl = await handleUpload('logoSquare', 'logo-square') || branding.logoSquareUrl;
+      urls.logoSquareWhiteUrl = await handleUpload('logoSquareWhite', 'logo-square-white') || branding.logoSquareWhiteUrl;
+
+      const usage = { apresentacao: {}, relatorio: {} };
+      usageScreens.forEach(s => {
+        const type = usageForm.querySelector(`select[data-key="${s.key}"][data-field="type"]`).value;
+        const color = usageForm.querySelector(`select[data-key="${s.key}"][data-field="color"]`).value;
+        usage.apresentacao[s.key] = { type, color };
+      });
+      usage.relatorio.type = document.getElementById('reportLogoType').value;
+
+      const newBranding = { ...branding, ...urls, usage };
+      await saveBranding(projectId, newBranding);
+      branding = newBranding;
+      saveMsg.textContent = 'Configurações salvas!';
+      setTimeout(() => saveMsg.textContent = '', 2000);
+    });
+  </script>
+</body>
+</html>
+
+

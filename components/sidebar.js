@@ -59,6 +59,7 @@ function renderSidebar(currentPage) {
   const projetoUrl = projectId ? `/projeto.html?id=${projectId}` : '/projeto.html';
   const unidadesUrl = projectId ? `/unidades.html?projectId=${projectId}` : '/unidades.html';
   const apresentacoesUrl = projectId ? `/apresentacoes.html?id=${projectId}` : '/apresentacoes.html';
+  const configuracoesUrl = projectId ? `/configuracoes.html?projectId=${projectId}` : '/configuracoes.html';
 
   const sidebarHTML = `
     <aside class="w-64 bg-white shadow-lg border-r border-gray-200 flex flex-col">
@@ -92,6 +93,12 @@ function renderSidebar(currentPage) {
         <a href="${unidadesUrl}" class="flex items-center px-3 py-2 mb-1 ml-6 border-l-4 ${currentPage === 'unidades' ? 'border-blue-600 bg-blue-50 text-blue-600' : 'border-transparent text-gray-600 hover:bg-gray-50'} transition-all">
           <i class="fas fa-building mr-2 text-xs"></i>
           <span class="text-xs">Unidades</span>
+        </a>
+
+        <!-- Sub-aba: Configurações -->
+        <a href="${configuracoesUrl}" class="flex items-center px-3 py-2 mb-1 ml-6 border-l-4 ${currentPage === 'configuracoes' ? 'border-blue-600 bg-blue-50 text-blue-600' : 'border-transparent text-gray-600 hover:bg-gray-50'} transition-all">
+          <i class="fas fa-cog mr-2 text-xs"></i>
+          <span class="text-xs">Configurações</span>
         </a>
         ` : ''}
         

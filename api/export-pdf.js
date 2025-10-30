@@ -1,6 +1,5 @@
-// Vercel Serverless Function para gerar PDF com Puppeteer
-import chromium from '@sparticuz/chromium';
-import puppeteer from 'puppeteer-core';
+// Vercel Serverless Function para gerar PDF com Playwright em ambiente serverless
+import { chromium as awsChromium } from 'playwright-aws-lambda';
 
 export default async function handler(req, res) {
     let browser = null;
@@ -32,27 +31,11 @@ export default async function handler(req, res) {
         const { id, projectId } = req.query;
         const printUrl = `${baseUrl}/apresentacao-print.html?id=${id || ''}&projectId=${projectId || ''}`;
 
-        // Configuração específica para Vercel
-        const isDev = process.env.NODE_ENV !== 'production';
-        
-        // Inicializar Chromium headless
-        browser = await puppeteer.launch({
-            args: isDev ? [] : [
-                ...chromium.args,
-                '--disable-gpu',
-                '--disable-dev-shm-usage',
-                '--disable-setuid-sandbox',
-                '--no-first-run',
-                '--no-sandbox',
-                '--no-zygote',
-                '--single-process'
-            ],
-            defaultViewport: chromium.defaultViewport,
-            executablePath: isDev 
-                ? '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome' // local
-                : await chromium.executablePath(),
-            headless: chromium.headless,
-            ignoreHTTPSErrors: true,
+        // Inicializar Chromium headless (Playwright AWS Lambda)
+        browser = await awsChromium.launch({
+            args: awsChromium.args,
+            executablePath: await awsChromium.executablePath(),
+            headless: true,
         });
 
         const page = await browser.newPage();

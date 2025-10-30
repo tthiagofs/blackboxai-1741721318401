@@ -18,16 +18,16 @@
             background: white;
         }
 
-        /* Configuração de página A4 landscape */
+        /* Configuração de página 16:9 (1920x1080) - igual ao relatório */
         @page {
-            size: A4 landscape;
+            size: 1920px 1080px;
             margin: 0;
         }
 
-        /* Cada slide ocupa uma página inteira */
+        /* Cada slide ocupa a página 1920x1080 exatamente */
         .slide {
-            width: 297mm;
-            height: 210mm;
+            width: 1920px;
+            height: 1080px;
             page-break-after: always;
             break-after: page;
             overflow: hidden;
@@ -71,10 +71,10 @@
                 break-after: page;
             }
 
-            /* Garantir que cada página ocupe exatamente a folha A4 */
+            /* Garantir que cada página ocupe exatamente 1920x1080 */
             .page.slide {
-                width: 297mm !important;
-                height: 210mm !important;
+                width: 1920px !important;
+                height: 1080px !important;
                 margin: 0 !important;
                 padding: 0 !important;
                 box-sizing: border-box;

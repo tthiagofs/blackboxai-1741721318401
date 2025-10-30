@@ -119,7 +119,17 @@
     } catch (e) { console.warn(e.message); }
 
     // Preencher previews e selects
-    const setPreview = (id, url) => { const el = document.getElementById(id); if (el) el.src = url || ''; };
+    const setPreview = (id, url) => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      if (url) {
+        el.src = url;
+        el.style.display = 'inline-block';
+      } else {
+        el.removeAttribute('src');
+        el.style.display = 'none';
+      }
+    };
     setPreview('logoHorizontalPreview', branding.logoHorizontalUrl);
     setPreview('logoHorizontalWhitePreview', branding.logoHorizontalWhiteUrl);
     setPreview('logoSquarePreview', branding.logoSquareUrl);
@@ -142,6 +152,24 @@
     });
     document.getElementById('reportLogoType').value = branding.usage?.relatorio?.type || 'square';
 
+    // Preview local ao selecionar arquivo
+    function bindLocalPreview(inputId, previewId) {
+      const input = document.getElementById(inputId);
+      if (!input) return;
+      input.addEventListener('change', () => {
+        const file = input.files && input.files[0];
+        if (!file) return setPreview(previewId, '');
+        const reader = new FileReader();
+        reader.onload = e => setPreview(previewId, e.target.result);
+        reader.readAsDataURL(file);
+      });
+    }
+
+    bindLocalPreview('logoHorizontal', 'logoHorizontalPreview');
+    bindLocalPreview('logoHorizontalWhite', 'logoHorizontalWhitePreview');
+    bindLocalPreview('logoSquare', 'logoSquarePreview');
+    bindLocalPreview('logoSquareWhite', 'logoSquareWhitePreview');
+
     // Upload handlers
     async function handleUpload(inputId, key) {
       const file = document.getElementById(inputId).files[0];
@@ -152,29 +180,37 @@
 
     document.getElementById('saveBtn').addEventListener('click', async () => {
       const saveMsg = document.getElementById('saveMsg');
-      saveMsg.textContent = 'Salvando...';
+      const btn = document.getElementById('saveBtn');
+      try {
+        btn.disabled = true;
+        saveMsg.textContent = 'Salvando...';
 
-      // Uploads (se houver novos arquivos)
-      const updates = { branding: {} };
-      const urls = {};
-      urls.logoHorizontalUrl = await handleUpload('logoHorizontal', 'logo-horizontal') || branding.logoHorizontalUrl;
-      urls.logoHorizontalWhiteUrl = await handleUpload('logoHorizontalWhite', 'logo-horizontal-white') || branding.logoHorizontalWhiteUrl;
-      urls.logoSquareUrl = await handleUpload('logoSquare', 'logo-square') || branding.logoSquareUrl;
-      urls.logoSquareWhiteUrl = await handleUpload('logoSquareWhite', 'logo-square-white') || branding.logoSquareWhiteUrl;
+        // Uploads (se houver novos arquivos)
+        const urls = {};
+        urls.logoHorizontalUrl = await handleUpload('logoHorizontal', 'logo-horizontal') || branding.logoHorizontalUrl;
+        urls.logoHorizontalWhiteUrl = await handleUpload('logoHorizontalWhite', 'logo-horizontal-white') || branding.logoHorizontalWhiteUrl;
+        urls.logoSquareUrl = await handleUpload('logoSquare', 'logo-square') || branding.logoSquareUrl;
+        urls.logoSquareWhiteUrl = await handleUpload('logoSquareWhite', 'logo-square-white') || branding.logoSquareWhiteUrl;
 
-      const usage = { apresentacao: {}, relatorio: {} };
-      usageScreens.forEach(s => {
-        const type = usageForm.querySelector(`select[data-key="${s.key}"][data-field="type"]`).value;
-        const color = usageForm.querySelector(`select[data-key="${s.key}"][data-field="color"]`).value;
-        usage.apresentacao[s.key] = { type, color };
-      });
-      usage.relatorio.type = document.getElementById('reportLogoType').value;
+        const usage = { apresentacao: {}, relatorio: {} };
+        usageScreens.forEach(s => {
+          const type = usageForm.querySelector(`select[data-key="${s.key}"][data-field="type"]`).value;
+          const color = usageForm.querySelector(`select[data-key="${s.key}"][data-field="color"]`).value;
+          usage.apresentacao[s.key] = { type, color };
+        });
+        usage.relatorio.type = document.getElementById('reportLogoType').value;
 
-      const newBranding = { ...branding, ...urls, usage };
-      await saveBranding(projectId, newBranding);
-      branding = newBranding;
-      saveMsg.textContent = 'Configurações salvas!';
-      setTimeout(() => saveMsg.textContent = '', 2000);
+        const newBranding = { ...branding, ...urls, usage };
+        await saveBranding(projectId, newBranding);
+        branding = newBranding;
+        saveMsg.textContent = 'Salvo!';
+        setTimeout(() => saveMsg.textContent = '', 1500);
+      } catch (e) {
+        console.error(e);
+        saveMsg.textContent = 'Erro ao salvar. Tente novamente.';
+      } finally {
+        btn.disabled = false;
+      }
     });
   </script>
 </body>

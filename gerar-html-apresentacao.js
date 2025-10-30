@@ -46,14 +46,14 @@ export function generatePresentationHTML(params) {
         pages.push(generateResultsPage(metaMetrics, 'Meta Ads', budgetsCompleted, salesCount, revenue));
     }
 
-    // PÁGINA 3: Resultados Google (se disponível)
-    if (hasGoogle && googleMetrics) {
-        pages.push(generateResultsPage(googleMetrics, 'Google Ads', budgetsCompleted, salesCount, revenue));
-    }
-
-    // PÁGINA 4: Ranking de Anúncios (após os resultados)
+    // PÁGINA 3: Ranking de Anúncios (logo após Resultados Meta)
     if (hasMeta && metaTop3Ads && metaTop3Ads.length > 0) {
         pages.push(generateRankingPage(metaTop3Ads));
+    }
+
+    // PÁGINA 4: Resultados Google (se disponível)
+    if (hasGoogle && googleMetrics) {
+        pages.push(generateResultsPage(googleMetrics, 'Google Ads', budgetsCompleted, salesCount, revenue));
     }
 
     // PÁGINA 5: Próximos Passos

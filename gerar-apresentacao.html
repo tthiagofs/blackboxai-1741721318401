@@ -36,6 +36,16 @@
         max-width: 100vw !important;
     }
     
+    /* CSS para exportação PDF - remove animações e efeitos */
+    .exporting *, 
+    .exporting *::before, 
+    .exporting *::after {
+        animation: none !important;
+        transition: none !important;
+        filter: none !important;
+        will-change: auto !important;
+    }
+    
      /* Estilo do Modal */
     #campaignsModal .max-h-64,
     #adSetsModal .max-h-64,
@@ -954,6 +964,7 @@ ul.list-disc li br {
                     exportPdfBtn.disabled = true;
                     exportPdfBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Gerando PDF...';
                     
+                    // EXPORT FIX start
                     const { jsPDF } = window.jspdf;
                     
                     // Pegar as páginas diretamente do reportContainer
@@ -970,15 +981,13 @@ ul.list-disc li br {
                     
                     console.log(`📄 Encontradas ${pages.length} páginas para exportar`);
                     
-                    // Criar PDF (formato A4 paisagem - IGUAL AOS RELATÓRIOS)
-                    const doc = new jsPDF({
-                        orientation: 'landscape',
-                        unit: 'mm',
-                        format: 'a4'
-                    });
+                    // Aguardar carregamento de todas as fontes
+                    await document.fonts.ready;
                     
-                    const pdfWidth = 297;  // A4 largura
-                    const pdfHeight = 210; // A4 altura
+                    // Criar PDF A4 paisagem
+                    const doc = new jsPDF('landscape', 'mm', 'a4');
+                    const pdfW = doc.internal.pageSize.getWidth();
+                    const pdfH = doc.internal.pageSize.getHeight();
                     
                     // Processar cada página
                     for (let i = 0; i < pages.length; i++) {
@@ -986,37 +995,64 @@ ul.list-disc li br {
                         
                         console.log(`📸 Capturando página ${i + 1}/${pages.length}...`);
                         
-                        // Capturar usando MESMA configuração dos relatórios
-                        const canvas = await html2canvas(page, {
-                            scale: 2,
+                        // Clonar a página para não alterar o original
+                        const clone = page.cloneNode(true);
+                        
+                        // Remover efeitos no clone
+                        clone.style.transform = 'none';
+                        clone.style.zoom = '1';
+                        clone.style.filter = 'none';
+                        clone.classList.add('exporting');
+                        
+                        // Fixar tamanho real (1920x1080 - 16:9)
+                        clone.style.width = '1920px';
+                        clone.style.height = '1080px';
+                        clone.style.position = 'fixed';
+                        clone.style.left = '-99999px';
+                        clone.style.top = '0';
+                        
+                        // Adicionar ao DOM temporariamente
+                        document.body.appendChild(clone);
+                        
+                        // Capturar o clone
+                        const canvas = await html2canvas(clone, {
+                            scale: Math.max(2, window.devicePixelRatio || 2),
                             useCORS: true,
-                            logging: false,
-                            backgroundColor: '#ffffff'
+                            backgroundColor: null, // preserva gradiente
+                            scrollX: 0,
+                            scrollY: 0,
+                            windowWidth: 1920,
+                            windowHeight: 1080
                         });
                         
-                        const imgData = canvas.toDataURL('image/png');
-                        const imgWidth = canvas.width;
-                        const imgHeight = canvas.height;
+                        // Remover clone do DOM
+                        document.body.removeChild(clone);
                         
-                        console.log(`✅ Canvas ${i + 1}: ${imgWidth}x${imgHeight}px`);
-                        
-                        // Calcular dimensões mantendo proporção (IGUAL AOS RELATÓRIOS)
-                        const ratio = pdfWidth / (imgWidth * 0.264583); // 0.264583 mm per pixel at 96 DPI
-                        const scaledWidth = pdfWidth;
-                        const scaledHeight = (imgHeight * 0.264583) * ratio;
+                        console.log(`✅ Canvas ${i + 1}: ${canvas.width}x${canvas.height}px`);
                         
                         // Adicionar nova página se não for a primeira
                         if (i > 0) {
-                            doc.addPage();
+                            doc.addPage('a4', 'landscape');
                         }
                         
-                        // Centralizar verticalmente se necessário
-                        const yOffset = (pdfHeight - scaledHeight) / 2;
-                        const finalY = yOffset > 0 ? yOffset : 0;
+                        // Letterbox (manter proporção 16:9)
+                        const imgData = canvas.toDataURL('image/png');
+                        const imgRatio = canvas.width / canvas.height;
+                        let w = pdfW;
+                        let h = w / imgRatio;
                         
-                        // Adicionar a imagem
-                        doc.addImage(imgData, 'PNG', 0, finalY, scaledWidth, scaledHeight);
+                        if (h > pdfH) {
+                            h = pdfH;
+                            w = h * imgRatio;
+                        }
+                        
+                        const x = (pdfW - w) / 2;
+                        const y = (pdfH - h) / 2;
+                        
+                        // Adicionar a imagem centralizada
+                        doc.addImage(imgData, 'PNG', x, y, w, h, undefined, 'FAST');
                     }
+                    // EXPORT FIX end
                     
                     // Salvar PDF
                     const fileName = `${window.currentPresentationData.unitName || 'Apresentacao'}.pdf`;

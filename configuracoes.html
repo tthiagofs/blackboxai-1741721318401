@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Configurações do Projeto</title>
-  <link rel="stylesheet" href="style.css" />
+  <!-- Removido style.css para evitar herdar fundo/centrais de outras telas -->
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
     /* Overrides para não herdar layout/cores globais de style.css */
@@ -12,7 +12,7 @@
     #app-sidebar { position: sticky; top: 0; height: 100vh; }
   </style>
 </head>
-<body class="bg-gray-50">
+<body class="bg-gray-50" style="background:#f8fafc!important;display:block!important;min-height:auto!important;">
   <div class="flex min-h-screen">
     <div id="app-sidebar" class="w-64"></div>
 

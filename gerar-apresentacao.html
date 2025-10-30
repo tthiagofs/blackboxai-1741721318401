@@ -956,39 +956,15 @@ ul.list-disc li br {
                     
                     const { jsPDF } = window.jspdf;
                     
-                    // Criar um container temporário com o HTML da apresentação
-                    const tempContainer = document.createElement('div');
-                    tempContainer.innerHTML = window.currentPresentationData.html;
-                    tempContainer.style.position = 'absolute';
-                    tempContainer.style.left = '-9999px';
-                    tempContainer.style.top = '0';
-                    tempContainer.style.width = '1280px';
-                    tempContainer.style.height = 'auto';
-                    tempContainer.style.overflow = 'visible';
-                    document.body.appendChild(tempContainer);
-                    
-                    // Aguardar carregamento de todas as imagens
-                    const images = tempContainer.querySelectorAll('img');
-                    await Promise.all(
-                        Array.from(images).map(img => {
-                            if (img.complete) return Promise.resolve();
-                            return new Promise((resolve, reject) => {
-                                img.onload = resolve;
-                                img.onerror = resolve; // Continuar mesmo se imagem falhar
-                                setTimeout(resolve, 3000); // Timeout de segurança
-                            });
-                        })
-                    );
-                    
-                    // Aguardar um momento adicional para renderização
-                    await new Promise(resolve => setTimeout(resolve, 1000));
-                    
-                    // Buscar todas as páginas da apresentação
-                    const pages = tempContainer.querySelectorAll('.page');
+                    // PEGAR AS PÁGINAS DIRETAMENTE DO REPORTCONTAINER (JÁ RENDERIZADAS NA TELA)
+                    const reportContainer = document.getElementById('reportContainer');
+                    const pages = reportContainer.querySelectorAll('.page');
                     
                     if (pages.length === 0) {
-                        console.error('❌ Nenhuma página encontrada na apresentação');
-                        alert('Erro: Nenhuma página encontrada na apresentação');
+                        console.error('❌ Nenhuma página encontrada');
+                        alert('Erro: Nenhuma página encontrada. Gere a apresentação primeiro.');
+                        exportPdfBtn.disabled = false;
+                        exportPdfBtn.innerHTML = '<i class="fas fa-file-pdf mr-2"></i>Exportar PDF';
                         return;
                     }
                     
@@ -998,7 +974,7 @@ ul.list-disc li br {
                     const doc = new jsPDF({
                         orientation: 'landscape',
                         unit: 'mm',
-                        format: [297, 167] // 16:9 ratio em mm
+                        format: [297, 167]
                     });
                     
                     const pdfWidth = 297;
@@ -1010,42 +986,18 @@ ul.list-disc li br {
                         
                         console.log(`📸 Capturando página ${i + 1}/${pages.length}...`);
                         
-                        // Forçar dimensões exatas na página antes de capturar
-                        page.style.width = '1280px';
-                        page.style.height = '720px';
-                        page.style.minWidth = '1280px';
-                        page.style.minHeight = '720px';
-                        page.style.maxWidth = '1280px';
-                        page.style.maxHeight = '720px';
-                        page.style.transform = 'none';
-                        page.style.position = 'relative';
-                        page.style.display = 'block';
-                        
-                        // Aguardar re-renderização
-                        await new Promise(resolve => setTimeout(resolve, 100));
-                        
-                        // Capturar a página como imagem
+                        // Capturar a página EXATAMENTE como está na tela
                         const canvas = await html2canvas(page, {
-                            scale: 1,
+                            scale: 2,
                             useCORS: true,
                             logging: false,
-                            backgroundColor: '#ffffff',
-                            width: 1280,
-                            height: 720,
-                            windowWidth: 1280,
-                            windowHeight: 720,
-                            x: 0,
-                            y: 0,
-                            scrollX: 0,
-                            scrollY: 0,
+                            backgroundColor: null,
                             allowTaint: true,
-                            imageTimeout: 0,
-                            foreignObjectRendering: false,
+                            imageTimeout: 15000,
                             removeContainer: false
                         });
                         
-                        // Verificar dimensões do canvas
-                        console.log(`Canvas ${i + 1}: ${canvas.width}x${canvas.height}`);
+                        console.log(`✅ Canvas ${i + 1}: ${canvas.width}x${canvas.height}px`);
                         
                         const imgData = canvas.toDataURL('image/png', 1.0);
                         
@@ -1055,11 +1007,8 @@ ul.list-disc li br {
                         }
                         
                         // Adicionar a imagem preenchendo toda a página
-                        doc.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight, '', 'FAST');
+                        doc.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
                     }
-                    
-                    // Remover container temporário
-                    document.body.removeChild(tempContainer);
                     
                     // Salvar PDF
                     const fileName = `${window.currentPresentationData.unitName || 'Apresentacao'}.pdf`;

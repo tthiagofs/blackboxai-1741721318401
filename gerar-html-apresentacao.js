@@ -386,7 +386,7 @@ function getStyles() {
 
     /* === PÁGINA 1 - CAPA === */
     .capa {
-      background: #ffffff;
+      background: linear-gradient(180deg, #ffffff 0%, #f5f5f5 100%);
       display: flex;
       flex-direction: column;
       justify-content: center;
@@ -467,7 +467,7 @@ function getStyles() {
 
     /* === PÁGINA 2 - RESULTADOS === */
     .resultados {
-      background: #ffffff;
+      background: linear-gradient(180deg, #ffffff 0%, #f5f5f5 100%);
       padding: 50px 65px;
     }
 
@@ -510,7 +510,7 @@ function getStyles() {
     }
 
     .card-purple {
-      background: #7B4397;
+      background: linear-gradient(135deg, #7B4397 0%, #6B3387 100%);
       border-radius: 12px;
       padding: 16px 20px;
       box-shadow: 0 4px 12px rgba(123,67,151,0.3);
@@ -583,7 +583,7 @@ function getStyles() {
 
     /* === PÁGINA 3 - RANKING === */
     .ranking {
-      background: #6B3B8E;
+      background: linear-gradient(135deg, #7B4397 0%, #2563A8 100%);
       padding: 50px 65px;
       position: relative;
     }
@@ -622,7 +622,7 @@ function getStyles() {
       right: -10px;
       width: 45px;
       height: 45px;
-      background: #FFB700;
+      background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
       border-radius: 50%;
       display: flex;
       align-items: center;
@@ -820,7 +820,7 @@ function getStyles() {
 
     .obrigado-content {
       text-align: center;
-      background: #6B3B8E;
+      background: linear-gradient(135deg, #2563A8 0%, #7B4397 50%, #DC1C76 100%);
       padding: 40px 120px;
       border-radius: 24px;
     }

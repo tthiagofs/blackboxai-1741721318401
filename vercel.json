@@ -1,5 +1,5 @@
 {
-  "buildCommand": "echo 'Build completed'",
+  "buildCommand": "npx playwright install --with-deps chromium && echo 'Build completed'",
   "outputDirectory": ".",
   "functions": {
     "api/export-pdf.js": {

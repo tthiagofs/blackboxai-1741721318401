@@ -9,8 +9,4 @@
 
 [functions]
   node_bundler = "esbuild"
-  
-[[functions]]
-  name = "export-pdf"
-  timeout = 60
 

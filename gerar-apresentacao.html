@@ -967,8 +967,8 @@ ul.list-disc li br {
                         throw new Error('IDs da apresentação não encontrados');
                     }
                     
-                    // Chamar função Netlify para gerar PDF
-                    const pdfUrl = `/.netlify/functions/export-pdf?id=${presentationId}&projectId=${projectId}`;
+                    // Chamar função Vercel para gerar PDF
+                    const pdfUrl = `/api/export-pdf?id=${presentationId}&projectId=${projectId}`;
                     
                     console.log(`🌐 Gerando PDF: ${pdfUrl}`);
                     

@@ -2,6 +2,10 @@
   "buildCommand": "echo 'Build completed'",
   "outputDirectory": ".",
   "functions": {
+    "api/export-pdf.js": {
+      "memory": 3008,
+      "maxDuration": 60
+    },
     "api/**/*.js": {
       "memory": 1024,
       "maxDuration": 10

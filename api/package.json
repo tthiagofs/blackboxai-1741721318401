@@ -1,6 +1,8 @@
 {
   "dependencies": {
-    "@sendgrid/mail": "^7.7.0"
+    "@sendgrid/mail": "^7.7.0",
+    "@sparticuz/chromium": "^119.0.2",
+    "puppeteer-core": "^21.6.1"
   }
 }
 

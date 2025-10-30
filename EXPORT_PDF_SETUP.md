@@ -1,8 +1,8 @@
-# 📄 Configuração da Exportação PDF com Puppeteer
+# 📄 Configuração da Exportação PDF com Puppeteer (Vercel)
 
 ## Visão Geral
 
-A exportação de PDF das apresentações foi **completamente reescrita** para usar **Puppeteer (Chromium headless)** ao invés de html2canvas/jsPDF. Isso garante:
+A exportação de PDF das apresentações foi **completamente reescrita** para usar **Puppeteer (Chromium headless)** em função serverless do **Vercel** ao invés de html2canvas/jsPDF. Isso garante:
 
 ✅ PDF idêntico ao que aparece na tela  
 ✅ Gradientes, fontes e estilos preservados  
@@ -22,7 +22,7 @@ A exportação de PDF das apresentações foi **completamente reescrita** para u
   - Cada `.slide` com `page-break-after: always`
   - Sem animações/transições na impressão
 
-### 2. **Função Netlify Serverless** (`netlify/functions/export-pdf.js`)
+### 2. **Função Vercel Serverless** (`api/export-pdf.js`)
 - Usa `@sparticuz/chromium` (otimizado para serverless)
 - Usa `puppeteer-core` para controlar Chromium
 - Processo:
@@ -33,14 +33,14 @@ A exportação de PDF das apresentações foi **completamente reescrita** para u
   5. Retorna PDF como resposta HTTP
 
 ### 3. **Botão de Exportação** (`gerar-apresentacao.html`)
-- Abre URL: `/.netlify/functions/export-pdf?id={presentationId}&projectId={projectId}`
+- Abre URL: `/api/export-pdf?id={presentationId}&projectId={projectId}`
 - IDs são armazenados em `window.currentPresentationData` quando apresentação é salva
 
 ---
 
 ## 📦 Dependências
 
-### Adicionadas em `netlify/functions/package.json`:
+### Adicionadas em `api/package.json`:
 ```json
 {
   "dependencies": {
@@ -50,64 +50,56 @@ A exportação de PDF das apresentações foi **completamente reescrita** para u
 }
 ```
 
-### Configuração Netlify (`netlify.toml`):
-```toml
-[[functions]]
-  name = "export-pdf"
-  timeout = 60
+### Configuração Vercel (`vercel.json`):
+```json
+{
+  "functions": {
+    "api/export-pdf.js": {
+      "memory": 3008,
+      "maxDuration": 60
+    }
+  }
+}
 ```
 
 ---
 
 ## 🚀 Como Usar
 
-### 1. **Desenvolvimento Local**
+### **Produção (Vercel)**
+
+Basta fazer o deploy no Vercel:
 
 ```bash
-# Instalar dependências da função
-cd netlify/functions
-npm install
-cd ../..
+# Fazer commit e push
+git add .
+git commit -m "feat: exportação PDF com Puppeteer"
+git push
 
-# Rodar Netlify Dev
-netlify dev
+# Vercel automaticamente detecta e faz deploy
 ```
 
-A função estará disponível em:
-```
-http://localhost:8888/.netlify/functions/export-pdf?id=PRESENTATION_ID&projectId=PROJECT_ID
-```
-
-### 2. **Produção (Netlify)**
-
-O Netlify automaticamente:
-1. Detecta as funções em `netlify/functions/`
-2. Instala as dependências específicas
+O Vercel automaticamente:
+1. Detecta as funções em `api/`
+2. Instala as dependências de `api/package.json`
 3. Builda e deploya as funções
 
 URL em produção:
 ```
-https://seu-site.netlify.app/.netlify/functions/export-pdf?id=...&projectId=...
+https://seu-app.vercel.app/api/export-pdf?id=...&projectId=...
 ```
 
 ---
 
-## 🔍 Testando Localmente
+## 🔍 Como Testar Online
 
-### Testar página print diretamente:
-```
-http://localhost:8888/apresentacao-print.html?id=PRESENTATION_ID&projectId=PROJECT_ID
-```
+1. Acesse seu app no Vercel: `https://seu-app.vercel.app`
+2. Gere uma apresentação
+3. Clique em **"Salvar Apresentação"** (isso gera os IDs necessários)
+4. Clique em **"Exportar PDF"**
+5. PDF será gerado e aberto em nova aba
 
-**Requisitos:**
-- Apresentação deve estar salva no Firestore
-- Usar IDs válidos de apresentação e projeto
-
-### Testar função PDF:
-1. Gere uma apresentação
-2. Clique em "Salvar Apresentação"
-3. Clique em "Exportar PDF"
-4. PDF será aberto em nova aba
+**Importante:** A apresentação PRECISA ser salva primeiro para gerar os IDs!
 
 ---
 
@@ -158,13 +150,14 @@ console.log(window.currentPresentationData.projectId);
 
 ## ✅ Checklist de Deploy
 
-- [ ] Dependências instaladas em `netlify/functions/`
+- [ ] Código commitado e enviado para repositório
+- [ ] Vercel faz deploy automático (detecta `api/export-pdf.js`)
 - [ ] Firestore rules aplicadas para `presentations` collection
 - [ ] Firebase Storage CORS configurado (se usar imagens)
-- [ ] Variáveis de ambiente configuradas no Netlify:
-  - `URL` (setado automaticamente pelo Netlify)
-- [ ] Testado localmente com `netlify dev`
-- [ ] Testado em produção após deploy
+- [ ] Testar online:
+  1. Gerar apresentação
+  2. Salvar apresentação
+  3. Exportar PDF
 
 ---
 
@@ -172,6 +165,6 @@ console.log(window.currentPresentationData.projectId);
 
 - [Puppeteer Documentation](https://pptr.dev/)
 - [Sparticuz Chromium](https://github.com/Sparticuz/chromium)
-- [Netlify Functions](https://docs.netlify.com/functions/overview/)
+- [Vercel Serverless Functions](https://vercel.com/docs/functions/serverless-functions)
 - [CSS Paged Media](https://www.w3.org/TR/css-page-3/)
 

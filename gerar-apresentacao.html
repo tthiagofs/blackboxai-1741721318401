@@ -1010,9 +1010,23 @@ ul.list-disc li br {
                         
                         console.log(`📸 Capturando página ${i + 1}/${pages.length}...`);
                         
+                        // Forçar dimensões exatas na página antes de capturar
+                        page.style.width = '1280px';
+                        page.style.height = '720px';
+                        page.style.minWidth = '1280px';
+                        page.style.minHeight = '720px';
+                        page.style.maxWidth = '1280px';
+                        page.style.maxHeight = '720px';
+                        page.style.transform = 'none';
+                        page.style.position = 'relative';
+                        page.style.display = 'block';
+                        
+                        // Aguardar re-renderização
+                        await new Promise(resolve => setTimeout(resolve, 100));
+                        
                         // Capturar a página como imagem
                         const canvas = await html2canvas(page, {
-                            scale: 2,
+                            scale: 1,
                             useCORS: true,
                             logging: false,
                             backgroundColor: '#ffffff',
@@ -1020,11 +1034,18 @@ ul.list-disc li br {
                             height: 720,
                             windowWidth: 1280,
                             windowHeight: 720,
+                            x: 0,
+                            y: 0,
+                            scrollX: 0,
+                            scrollY: 0,
                             allowTaint: true,
-                            removeContainer: true,
                             imageTimeout: 0,
-                            foreignObjectRendering: false
+                            foreignObjectRendering: false,
+                            removeContainer: false
                         });
+                        
+                        // Verificar dimensões do canvas
+                        console.log(`Canvas ${i + 1}: ${canvas.width}x${canvas.height}`);
                         
                         const imgData = canvas.toDataURL('image/png', 1.0);
                         

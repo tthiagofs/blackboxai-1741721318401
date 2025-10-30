@@ -1,5 +1,5 @@
 {
-  "buildCommand": "cd api && npm ci && npx playwright install --with-deps chromium || true && echo 'Build completed'",
+  "buildCommand": "echo 'Build completed'",
   "outputDirectory": ".",
   "functions": {
     "api/export-pdf.js": {

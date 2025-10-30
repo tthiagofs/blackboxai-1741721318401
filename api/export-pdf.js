@@ -1,6 +1,6 @@
-// Vercel Serverless Function para gerar PDF com Playwright em ambiente serverless
-// Usamos CommonJS require por melhor compatibilidade no runtime do Vercel
-const chromium = require('playwright-aws-lambda');
+// Vercel Serverless Function para gerar PDF com Puppeteer Core + @sparticuz/chromium (compatível com Vercel)
+const chromium = require('@sparticuz/chromium');
+const puppeteer = require('puppeteer-core');
 
 export default async function handler(req, res) {
     let browser = null;
@@ -32,18 +32,13 @@ export default async function handler(req, res) {
         const { id, projectId } = req.query;
         const printUrl = `${baseUrl}/apresentacao-print.html?id=${id || ''}&projectId=${projectId || ''}`;
 
-        // Inicializar Chromium headless (Playwright AWS Lambda)
-        // Em algumas versões, o helper expõe launchChromium()
-        if (typeof chromium.launchChromium === 'function') {
-            browser = await chromium.launchChromium();
-        } else {
-            // Fallback: usar API compatível
-            browser = await chromium.launch({
-                args: chromium.args || [],
-                executablePath: (await chromium.executablePath()) || undefined,
-                headless: true,
-            });
-        }
+        // Inicializar Chromium headless (@sparticuz/chromium)
+        browser = await puppeteer.launch({
+            args: chromium.args,
+            defaultViewport: chromium.defaultViewport,
+            executablePath: await chromium.executablePath(),
+            headless: chromium.headless,
+        });
 
         const page = await browser.newPage();
 

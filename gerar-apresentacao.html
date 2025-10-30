@@ -888,6 +888,20 @@ ul.list-disc li br {
                         // NÃO redirecionar - usuário pode gerar outra apresentação
                     } else {
                         console.error('❌ Erro ao salvar apresentação:', result.error);
+                        
+                        // Verificar se é erro de permissão
+                        if (result.error.includes('Missing or insufficient permissions') || result.error.includes('permission')) {
+                            alert('⚠️ ERRO DE PERMISSÃO DO FIRESTORE\n\n' + 
+                                  'As regras do Firestore não estão configuradas para apresentações.\n\n' +
+                                  'COMO CORRIGIR:\n' +
+                                  '1. Acesse Firebase Console\n' +
+                                  '2. Vá em Firestore Database → Regras\n' +
+                                  '3. Veja as instruções no arquivo FIRESTORE_RULES_APRESENTACOES.md\n' +
+                                  '4. Adicione as regras para a coleção "presentations"\n' +
+                                  '5. Clique em "Publicar"\n\n' +
+                                  'Erro: ' + result.error);
+                        }
+                        
                         saveReportBtn.disabled = false;
                         saveReportBtn.className = 'flex-1 bg-gradient-to-r from-red-600 to-red-700 text-white font-bold py-4 px-6 rounded-xl shadow-lg flex items-center justify-center';
                         saveReportBtn.innerHTML = '<i class="fas fa-times mr-3 text-xl"></i><span class="text-lg">Erro ao salvar</span>';
@@ -898,6 +912,21 @@ ul.list-disc li br {
                     }
                 } catch (error) {
                     console.error('❌ Erro ao salvar apresentação:', error);
+                    
+                    // Verificar se é erro de permissão
+                    if (error.message.includes('Missing or insufficient permissions') || error.message.includes('permission')) {
+                        alert('⚠️ ERRO DE PERMISSÃO DO FIRESTORE\n\n' + 
+                              'As regras do Firestore não estão configuradas para apresentações.\n\n' +
+                              'COMO CORRIGIR:\n' +
+                              '1. Acesse Firebase Console (https://console.firebase.google.com)\n' +
+                              '2. Selecione seu projeto\n' +
+                              '3. Vá em Firestore Database → Regras\n' +
+                              '4. Veja as instruções no arquivo FIRESTORE_RULES_APRESENTACOES.md do projeto\n' +
+                              '5. Adicione as regras para a coleção "presentations"\n' +
+                              '6. Clique em "Publicar"\n\n' +
+                              'Erro: ' + error.message);
+                    }
+                    
                     saveReportBtn.disabled = false;
                     saveReportBtn.className = 'flex-1 bg-gradient-to-r from-red-600 to-red-700 text-white font-bold py-4 px-6 rounded-xl shadow-lg flex items-center justify-center';
                     saveReportBtn.innerHTML = '<i class="fas fa-times mr-3 text-xl"></i><span class="text-lg">Erro ao salvar</span>';

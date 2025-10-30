@@ -183,34 +183,34 @@ function generateResultsPage(metrics, platformName, budgetsCompleted, salesCount
             <div class="resultados-column">
                 <div class="card-purple card-split">
                     <div class="card-split-left">
-                        <div class="card-label">${formatNumber(clicks)} | Cliques</div>
+                        <div class="card-value">${formatNumber(clicks)} | Cliques</div>
                     </div>
                     <div class="card-split-right">
-                        <div class="card-label">CPC | ${formatCurrency(cpc)}</div>
+                        <div class="card-value">CPC | ${formatCurrency(cpc)}</div>
                     </div>
                 </div>
                 <div class="card-purple card-split">
                     <div class="card-split-left">
-                        <div class="card-label">${formatNumber(messages)} | Leads</div>
+                        <div class="card-value">${formatNumber(messages)} | Leads</div>
                     </div>
                     <div class="card-split-right">
-                        <div class="card-label">CPL | ${formatCurrency(cpl)}</div>
+                        <div class="card-value">CPL | ${formatCurrency(cpl)}</div>
                     </div>
                 </div>
                 <div class="card-purple card-split">
                     <div class="card-split-left">
-                        <div class="card-label">${formatNumber(orcamentos)} | Orçamentos</div>
+                        <div class="card-value">${formatNumber(orcamentos)} | Orçamentos</div>
                     </div>
                     <div class="card-split-right">
-                        <div class="card-label">CPO | ${formatCurrency(cpo)}</div>
+                        <div class="card-value">CPO | ${formatCurrency(cpo)}</div>
                     </div>
                 </div>
                 <div class="card-purple card-split">
                     <div class="card-split-left">
-                        <div class="card-label">${formatNumber(sales)} | Vendas</div>
+                        <div class="card-value">${formatNumber(sales)} | Vendas</div>
                     </div>
                     <div class="card-split-right">
-                        <div class="card-label">CPV | ${formatCurrency(cpv)}</div>
+                        <div class="card-value">CPV | ${formatCurrency(cpv)}</div>
                     </div>
                 </div>
             </div>
@@ -320,14 +320,16 @@ function generateThankYouPage() {
     return `
     <div class="page obrigado">
         <!-- Logo Circular -->
-        <svg class="obrigado-logo" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
-            <circle cx="60" cy="60" r="58" fill="#2563A8"/>
-            <text x="60" y="75" font-size="28" font-weight="700" fill="white" font-family="Poppins, sans-serif" text-anchor="middle">
+        <svg class="obrigado-logo" viewBox="0 0 150 150" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="75" cy="75" r="73" fill="#2563A8"/>
+            <text x="75" y="95" font-size="36" font-weight="700" fill="white" font-family="Poppins, sans-serif" text-anchor="middle">
                 OC
             </text>
         </svg>
 
-        <h2 class="obrigado-text">OBRIGADO!</h2>
+        <div class="obrigado-content">
+            <h2 class="obrigado-text">OBRIGADO!</h2>
+        </div>
     </div>
     `;
 }
@@ -536,6 +538,7 @@ function getStyles() {
 
     .card-purple .card-value {
       color: white;
+      font-size: 18px;
     }
 
     .card-split {
@@ -633,11 +636,20 @@ function getStyles() {
 
     .ranking-thumbnail {
       width: 100%;
-      height: 200px;
+      height: 250px;
       background: #f0f0f0;
       border-radius: 12px;
       margin-bottom: 15px;
       overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .ranking-thumbnail img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
     }
 
     .ranking-info {
@@ -798,21 +810,27 @@ function getStyles() {
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      gap: 40px;
+      gap: 60px;
     }
 
     .obrigado-logo {
-      width: 120px;
-      height: 120px;
+      width: 150px;
+      height: 150px;
+    }
+
+    .obrigado-content {
+      text-align: center;
+      background: linear-gradient(135deg, #2563A8 0%, #7B4397 50%, #DC1C76 100%);
+      padding: 40px 120px;
+      border-radius: 24px;
     }
 
     .obrigado-text {
-      font-size: 72px;
+      font-size: 96px;
       font-weight: 700;
-      background: linear-gradient(135deg, #2563A8 0%, #7B4397 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
+      color: white;
+      letter-spacing: 4px;
+      margin: 0;
     }
 
     /* === PRINT STYLES === */

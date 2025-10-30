@@ -990,13 +990,25 @@ ul.list-disc li br {
                     
                     console.log(`🌐 Gerando PDF: ${pdfUrl}`);
                     
-                    // Abrir PDF em nova aba
-                    window.open(pdfUrl, '_blank');
+                    // Fazer download direto do PDF (não abre nova aba)
+                    const response = await fetch(pdfUrl);
                     
-                    console.log('✅ PDF sendo gerado! Aguarde...');
+                    if (!response.ok) {
+                        const error = await response.json();
+                        throw new Error(error.message || 'Erro ao gerar PDF');
+                    }
                     
-                    // Aguardar 2 segundos para dar feedback visual
-                    await new Promise(resolve => setTimeout(resolve, 2000));
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `${window.currentPresentationData.unitName || 'Apresentacao'}.pdf`;
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                    document.body.removeChild(a);
+                    
+                    console.log('✅ PDF baixado com sucesso!');
                     
                     // Restaurar botão
                     exportPdfBtn.disabled = false;

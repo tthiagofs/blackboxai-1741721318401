@@ -44,7 +44,7 @@ export default async function handler(req, res) {
             defaultViewport: chromium.defaultViewport,
             executablePath: isDev 
                 ? '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome' // local
-                : await chromium.executablePath('/tmp/chromium'),
+                : await chromium.executablePath(),
             headless: chromium.headless,
             ignoreHTTPSErrors: true,
         });

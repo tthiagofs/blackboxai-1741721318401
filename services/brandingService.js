@@ -15,7 +15,9 @@ export async function getBranding(projectId) {
 
 export async function saveBranding(projectId, branding) {
   const refDoc = doc(db, COLLECTION, projectId);
-  await updateDoc(refDoc, { branding });
+  // usar setDoc com merge para evitar erros em docs sem o campo
+  await setDoc(refDoc, { branding }, { merge: true });
+  return true;
 }
 
 export async function uploadLogo(projectId, file, pathKey) {

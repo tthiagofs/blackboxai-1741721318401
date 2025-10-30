@@ -201,12 +201,14 @@
         usage.relatorio.type = document.getElementById('reportLogoType').value;
 
         const newBranding = { ...branding, ...urls, usage };
+        console.log('🔄 Salvando branding...', newBranding);
         await saveBranding(projectId, newBranding);
+        console.log('✅ Branding salvo');
         branding = newBranding;
         saveMsg.textContent = 'Salvo!';
         setTimeout(() => saveMsg.textContent = '', 1500);
       } catch (e) {
-        console.error(e);
+        console.error('❌ Erro ao salvar branding:', e);
         saveMsg.textContent = 'Erro ao salvar. Tente novamente.';
       } finally {
         btn.disabled = false;

@@ -950,7 +950,11 @@ ul.list-disc li br {
             exportPdfBtn.addEventListener('click', async () => {
                 if (!window.currentPresentationData) {
                     console.error('❌ Erro: Nenhuma apresentação foi gerada ainda');
-                    alert('Por favor, gere a apresentação primeiro.');
+                    // feedback discreto (sem popup)
+                    const old = exportPdfBtn.innerHTML;
+                    exportPdfBtn.disabled = true;
+                    exportPdfBtn.innerHTML = '<i class="fas fa-exclamation-triangle mr-2"></i>Gere a apresentação primeiro';
+                    setTimeout(() => { exportPdfBtn.disabled = false; exportPdfBtn.innerHTML = old; }, 2000);
                     return;
                 }
                 
@@ -1012,11 +1016,11 @@ ul.list-disc li br {
                     
                 } catch (error) {
                     console.error('❌ Erro ao exportar PDF:', error);
-                    alert('Erro ao exportar PDF: ' + error.message);
-                    
-                    // Restaurar botão
+                    // feedback discreto no botão (sem popup)
+                    const old = exportPdfBtn.innerHTML;
                     exportPdfBtn.disabled = false;
-                    exportPdfBtn.innerHTML = '<i class="fas fa-file-pdf mr-2"></i>Exportar PDF';
+                    exportPdfBtn.innerHTML = '<i class="fas fa-exclamation-triangle mr-2"></i>Falha ao exportar';
+                    setTimeout(() => { exportPdfBtn.innerHTML = old; }, 2500);
                 }
             });
         }

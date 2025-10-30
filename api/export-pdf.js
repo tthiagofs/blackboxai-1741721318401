@@ -1,5 +1,6 @@
 // Vercel Serverless Function para gerar PDF com Playwright em ambiente serverless
-import { chromium as awsChromium } from 'playwright-aws-lambda';
+// Usamos CommonJS require por melhor compatibilidade no runtime do Vercel
+const chromium = require('playwright-aws-lambda');
 
 export default async function handler(req, res) {
     let browser = null;
@@ -32,11 +33,17 @@ export default async function handler(req, res) {
         const printUrl = `${baseUrl}/apresentacao-print.html?id=${id || ''}&projectId=${projectId || ''}`;
 
         // Inicializar Chromium headless (Playwright AWS Lambda)
-        browser = await awsChromium.launch({
-            args: awsChromium.args,
-            executablePath: await awsChromium.executablePath(),
-            headless: true,
-        });
+        // Em algumas versões, o helper expõe launchChromium()
+        if (typeof chromium.launchChromium === 'function') {
+            browser = await chromium.launchChromium();
+        } else {
+            // Fallback: usar API compatível
+            browser = await chromium.launch({
+                args: chromium.args || [],
+                executablePath: (await chromium.executablePath()) || undefined,
+                headless: true,
+            });
+        }
 
         const page = await browser.newPage();
 

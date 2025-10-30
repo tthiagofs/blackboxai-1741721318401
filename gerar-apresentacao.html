@@ -11,7 +11,9 @@
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="style.css">
-    <!-- REMOVIDO: html2canvas e jsPDF - Agora usando Puppeteer serverless -->
+    <!-- jsPDF e html2canvas para exportação PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script>
         tailwind.config = {
             theme: {
@@ -942,7 +944,7 @@ ul.list-disc li br {
             });
         }
         
-        // Botão Exportar PDF - NOVO: Usando Puppeteer serverless
+        // Botão Exportar PDF - Usando html2canvas (igual relatórios)
         const exportPdfBtn = document.getElementById('exportPdfBtn');
         if (exportPdfBtn) {
             exportPdfBtn.addEventListener('click', async () => {
@@ -957,58 +959,69 @@ ul.list-disc li br {
                     exportPdfBtn.disabled = true;
                     exportPdfBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Gerando PDF...';
                     
-                    console.log('📥 Exportando apresentação para PDF via Puppeteer...');
+                    console.log('📥 Exportando apresentação para PDF...');
                     
-                    const projectId = localStorage.getItem('currentProject');
+                    const { jsPDF } = window.jspdf;
+                    const reportContainer = document.getElementById('reportContainer');
+                    const slides = reportContainer.querySelectorAll('.page');
                     
-                    if (!projectId) {
-                        throw new Error('Projeto não selecionado');
+                    if (slides.length === 0) {
+                        throw new Error('Nenhuma página encontrada');
                     }
                     
-                    // Se já foi salva, usar os IDs existentes
-                    let presentationId = window.currentPresentationData.presentationId;
+                    console.log(`📄 Exportando ${slides.length} páginas...`);
                     
-                    // Se NÃO foi salva, salvar temporariamente
-                    if (!presentationId) {
-                        console.log('💾 Salvando apresentação temporariamente para exportar...');
-                        const result = await presentationsService.savePresentation(projectId, window.currentPresentationData);
+                    // Criar PDF em landscape A4
+                    const doc = new jsPDF({
+                        orientation: 'landscape',
+                        unit: 'mm',
+                        format: 'a4'
+                    });
+                    
+                    const pdfWidth = doc.internal.pageSize.getWidth();
+                    const pdfHeight = doc.internal.pageSize.getHeight();
+                    
+                    // Processar cada slide
+                    for (let i = 0; i < slides.length; i++) {
+                        const slide = slides[i];
                         
-                        if (!result.success) {
-                            throw new Error('Erro ao salvar apresentação: ' + result.error);
+                        console.log(`📸 Capturando slide ${i + 1}/${slides.length}...`);
+                        
+                        // Capturar slide com html2canvas
+                        const canvas = await html2canvas(slide, {
+                            scale: 2,
+                            useCORS: true,
+                            logging: false,
+                            backgroundColor: '#ffffff'
+                        });
+                        
+                        const imgData = canvas.toDataURL('image/png');
+                        const imgWidth = canvas.width;
+                        const imgHeight = canvas.height;
+                        
+                        // Calcular proporção para caber no A4 landscape
+                        const ratio = Math.min(pdfWidth / (imgWidth * 0.264583), pdfHeight / (imgHeight * 0.264583));
+                        const scaledWidth = (imgWidth * 0.264583) * ratio;
+                        const scaledHeight = (imgHeight * 0.264583) * ratio;
+                        
+                        // Centralizar na página
+                        const x = (pdfWidth - scaledWidth) / 2;
+                        const y = (pdfHeight - scaledHeight) / 2;
+                        
+                        // Adicionar nova página se não for a primeira
+                        if (i > 0) {
+                            doc.addPage('a4', 'landscape');
                         }
                         
-                        presentationId = result.id;
-                        // Armazenar IDs para próximas exportações
-                        window.currentPresentationData.presentationId = presentationId;
-                        window.currentPresentationData.projectId = projectId;
-                        
-                        console.log('✅ Apresentação salva com ID:', presentationId);
+                        // Adicionar imagem ao PDF
+                        doc.addImage(imgData, 'PNG', x, y, scaledWidth, scaledHeight);
                     }
                     
-                    // Chamar função Vercel para gerar PDF
-                    const pdfUrl = `/api/export-pdf?id=${presentationId}&projectId=${projectId}`;
+                    // Salvar PDF
+                    const fileName = `${window.currentPresentationData.unitName || 'Apresentacao'}.pdf`;
+                    doc.save(fileName);
                     
-                    console.log(`🌐 Gerando PDF: ${pdfUrl}`);
-                    
-                    // Fazer download direto do PDF (não abre nova aba)
-                    const response = await fetch(pdfUrl);
-                    
-                    if (!response.ok) {
-                        const error = await response.json();
-                        throw new Error(error.message || 'Erro ao gerar PDF');
-                    }
-                    
-                    const blob = await response.blob();
-                    const url = window.URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = `${window.currentPresentationData.unitName || 'Apresentacao'}.pdf`;
-                    document.body.appendChild(a);
-                    a.click();
-                    window.URL.revokeObjectURL(url);
-                    document.body.removeChild(a);
-                    
-                    console.log('✅ PDF baixado com sucesso!');
+                    console.log('✅ PDF exportado com sucesso!');
                     
                     // Restaurar botão
                     exportPdfBtn.disabled = false;

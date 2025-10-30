@@ -974,9 +974,6 @@ ul.list-disc li br {
                     document.body.classList.add('pdf-mode');
                     console.log('✅ Modo PDF ativado');
                     
-                    // Aguardar renderização do modo PDF
-                    await new Promise(resolve => setTimeout(resolve, 100));
-                    
                     // Pegar os slides do reportContainer
                     const reportContainer = document.getElementById('reportContainer');
                     const slides = reportContainer.querySelectorAll('.slide');
@@ -994,6 +991,16 @@ ul.list-disc li br {
                     
                     // Aguardar carregamento de todas as fontes
                     await document.fonts.ready;
+                    
+                    // ESCALAR slides para 1920x1080 durante captura (fator 1.5x)
+                    const SCALE_FACTOR = 1.5;
+                    slides.forEach(slide => {
+                        slide.style.transform = `scale(${SCALE_FACTOR})`;
+                        slide.style.transformOrigin = 'top left';
+                    });
+                    
+                    // Aguardar renderização da escala
+                    await new Promise(resolve => setTimeout(resolve, 200));
                     
                     // PASSO 3: Criar PDF A4 landscape
                     const { jsPDF } = window.jspdf;
@@ -1017,14 +1024,16 @@ ul.list-disc li br {
                         
                         console.log(`📸 Capturando slide ${i + 1}/${slides.length}...`);
                         
-                        // Capturar com html2canvas (dimensões reais do elemento)
+                        // Capturar com html2canvas (dimensões escaladas 1920x1080)
                         const canvas = await html2canvas(slideEl, {
                             scale: 2,
                             useCORS: true,
                             allowTaint: false,
                             backgroundColor: '#ffffff',
-                            windowWidth: slideEl.scrollWidth,
-                            windowHeight: slideEl.scrollHeight,
+                            width: 1920,
+                            height: 1080,
+                            windowWidth: 1920,
+                            windowHeight: 1080,
                             onclone: (doc) => {
                                 doc.body.classList.add('pdf-mode');
                             }
@@ -1058,7 +1067,11 @@ ul.list-disc li br {
                         pdf.addImage(imgData, 'PNG', x, y, renderW, renderH, undefined, 'FAST');
                     }
                     
-                    // PASSO 5: Desativar modo PDF
+                    // PASSO 5: Remover escala e desativar modo PDF
+                    slides.forEach(slide => {
+                        slide.style.transform = '';
+                        slide.style.transformOrigin = '';
+                    });
                     document.body.classList.remove('pdf-mode');
                     console.log('✅ Modo PDF desativado');
                     
@@ -1076,7 +1089,12 @@ ul.list-disc li br {
                     console.error('❌ Erro ao exportar PDF:', error);
                     alert('Erro ao exportar PDF. Tente novamente.');
                     
-                    // Garantir que o modo PDF seja desativado
+                    // Garantir que a escala seja removida e o modo PDF desativado
+                    const slides = document.querySelectorAll('.slide');
+                    slides.forEach(slide => {
+                        slide.style.transform = '';
+                        slide.style.transformOrigin = '';
+                    });
                     document.body.classList.remove('pdf-mode');
                     
                     // Restaurar botão

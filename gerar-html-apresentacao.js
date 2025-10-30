@@ -375,21 +375,13 @@ function getStyles() {
     }
 
     .page {
-      width: 1920px;
-      height: 1080px;
+      width: 1280px;
+      height: 720px;
       background: white;
       margin: 20px auto;
       position: relative;
       overflow: hidden;
       box-shadow: 0 10px 40px rgba(0,0,0,0.1);
-      transform-origin: top center;
-    }
-    
-    /* Escala responsiva para telas menores (apenas visualização) */
-    @media screen and (max-width: 1920px) {
-      .page:not(.pdf-mode .page) {
-        transform: scale(calc(min(100vw, 1920px) / 1920));
-      }
     }
 
     /* === PÁGINA 1 - CAPA === */
@@ -404,22 +396,22 @@ function getStyles() {
 
     .capa-logo-horizontal {
       position: absolute;
-      top: 60px;
-      left: 100px;
-      height: 75px;
+      top: 40px;
+      left: 65px;
+      height: 50px;
     }
 
     .capa-content {
-      max-width: 900px;
+      max-width: 600px;
       z-index: 2;
     }
 
     .capa-title {
-      font-size: 93px;
+      font-size: 62px;
       font-weight: 700;
       color: #1e5091;
       line-height: 1.05;
-      margin-bottom: 75px;
+      margin-bottom: 50px;
       letter-spacing: -1px;
     }
 
@@ -431,25 +423,25 @@ function getStyles() {
     .capa-unidade {
       display: flex;
       align-items: center;
-      gap: 18px;
-      font-size: 48px;
+      gap: 12px;
+      font-size: 32px;
       font-weight: 700;
       color: #2563A8;
-      margin-bottom: 38px;
+      margin-bottom: 25px;
     }
 
     .capa-unidade-icon {
-      width: 52px;
-      height: 52px;
+      width: 35px;
+      height: 35px;
       fill: #2563A8;
     }
 
     .capa-periodo {
       display: inline-block;
-      border: 4px solid #2563A8;
-      border-radius: 12px;
-      padding: 21px 52px;
-      font-size: 36px;
+      border: 3px solid #2563A8;
+      border-radius: 8px;
+      padding: 14px 35px;
+      font-size: 24px;
       color: #2563A8;
       font-weight: 400;
       background: white;
@@ -480,19 +472,19 @@ function getStyles() {
     }
 
     .resultados-logo {
-      height: 68px;
-      margin-bottom: 38px;
+      height: 45px;
+      margin-bottom: 25px;
     }
 
     .resultados-title {
-      font-size: 63px;
+      font-size: 42px;
       font-weight: 700;
       color: #1e5091;
-      margin-bottom: 12px;
+      margin-bottom: 8px;
     }
 
     .resultados-subtitle {
-      font-size: 30px;
+      font-size: 20px;
       color: #7B4397;
       font-weight: 600;
       margin-bottom: 35px;
@@ -512,23 +504,23 @@ function getStyles() {
 
     .card-white {
       background: white;
-      border-radius: 18px;
-      padding: 24px 30px;
-      box-shadow: 0 6px 18px rgba(0,0,0,0.08);
+      border-radius: 12px;
+      padding: 16px 20px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
     }
 
     .card-purple {
       background: linear-gradient(135deg, #7B4397 0%, #6B3387 100%);
-      border-radius: 18px;
-      padding: 24px 30px;
-      box-shadow: 0 6px 18px rgba(123,67,151,0.3);
+      border-radius: 12px;
+      padding: 16px 20px;
+      box-shadow: 0 4px 12px rgba(123,67,151,0.3);
     }
 
     .card-label {
-      font-size: 21px;
+      font-size: 14px;
       color: #666;
       font-weight: 500;
-      margin-bottom: 9px;
+      margin-bottom: 6px;
     }
 
     .card-purple .card-label {
@@ -536,7 +528,7 @@ function getStyles() {
     }
 
     .card-value {
-      font-size: 36px;
+      font-size: 24px;
       font-weight: 700;
       color: #2563A8;
       line-height: 1.1;
@@ -546,7 +538,7 @@ function getStyles() {
 
     .card-purple .card-value {
       color: white;
-      font-size: 27px;
+      font-size: 18px;
     }
 
     .card-split {
@@ -597,16 +589,16 @@ function getStyles() {
     }
 
     .ranking-logo {
-      width: 120px;
-      height: 120px;
-      margin-bottom: 30px;
+      width: 80px;
+      height: 80px;
+      margin-bottom: 20px;
     }
 
     .ranking-title {
-      font-size: 72px;
+      font-size: 48px;
       font-weight: 700;
       color: white;
-      margin-bottom: 60px;
+      margin-bottom: 40px;
     }
 
     .ranking-grid {
@@ -619,8 +611,8 @@ function getStyles() {
 
     .ranking-card {
       background: white;
-      border-radius: 24px;
-      padding: 30px;
+      border-radius: 16px;
+      padding: 20px;
       position: relative;
     }
 
@@ -644,10 +636,10 @@ function getStyles() {
 
     .ranking-thumbnail {
       width: 100%;
-      height: 375px;
+      height: 250px;
       background: #f0f0f0;
-      border-radius: 18px;
-      margin-bottom: 22px;
+      border-radius: 12px;
+      margin-bottom: 15px;
       overflow: hidden;
       display: flex;
       align-items: center;
@@ -691,13 +683,13 @@ function getStyles() {
     }
 
     .ranking-stat-label {
-      font-size: 20px;
+      font-size: 13px;
       color: #666;
       font-weight: 500;
     }
 
     .ranking-stat-value {
-      font-size: 24px;
+      font-size: 16px;
       font-weight: 700;
       color: #2563A8;
     }
@@ -729,11 +721,11 @@ function getStyles() {
     }
 
     .proximos-title {
-      font-size: 78px;
+      font-size: 52px;
       font-weight: 700;
       color: white;
       line-height: 1.1;
-      margin-bottom: 75px;
+      margin-bottom: 50px;
     }
 
     .proximos-stepper {
@@ -788,14 +780,14 @@ function getStyles() {
       list-style: none;
       display: flex;
       flex-direction: column;
-      gap: 27px;
-      margin-bottom: 60px;
+      gap: 18px;
+      margin-bottom: 40px;
     }
 
     .proximos-list li {
-      font-size: 27px;
+      font-size: 18px;
       color: #333;
-      padding-left: 45px;
+      padding-left: 30px;
       position: relative;
     }
 
@@ -804,7 +796,7 @@ function getStyles() {
       position: absolute;
       left: 0;
       color: #7B4397;
-      font-size: 30px;
+      font-size: 20px;
     }
 
     .proximos-logo {
@@ -822,22 +814,22 @@ function getStyles() {
     }
 
     .obrigado-logo {
-      width: 225px;
-      height: 225px;
+      width: 150px;
+      height: 150px;
     }
 
     .obrigado-content {
       text-align: center;
       background: linear-gradient(135deg, #2563A8 0%, #7B4397 50%, #DC1C76 100%);
-      padding: 60px 180px;
-      border-radius: 36px;
+      padding: 40px 120px;
+      border-radius: 24px;
     }
 
     .obrigado-text {
-      font-size: 144px;
+      font-size: 96px;
       font-weight: 700;
       color: white;
-      letter-spacing: 6px;
+      letter-spacing: 4px;
       margin: 0;
     }
 

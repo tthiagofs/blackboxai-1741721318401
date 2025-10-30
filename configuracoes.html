@@ -12,57 +12,61 @@
     <div id="app-sidebar" class="w-64"></div>
 
     <main class="flex-1 p-6">
-      <h1 class="text-2xl font-bold text-gray-800 mb-4">Configurações</h1>
-      <p class="text-sm text-gray-500 mb-6">Defina as logos do projeto e escolha onde cada uma será usada.</p>
+      <div class="max-w-6xl mx-auto">
+        <div class="mb-6">
+          <h1 class="text-2xl font-bold text-gray-800">Configurações</h1>
+          <p class="text-sm text-gray-500">Defina as logos do projeto e escolha onde cada uma será usada.</p>
+        </div>
 
       <!-- Uploads de Logos -->
-      <section class="bg-white border rounded-xl p-4 mb-6">
-        <h2 class="font-semibold mb-3">Logos</h2>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <section class="bg-white shadow-sm rounded-xl p-6 mb-8 border border-gray-200">
+        <h2 class="font-semibold mb-4 text-gray-800">Logos</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
           <div>
-            <label class="block text-sm font-medium">Logo Horizontal (normal)</label>
-            <input type="file" id="logoHorizontal" accept="image/*" class="mt-1" />
-            <img id="logoHorizontalPreview" class="mt-2 h-10 object-contain" />
-            <label class="block text-sm font-medium mt-4">Logo Horizontal (branca) – opcional</label>
+            <label class="block text-sm font-medium text-gray-700">Logo Horizontal (normal)</label>
+            <input type="file" id="logoHorizontal" accept="image/*" class="mt-1 text-sm" />
+            <img id="logoHorizontalPreview" class="mt-3 h-10 object-contain" />
+            <label class="block text-sm font-medium mt-5 text-gray-700">Logo Horizontal (branca) – opcional</label>
             <p class="text-xs text-gray-500">Boa opção para fundos escuros.</p>
-            <input type="file" id="logoHorizontalWhite" accept="image/*" class="mt-1" />
-            <img id="logoHorizontalWhitePreview" class="mt-2 h-10 object-contain bg-gray-800 p-1 rounded" />
+            <input type="file" id="logoHorizontalWhite" accept="image/*" class="mt-1 text-sm" />
+            <img id="logoHorizontalWhitePreview" class="mt-3 h-10 object-contain bg-gray-800 p-1 rounded" />
           </div>
           <div>
-            <label class="block text-sm font-medium">Logo Quadrada (normal)</label>
-            <input type="file" id="logoSquare" accept="image/*" class="mt-1" />
-            <img id="logoSquarePreview" class="mt-2 h-14 w-14 object-contain" />
-            <label class="block text-sm font-medium mt-4">Logo Quadrada (branca) – opcional</label>
+            <label class="block text-sm font-medium text-gray-700">Logo Quadrada (normal)</label>
+            <input type="file" id="logoSquare" accept="image/*" class="mt-1 text-sm" />
+            <img id="logoSquarePreview" class="mt-3 h-14 w-14 object-contain" />
+            <label class="block text-sm font-medium mt-5 text-gray-700">Logo Quadrada (branca) – opcional</label>
             <p class="text-xs text-gray-500">Boa opção para fundos escuros.</p>
-            <input type="file" id="logoSquareWhite" accept="image/*" class="mt-1" />
-            <img id="logoSquareWhitePreview" class="mt-2 h-14 w-14 object-contain bg-gray-800 p-1 rounded" />
+            <input type="file" id="logoSquareWhite" accept="image/*" class="mt-1 text-sm" />
+            <img id="logoSquareWhitePreview" class="mt-3 h-14 w-14 object-contain bg-gray-800 p-1 rounded" />
           </div>
         </div>
       </section>
 
       <!-- Uso por Tela da Apresentação -->
-      <section class="bg-white border rounded-xl p-4 mb-6">
-        <h2 class="font-semibold mb-3">Uso nas Telas da Apresentação</h2>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4" id="usageForm">
+      <section class="bg-white shadow-sm rounded-xl p-6 mb-8 border border-gray-200">
+        <h2 class="font-semibold mb-4 text-gray-800">Uso nas Telas da Apresentação</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-5" id="usageForm">
           <!-- Gerado via JS: capa, resultados, ranking, proximosPassos, obrigado -->
         </div>
       </section>
 
       <!-- Relatório -->
-      <section class="bg-white border rounded-xl p-4 mb-6">
-        <h2 class="font-semibold mb-3">Uso no Relatório</h2>
+      <section class="bg-white shadow-sm rounded-xl p-6 mb-10 border border-gray-200">
+        <h2 class="font-semibold mb-4 text-gray-800">Uso no Relatório</h2>
         <div class="flex items-center gap-4">
-          <label class="text-sm">Logo:</label>
-          <select id="reportLogoType" class="border rounded px-2 py-1 text-sm">
+          <label class="text-sm text-gray-700">Logo:</label>
+          <select id="reportLogoType" class="border rounded px-3 py-2 text-sm focus:ring-2 focus:ring-blue-200">
             <option value="horizontal">Horizontal</option>
             <option value="square">Quadrada</option>
           </select>
         </div>
       </section>
 
-      <div class="flex gap-3">
-        <button id="saveBtn" class="px-4 py-2 bg-blue-600 text-white rounded-lg">Salvar Configurações</button>
+      <div class="flex gap-3 pb-8">
+        <button id="saveBtn" class="px-5 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg shadow hover:from-blue-700 hover:to-indigo-700 transition">Salvar Configurações</button>
         <span id="saveMsg" class="text-sm text-gray-500"></span>
+      </div>
       </div>
     </main>
   </div>
@@ -91,11 +95,11 @@
       wrap.className = 'flex items-center gap-3';
       wrap.innerHTML = `
         <div class="w-40 text-sm text-gray-700">${s.label}</div>
-        <select data-field="type" data-key="${s.key}" class="border rounded px-2 py-1 text-sm">
+        <select data-field="type" data-key="${s.key}" class="border rounded px-3 py-2 text-sm focus:ring-2 focus:ring-blue-200">
           <option value="horizontal">Horizontal</option>
           <option value="square">Quadrada</option>
         </select>
-        <select data-field="color" data-key="${s.key}" class="border rounded px-2 py-1 text-sm">
+        <select data-field="color" data-key="${s.key}" class="border rounded px-3 py-2 text-sm focus:ring-2 focus:ring-blue-200">
           <option value="normal">Normal</option>
           <option value="white">Branca</option>
         </select>
@@ -116,14 +120,22 @@
     setPreview('logoSquarePreview', branding.logoSquareUrl);
     setPreview('logoSquareWhitePreview', branding.logoSquareWhiteUrl);
 
+    const defaultMap = {
+      capa:        { type: 'horizontal', color: 'normal' },
+      resultados:  { type: 'horizontal', color: 'normal' },
+      ranking:     { type: 'square',    color: 'white'  },
+      proximosPassos: { type: 'horizontal', color: 'normal' },
+      obrigado:    { type: 'square',    color: 'normal' },
+    };
+
     usageScreens.forEach(s => {
-      const conf = branding.usage?.apresentacao?.[s.key] || { type: 'horizontal', color: 'normal' };
+      const conf = branding.usage?.apresentacao?.[s.key] || defaultMap[s.key];
       const typeEl = usageForm.querySelector(`select[data-key="${s.key}"][data-field="type"]`);
       const colorEl = usageForm.querySelector(`select[data-key="${s.key}"][data-field="color"]`);
       if (typeEl) typeEl.value = conf.type;
       if (colorEl) colorEl.value = conf.color;
     });
-    document.getElementById('reportLogoType').value = branding.usage?.relatorio?.type || 'horizontal';
+    document.getElementById('reportLogoType').value = branding.usage?.relatorio?.type || 'square';
 
     // Upload handlers
     async function handleUpload(inputId, key) {

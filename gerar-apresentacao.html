@@ -956,7 +956,7 @@ ul.list-disc li br {
                     
                     const { jsPDF } = window.jspdf;
                     
-                    // PEGAR AS PÁGINAS DIRETAMENTE DO REPORTCONTAINER (JÁ RENDERIZADAS NA TELA)
+                    // Pegar as páginas diretamente do reportContainer
                     const reportContainer = document.getElementById('reportContainer');
                     const pages = reportContainer.querySelectorAll('.page');
                     
@@ -970,15 +970,15 @@ ul.list-disc li br {
                     
                     console.log(`📄 Encontradas ${pages.length} páginas para exportar`);
                     
-                    // Criar PDF (formato paisagem 16:9)
+                    // Criar PDF (formato A4 paisagem - IGUAL AOS RELATÓRIOS)
                     const doc = new jsPDF({
                         orientation: 'landscape',
                         unit: 'mm',
-                        format: [297, 167]
+                        format: 'a4'
                     });
                     
-                    const pdfWidth = 297;
-                    const pdfHeight = 167;
+                    const pdfWidth = 297;  // A4 largura
+                    const pdfHeight = 210; // A4 altura
                     
                     // Processar cada página
                     for (let i = 0; i < pages.length; i++) {
@@ -986,28 +986,36 @@ ul.list-disc li br {
                         
                         console.log(`📸 Capturando página ${i + 1}/${pages.length}...`);
                         
-                        // Capturar a página EXATAMENTE como está na tela
+                        // Capturar usando MESMA configuração dos relatórios
                         const canvas = await html2canvas(page, {
                             scale: 2,
                             useCORS: true,
                             logging: false,
-                            backgroundColor: null,
-                            allowTaint: true,
-                            imageTimeout: 15000,
-                            removeContainer: false
+                            backgroundColor: '#ffffff'
                         });
                         
-                        console.log(`✅ Canvas ${i + 1}: ${canvas.width}x${canvas.height}px`);
+                        const imgData = canvas.toDataURL('image/png');
+                        const imgWidth = canvas.width;
+                        const imgHeight = canvas.height;
                         
-                        const imgData = canvas.toDataURL('image/png', 1.0);
+                        console.log(`✅ Canvas ${i + 1}: ${imgWidth}x${imgHeight}px`);
+                        
+                        // Calcular dimensões mantendo proporção (IGUAL AOS RELATÓRIOS)
+                        const ratio = pdfWidth / (imgWidth * 0.264583); // 0.264583 mm per pixel at 96 DPI
+                        const scaledWidth = pdfWidth;
+                        const scaledHeight = (imgHeight * 0.264583) * ratio;
                         
                         // Adicionar nova página se não for a primeira
                         if (i > 0) {
                             doc.addPage();
                         }
                         
-                        // Adicionar a imagem preenchendo toda a página
-                        doc.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+                        // Centralizar verticalmente se necessário
+                        const yOffset = (pdfHeight - scaledHeight) / 2;
+                        const finalY = yOffset > 0 ? yOffset : 0;
+                        
+                        // Adicionar a imagem
+                        doc.addImage(imgData, 'PNG', 0, finalY, scaledWidth, scaledHeight);
                     }
                     
                     // Salvar PDF

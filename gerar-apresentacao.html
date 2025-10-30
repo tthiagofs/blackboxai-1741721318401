@@ -944,7 +944,7 @@ ul.list-disc li br {
             });
         }
         
-        // Botão Exportar PDF - Servidor (Chromium) via POST HTML (sem salvar)
+        // Botão Exportar PDF - Impressão nativa (sem servidor)
         const exportPdfBtn = document.getElementById('exportPdfBtn');
         if (exportPdfBtn) {
             exportPdfBtn.addEventListener('click', async () => {
@@ -963,52 +963,17 @@ ul.list-disc li br {
                     exportPdfBtn.disabled = true;
                     exportPdfBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Gerando PDF...';
                     
-                    console.log('📥 Exportando apresentação via servidor (Chromium)...');
-                    
-                    // Preparar HTML completo com CSS de impressão
-                    const slidesHTML = (window.currentPresentationData.html || '').replaceAll('class="page', 'class="page slide');
-                    
-                    const htmlDoc = `<!DOCTYPE html>
-<!DOCTYPE html><html lang="pt-BR"><head>
-<meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1"/>
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&display=swap" rel="stylesheet">
-<style>
-  :root { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-  @page { size: A4 landscape; margin: 0; }
-  body { margin: 0; font-family: 'Poppins', sans-serif; background: #fff; }
-  .slide { width: 297mm; height: 210mm; break-after: page; overflow: hidden; position: relative; }
-  @media print { * { animation: none !important; transition: none !important; filter: none !important; } }
-  /* Evitar cortes em valores numéricos */
-  .card-value, .ranking-stat-value { white-space: nowrap; line-height: 1.15; }
-  /* Garantir imagens estáveis */
-  .ranking-thumbnail img, .slide .card img { width: 100%; height: 180px; object-fit: cover; object-position: center; display: block; }
-</style>
-</head><body>${slidesHTML}</body></html>`;
+                    console.log('🖨️ Abrindo tela de impressão nativa...');
 
-                    // Enviar para API (POST HTML) e baixar PDF
-                    const resp = await fetch('/api/export-pdf', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ html: htmlDoc })
-                    });
+                    // Guardar HTML atual na sessão para a rota de impressão
+                    const printPayload = {
+                        html: (window.currentPresentationData.html || '').replaceAll('class="page', 'class="page slide'),
+                        unitName: window.currentPresentationData.unitName || 'Apresentacao'
+                    };
+                    sessionStorage.setItem('presentationPrintPayload', JSON.stringify(printPayload));
 
-                    if (!resp.ok) {
-                        const err = await resp.json().catch(() => ({}));
-                        throw new Error(err.message || 'Falha ao gerar PDF');
-                    }
-
-                    const blob = await resp.blob();
-                    const url = URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = `${window.currentPresentationData.unitName || 'Apresentacao'}.pdf`;
-                    document.body.appendChild(a);
-                    a.click();
-                    URL.revokeObjectURL(url);
-                    a.remove();
-                    
-                    console.log('✅ PDF baixado com sucesso!');
+                    // Abrir rota de impressão (sem salvar no Firestore)
+                    window.open('/apresentacao-print.html?mode=session&auto=1', '_blank');
                     
                     // Restaurar botão
                     exportPdfBtn.disabled = false;

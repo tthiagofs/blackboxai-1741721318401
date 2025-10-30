@@ -82,67 +82,59 @@
     <div id="loader">Carregando apresentação...</div>
     <div id="printContainer"></div>
 
-    <!-- Firebase -->
+    <!-- Carregamento flexível: via Firestore (id/projeto) ou via sessionStorage (mode=session) -->
     <script type="module">
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
         import { getFirestore, doc, getDoc } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
         
-        // Configuração Firebase
-        const firebaseConfig = {
-            apiKey: "AIzaSyB3-n3WIdEOhCxvpbigs_ogse7b3tggGGU",
-            authDomain: "insightflow-82cc4.firebaseapp.com",
-            projectId: "insightflow-82cc4",
-            storageBucket: "insightflow-82cc4.firebasestorage.app",
-            messagingSenderId: "945960175733",
-            appId: "1:945960175733:web:70345b9cf08a553db2d03c"
-        };
-
-        // Inicializar Firebase
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
-
-        // Pegar ID da apresentação da URL
         const urlParams = new URLSearchParams(window.location.search);
-        const presentationId = urlParams.get('id');
-        const projectId = urlParams.get('projectId');
+        const mode = urlParams.get('mode');
+        const auto = urlParams.get('auto') === '1';
+        
+        async function renderHTML(html) {
+            const container = document.getElementById('printContainer');
+            container.innerHTML = html;
+            const pages = container.querySelectorAll('.page');
+            pages.forEach(p => p.classList.add('slide'));
+            await document.fonts.ready;
+            await waitForImages();
+            document.getElementById('loader').style.display = 'none';
+            if (auto) {
+                setTimeout(() => {
+                    window.print();
+                }, 200);
+            }
+        }
 
         async function loadPresentation() {
             try {
-                if (!presentationId || !projectId) {
-                    throw new Error('ID da apresentação ou projeto não fornecido');
+                if (mode === 'session') {
+                    const raw = sessionStorage.getItem('presentationPrintPayload');
+                    if (!raw) throw new Error('Conteúdo da apresentação não encontrado na sessão.');
+                    const payload = JSON.parse(raw);
+                    await renderHTML(payload.html || '');
+                    return;
                 }
 
-                // Buscar apresentação do Firestore
+                // Firebase (fallback)
+                const firebaseConfig = {
+                    apiKey: "AIzaSyB3-n3WIdEOhCxvpbigs_ogse7b3tggGGU",
+                    authDomain: "insightflow-82cc4.firebaseapp.com",
+                    projectId: "insightflow-82cc4",
+                    storageBucket: "insightflow-82cc4.firebasestorage.app",
+                    messagingSenderId: "945960175733",
+                    appId: "1:945960175733:web:70345b9cf08a553db2d03c"
+                };
+                const app = initializeApp(firebaseConfig);
+                const db = getFirestore(app);
+                const presentationId = urlParams.get('id');
+                const projectId = urlParams.get('projectId');
+                if (!presentationId || !projectId) throw new Error('Parâmetros id/projeto ausentes.');
                 const docRef = doc(db, `projects/${projectId}/presentations/${presentationId}`);
-                const docSnap = await getDoc(docRef);
-
-                if (!docSnap.exists()) {
-                    throw new Error('Apresentação não encontrada');
-                }
-
-                const data = docSnap.data();
-                const html = data.html || '';
-
-                // Injetar HTML no container
-                const container = document.getElementById('printContainer');
-                container.innerHTML = html;
-
-                // Adicionar classe .slide a todas as páginas
-                const pages = container.querySelectorAll('.page');
-                pages.forEach(page => {
-                    page.classList.add('slide');
-                });
-
-                // Aguardar carregamento de fontes e imagens
-                await document.fonts.ready;
-                await waitForImages();
-
-                // Remover loader
-                document.getElementById('loader').style.display = 'none';
-
-                // Sinalizar que está pronto para impressão
-                window.isPrintReady = true;
-
+                const snap = await getDoc(docRef);
+                if (!snap.exists()) throw new Error('Apresentação não encontrada.');
+                const data = snap.data();
+                await renderHTML(data.html || '');
             } catch (error) {
                 console.error('❌ Erro ao carregar apresentação:', error);
                 document.getElementById('loader').innerHTML = `Erro: ${error.message}`;

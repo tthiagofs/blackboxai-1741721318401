@@ -26,12 +26,27 @@ export default async function handler(req, res) {
 
         console.log(`🌐 Acessando: ${printUrl}`);
 
+        // Configuração específica para Vercel
+        const isDev = process.env.NODE_ENV !== 'production';
+        
         // Inicializar Chromium headless
         browser = await puppeteer.launch({
-            args: chromium.args,
+            args: isDev ? [] : [
+                ...chromium.args,
+                '--disable-gpu',
+                '--disable-dev-shm-usage',
+                '--disable-setuid-sandbox',
+                '--no-first-run',
+                '--no-sandbox',
+                '--no-zygote',
+                '--single-process'
+            ],
             defaultViewport: chromium.defaultViewport,
-            executablePath: await chromium.executablePath(),
+            executablePath: isDev 
+                ? '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome' // local
+                : await chromium.executablePath('/tmp/chromium'),
             headless: chromium.headless,
+            ignoreHTTPSErrors: true,
         });
 
         const page = await browser.newPage();

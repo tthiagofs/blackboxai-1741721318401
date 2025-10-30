@@ -972,13 +972,18 @@ ul.list-disc li br {
 <style>
   :root { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   @page { size: A4 landscape; margin: 0; }
-  body { margin: 0; font-family: 'Poppins', sans-serif; background: #fff; }
-  .slide { width: 297mm; height: 210mm; break-after: page; overflow: hidden; position: relative; }
+  html, body { margin: 0; padding: 0; font-family: 'Poppins', sans-serif; background: #fff; }
+  /* Forçar cada slide a ocupar 100% da página exatamente */
+  .page.slide { width: 297mm !important; height: 210mm !important; margin: 0 !important; padding: 0 !important; display: block; overflow: hidden; box-sizing: border-box; position: relative; }
   @media print { * { animation: none !important; transition: none !important; filter: none !important; } }
-  /* Evitar cortes em valores numéricos */
-  .card-value, .ranking-stat-value { white-space: nowrap; line-height: 1.15; }
-  /* Garantir imagens estáveis */
-  .ranking-thumbnail img, .slide .card img { width: 100%; height: 180px; object-fit: cover; object-position: center; display: block; }
+  /* Neutralizar dimensões originais da classe .page do HTML gerado */
+  .page { width: auto !important; height: auto !important; }
+  /* Evitar cortes em valores numéricos (apenas na impressão) */
+  .card-value, .ranking-stat-value { white-space: nowrap; line-height: 1.25; transform: none !important; filter: none !important; }
+  .card-purple .card-value { font-size: .95em; }
+  /* Garantir imagens estáveis (sem esticar) */
+  .ranking-thumbnail { height: 250px !important; overflow: hidden; }
+  .ranking-thumbnail img, .page.slide .card img { width: 100% !important; height: 100% !important; object-fit: cover !important; object-position: center !important; display: block; }
 </style>
 </head><body>${slidesHTML}</body></html>`;
 

@@ -11,9 +11,7 @@
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="style.css">
-    <!-- jsPDF e html2canvas para exportação PDF -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <!-- REMOVIDO: html2canvas e jsPDF - Agora usando Puppeteer serverless -->
     <script>
         tailwind.config = {
             theme: {
@@ -36,21 +34,7 @@
         max-width: 100vw !important;
     }
     
-    /* CSS para exportação PDF - MODO PDF */
-    .pdf-mode * {
-        transform: none !important;
-        animation: none !important;
-        transition: none !important;
-        filter: none !important;
-    }
-    
-    /* Garante imagens consistentes na captura */
-    .pdf-mode img {
-        image-rendering: -webkit-optimize-contrast;
-        image-rendering: crisp-edges;
-    }
-    
-    /* CSS estável para cartões e imagens - já definido no gerar-html-apresentacao.js */
+    /* REMOVIDO: CSS do modo PDF - Agora usando página dedicada print */
     
      /* Estilo do Modal */
     #campaignsModal .max-h-64,
@@ -894,12 +878,16 @@ ul.list-disc li br {
                     const result = await presentationsService.savePresentation(projectId, window.currentPresentationData);
                     
                     if (result.success) {
+                        // Armazenar IDs para exportação PDF
+                        window.currentPresentationData.presentationId = result.id;
+                        window.currentPresentationData.projectId = projectId;
+                        
+                        console.log('✅ Apresentação salva com ID:', result.id);
+                        
                         // Mudar botão para indicar sucesso (verde) e MANTER DESABILITADO
                         saveReportBtn.disabled = true;
                         saveReportBtn.className = 'flex-1 bg-gradient-to-r from-green-600 to-green-700 text-white font-bold py-4 px-6 rounded-xl shadow-lg flex items-center justify-center opacity-75 cursor-not-allowed';
                         saveReportBtn.innerHTML = '<i class="fas fa-check mr-3 text-xl"></i><span class="text-lg">Apresentação Salva!</span>';
-                        
-                        console.log('✅ Apresentação salva com sucesso!');
                         
                         // NÃO redirecionar - usuário pode gerar outra apresentação
                     } else {
@@ -954,132 +942,43 @@ ul.list-disc li br {
             });
         }
         
-        // Botão Exportar PDF
+        // Botão Exportar PDF - NOVO: Usando Puppeteer serverless
         const exportPdfBtn = document.getElementById('exportPdfBtn');
         if (exportPdfBtn) {
             exportPdfBtn.addEventListener('click', async () => {
-                if (!window.currentPresentationData || !window.currentPresentationData.html) {
+                if (!window.currentPresentationData) {
                     console.error('❌ Erro: Nenhuma apresentação foi gerada ainda');
+                    alert('Por favor, gere a apresentação primeiro.');
                     return;
                 }
-                
-                console.log('📥 Exportando apresentação para PDF...');
                 
                 try {
                     // Desabilitar botão durante exportação
                     exportPdfBtn.disabled = true;
                     exportPdfBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Gerando PDF...';
                     
-                    // PASSO 1: Ativar modo PDF
-                    document.body.classList.add('pdf-mode');
-                    console.log('✅ Modo PDF ativado');
+                    console.log('📥 Exportando apresentação para PDF via Puppeteer...');
                     
-                    // Pegar os slides do reportContainer
-                    const reportContainer = document.getElementById('reportContainer');
-                    const slides = reportContainer.querySelectorAll('.slide');
+                    // Pegar IDs da apresentação
+                    const presentationId = window.currentPresentationData.presentationId;
+                    const projectId = window.currentPresentationData.projectId;
                     
-                    if (slides.length === 0) {
-                        console.error('❌ Nenhum slide encontrado');
-                        alert('Erro: Nenhum slide encontrado. Gere a apresentação primeiro.');
-                        document.body.classList.remove('pdf-mode');
-                        exportPdfBtn.disabled = false;
-                        exportPdfBtn.innerHTML = '<i class="fas fa-file-pdf mr-2"></i>Exportar PDF';
-                        return;
+                    if (!presentationId || !projectId) {
+                        throw new Error('IDs da apresentação não encontrados');
                     }
                     
-                    console.log(`📄 Encontrados ${slides.length} slides para exportar`);
+                    // Chamar função Netlify para gerar PDF
+                    const pdfUrl = `/.netlify/functions/export-pdf?id=${presentationId}&projectId=${projectId}`;
                     
-                    // Aguardar carregamento de todas as fontes
-                    await document.fonts.ready;
+                    console.log(`🌐 Gerando PDF: ${pdfUrl}`);
                     
-                    // ESCALAR slides para 1920x1080 durante captura (fator 1.5x)
-                    const SCALE_FACTOR = 1.5;
-                    slides.forEach(slide => {
-                        slide.style.transform = `scale(${SCALE_FACTOR})`;
-                        slide.style.transformOrigin = 'top left';
-                    });
+                    // Abrir PDF em nova aba
+                    window.open(pdfUrl, '_blank');
                     
-                    // Aguardar renderização da escala
-                    await new Promise(resolve => setTimeout(resolve, 200));
+                    console.log('✅ PDF sendo gerado! Aguarde...');
                     
-                    // PASSO 3: Criar PDF A4 landscape
-                    const { jsPDF } = window.jspdf;
-                    const pdf = new jsPDF({ 
-                        orientation: 'landscape', 
-                        unit: 'pt', 
-                        format: 'a4' 
-                    });
-                    
-                    const pageW = pdf.internal.pageSize.getWidth();
-                    const pageH = pdf.internal.pageSize.getHeight();
-                    const margin = 24;
-                    const maxW = pageW - margin * 2;
-                    const maxH = pageH - margin * 2;
-                    
-                    console.log(`📏 Dimensões PDF: ${pageW}x${pageH}pt | Área útil: ${maxW}x${maxH}pt`);
-                    
-                    // PASSO 2: Capturar cada slide individualmente
-                    for (let i = 0; i < slides.length; i++) {
-                        const slideEl = slides[i];
-                        
-                        console.log(`📸 Capturando slide ${i + 1}/${slides.length}...`);
-                        
-                        // Capturar com html2canvas (dimensões escaladas 1920x1080)
-                        const canvas = await html2canvas(slideEl, {
-                            scale: 2,
-                            useCORS: true,
-                            allowTaint: false,
-                            backgroundColor: '#ffffff',
-                            width: 1920,
-                            height: 1080,
-                            windowWidth: 1920,
-                            windowHeight: 1080,
-                            onclone: (doc) => {
-                                doc.body.classList.add('pdf-mode');
-                            }
-                        });
-                        
-                        console.log(`✅ Canvas ${i + 1}: ${canvas.width}x${canvas.height}px`);
-                        
-                        // PASSO 4: Adicionar ao PDF preservando aspect ratio
-                        const imgData = canvas.toDataURL('image/png', 1.0);
-                        const imgProps = pdf.getImageProperties(imgData);
-                        const imgW = imgProps.width;
-                        const imgH = imgProps.height;
-                        
-                        // Calcular proporção para caber na área útil
-                        const ratio = Math.min(maxW / imgW, maxH / imgH);
-                        const renderW = imgW * ratio;
-                        const renderH = imgH * ratio;
-                        
-                        // Centralizar na página
-                        const x = (pageW - renderW) / 2;
-                        const y = (pageH - renderH) / 2;
-                        
-                        console.log(`📐 Slide ${i + 1} renderizado: ${renderW.toFixed(0)}x${renderH.toFixed(0)}pt na posição (${x.toFixed(0)}, ${y.toFixed(0)})`);
-                        
-                        // Adicionar nova página se não for a primeira
-                        if (i > 0) {
-                            pdf.addPage('a4', 'landscape');
-                        }
-                        
-                        // Adicionar imagem ao PDF
-                        pdf.addImage(imgData, 'PNG', x, y, renderW, renderH, undefined, 'FAST');
-                    }
-                    
-                    // PASSO 5: Remover escala e desativar modo PDF
-                    slides.forEach(slide => {
-                        slide.style.transform = '';
-                        slide.style.transformOrigin = '';
-                    });
-                    document.body.classList.remove('pdf-mode');
-                    console.log('✅ Modo PDF desativado');
-                    
-                    // Salvar PDF
-                    const fileName = `${window.currentPresentationData.unitName || 'Apresentacao'}.pdf`;
-                    pdf.save(fileName);
-                    
-                    console.log('✅ PDF exportado com sucesso!');
+                    // Aguardar 2 segundos para dar feedback visual
+                    await new Promise(resolve => setTimeout(resolve, 2000));
                     
                     // Restaurar botão
                     exportPdfBtn.disabled = false;
@@ -1087,15 +986,7 @@ ul.list-disc li br {
                     
                 } catch (error) {
                     console.error('❌ Erro ao exportar PDF:', error);
-                    alert('Erro ao exportar PDF. Tente novamente.');
-                    
-                    // Garantir que a escala seja removida e o modo PDF desativado
-                    const slides = document.querySelectorAll('.slide');
-                    slides.forEach(slide => {
-                        slide.style.transform = '';
-                        slide.style.transformOrigin = '';
-                    });
-                    document.body.classList.remove('pdf-mode');
+                    alert('Erro ao exportar PDF: ' + error.message);
                     
                     // Restaurar botão
                     exportPdfBtn.disabled = false;

@@ -959,12 +959,30 @@ ul.list-disc li br {
                     
                     console.log('📥 Exportando apresentação para PDF via Puppeteer...');
                     
-                    // Pegar IDs da apresentação
-                    const presentationId = window.currentPresentationData.presentationId;
-                    const projectId = window.currentPresentationData.projectId;
+                    const projectId = localStorage.getItem('currentProject');
                     
-                    if (!presentationId || !projectId) {
-                        throw new Error('IDs da apresentação não encontrados');
+                    if (!projectId) {
+                        throw new Error('Projeto não selecionado');
+                    }
+                    
+                    // Se já foi salva, usar os IDs existentes
+                    let presentationId = window.currentPresentationData.presentationId;
+                    
+                    // Se NÃO foi salva, salvar temporariamente
+                    if (!presentationId) {
+                        console.log('💾 Salvando apresentação temporariamente para exportar...');
+                        const result = await presentationsService.savePresentation(projectId, window.currentPresentationData);
+                        
+                        if (!result.success) {
+                            throw new Error('Erro ao salvar apresentação: ' + result.error);
+                        }
+                        
+                        presentationId = result.id;
+                        // Armazenar IDs para próximas exportações
+                        window.currentPresentationData.presentationId = presentationId;
+                        window.currentPresentationData.projectId = projectId;
+                        
+                        console.log('✅ Apresentação salva com ID:', presentationId);
                     }
                     
                     // Chamar função Vercel para gerar PDF

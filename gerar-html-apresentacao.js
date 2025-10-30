@@ -70,7 +70,7 @@ export function generatePresentationHTML(params) {
  */
 function generateCoverPage(unitName, startDate, endDate) {
     return `
-    <div class="page capa">
+    <div class="page slide capa">
         <!-- Logo Horizontal -->
         <svg class="capa-logo-horizontal" viewBox="0 0 200 50" xmlns="http://www.w3.org/2000/svg">
             <text x="10" y="35" font-size="32" font-weight="700" fill="#2563A8" font-family="Poppins, sans-serif">
@@ -147,7 +147,7 @@ function generateResultsPage(metrics, platformName, budgetsCompleted, salesCount
     });
     
     return `
-    <div class="page resultados">
+    <div class="page slide resultados">
         <!-- Logo Horizontal -->
         <svg class="resultados-logo" viewBox="0 0 200 50" xmlns="http://www.w3.org/2000/svg">
             <text x="10" y="35" font-size="24" font-weight="700" fill="#2563A8" font-family="Poppins, sans-serif">
@@ -259,7 +259,7 @@ function generateRankingPage(ads) {
     }).join('');
 
     return `
-    <div class="page ranking">
+    <div class="page slide ranking">
         <!-- Logo Circular -->
         <svg class="ranking-logo" viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg">
             <circle cx="40" cy="40" r="38" fill="white" stroke="#2563A8" stroke-width="2"/>
@@ -298,7 +298,7 @@ function generateNextStepsPage(performanceAnalysis) {
         : '<li>Nenhuma orientação fornecida.</li>';
     
     return `
-    <div class="page proximos-passos">
+    <div class="page slide proximos-passos">
         <div class="proximos-left">
             <h2 class="proximos-title">PRÓXIMOS<br/>PASSOS</h2>
         </div>
@@ -318,7 +318,7 @@ function generateNextStepsPage(performanceAnalysis) {
  */
 function generateThankYouPage() {
     return `
-    <div class="page obrigado">
+    <div class="page slide obrigado">
         <!-- Logo Circular -->
         <svg class="obrigado-logo" viewBox="0 0 150 150" xmlns="http://www.w3.org/2000/svg">
             <circle cx="75" cy="75" r="73" fill="#2563A8"/>
@@ -375,13 +375,21 @@ function getStyles() {
     }
 
     .page {
-      width: 1280px;
-      height: 720px;
+      width: 1920px;
+      height: 1080px;
       background: white;
       margin: 20px auto;
       position: relative;
       overflow: hidden;
       box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+      transform-origin: top center;
+    }
+    
+    /* Escala responsiva para telas menores (apenas visualização) */
+    @media screen and (max-width: 1920px) {
+      .page:not(.pdf-mode .page) {
+        transform: scale(calc(min(100vw, 1920px) / 1920));
+      }
     }
 
     /* === PÁGINA 1 - CAPA === */
@@ -396,22 +404,22 @@ function getStyles() {
 
     .capa-logo-horizontal {
       position: absolute;
-      top: 40px;
-      left: 65px;
-      height: 50px;
+      top: 60px;
+      left: 100px;
+      height: 75px;
     }
 
     .capa-content {
-      max-width: 600px;
+      max-width: 900px;
       z-index: 2;
     }
 
     .capa-title {
-      font-size: 62px;
+      font-size: 93px;
       font-weight: 700;
       color: #1e5091;
       line-height: 1.05;
-      margin-bottom: 50px;
+      margin-bottom: 75px;
       letter-spacing: -1px;
     }
 
@@ -423,25 +431,25 @@ function getStyles() {
     .capa-unidade {
       display: flex;
       align-items: center;
-      gap: 12px;
-      font-size: 32px;
+      gap: 18px;
+      font-size: 48px;
       font-weight: 700;
       color: #2563A8;
-      margin-bottom: 25px;
+      margin-bottom: 38px;
     }
 
     .capa-unidade-icon {
-      width: 35px;
-      height: 35px;
+      width: 52px;
+      height: 52px;
       fill: #2563A8;
     }
 
     .capa-periodo {
       display: inline-block;
-      border: 3px solid #2563A8;
-      border-radius: 8px;
-      padding: 14px 35px;
-      font-size: 24px;
+      border: 4px solid #2563A8;
+      border-radius: 12px;
+      padding: 21px 52px;
+      font-size: 36px;
       color: #2563A8;
       font-weight: 400;
       background: white;
@@ -472,19 +480,19 @@ function getStyles() {
     }
 
     .resultados-logo {
-      height: 45px;
-      margin-bottom: 25px;
+      height: 68px;
+      margin-bottom: 38px;
     }
 
     .resultados-title {
-      font-size: 42px;
+      font-size: 63px;
       font-weight: 700;
       color: #1e5091;
-      margin-bottom: 8px;
+      margin-bottom: 12px;
     }
 
     .resultados-subtitle {
-      font-size: 20px;
+      font-size: 30px;
       color: #7B4397;
       font-weight: 600;
       margin-bottom: 35px;
@@ -504,23 +512,23 @@ function getStyles() {
 
     .card-white {
       background: white;
-      border-radius: 12px;
-      padding: 16px 20px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+      border-radius: 18px;
+      padding: 24px 30px;
+      box-shadow: 0 6px 18px rgba(0,0,0,0.08);
     }
 
     .card-purple {
       background: linear-gradient(135deg, #7B4397 0%, #6B3387 100%);
-      border-radius: 12px;
-      padding: 16px 20px;
-      box-shadow: 0 4px 12px rgba(123,67,151,0.3);
+      border-radius: 18px;
+      padding: 24px 30px;
+      box-shadow: 0 6px 18px rgba(123,67,151,0.3);
     }
 
     .card-label {
-      font-size: 14px;
+      font-size: 21px;
       color: #666;
       font-weight: 500;
-      margin-bottom: 6px;
+      margin-bottom: 9px;
     }
 
     .card-purple .card-label {
@@ -528,7 +536,7 @@ function getStyles() {
     }
 
     .card-value {
-      font-size: 24px;
+      font-size: 36px;
       font-weight: 700;
       color: #2563A8;
       line-height: 1.1;
@@ -538,7 +546,7 @@ function getStyles() {
 
     .card-purple .card-value {
       color: white;
-      font-size: 18px;
+      font-size: 27px;
     }
 
     .card-split {
@@ -589,16 +597,16 @@ function getStyles() {
     }
 
     .ranking-logo {
-      width: 80px;
-      height: 80px;
-      margin-bottom: 20px;
+      width: 120px;
+      height: 120px;
+      margin-bottom: 30px;
     }
 
     .ranking-title {
-      font-size: 48px;
+      font-size: 72px;
       font-weight: 700;
       color: white;
-      margin-bottom: 40px;
+      margin-bottom: 60px;
     }
 
     .ranking-grid {
@@ -611,8 +619,8 @@ function getStyles() {
 
     .ranking-card {
       background: white;
-      border-radius: 16px;
-      padding: 20px;
+      border-radius: 24px;
+      padding: 30px;
       position: relative;
     }
 
@@ -636,16 +644,16 @@ function getStyles() {
 
     .ranking-thumbnail {
       width: 100%;
-      height: 250px;
+      height: 375px;
       background: #f0f0f0;
-      border-radius: 12px;
-      margin-bottom: 15px;
+      border-radius: 18px;
+      margin-bottom: 22px;
       overflow: hidden;
       display: flex;
       align-items: center;
       justify-content: center;
     }
-    
+
     .ranking-thumbnail img {
       width: 100%;
       height: 100%;
@@ -683,13 +691,13 @@ function getStyles() {
     }
 
     .ranking-stat-label {
-      font-size: 13px;
+      font-size: 20px;
       color: #666;
       font-weight: 500;
     }
 
     .ranking-stat-value {
-      font-size: 16px;
+      font-size: 24px;
       font-weight: 700;
       color: #2563A8;
     }
@@ -721,11 +729,11 @@ function getStyles() {
     }
 
     .proximos-title {
-      font-size: 52px;
+      font-size: 78px;
       font-weight: 700;
       color: white;
       line-height: 1.1;
-      margin-bottom: 50px;
+      margin-bottom: 75px;
     }
 
     .proximos-stepper {
@@ -780,14 +788,14 @@ function getStyles() {
       list-style: none;
       display: flex;
       flex-direction: column;
-      gap: 18px;
-      margin-bottom: 40px;
+      gap: 27px;
+      margin-bottom: 60px;
     }
 
     .proximos-list li {
-      font-size: 18px;
+      font-size: 27px;
       color: #333;
-      padding-left: 30px;
+      padding-left: 45px;
       position: relative;
     }
 
@@ -796,7 +804,7 @@ function getStyles() {
       position: absolute;
       left: 0;
       color: #7B4397;
-      font-size: 20px;
+      font-size: 30px;
     }
 
     .proximos-logo {
@@ -814,22 +822,22 @@ function getStyles() {
     }
 
     .obrigado-logo {
-      width: 150px;
-      height: 150px;
+      width: 225px;
+      height: 225px;
     }
 
     .obrigado-content {
       text-align: center;
       background: linear-gradient(135deg, #2563A8 0%, #7B4397 50%, #DC1C76 100%);
-      padding: 40px 120px;
-      border-radius: 24px;
+      padding: 60px 180px;
+      border-radius: 36px;
     }
 
     .obrigado-text {
-      font-size: 96px;
+      font-size: 144px;
       font-weight: 700;
       color: white;
-      letter-spacing: 4px;
+      letter-spacing: 6px;
       margin: 0;
     }
 

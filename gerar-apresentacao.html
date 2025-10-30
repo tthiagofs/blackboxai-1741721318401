@@ -36,15 +36,21 @@
         max-width: 100vw !important;
     }
     
-    /* CSS para exportação PDF - remove animações e efeitos */
-    .exporting *, 
-    .exporting *::before, 
-    .exporting *::after {
+    /* CSS para exportação PDF - MODO PDF */
+    .pdf-mode * {
+        transform: none !important;
         animation: none !important;
         transition: none !important;
         filter: none !important;
-        will-change: auto !important;
     }
+    
+    /* Garante imagens consistentes na captura */
+    .pdf-mode img {
+        image-rendering: -webkit-optimize-contrast;
+        image-rendering: crisp-edges;
+    }
+    
+    /* CSS estável para cartões e imagens - já definido no gerar-html-apresentacao.js */
     
      /* Estilo do Modal */
     #campaignsModal .max-h-64,
@@ -964,99 +970,101 @@ ul.list-disc li br {
                     exportPdfBtn.disabled = true;
                     exportPdfBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Gerando PDF...';
                     
-                    // EXPORT FIX start
-                    const { jsPDF } = window.jspdf;
+                    // PASSO 1: Ativar modo PDF
+                    document.body.classList.add('pdf-mode');
+                    console.log('✅ Modo PDF ativado');
                     
-                    // Pegar as páginas diretamente do reportContainer
+                    // Aguardar renderização do modo PDF
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                    
+                    // Pegar os slides do reportContainer
                     const reportContainer = document.getElementById('reportContainer');
-                    const pages = reportContainer.querySelectorAll('.page');
+                    const slides = reportContainer.querySelectorAll('.slide');
                     
-                    if (pages.length === 0) {
-                        console.error('❌ Nenhuma página encontrada');
-                        alert('Erro: Nenhuma página encontrada. Gere a apresentação primeiro.');
+                    if (slides.length === 0) {
+                        console.error('❌ Nenhum slide encontrado');
+                        alert('Erro: Nenhum slide encontrado. Gere a apresentação primeiro.');
+                        document.body.classList.remove('pdf-mode');
                         exportPdfBtn.disabled = false;
                         exportPdfBtn.innerHTML = '<i class="fas fa-file-pdf mr-2"></i>Exportar PDF';
                         return;
                     }
                     
-                    console.log(`📄 Encontradas ${pages.length} páginas para exportar`);
+                    console.log(`📄 Encontrados ${slides.length} slides para exportar`);
                     
                     // Aguardar carregamento de todas as fontes
                     await document.fonts.ready;
                     
-                    // Criar PDF A4 paisagem
-                    const doc = new jsPDF('landscape', 'mm', 'a4');
-                    const pdfW = doc.internal.pageSize.getWidth();
-                    const pdfH = doc.internal.pageSize.getHeight();
+                    // PASSO 3: Criar PDF A4 landscape
+                    const { jsPDF } = window.jspdf;
+                    const pdf = new jsPDF({ 
+                        orientation: 'landscape', 
+                        unit: 'pt', 
+                        format: 'a4' 
+                    });
                     
-                    // Processar cada página
-                    for (let i = 0; i < pages.length; i++) {
-                        const page = pages[i];
+                    const pageW = pdf.internal.pageSize.getWidth();
+                    const pageH = pdf.internal.pageSize.getHeight();
+                    const margin = 24;
+                    const maxW = pageW - margin * 2;
+                    const maxH = pageH - margin * 2;
+                    
+                    console.log(`📏 Dimensões PDF: ${pageW}x${pageH}pt | Área útil: ${maxW}x${maxH}pt`);
+                    
+                    // PASSO 2: Capturar cada slide individualmente
+                    for (let i = 0; i < slides.length; i++) {
+                        const slideEl = slides[i];
                         
-                        console.log(`📸 Capturando página ${i + 1}/${pages.length}...`);
+                        console.log(`📸 Capturando slide ${i + 1}/${slides.length}...`);
                         
-                        // Clonar a página para não alterar o original
-                        const clone = page.cloneNode(true);
-                        
-                        // Remover efeitos no clone
-                        clone.style.transform = 'none';
-                        clone.style.zoom = '1';
-                        clone.style.filter = 'none';
-                        clone.classList.add('exporting');
-                        
-                        // Fixar tamanho real (1920x1080 - 16:9)
-                        clone.style.width = '1920px';
-                        clone.style.height = '1080px';
-                        clone.style.position = 'fixed';
-                        clone.style.left = '-99999px';
-                        clone.style.top = '0';
-                        
-                        // Adicionar ao DOM temporariamente
-                        document.body.appendChild(clone);
-                        
-                        // Capturar o clone
-                        const canvas = await html2canvas(clone, {
-                            scale: Math.max(2, window.devicePixelRatio || 2),
+                        // Capturar com html2canvas (dimensões reais do elemento)
+                        const canvas = await html2canvas(slideEl, {
+                            scale: 2,
                             useCORS: true,
-                            backgroundColor: null, // preserva gradiente
-                            scrollX: 0,
-                            scrollY: 0,
-                            windowWidth: 1920,
-                            windowHeight: 1080
+                            allowTaint: false,
+                            backgroundColor: '#ffffff',
+                            windowWidth: slideEl.scrollWidth,
+                            windowHeight: slideEl.scrollHeight,
+                            onclone: (doc) => {
+                                doc.body.classList.add('pdf-mode');
+                            }
                         });
-                        
-                        // Remover clone do DOM
-                        document.body.removeChild(clone);
                         
                         console.log(`✅ Canvas ${i + 1}: ${canvas.width}x${canvas.height}px`);
                         
+                        // PASSO 4: Adicionar ao PDF preservando aspect ratio
+                        const imgData = canvas.toDataURL('image/png', 1.0);
+                        const imgProps = pdf.getImageProperties(imgData);
+                        const imgW = imgProps.width;
+                        const imgH = imgProps.height;
+                        
+                        // Calcular proporção para caber na área útil
+                        const ratio = Math.min(maxW / imgW, maxH / imgH);
+                        const renderW = imgW * ratio;
+                        const renderH = imgH * ratio;
+                        
+                        // Centralizar na página
+                        const x = (pageW - renderW) / 2;
+                        const y = (pageH - renderH) / 2;
+                        
+                        console.log(`📐 Slide ${i + 1} renderizado: ${renderW.toFixed(0)}x${renderH.toFixed(0)}pt na posição (${x.toFixed(0)}, ${y.toFixed(0)})`);
+                        
                         // Adicionar nova página se não for a primeira
                         if (i > 0) {
-                            doc.addPage('a4', 'landscape');
+                            pdf.addPage('a4', 'landscape');
                         }
                         
-                        // Letterbox (manter proporção 16:9)
-                        const imgData = canvas.toDataURL('image/png');
-                        const imgRatio = canvas.width / canvas.height;
-                        let w = pdfW;
-                        let h = w / imgRatio;
-                        
-                        if (h > pdfH) {
-                            h = pdfH;
-                            w = h * imgRatio;
-                        }
-                        
-                        const x = (pdfW - w) / 2;
-                        const y = (pdfH - h) / 2;
-                        
-                        // Adicionar a imagem centralizada
-                        doc.addImage(imgData, 'PNG', x, y, w, h, undefined, 'FAST');
+                        // Adicionar imagem ao PDF
+                        pdf.addImage(imgData, 'PNG', x, y, renderW, renderH, undefined, 'FAST');
                     }
-                    // EXPORT FIX end
+                    
+                    // PASSO 5: Desativar modo PDF
+                    document.body.classList.remove('pdf-mode');
+                    console.log('✅ Modo PDF desativado');
                     
                     // Salvar PDF
                     const fileName = `${window.currentPresentationData.unitName || 'Apresentacao'}.pdf`;
-                    doc.save(fileName);
+                    pdf.save(fileName);
                     
                     console.log('✅ PDF exportado com sucesso!');
                     
@@ -1067,6 +1075,9 @@ ul.list-disc li br {
                 } catch (error) {
                     console.error('❌ Erro ao exportar PDF:', error);
                     alert('Erro ao exportar PDF. Tente novamente.');
+                    
+                    // Garantir que o modo PDF seja desativado
+                    document.body.classList.remove('pdf-mode');
                     
                     // Restaurar botão
                     exportPdfBtn.disabled = false;

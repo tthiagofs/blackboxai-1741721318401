@@ -944,7 +944,7 @@ ul.list-disc li br {
             });
         }
         
-        // Botão Exportar PDF - Usando html2canvas (igual relatórios)
+        // Botão Exportar PDF - Servidor (Chromium) via POST HTML (sem salvar)
         const exportPdfBtn = document.getElementById('exportPdfBtn');
         if (exportPdfBtn) {
             exportPdfBtn.addEventListener('click', async () => {
@@ -959,69 +959,52 @@ ul.list-disc li br {
                     exportPdfBtn.disabled = true;
                     exportPdfBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Gerando PDF...';
                     
-                    console.log('📥 Exportando apresentação para PDF...');
+                    console.log('📥 Exportando apresentação via servidor (Chromium)...');
                     
-                    const { jsPDF } = window.jspdf;
-                    const reportContainer = document.getElementById('reportContainer');
-                    const slides = reportContainer.querySelectorAll('.page');
+                    // Preparar HTML completo com CSS de impressão
+                    const slidesHTML = (window.currentPresentationData.html || '').replaceAll('class="page', 'class="page slide');
                     
-                    if (slides.length === 0) {
-                        throw new Error('Nenhuma página encontrada');
-                    }
-                    
-                    console.log(`📄 Exportando ${slides.length} páginas...`);
-                    
-                    // Criar PDF em landscape A4
-                    const doc = new jsPDF({
-                        orientation: 'landscape',
-                        unit: 'mm',
-                        format: 'a4'
+                    const htmlDoc = `<!DOCTYPE html>
+<!DOCTYPE html><html lang="pt-BR"><head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  @page { size: A4 landscape; margin: 0; }
+  body { margin: 0; font-family: 'Poppins', sans-serif; background: #fff; }
+  .slide { width: 297mm; height: 210mm; break-after: page; overflow: hidden; position: relative; }
+  @media print { * { animation: none !important; transition: none !important; filter: none !important; } }
+  /* Evitar cortes em valores numéricos */
+  .card-value, .ranking-stat-value { white-space: nowrap; line-height: 1.15; }
+  /* Garantir imagens estáveis */
+  .ranking-thumbnail img, .slide .card img { width: 100%; height: 180px; object-fit: cover; object-position: center; display: block; }
+</style>
+</head><body>${slidesHTML}</body></html>`;
+
+                    // Enviar para API (POST HTML) e baixar PDF
+                    const resp = await fetch('/api/export-pdf', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ html: htmlDoc })
                     });
-                    
-                    const pdfWidth = doc.internal.pageSize.getWidth();
-                    const pdfHeight = doc.internal.pageSize.getHeight();
-                    
-                    // Processar cada slide
-                    for (let i = 0; i < slides.length; i++) {
-                        const slide = slides[i];
-                        
-                        console.log(`📸 Capturando slide ${i + 1}/${slides.length}...`);
-                        
-                        // Capturar slide com html2canvas
-                        const canvas = await html2canvas(slide, {
-                            scale: 2,
-                            useCORS: true,
-                            logging: false,
-                            backgroundColor: '#ffffff'
-                        });
-                        
-                        const imgData = canvas.toDataURL('image/png');
-                        const imgWidth = canvas.width;
-                        const imgHeight = canvas.height;
-                        
-                        // Calcular proporção para caber no A4 landscape
-                        const ratio = Math.min(pdfWidth / (imgWidth * 0.264583), pdfHeight / (imgHeight * 0.264583));
-                        const scaledWidth = (imgWidth * 0.264583) * ratio;
-                        const scaledHeight = (imgHeight * 0.264583) * ratio;
-                        
-                        // Centralizar na página
-                        const x = (pdfWidth - scaledWidth) / 2;
-                        const y = (pdfHeight - scaledHeight) / 2;
-                        
-                        // Adicionar nova página se não for a primeira
-                        if (i > 0) {
-                            doc.addPage('a4', 'landscape');
-                        }
-                        
-                        // Adicionar imagem ao PDF
-                        doc.addImage(imgData, 'PNG', x, y, scaledWidth, scaledHeight);
+
+                    if (!resp.ok) {
+                        const err = await resp.json().catch(() => ({}));
+                        throw new Error(err.message || 'Falha ao gerar PDF');
                     }
+
+                    const blob = await resp.blob();
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `${window.currentPresentationData.unitName || 'Apresentacao'}.pdf`;
+                    document.body.appendChild(a);
+                    a.click();
+                    URL.revokeObjectURL(url);
+                    a.remove();
                     
-                    // Salvar PDF
-                    const fileName = `${window.currentPresentationData.unitName || 'Apresentacao'}.pdf`;
-                    doc.save(fileName);
-                    
-                    console.log('✅ PDF exportado com sucesso!');
+                    console.log('✅ PDF baixado com sucesso!');
                     
                     // Restaurar botão
                     exportPdfBtn.disabled = false;

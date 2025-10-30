@@ -6,25 +6,31 @@ export default async function handler(req, res) {
     let browser = null;
 
     try {
-        // Parâmetros da query string
-        const { id, projectId } = req.query;
+        // Suporta dois modos:
+        // 1) GET com id/projectId → carrega apresentacao-print.html
+        // 2) POST com { html } → renderiza HTML diretamente (sem salvar)
 
-        if (!id || !projectId) {
-            return res.status(400).json({ 
-                error: 'Parâmetros id e projectId são obrigatórios' 
-            });
+        const method = (req.method || 'GET').toUpperCase();
+        let mode = 'get-print-route';
+        let htmlPayload = '';
+
+        if (method === 'POST') {
+            const bodyRaw = typeof req.body === 'string' ? req.body : JSON.stringify(req.body || {});
+            const body = typeof req.body === 'object' ? req.body : JSON.parse(bodyRaw || '{}');
+            if (body && body.html) {
+                mode = 'post-html';
+                htmlPayload = String(body.html);
+            }
         }
-
-        console.log(`📄 Gerando PDF para apresentação ${id} do projeto ${projectId}`);
 
         // URL base do Vercel
         const baseUrl = process.env.VERCEL_URL 
             ? `https://${process.env.VERCEL_URL}` 
             : 'http://localhost:3000';
         
-        const printUrl = `${baseUrl}/apresentacao-print.html?id=${id}&projectId=${projectId}`;
-
-        console.log(`🌐 Acessando: ${printUrl}`);
+        // Parâmetros da query string (apenas para modo GET)
+        const { id, projectId } = req.query;
+        const printUrl = `${baseUrl}/apresentacao-print.html?id=${id || ''}&projectId=${projectId || ''}`;
 
         // Configuração específica para Vercel
         const isDev = process.env.NODE_ENV !== 'production';
@@ -51,24 +57,28 @@ export default async function handler(req, res) {
 
         const page = await browser.newPage();
 
-        // Navegar para a página print
-        await page.goto(printUrl, {
-            waitUntil: 'networkidle0',
-            timeout: 60000 // 60 segundos
-        });
-
-        console.log('✅ Página carregada');
+        if (mode === 'post-html') {
+            console.log('🌐 Renderizando HTML enviado via POST');
+            await page.setContent(htmlPayload, { waitUntil: 'networkidle0' });
+        } else {
+            if (!id || !projectId) {
+                await browser.close();
+                return res.status(400).json({ error: 'Parâmetros id e projectId são obrigatórios' });
+            }
+            console.log(`🌐 Acessando: ${printUrl}`);
+            await page.goto(printUrl, { waitUntil: 'networkidle0', timeout: 60000 });
+            console.log('✅ Página carregada');
+        }
 
         // Aguardar fontes carregarem
         await page.evaluateHandle('document.fonts.ready');
         console.log('✅ Fontes carregadas');
 
-        // Aguardar sinal que a apresentação está pronta
-        await page.waitForFunction(
-            () => window.isPrintReady === true,
-            { timeout: 30000 }
-        );
-        console.log('✅ Apresentação pronta');
+        // Aguardar sinal que a apresentação está pronta (apenas modo GET)
+        if (mode === 'get-print-route') {
+            await page.waitForFunction(() => window.isPrintReady === true, { timeout: 30000 });
+            console.log('✅ Apresentação pronta');
+        }
 
         // Pequeno delay para garantir renderização completa
         await new Promise(resolve => setTimeout(resolve, 1000));

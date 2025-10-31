@@ -1643,16 +1643,24 @@ function renderCompleteReport(unitName, startDate, endDate, metrics, blackMetric
         <div class="max-w-4xl mx-auto">
             <!-- Header do Relatório -->
             <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
-                <div class="flex items-center justify-between mb-4">
+                    <div class="flex items-center justify-between mb-4">
                     <div class="flex items-center gap-4">
                         <!-- Logo do Projeto -->
                         ${projectLogoUrl 
                             ? `<img src="${projectLogoUrl}" alt="Logo" class="w-16 h-16 rounded-xl object-cover border-2 border-gray-200" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
-                               <div class="w-16 h-16 bg-blue-600 rounded-xl flex items-center justify-center" style="display:none;">
-                                   <i class="fas fa-chart-line text-white text-2xl"></i>
+                               <div class="w-16 h-16 rounded-xl border-2 border-dashed border-gray-300 flex items-center justify-center bg-gray-50" style="display:none;">
+                                   <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" style="width:32px;height:32px;opacity:0.4;">
+                                       <rect x="8" y="8" width="48" height="48" rx="4" fill="none" stroke="#9ca3af" stroke-width="2" stroke-dasharray="4,4"/>
+                                       <circle cx="32" cy="28" r="6" fill="none" stroke="#9ca3af" stroke-width="2"/>
+                                       <path d="M22 42 Q32 36 42 42" stroke="#9ca3af" stroke-width="2" fill="none" stroke-linecap="round"/>
+                                   </svg>
                                </div>`
-                            : `<div class="w-16 h-16 bg-blue-600 rounded-xl flex items-center justify-center">
-                                   <i class="fas fa-chart-line text-white text-2xl"></i>
+                            : `<div class="w-16 h-16 rounded-xl border-2 border-dashed border-gray-300 flex items-center justify-center bg-gray-50" title="Logo não configurada">
+                                   <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" style="width:32px;height:32px;opacity:0.4;">
+                                       <rect x="8" y="8" width="48" height="48" rx="4" fill="none" stroke="#9ca3af" stroke-width="2" stroke-dasharray="4,4"/>
+                                       <circle cx="32" cy="28" r="6" fill="none" stroke="#9ca3af" stroke-width="2"/>
+                                       <path d="M22 42 Q32 36 42 42" stroke="#9ca3af" stroke-width="2" fill="none" stroke-linecap="round"/>
+                                   </svg>
                                </div>`
                         }
                         <div>

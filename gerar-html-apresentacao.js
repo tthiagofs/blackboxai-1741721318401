@@ -71,10 +71,28 @@ function pickLogo(branding, screenKey, defaultType = 'horizontal', defaultColor 
     const type = usage.type || defaultType;
     const color = usage.color || defaultColor;
     const map = {
-        horizontal: color === 'white' ? branding.logoHorizontalWhiteUrl : branding.logoHorizontalUrl,
-        square: color === 'white' ? branding.logoSquareWhiteUrl : branding.logoSquareUrl,
+        horizontal: color === 'white' ? branding?.logoHorizontalWhiteUrl : branding?.logoHorizontalUrl,
+        square: color === 'white' ? branding?.logoSquareWhiteUrl : branding?.logoSquareUrl,
     };
     return map[type] || null;
+}
+
+function getLogoPlaceholderSVG(type = 'horizontal', color = 'normal') {
+    const fillColor = color === 'white' ? '#ffffff' : '#2563A8';
+    const strokeColor = color === 'white' ? '#ffffff' : '#2563A8';
+    
+    if (type === 'square') {
+        return `<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:100%;">
+            <rect x="8" y="8" width="48" height="48" rx="4" fill="none" stroke="${strokeColor}" stroke-width="2" stroke-dasharray="4,4" opacity="0.5"/>
+            <circle cx="32" cy="28" r="6" fill="none" stroke="${strokeColor}" stroke-width="2" opacity="0.6"/>
+            <path d="M22 42 Q32 36 42 42" stroke="${strokeColor}" stroke-width="2" fill="none" opacity="0.6" stroke-linecap="round"/>
+        </svg>`;
+    } else {
+        return `<svg viewBox="0 0 200 50" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:100%;">
+            <rect x="10" y="10" width="180" height="30" rx="4" fill="none" stroke="${strokeColor}" stroke-width="2" stroke-dasharray="4,4" opacity="0.5"/>
+            <text x="100" y="35" font-size="14" fill="${fillColor}" font-family="Poppins, sans-serif" text-anchor="middle" opacity="0.6">Sem Logo</text>
+        </svg>`;
+    }
 }
 
 /**
@@ -85,10 +103,7 @@ function generateCoverPage(unitName, startDate, endDate, branding) {
     return `
     <div class="page slide capa">
         <!-- Logo Horizontal -->
-        ${logoUrl ? `<img class="capa-logo-horizontal" src="${logoUrl}" alt="Logo" style="height:48px;object-fit:contain;"/>` : `
-        <svg class="capa-logo-horizontal" viewBox="0 0 200 50" xmlns="http://www.w3.org/2000/svg">
-            <text x="10" y="35" font-size="32" font-weight="700" fill="#2563A8" font-family="Poppins, sans-serif">Oral Centter</text>
-        </svg>`}
+        ${logoUrl ? `<img class="capa-logo-horizontal" src="${logoUrl}" alt="Logo" style="height:48px;object-fit:contain;"/>` : `<div class="capa-logo-horizontal" style="height:48px;opacity:0.5;">${getLogoPlaceholderSVG('horizontal', 'normal')}</div>`}
 
         <div class="capa-content">
             <h1 class="capa-title">
@@ -161,8 +176,10 @@ function generateResultsPage(metrics, platformName, budgetsCompleted, salesCount
     return `
     <div class="page slide resultados">
         <!-- Logo Horizontal -->
-        ${pickLogo(branding,'resultados','horizontal','normal') ? `<img class="resultados-logo" src="${pickLogo(branding,'resultados','horizontal','normal')}" alt="Logo" style="height:40px;object-fit:contain;"/>` : `
-        <svg class="resultados-logo" viewBox="0 0 200 50" xmlns="http://www.w3.org/2000/svg"><text x="10" y="35" font-size="24" font-weight="700" fill="#2563A8" font-family="Poppins, sans-serif">Oral Centter</text></svg>`}
+        ${(() => {
+            const logoUrl = pickLogo(branding, 'resultados', 'horizontal', 'normal');
+            return logoUrl ? `<img class="resultados-logo" src="${logoUrl}" alt="Logo" style="height:40px;object-fit:contain;"/>` : `<div class="resultados-logo" style="height:40px;opacity:0.5;">${getLogoPlaceholderSVG('horizontal', 'normal')}</div>`;
+        })()}
 
         <h2 class="resultados-title">RESULTADOS TRÁFEGO PAGO</h2>
         <p class="resultados-subtitle">${platformName}</p>
@@ -270,7 +287,10 @@ function generateRankingPage(ads, branding = {}) {
     return `
     <div class="page slide ranking">
         <!-- Logo Quadrada -->
-        ${pickLogo(branding,'ranking','square','white') ? `<img class="ranking-logo" src="${pickLogo(branding,'ranking','square','white')}" alt="Logo" style="height:64px;width:64px;object-fit:contain;"/>` : ''}
+        ${(() => {
+            const logoUrl = pickLogo(branding, 'ranking', 'square', 'white');
+            return logoUrl ? `<img class="ranking-logo" src="${logoUrl}" alt="Logo" style="height:64px;width:64px;object-fit:contain;"/>` : `<div class="ranking-logo" style="height:64px;width:64px;opacity:0.6;">${getLogoPlaceholderSVG('square', 'white')}</div>`;
+        })()}
 
         <h2 class="ranking-title">RANKING ANÚNCIOS</h2>
 
@@ -306,7 +326,7 @@ function generateNextStepsPage(performanceAnalysis, branding = {}) {
     return `
     <div class="page slide proximos-passos">
         <!-- Logo Horizontal -->
-        ${logoUrl ? `<img class="proximos-logo" src="${logoUrl}" alt="Logo" style="height:40px;object-fit:contain;margin-bottom:20px;"/>` : ''}
+        ${logoUrl ? `<img class="proximos-logo" src="${logoUrl}" alt="Logo" style="height:40px;object-fit:contain;margin-bottom:20px;"/>` : `<div class="proximos-logo" style="height:40px;margin-bottom:20px;opacity:0.5;">${getLogoPlaceholderSVG('horizontal', 'normal')}</div>`}
         
         <div class="proximos-left">
             <h2 class="proximos-title">PRÓXIMOS<br/>PASSOS</h2>
@@ -326,10 +346,12 @@ function generateNextStepsPage(performanceAnalysis, branding = {}) {
  * Gerar página de obrigado
  */
 function generateThankYouPage(branding = {}) {
+    const logoUrl = pickLogo(branding, 'obrigado', 'square', 'white');
+    
     return `
     <div class="page slide obrigado">
         <!-- Logo Quadrada -->
-        ${pickLogo(branding,'obrigado','square','white') ? `<img class="obrigado-logo" src="${pickLogo(branding,'obrigado','square','white')}" alt="Logo" style="height:150px;width:150px;object-fit:contain;"/>` : ''}
+        ${logoUrl ? `<img class="obrigado-logo" src="${logoUrl}" alt="Logo" style="height:150px;width:150px;object-fit:contain;"/>` : `<div class="obrigado-logo" style="height:150px;width:150px;opacity:0.6;">${getLogoPlaceholderSVG('square', 'white')}</div>`}
 
         <div class="obrigado-content">
             <h2 class="obrigado-text">OBRIGADO!</h2>

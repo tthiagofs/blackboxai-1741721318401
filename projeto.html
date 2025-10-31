@@ -137,16 +137,18 @@
 
                 <!-- Logo e Nome do Projeto -->
                 <div class="flex items-center gap-4 mb-6">
-                    <!-- Upload de Logo -->
+                    <!-- Exibição de Logo (apenas leitura - configurar em Configurações) -->
                     <div>
-                        <div class="logo-upload-container" id="logoContainer">
-                            <input type="file" id="logoInput" accept="image/*" class="hidden">
-                            <i class="fas fa-camera text-3xl text-blue-600" id="uploadIcon"></i>
+                        <div class="logo-upload-container has-image" id="logoContainer" style="cursor: default;">
                             <img id="logoPreview" class="hidden" alt="Logo do Projeto">
+                            <div id="logoPlaceholder" class="w-full h-full flex items-center justify-center bg-gray-100 rounded-lg">
+                                <i class="fas fa-image text-2xl text-gray-400"></i>
+                            </div>
                         </div>
                         <p class="text-xs text-gray-500 text-center mt-2">
-                            Clique para adicionar logo<br>
-                            <span class="text-gray-400">PNG/JPG • 200x200px • Máx 2MB</span>
+                            <a href="configuracoes.html?id=${currentProjectId}" class="text-blue-600 hover:text-blue-700 underline">
+                                Configurar logos
+                            </a>
                         </p>
                     </div>
 
@@ -370,85 +372,31 @@
             window.location.href = '/tipo-relatorio.html';
         });
 
-        // Upload de Logo
-        logoContainer.addEventListener('click', () => {
-            logoInput.click();
-        });
-
-        // Adicionar tooltip com orientações
-        logoContainer.title = 'Clique para adicionar logo\nFormato: PNG ou JPG\nTamanho ideal: 200x200px\nMáximo: 2MB';
-
-        logoInput.addEventListener('change', async (e) => {
-            const file = e.target.files[0];
-            if (!file) return;
-
-            // Validar tipo de arquivo
-            if (!file.type.startsWith('image/')) {
-                alert('Por favor, selecione uma imagem válida (PNG ou JPG)');
-                return;
-            }
-
-            // Validar tamanho (máx 2MB)
-            if (file.size > 2 * 1024 * 1024) {
-                alert('A imagem deve ter no máximo 2MB');
-                return;
-            }
-
+        // Carregar logo do branding (apenas visualização)
+        async function loadBrandingLogo() {
             try {
-                console.log('📤 Processando logo...', { projectId: currentProjectId, fileName: file.name, size: file.size });
-
-                // Converter imagem para Base64
-                const reader = new FileReader();
-                reader.onload = async (e) => {
-                    const base64Image = e.target.result;
-                    
-                    // Mostrar preview imediatamente
-                    logoPreview.src = base64Image;
+                const { getBranding } = await import('./services/brandingService.js');
+                const branding = await getBranding(currentProjectId);
+                
+                // Usar logo quadrada para exibição no header
+                const logoUrl = branding?.logoSquareUrl || branding?.logoHorizontalUrl || null;
+                
+                if (logoUrl) {
+                    logoPreview.src = logoUrl;
                     logoPreview.classList.remove('hidden');
-                    uploadIcon.classList.add('hidden');
-                    logoContainer.classList.add('has-image');
-
-                    try {
-                        // Salvar Base64 no Firestore
-                        const projectRef = doc(db, 'projects', currentProjectId);
-                        await updateDoc(projectRef, {
-                            logoUrl: base64Image,
-                            updatedAt: serverTimestamp()
-                        });
-
-                        console.log('✅ Logo salva com sucesso no Firestore!', {
-                            projectId: currentProjectId,
-                            logoSize: Math.round(base64Image.length / 1024) + 'KB'
-                        });
-                        
-                        // Atualizar o projeto atual
-                        currentProject = await projectsService.getProject(currentProjectId);
-                        console.log('✅ Projeto atualizado:', currentProject);
-                        
-                        alert('✅ Logo salva com sucesso!\n\nFormato ideal: PNG ou JPG\nTamanho: 200x200px\nA logo será exibida nos relatórios.');
-                    } catch (error) {
-                        console.error('❌ Erro ao salvar logo:', error);
-                        alert('Erro ao salvar logo. Tente novamente.\n\n' + error.message);
-                        
-                        // Reverter preview em caso de erro
-                        logoPreview.classList.add('hidden');
-                        uploadIcon.classList.remove('hidden');
-                        logoContainer.classList.remove('has-image');
-                    }
-                };
-                
-                reader.onerror = (error) => {
-                    console.error('❌ Erro ao ler arquivo:', error);
-                    alert('Erro ao processar a imagem. Tente novamente.');
-                };
-                
-                reader.readAsDataURL(file);
-                
+                    document.getElementById('logoPlaceholder').style.display = 'none';
+                } else {
+                    logoPreview.classList.add('hidden');
+                    document.getElementById('logoPlaceholder').style.display = 'flex';
+                }
             } catch (error) {
-                console.error('❌ Erro ao processar logo:', error);
-                alert('Erro ao processar a logo. Tente novamente.\n\n' + error.message);
+                console.warn('⚠️ Branding não encontrado ou sem logo:', error.message);
+                logoPreview.classList.add('hidden');
+                document.getElementById('logoPlaceholder').style.display = 'flex';
             }
-        });
+        }
+        
+        loadBrandingLogo();
 
         // Edição do Nome do Projeto
         projectNameEditable.addEventListener('click', async () => {
@@ -640,13 +588,7 @@
                     currentProject = project;
                     projectNameEl.textContent = project.name;
 
-                    // Carregar logo se existir
-                    if (project.logoUrl) {
-                        logoPreview.src = project.logoUrl;
-                        logoPreview.classList.remove('hidden');
-                        uploadIcon.classList.add('hidden');
-                        logoContainer.classList.add('has-image');
-                    }
+                    // Logo agora é carregada via branding (loadBrandingLogo)
                 } else {
                     projectNameEl.textContent = 'Projeto não encontrado';
                 }

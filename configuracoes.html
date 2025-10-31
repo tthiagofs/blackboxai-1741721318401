@@ -79,6 +79,8 @@
   <script type="module">
     import { initSidebar } from './components/sidebar.js';
     import { uploadLogo, getBranding, saveBranding } from './services/brandingService.js';
+    import { auth } from './config/firebase.js';
+    import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
 
     const currentPage = 'configuracoes';
     initSidebar(currentPage);
@@ -172,10 +174,21 @@
 
     // Upload handlers
     async function handleUpload(inputId, key) {
-      const file = document.getElementById(inputId).files[0];
-      if (!file) return null;
-      const url = await uploadLogo(projectId, file, key);
-      return url;
+      try {
+        const input = document.getElementById(inputId);
+        const file = input?.files?.[0];
+        if (!file) {
+          console.log(`⏭️ Nenhum arquivo selecionado para ${key}`);
+          return null;
+        }
+        console.log(`📤 Iniciando upload de ${key}...`, { fileName: file.name, size: file.size });
+        const url = await uploadLogo(projectId, file, key);
+        console.log(`✅ Upload concluído para ${key}:`, url);
+        return url;
+      } catch (error) {
+        console.error(`❌ Erro ao fazer upload de ${key}:`, error);
+        throw new Error(`Falha ao fazer upload de ${key}: ${error.message}`);
+      }
     }
 
     document.getElementById('saveBtn').addEventListener('click', async () => {
@@ -185,12 +198,39 @@
         btn.disabled = true;
         saveMsg.textContent = 'Salvando...';
 
+        console.log('📋 Iniciando processo de salvamento...');
+
         // Uploads (se houver novos arquivos)
         const urls = {};
-        urls.logoHorizontalUrl = await handleUpload('logoHorizontal', 'logo-horizontal') || branding.logoHorizontalUrl;
-        urls.logoHorizontalWhiteUrl = await handleUpload('logoHorizontalWhite', 'logo-horizontal-white') || branding.logoHorizontalWhiteUrl;
-        urls.logoSquareUrl = await handleUpload('logoSquare', 'logo-square') || branding.logoSquareUrl;
-        urls.logoSquareWhiteUrl = await handleUpload('logoSquareWhite', 'logo-square-white') || branding.logoSquareWhiteUrl;
+        console.log('📤 Fazendo uploads de logos...');
+        
+        try {
+          urls.logoHorizontalUrl = await handleUpload('logoHorizontal', 'logo-horizontal') || branding.logoHorizontalUrl;
+        } catch (e) {
+          console.warn('⚠️ Falha no upload logo horizontal, mantendo URL anterior:', e.message);
+          urls.logoHorizontalUrl = branding.logoHorizontalUrl;
+        }
+
+        try {
+          urls.logoHorizontalWhiteUrl = await handleUpload('logoHorizontalWhite', 'logo-horizontal-white') || branding.logoHorizontalWhiteUrl;
+        } catch (e) {
+          console.warn('⚠️ Falha no upload logo horizontal branca, mantendo URL anterior:', e.message);
+          urls.logoHorizontalWhiteUrl = branding.logoHorizontalWhiteUrl;
+        }
+
+        try {
+          urls.logoSquareUrl = await handleUpload('logoSquare', 'logo-square') || branding.logoSquareUrl;
+        } catch (e) {
+          console.warn('⚠️ Falha no upload logo quadrada, mantendo URL anterior:', e.message);
+          urls.logoSquareUrl = branding.logoSquareUrl;
+        }
+
+        try {
+          urls.logoSquareWhiteUrl = await handleUpload('logoSquareWhite', 'logo-square-white') || branding.logoSquareWhiteUrl;
+        } catch (e) {
+          console.warn('⚠️ Falha no upload logo quadrada branca, mantendo URL anterior:', e.message);
+          urls.logoSquareWhiteUrl = branding.logoSquareWhiteUrl;
+        }
 
         const usage = { apresentacao: {}, relatorio: {} };
         usageScreens.forEach(s => {
@@ -200,16 +240,42 @@
         });
         usage.relatorio.type = document.getElementById('reportLogoType').value;
 
-        const newBranding = { ...branding, ...urls, usage };
-        console.log('🔄 Salvando branding...', newBranding);
+        console.log('💾 Preparando dados para salvar...', { urls, usage });
+        
+        const newBranding = { 
+          ...branding, 
+          ...urls, 
+          usage 
+        };
+        
+        console.log('🔄 Salvando branding no Firestore...', newBranding);
+        
+        // Verificar autenticação antes de salvar
+        if (!auth.currentUser) {
+          throw new Error('Usuário não autenticado. Faça login novamente.');
+        }
+        
         await saveBranding(projectId, newBranding);
-        console.log('✅ Branding salvo');
+        console.log('✅ Branding salvo com sucesso!');
+        
+        // Atualizar branding local e previews
         branding = newBranding;
+        setPreview('logoHorizontalPreview', branding.logoHorizontalUrl);
+        setPreview('logoHorizontalWhitePreview', branding.logoHorizontalWhiteUrl);
+        setPreview('logoSquarePreview', branding.logoSquareUrl);
+        setPreview('logoSquareWhitePreview', branding.logoSquareWhiteUrl);
+        
+        // Limpar inputs de arquivo para não fazer upload novamente
+        document.getElementById('logoHorizontal').value = '';
+        document.getElementById('logoHorizontalWhite').value = '';
+        document.getElementById('logoSquare').value = '';
+        document.getElementById('logoSquareWhite').value = '';
+        
         saveMsg.textContent = 'Salvo!';
         setTimeout(() => saveMsg.textContent = '', 1500);
       } catch (e) {
         console.error('❌ Erro ao salvar branding:', e);
-        saveMsg.textContent = 'Erro ao salvar. Tente novamente.';
+        saveMsg.textContent = `Erro: ${e.message || 'Tente novamente.'}`;
       } finally {
         btn.disabled = false;
       }

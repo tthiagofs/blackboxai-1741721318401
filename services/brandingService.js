@@ -22,10 +22,24 @@ export async function saveBranding(projectId, branding) {
 
 export async function uploadLogo(projectId, file, pathKey) {
   if (!file) return null;
-  const fileName = `${pathKey}-${Date.now()}-${file.name}`;
-  const fileRef = ref(storage, `projects/${projectId}/branding/${fileName}`);
-  await uploadBytes(fileRef, file);
-  return await getDownloadURL(fileRef);
+  
+  try {
+    const fileName = `${pathKey}-${Date.now()}-${file.name}`;
+    const fileRef = ref(storage, `projects/${projectId}/branding/${fileName}`);
+    
+    console.log('📤 Uploadando para Storage...', { path: `projects/${projectId}/branding/${fileName}`, size: file.size });
+    
+    await uploadBytes(fileRef, file);
+    console.log('✅ Upload concluído, obtendo URL...');
+    
+    const url = await getDownloadURL(fileRef);
+    console.log('✅ URL obtida:', url);
+    
+    return url;
+  } catch (error) {
+    console.error('❌ Erro no uploadLogo:', error);
+    throw error;
+  }
 }
 
 

@@ -192,7 +192,7 @@ function generateResultsPage(metrics, platformName, budgetsCompleted, salesCount
         <!-- Logo Horizontal -->
         ${(() => {
             const logoUrl = pickLogo(branding, 'resultados', 'horizontal', 'normal');
-            return logoUrl ? `<img class="resultados-logo" src="${logoUrl}" alt="Logo" style="height:40px;object-fit:contain;"/>` : `<div class="resultados-logo" style="height:40px;opacity:0.5;">${getLogoPlaceholderSVG('horizontal', 'normal')}</div>`;
+            return logoUrl ? `<img class="resultados-logo" src="${logoUrl}" alt="Logo" style="object-fit:contain;"/>` : `<div class="resultados-logo" style="opacity:0.5;">${getLogoPlaceholderSVG('horizontal', 'normal')}</div>`;
         })()}
 
         <h2 class="resultados-title">RESULTADOS TRÁFEGO PAGO</h2>
@@ -303,7 +303,7 @@ function generateRankingPage(ads, branding = {}) {
         <!-- Logo Quadrada -->
         ${(() => {
             const logoUrl = pickLogo(branding, 'ranking', 'square', 'white');
-            return logoUrl ? `<img class="ranking-logo" src="${logoUrl}" alt="Logo" style="height:64px;width:64px;object-fit:contain;"/>` : `<div class="ranking-logo" style="height:64px;width:64px;opacity:0.6;">${getLogoPlaceholderSVG('square', 'white')}</div>`;
+            return logoUrl ? `<img class="ranking-logo" src="${logoUrl}" alt="Logo" style="object-fit:contain;"/>` : `<div class="ranking-logo" style="opacity:0.6;">${getLogoPlaceholderSVG('square', 'white')}</div>`;
         })()}
 
         <h2 class="ranking-title">RANKING ANÚNCIOS</h2>
@@ -340,7 +340,7 @@ function generateNextStepsPage(performanceAnalysis, branding = {}) {
     return `
     <div class="page slide proximos-passos">
         <!-- Logo Horizontal -->
-        ${logoUrl ? `<img class="proximos-logo" src="${logoUrl}" alt="Logo" style="height:40px;object-fit:contain;margin-bottom:20px;"/>` : `<div class="proximos-logo" style="height:40px;margin-bottom:20px;opacity:0.5;">${getLogoPlaceholderSVG('horizontal', 'normal')}</div>`}
+        ${logoUrl ? `<img class="proximos-logo" src="${logoUrl}" alt="Logo" style="object-fit:contain;"/>` : `<div class="proximos-logo" style="opacity:0.5;">${getLogoPlaceholderSVG('horizontal', 'normal')}</div>`}
         
         <div class="proximos-left">
             <h2 class="proximos-title">PRÓXIMOS<br/>PASSOS</h2>
@@ -365,7 +365,7 @@ function generateThankYouPage(branding = {}) {
     return `
     <div class="page slide obrigado">
         <!-- Logo Quadrada -->
-        ${logoUrl ? `<img class="obrigado-logo" src="${logoUrl}" alt="Logo" style="height:150px;width:150px;object-fit:contain;"/>` : `<div class="obrigado-logo" style="height:150px;width:150px;opacity:0.6;">${getLogoPlaceholderSVG('square', 'white')}</div>`}
+        ${logoUrl ? `<img class="obrigado-logo" src="${logoUrl}" alt="Logo" style="object-fit:contain;"/>` : `<div class="obrigado-logo" style="opacity:0.6;">${getLogoPlaceholderSVG('square', 'white')}</div>`}
 
         <div class="obrigado-content">
             <h2 class="obrigado-text">OBRIGADO!</h2>
@@ -512,8 +512,10 @@ function getStyles() {
     }
 
     .resultados-logo {
-      height: 45px;
-      margin-bottom: 25px;
+      position: absolute;
+      top: 40px;
+      right: 65px;
+      height: 42px;
     }
 
     .resultados-title {
@@ -629,9 +631,12 @@ function getStyles() {
     }
 
     .ranking-logo {
+      position: absolute;
+      top: 45px;
+      right: 65px;
       width: 80px;
       height: 80px;
-      margin-bottom: 20px;
+      z-index: 2;
     }
 
     .ranking-title {
@@ -840,6 +845,9 @@ function getStyles() {
     }
 
     .proximos-logo {
+      position: absolute;
+      bottom: 40px;
+      right: 55px;
       height: 40px;
     }
 

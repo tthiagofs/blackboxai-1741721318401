@@ -1496,6 +1496,26 @@ async function generateCompleteReport() {
         // Importar função de geração de HTML
         const { generatePresentationHTML } = await import('./gerar-html-apresentacao.js?v=1.2');
         
+        // Carregar branding do projeto (logos e uso)
+        let branding = {};
+        try {
+            const projectId = localStorage.getItem('currentProject');
+            if (projectId) {
+                const { getBranding } = await import('./services/brandingService.js');
+                branding = await getBranding(projectId);
+                console.log('✅ Branding carregado:', {
+                    hasBranding: !!branding,
+                    hasLogoHorizontal: !!branding?.logoHorizontalUrl,
+                    hasLogoHorizontalWhite: !!branding?.logoHorizontalWhiteUrl,
+                    hasLogoSquare: !!branding?.logoSquareUrl,
+                    hasLogoSquareWhite: !!branding?.logoSquareWhiteUrl,
+                    usage: branding?.usage
+                });
+            }
+        } catch (e) {
+            console.warn('⚠️ Branding não encontrado:', e?.message);
+        }
+        
         // Log das métricas que serão enviadas
         console.log('📊 Métricas que serão enviadas para a apresentação:', {
             metaMetrics: separateMetaMetrics,
@@ -1517,7 +1537,8 @@ async function generateCompleteReport() {
             performanceAnalysis: '', // Deixar vazio para o usuário preencher
             budgetsCompleted,
             salesCount,
-            revenue
+            revenue,
+            branding
         });
         
         console.log('✅ HTML gerado com sucesso');

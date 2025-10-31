@@ -297,31 +297,28 @@ function generateResultsPage(metrics, platformName, budgetsCompleted, salesCount
 function generateRankingPage(ads, branding = {}) {
     console.log('🏆 Gerando ranking com anúncios:', ads);
     
-    const adsHTML = ads.slice(0, 3).map((ad, index) => {
-        // Calcular Custo por Mensagem (CPA)
-        const messages = ad.messages || 0;
-        const costPerMessage = messages > 0 ? ad.spend / messages : 0;
+    const adsHTML = ads.slice(0, 3).map((ad) => {
+        // Calcular métricas
+        const leads = ad.leads || ad.messages || 0;
+        const spend = ad.spend || 0;
+        const costPerLead = leads > 0 ? spend / leads : 0;
+        
+        // Detectar tipo (vídeo ou imagem)
+        const isVideo = ad.type === 'video' || ad.type === 'VIDEO';
+        const imageUrl = ad.imageUrl || ad.thumbnailUrl;
         
         return `
         <div class="ranking-card">
-            <div class="ranking-badge">${index + 1}º</div>
             <div class="ranking-thumbnail">
-                ${ad.imageUrl 
-                    ? `<img src="${ad.imageUrl}" alt="Anúncio" style="width:100%;height:100%;object-fit:cover;border-radius:12px;" onerror="this.src='https://via.placeholder.com/300x300?text=Sem+Imagem'">`
-                    : `<div style="width:100%;height:100%;background:#f3f4f6;display:flex;align-items:center;justify-content:center;border-radius:12px;color:#9ca3af;">Sem Imagem</div>`
+                ${imageUrl 
+                    ? `<img src="${imageUrl}" alt="Anúncio" style="width:100%;height:100%;object-fit:cover;" onerror="this.src='https://via.placeholder.com/300x300?text=Sem+Imagem'">`
+                    : `<div style="width:100%;height:100%;background:#f3f4f6;display:flex;align-items:center;justify-content:center;color:#9ca3af;">Sem Imagem</div>`
                 }
+                ${isVideo ? `<div class="ranking-video-play"><i class="fas fa-play"></i></div>` : ''}
             </div>
-            <div class="ranking-info">
-                <div class="ranking-stats">
-                    <div class="ranking-stat">
-                        <span class="ranking-stat-label">Mensagens</span>
-                        <span class="ranking-stat-value">${formatNumber(messages)}</span>
-                    </div>
-                    <div class="ranking-stat">
-                        <span class="ranking-stat-label">Custo por Mensagem</span>
-                        <span class="ranking-stat-value">${formatCurrency(costPerMessage)}</span>
-                    </div>
-                </div>
+            <div class="ranking-metrics-bar">
+                <span class="ranking-metrics-leads">${formatNumber(leads)} Leads</span>
+                <span class="ranking-metrics-cost">${formatCurrency(costPerLead)}</span>
             </div>
         </div>
         `;
@@ -340,16 +337,6 @@ function generateRankingPage(ads, branding = {}) {
         <div class="ranking-grid">
             ${adsHTML}
         </div>
-
-        <!-- Padrão Geométrico de Fundo -->
-        <svg class="ranking-pattern" viewBox="0 0 1280 720" xmlns="http://www.w3.org/2000/svg">
-            <defs>
-                <pattern id="triangles" x="0" y="0" width="100" height="100" patternUnits="userSpaceOnUse">
-                    <polygon points="50,10 90,90 10,90" fill="rgba(37,99,168,0.05)"/>
-                </pattern>
-            </defs>
-            <rect width="1280" height="720" fill="url(#triangles)"/>
-        </svg>
     </div>
     `;
 }
@@ -651,7 +638,7 @@ function getStyles() {
 
     /* === PÁGINA 3 - RANKING === */
     .ranking {
-      background: linear-gradient(135deg, #7B4397 0%, #2563A8 100%);
+      background: #672E7B;
       padding: 50px 65px;
       position: relative;
     }
@@ -682,39 +669,21 @@ function getStyles() {
 
     .ranking-card {
       background: white;
-      border-radius: 16px;
-      padding: 20px;
-      position: relative;
-    }
-
-    .ranking-badge {
-      position: absolute;
-      top: -10px;
-      right: -10px;
-      width: 45px;
-      height: 45px;
-      background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
-      border-radius: 50%;
+      border-radius: 12px;
+      overflow: hidden;
       display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 22px;
-      font-weight: 700;
-      color: white;
-      box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-      z-index: 3;
+      flex-direction: column;
     }
 
     .ranking-thumbnail {
       width: 100%;
-      height: 250px;
+      height: 300px;
       background: #f0f0f0;
-      border-radius: 12px;
-      margin-bottom: 15px;
       overflow: hidden;
       display: flex;
       align-items: center;
       justify-content: center;
+      position: relative;
     }
 
     .ranking-thumbnail img {
@@ -723,56 +692,46 @@ function getStyles() {
       object-fit: cover;
     }
 
-    .ranking-info {
-      padding: 10px 0;
-    }
-
-    .ranking-name {
-      font-size: 16px;
-      font-weight: 600;
-      color: #1e5091;
-      margin-bottom: 12px;
-      line-height: 1.3;
-      max-height: 2.6em;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      display: -webkit-box;
-      -webkit-line-clamp: 2;
-      -webkit-box-orient: vertical;
-    }
-
-    .ranking-stats {
+    .ranking-video-play {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 60px;
+      height: 60px;
+      background: rgba(0, 0, 0, 0.8);
+      border-radius: 50%;
       display: flex;
-      flex-direction: column;
-      gap: 8px;
+      align-items: center;
+      justify-content: center;
+      z-index: 2;
     }
 
-    .ranking-stat {
+    .ranking-video-play i {
+      color: white;
+      font-size: 24px;
+      margin-left: 4px;
+    }
+
+    .ranking-metrics-bar {
+      background: white;
+      padding: 12px 16px;
       display: flex;
       justify-content: space-between;
       align-items: center;
+      border-top: 1px solid #e5e7eb;
     }
 
-    .ranking-stat-label {
-      font-size: 13px;
-      color: #666;
-      font-weight: 500;
-    }
-
-    .ranking-stat-value {
+    .ranking-metrics-leads {
       font-size: 16px;
-      font-weight: 700;
-      color: #2563A8;
+      font-weight: 600;
+      color: #1f2937;
     }
 
-    .ranking-pattern {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      opacity: 0.3;
-      z-index: 1;
+    .ranking-metrics-cost {
+      font-size: 16px;
+      font-weight: 600;
+      color: #1f2937;
     }
 
     /* === PÁGINA 4 - PRÓXIMOS PASSOS === */

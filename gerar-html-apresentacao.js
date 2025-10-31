@@ -332,7 +332,10 @@ function generateRankingPage(ads, branding = {}) {
             return logoUrl ? `<img class="ranking-logo" src="${logoUrl}" alt="Logo" style="object-fit:contain;"/>` : `<div class="ranking-logo" style="opacity:0.6;">${getLogoPlaceholderSVG('square', 'white')}</div>`;
         })()}
 
-        <h2 class="ranking-title">RANKING ANÚNCIOS</h2>
+        <h2 class="ranking-title">
+            <span class="ranking-title-line1">RANKING</span><br>
+            <span class="ranking-title-line2">ANÚNCIOS</span>
+        </h2>
 
         <div class="ranking-grid">
             ${adsHTML}
@@ -653,10 +656,23 @@ function getStyles() {
     }
 
     .ranking-title {
-      font-size: 48px;
-      font-weight: 700;
+      font-size: 54px;
+      font-weight: 400;
       color: white;
-      margin-bottom: 40px;
+      margin-bottom: 60px;
+      margin-left: 0;
+      line-height: 1.15;
+      text-align: left;
+    }
+
+    .ranking-title-line1 {
+      font-weight: 400;
+      display: block;
+    }
+
+    .ranking-title-line2 {
+      font-weight: 700;
+      display: block;
     }
 
     .ranking-grid {
@@ -665,6 +681,7 @@ function getStyles() {
       gap: 25px;
       position: relative;
       z-index: 2;
+      margin-top: 40px;
     }
 
     .ranking-card {

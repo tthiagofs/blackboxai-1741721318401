@@ -155,8 +155,8 @@ function generateCoverPage(unitName, startDate, endDate, branding) {
             </h1>
 
             <div class="capa-unidade">
-                <svg class="capa-unidade-icon" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M12 2L2 7v10c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-10-5z" fill="#2563A8"/>
+                <svg class="capa-unidade-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" fill="#2563A8"/>
                 </svg>
                 ${unitName}
             </div>
@@ -661,7 +661,7 @@ function getStyles() {
       color: white;
       margin-bottom: 20px;
       margin-left: 0;
-      line-height: 0.85;
+      line-height: 0.5;
       text-align: left;
     }
 
@@ -681,7 +681,7 @@ function getStyles() {
       gap: 25px;
       position: relative;
       z-index: 2;
-      margin-top: 10px;
+      margin-top: 25px;
     }
 
     .ranking-card {

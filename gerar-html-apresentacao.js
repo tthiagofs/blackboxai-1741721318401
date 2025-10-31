@@ -368,11 +368,10 @@ function generateNextStepsPage(performanceAnalysis, branding = {}) {
     
     return `
     <div class="page slide proximos-passos">
-        <!-- Logo Horizontal -->
-        ${logoUrl ? `<img class="proximos-logo" src="${logoUrl}" alt="Logo" style="object-fit:contain;"/>` : `<div class="proximos-logo" style="opacity:0.5;">${getLogoPlaceholderSVG('horizontal', 'normal')}</div>`}
-        
         <div class="proximos-left">
             <h2 class="proximos-title">PRÓXIMOS<br/>PASSOS</h2>
+            <!-- Logo Horizontal no canto inferior direito da seção azul -->
+            ${logoUrl ? `<img class="proximos-logo" src="${logoUrl}" alt="Logo" style="object-fit:contain;"/>` : `<div class="proximos-logo" style="opacity:0.5;">${getLogoPlaceholderSVG('horizontal', 'white')}</div>`}
         </div>
 
         <div class="proximos-right">
@@ -792,6 +791,7 @@ function getStyles() {
       display: flex;
       flex-direction: column;
       justify-content: center;
+      position: relative;
     }
 
     .proximos-title {
@@ -876,8 +876,9 @@ function getStyles() {
     .proximos-logo {
       position: absolute;
       bottom: 40px;
-      right: 55px;
+      right: 40px;
       height: 40px;
+      z-index: 2;
     }
 
     /* === PÁGINA 5 - OBRIGADO === */

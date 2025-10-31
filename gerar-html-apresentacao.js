@@ -44,24 +44,24 @@ export function generatePresentationHTML(params) {
 
     // PÁGINA 2: Resultados Meta (se disponível)
     if (hasMeta && metaMetrics) {
-        pages.push(generateResultsPage(metaMetrics, 'Meta Ads', budgetsCompleted, salesCount, revenue));
+        pages.push(generateResultsPage(metaMetrics, 'Meta Ads', budgetsCompleted, salesCount, revenue, branding));
     }
 
     // PÁGINA 3: Ranking de Anúncios (logo após Resultados Meta)
     if (hasMeta && metaTop3Ads && metaTop3Ads.length > 0) {
-        pages.push(generateRankingPage(metaTop3Ads));
+        pages.push(generateRankingPage(metaTop3Ads, branding));
     }
 
     // PÁGINA 4: Resultados Google (se disponível)
     if (hasGoogle && googleMetrics) {
-        pages.push(generateResultsPage(googleMetrics, 'Google Ads', budgetsCompleted, salesCount, revenue));
+        pages.push(generateResultsPage(googleMetrics, 'Google Ads', budgetsCompleted, salesCount, revenue, branding));
     }
 
     // PÁGINA 5: Próximos Passos
-    pages.push(generateNextStepsPage(performanceAnalysis));
+    pages.push(generateNextStepsPage(performanceAnalysis, branding));
 
     // PÁGINA 6: Obrigado
-    pages.push(generateThankYouPage());
+    pages.push(generateThankYouPage(branding));
 
     return generateFullHTML(pages);
 }
@@ -120,7 +120,7 @@ function generateCoverPage(unitName, startDate, endDate, branding) {
 /**
  * Gerar página de resultados
  */
-function generateResultsPage(metrics, platformName, budgetsCompleted, salesCount, revenue) {
+function generateResultsPage(metrics, platformName, budgetsCompleted, salesCount, revenue, branding = {}) {
     // Usar dados da API de anúncios
     const invested = metrics?.spend || 0;
     const clicks = metrics?.clicks || 0;
@@ -234,7 +234,7 @@ function generateResultsPage(metrics, platformName, budgetsCompleted, salesCount
 /**
  * Gerar página de ranking de anúncios
  */
-function generateRankingPage(ads) {
+function generateRankingPage(ads, branding = {}) {
     console.log('🏆 Gerando ranking com anúncios:', ads);
     
     const adsHTML = ads.slice(0, 3).map((ad, index) => {
@@ -294,15 +294,20 @@ function generateRankingPage(ads) {
 /**
  * Gerar página de próximos passos
  */
-function generateNextStepsPage(performanceAnalysis) {
+function generateNextStepsPage(performanceAnalysis, branding = {}) {
     // Converter texto em lista com marcadores
     const analysisLines = performanceAnalysis ? performanceAnalysis.split('\n').filter(line => line.trim()) : [];
     const analysisHTML = analysisLines.length > 0 
         ? analysisLines.map(line => `<li>${line.trim()}</li>`).join('')
         : '<li>Nenhuma orientação fornecida.</li>';
     
+    const logoUrl = pickLogo(branding, 'proximosPassos', 'horizontal', 'normal');
+    
     return `
     <div class="page slide proximos-passos">
+        <!-- Logo Horizontal -->
+        ${logoUrl ? `<img class="proximos-logo" src="${logoUrl}" alt="Logo" style="height:40px;object-fit:contain;margin-bottom:20px;"/>` : ''}
+        
         <div class="proximos-left">
             <h2 class="proximos-title">PRÓXIMOS<br/>PASSOS</h2>
         </div>
@@ -320,7 +325,7 @@ function generateNextStepsPage(performanceAnalysis) {
 /**
  * Gerar página de obrigado
  */
-function generateThankYouPage() {
+function generateThankYouPage(branding = {}) {
     return `
     <div class="page slide obrigado">
         <!-- Logo Quadrada -->

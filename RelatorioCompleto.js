@@ -17,18 +17,40 @@ import {
 
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
-// Variável global para armazenar a logo do projeto
+// Variável global para armazenar a logo do projeto e branding
 let currentProjectLogo = '';
+let currentProjectBranding = null;
 
-// Carregar logo do projeto
+// Carregar branding do projeto (inclui logos)
 async function loadProjectLogo() {
     try {
         const projectId = localStorage.getItem('currentProject');
         if (projectId) {
-            const project = await projectsService.getProject(projectId);
-            if (project && project.logoUrl) {
-                currentProjectLogo = project.logoUrl;
-                console.log('✅ Logo do projeto carregada:', currentProjectLogo);
+            // Tentar carregar branding primeiro
+            try {
+                const { getBranding } = await import('./services/brandingService.js');
+                currentProjectBranding = await getBranding(projectId);
+                console.log('✅ Branding do projeto carregado:', currentProjectBranding);
+                
+                // Determinar logo do relatório baseado nas configurações
+                const reportUsage = currentProjectBranding?.usage?.relatorio || { type: 'square' };
+                const logoType = reportUsage.type || 'square';
+                
+                if (logoType === 'horizontal') {
+                    currentProjectLogo = currentProjectBranding?.logoHorizontalUrl || '';
+                } else {
+                    currentProjectLogo = currentProjectBranding?.logoSquareUrl || '';
+                }
+                
+                console.log('✅ Logo do relatório determinada:', currentProjectLogo ? 'Sim' : 'Não');
+            } catch (brandingError) {
+                console.warn('⚠️ Branding não encontrado, tentando logo antiga:', brandingError.message);
+                // Fallback para logo antiga (compatibilidade)
+                const project = await projectsService.getProject(projectId);
+                if (project && project.logoUrl) {
+                    currentProjectLogo = project.logoUrl;
+                    console.log('✅ Logo antiga do projeto carregada (compatibilidade):', currentProjectLogo);
+                }
             }
         }
     } catch (error) {

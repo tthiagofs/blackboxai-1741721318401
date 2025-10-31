@@ -395,9 +395,7 @@ function generateThankYouPage(branding = {}) {
         <!-- Logo Quadrada -->
         ${logoUrl ? `<img class="obrigado-logo" src="${logoUrl}" alt="Logo" style="object-fit:contain;"/>` : `<div class="obrigado-logo" style="opacity:0.6;">${getLogoPlaceholderSVG('square', 'white')}</div>`}
 
-        <div class="obrigado-content">
-            <h2 class="obrigado-text">OBRIGADO!</h2>
-        </div>
+        <h2 class="obrigado-text">OBRIGADO!</h2>
     </div>
     `;
 }
@@ -896,19 +894,13 @@ function getStyles() {
       height: 150px;
     }
 
-    .obrigado-content {
-      text-align: center;
-      background: linear-gradient(135deg, #2563A8 0%, #7B4397 50%, #DC1C76 100%);
-      padding: 40px 120px;
-      border-radius: 24px;
-    }
-
     .obrigado-text {
       font-size: 96px;
       font-weight: 700;
-      color: white;
+      color: #0067D4;
       letter-spacing: 4px;
       margin: 0;
+      text-align: center;
     }
 
     /* === ANTI-DISTORTION RULES === */

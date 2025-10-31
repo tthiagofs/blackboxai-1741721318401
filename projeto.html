@@ -145,8 +145,8 @@
                                 <i class="fas fa-image text-2xl text-gray-400"></i>
                             </div>
                         </div>
-                        <p class="text-xs text-gray-500 text-center mt-2">
-                            <a href="configuracoes.html?id=${currentProjectId}" class="text-blue-600 hover:text-blue-700 underline">
+                        <p class="text-xs text-gray-500 text-center mt-2" id="configLinkContainer">
+                            <a href="#" id="configLink" class="text-blue-600 hover:text-blue-700 underline">
                                 Configurar logos
                             </a>
                         </p>
@@ -378,6 +378,12 @@
                 const { getBranding } = await import('./services/brandingService.js');
                 const branding = await getBranding(currentProjectId);
                 
+                // Atualizar link de configurações
+                const configLink = document.getElementById('configLink');
+                if (configLink) {
+                    configLink.href = `configuracoes.html?id=${currentProjectId}`;
+                }
+                
                 // Usar logo quadrada para exibição no header
                 const logoUrl = branding?.logoSquareUrl || branding?.logoHorizontalUrl || null;
                 
@@ -391,6 +397,11 @@
                 }
             } catch (error) {
                 console.warn('⚠️ Branding não encontrado ou sem logo:', error.message);
+                // Atualizar link mesmo sem branding
+                const configLink = document.getElementById('configLink');
+                if (configLink) {
+                    configLink.href = `configuracoes.html?id=${currentProjectId}`;
+                }
                 logoPreview.classList.add('hidden');
                 document.getElementById('logoPlaceholder').style.display = 'flex';
             }

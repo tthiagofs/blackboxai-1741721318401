@@ -67,14 +67,28 @@ export function generatePresentationHTML(params) {
 }
 
 function pickLogo(branding, screenKey, defaultType = 'horizontal', defaultColor = 'normal') {
+    console.log(`🔍 pickLogo chamado para ${screenKey}:`, { branding: branding ? 'existe' : 'não existe', screenKey });
+    
+    if (!branding) {
+        console.warn(`⚠️ Branding vazio para ${screenKey}`);
+        return null;
+    }
+    
     const usage = branding?.usage?.apresentacao?.[screenKey] || { type: defaultType, color: defaultColor };
     const type = usage.type || defaultType;
     const color = usage.color || defaultColor;
+    
+    console.log(`📋 Configuração de uso para ${screenKey}:`, { type, color });
+    
     const map = {
         horizontal: color === 'white' ? branding?.logoHorizontalWhiteUrl : branding?.logoHorizontalUrl,
         square: color === 'white' ? branding?.logoSquareWhiteUrl : branding?.logoSquareUrl,
     };
-    return map[type] || null;
+    
+    const logoUrl = map[type] || null;
+    console.log(`🎯 Logo encontrada para ${screenKey} (${type}, ${color}):`, logoUrl ? 'Sim' : 'Não');
+    
+    return logoUrl;
 }
 
 function getLogoPlaceholderSVG(type = 'horizontal', color = 'normal') {

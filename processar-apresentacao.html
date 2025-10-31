@@ -252,6 +252,16 @@
                 updateStep('step4', 'loading');
                 console.log('🎨 Gerando HTML da apresentação...');
                 
+                // Carregar branding do projeto
+                let branding = {};
+                try {
+                    const { getBranding } = await import('./services/brandingService.js');
+                    branding = await getBranding(presentationData.projectId);
+                    console.log('✅ Branding carregado:', branding);
+                } catch (e) {
+                    console.warn('⚠️ Branding não encontrado:', e?.message);
+                }
+                
                 // Gerar HTML da apresentação
                 const presentationHTML = generatePresentationHTML({
                     unitName: presentationData.unitName,
@@ -261,7 +271,12 @@
                     hasGoogle,
                     metaMetrics: metaConsolidated,
                     googleMetrics: googleConsolidated,
-                    metaTop3Ads
+                    metaTop3Ads,
+                    performanceAnalysis: presentationData.performanceAnalysis || '',
+                    budgetsCompleted: presentationData.budgetsCompleted || 0,
+                    salesCount: presentationData.salesCount || 0,
+                    revenue: presentationData.revenue || 0,
+                    branding
                 });
 
                 console.log('✅ HTML gerado com sucesso');

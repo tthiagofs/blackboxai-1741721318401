@@ -257,9 +257,17 @@
                 try {
                     const { getBranding } = await import('./services/brandingService.js');
                     branding = await getBranding(presentationData.projectId);
-                    console.log('✅ Branding carregado:', branding);
+                    console.log('✅ Branding carregado:', {
+                        hasBranding: !!branding,
+                        hasLogoHorizontal: !!branding?.logoHorizontalUrl,
+                        hasLogoHorizontalWhite: !!branding?.logoHorizontalWhiteUrl,
+                        hasLogoSquare: !!branding?.logoSquareUrl,
+                        hasLogoSquareWhite: !!branding?.logoSquareWhiteUrl,
+                        usage: branding?.usage
+                    });
                 } catch (e) {
                     console.warn('⚠️ Branding não encontrado:', e?.message);
+                    console.error('Erro completo:', e);
                 }
                 
                 // Gerar HTML da apresentação

@@ -34,7 +34,12 @@ export function generatePresentationHTML(params) {
         hasGoogle,
         metaMetrics: metaMetrics ? 'Presente' : 'Ausente',
         googleMetrics: googleMetrics ? 'Presente' : 'Ausente',
-        adsCount: metaTop3Ads?.length || 0
+        adsCount: metaTop3Ads?.length || 0,
+        branding: branding ? {
+            hasLogoHorizontal: !!branding.logoHorizontalUrl,
+            hasLogoSquare: !!branding.logoSquareUrl,
+            usage: branding.usage
+        } : 'não fornecido'
     });
 
     const pages = [];
@@ -67,10 +72,23 @@ export function generatePresentationHTML(params) {
 }
 
 function pickLogo(branding, screenKey, defaultType = 'horizontal', defaultColor = 'normal') {
-    console.log(`🔍 pickLogo chamado para ${screenKey}:`, { branding: branding ? 'existe' : 'não existe', screenKey });
+    console.log(`🔍 pickLogo chamado para ${screenKey}:`, { 
+        hasBranding: !!branding, 
+        screenKey,
+        brandingKeys: branding ? Object.keys(branding) : []
+    });
     
     if (!branding) {
         console.warn(`⚠️ Branding vazio para ${screenKey}`);
+        return null;
+    }
+    
+    // Verificar se há alguma logo disponível
+    const hasAnyLogo = branding.logoHorizontalUrl || branding.logoHorizontalWhiteUrl || 
+                       branding.logoSquareUrl || branding.logoSquareWhiteUrl;
+    
+    if (!hasAnyLogo) {
+        console.warn(`⚠️ Nenhuma logo disponível no branding para ${screenKey}`);
         return null;
     }
     
@@ -78,15 +96,26 @@ function pickLogo(branding, screenKey, defaultType = 'horizontal', defaultColor 
     const type = usage.type || defaultType;
     const color = usage.color || defaultColor;
     
-    console.log(`📋 Configuração de uso para ${screenKey}:`, { type, color });
+    console.log(`📋 Configuração de uso para ${screenKey}:`, { type, color, usage });
     
     const map = {
         horizontal: color === 'white' ? branding?.logoHorizontalWhiteUrl : branding?.logoHorizontalUrl,
         square: color === 'white' ? branding?.logoSquareWhiteUrl : branding?.logoSquareUrl,
     };
     
-    const logoUrl = map[type] || null;
-    console.log(`🎯 Logo encontrada para ${screenKey} (${type}, ${color}):`, logoUrl ? 'Sim' : 'Não');
+    let logoUrl = map[type] || null;
+    
+    // Fallback: se não encontrou a logo configurada, tentar qualquer logo disponível
+    if (!logoUrl) {
+        console.warn(`⚠️ Logo configurada não encontrada para ${screenKey} (${type}, ${color}), tentando fallback...`);
+        logoUrl = branding.logoHorizontalUrl || branding.logoSquareUrl || 
+                  branding.logoHorizontalWhiteUrl || branding.logoSquareWhiteUrl || null;
+        if (logoUrl) {
+            console.log(`✅ Usando logo de fallback para ${screenKey}:`, logoUrl.substring(0, 50) + '...');
+        }
+    }
+    
+    console.log(`🎯 Logo encontrada para ${screenKey} (${type}, ${color}):`, logoUrl ? 'Sim' : 'Não', logoUrl ? logoUrl.substring(0, 50) + '...' : '');
     
     return logoUrl;
 }

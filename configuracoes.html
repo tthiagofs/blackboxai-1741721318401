@@ -215,31 +215,39 @@
         console.log('📤 Processando logos como base64...');
         
         try {
-          logos.logoHorizontalUrl = await handleUpload('logoHorizontal', 'logo-horizontal') || branding.logoHorizontalUrl;
+          const newLogo = await handleUpload('logoHorizontal', 'logo-horizontal');
+          if (newLogo) logos.logoHorizontalUrl = newLogo;
+          else if (branding.logoHorizontalUrl) logos.logoHorizontalUrl = branding.logoHorizontalUrl;
         } catch (e) {
           console.warn('⚠️ Falha ao processar logo horizontal, mantendo anterior:', e.message);
-          logos.logoHorizontalUrl = branding.logoHorizontalUrl;
+          if (branding.logoHorizontalUrl) logos.logoHorizontalUrl = branding.logoHorizontalUrl;
         }
 
         try {
-          logos.logoHorizontalWhiteUrl = await handleUpload('logoHorizontalWhite', 'logo-horizontal-white') || branding.logoHorizontalWhiteUrl;
+          const newLogo = await handleUpload('logoHorizontalWhite', 'logo-horizontal-white');
+          if (newLogo) logos.logoHorizontalWhiteUrl = newLogo;
+          else if (branding.logoHorizontalWhiteUrl) logos.logoHorizontalWhiteUrl = branding.logoHorizontalWhiteUrl;
         } catch (e) {
           console.warn('⚠️ Falha ao processar logo horizontal branca, mantendo anterior:', e.message);
-          logos.logoHorizontalWhiteUrl = branding.logoHorizontalWhiteUrl;
+          if (branding.logoHorizontalWhiteUrl) logos.logoHorizontalWhiteUrl = branding.logoHorizontalWhiteUrl;
         }
 
         try {
-          logos.logoSquareUrl = await handleUpload('logoSquare', 'logo-square') || branding.logoSquareUrl;
+          const newLogo = await handleUpload('logoSquare', 'logo-square');
+          if (newLogo) logos.logoSquareUrl = newLogo;
+          else if (branding.logoSquareUrl) logos.logoSquareUrl = branding.logoSquareUrl;
         } catch (e) {
           console.warn('⚠️ Falha ao processar logo quadrada, mantendo anterior:', e.message);
-          logos.logoSquareUrl = branding.logoSquareUrl;
+          if (branding.logoSquareUrl) logos.logoSquareUrl = branding.logoSquareUrl;
         }
 
         try {
-          logos.logoSquareWhiteUrl = await handleUpload('logoSquareWhite', 'logo-square-white') || branding.logoSquareWhiteUrl;
+          const newLogo = await handleUpload('logoSquareWhite', 'logo-square-white');
+          if (newLogo) logos.logoSquareWhiteUrl = newLogo;
+          else if (branding.logoSquareWhiteUrl) logos.logoSquareWhiteUrl = branding.logoSquareWhiteUrl;
         } catch (e) {
           console.warn('⚠️ Falha ao processar logo quadrada branca, mantendo anterior:', e.message);
-          logos.logoSquareWhiteUrl = branding.logoSquareWhiteUrl;
+          if (branding.logoSquareWhiteUrl) logos.logoSquareWhiteUrl = branding.logoSquareWhiteUrl;
         }
 
         const usage = { apresentacao: {}, relatorio: {} };
@@ -252,11 +260,32 @@
 
         console.log('💾 Preparando dados para salvar...', { logos: Object.keys(logos), usage });
         
+        // Montar branding: manter campos existentes e adicionar apenas logos que existem
         const newBranding = { 
           ...branding, 
-          ...logos, 
           usage 
         };
+        
+        // Adicionar apenas logos que não são undefined
+        if (logos.logoHorizontalUrl) newBranding.logoHorizontalUrl = logos.logoHorizontalUrl;
+        if (logos.logoHorizontalWhiteUrl) newBranding.logoHorizontalWhiteUrl = logos.logoHorizontalWhiteUrl;
+        if (logos.logoSquareUrl) newBranding.logoSquareUrl = logos.logoSquareUrl;
+        if (logos.logoSquareWhiteUrl) newBranding.logoSquareWhiteUrl = logos.logoSquareWhiteUrl;
+        
+        // Remover campos undefined (caso existam)
+        Object.keys(newBranding).forEach(key => {
+          if (newBranding[key] === undefined) delete newBranding[key];
+        });
+        if (newBranding.usage) {
+          Object.keys(newBranding.usage).forEach(key => {
+            if (newBranding.usage[key] === undefined) delete newBranding.usage[key];
+            if (newBranding.usage[key] && typeof newBranding.usage[key] === 'object') {
+              Object.keys(newBranding.usage[key]).forEach(subKey => {
+                if (newBranding.usage[key][subKey] === undefined) delete newBranding.usage[key][subKey];
+              });
+            }
+          });
+        }
         
         console.log('🔄 Salvando branding no Firestore...', newBranding);
         

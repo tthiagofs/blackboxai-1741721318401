@@ -704,11 +704,10 @@
 
         // Marcar como alterado
         function markAsChanged() {
-            if (!hasUnsavedChanges) {
-                hasUnsavedChanges = true;
-                saveButtonContainer.classList.remove('hidden');
-                saveBtn.classList.remove('hidden');
-            }
+            hasUnsavedChanges = true;
+            saveButtonContainer.classList.remove('hidden');
+            saveBtn.classList.remove('hidden');
+            console.log('✅ Botão salvar habilitado');
         }
 
         // Salvar alterações
@@ -725,12 +724,12 @@
                 // Aplicar customizações de imagens no HTML antes de salvar
                 applyImageCustomizationsToHTML();
                 
-                // Atualizar HTML com as alterações
-                const updatedHTML = presentationContainer.innerHTML;
+                // Limpar HTML antes de salvar (remover elementos de edição e otimizar)
+                const cleanedHTML = cleanHTMLForSave(presentationContainer.innerHTML);
                 
                 await presentationsService.updatePresentation(projectId, presentationId, {
                     customData: customData,
-                    html: updatedHTML,
+                    html: cleanedHTML,
                     updatedAt: new Date().toISOString()
                 });
 

@@ -1549,12 +1549,11 @@ ul.list-disc li br {
         }
         
         function markAsChanged() {
-            if (!hasUnsavedChanges) {
-                hasUnsavedChanges = true;
-                const saveBtn = document.getElementById('saveEditsBtn');
-                if (saveBtn) {
-                    saveBtn.classList.remove('hidden');
-                }
+            hasUnsavedChanges = true;
+            const saveBtn = document.getElementById('saveEditsBtn');
+            if (saveBtn) {
+                saveBtn.classList.remove('hidden');
+                console.log('✅ Botão salvar habilitado');
             }
         }
         
@@ -1573,10 +1572,11 @@ ul.list-disc li br {
                 // Aplicar customizações de imagens no HTML antes de salvar
                 applyImageCustomizationsToHTML();
                 
-                // Atualizar HTML com as alterações
+                // Limpar HTML antes de salvar (remover elementos de edição e otimizar)
                 const reportContainer = document.getElementById('reportContainer');
-                const updatedHTML = reportContainer.innerHTML;
-                window.currentPresentationData.html = updatedHTML;
+                const cleanedHTML = cleanHTMLForSave(reportContainer.innerHTML);
+                
+                window.currentPresentationData.html = cleanedHTML;
                 
                 // Salvar customData no objeto da apresentação
                 if (!window.currentPresentationData.customData) {
@@ -1704,6 +1704,43 @@ ul.list-disc li br {
                     );
                 }
             });
+        }
+        
+        // Limpar e otimizar HTML antes de salvar para reduzir tamanho
+        function cleanHTMLForSave(html) {
+            // Criar um elemento temporário para manipular o HTML
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = html;
+            
+            // Remover elementos de edição desnecessários
+            tempDiv.querySelectorAll('.ranking-card-delete').forEach(el => el.remove());
+            tempDiv.querySelectorAll('.ranking-image-input').forEach(el => el.remove());
+            tempDiv.querySelectorAll('.ranking-card-placeholder').forEach(el => el.remove());
+            tempDiv.querySelectorAll('[contenteditable]').forEach(el => el.removeAttribute('contenteditable'));
+            tempDiv.querySelectorAll('[data-edit-id]').forEach(el => el.removeAttribute('data-edit-id'));
+            tempDiv.querySelectorAll('.editable').forEach(el => el.classList.remove('editable'));
+            
+            // Remover imagens Base64 e substituir por placeholders (as imagens já estão em customData.adImages)
+            // Isso reduz drasticamente o tamanho do HTML
+            const images = tempDiv.querySelectorAll('.ranking-thumbnail img');
+            images.forEach(img => {
+                const src = img.getAttribute('src');
+                if (src && src.startsWith('data:image')) {
+                    // Se a imagem é Base64 (customizada), substituir por placeholder
+                    // A referência será restaurada via customData.adImages
+                    img.setAttribute('src', '');
+                    img.setAttribute('data-custom-image', 'true');
+                }
+            });
+            
+            // Minificar HTML removendo espaços extras
+            let cleaned = tempDiv.innerHTML;
+            
+            // Remover múltiplos espaços em branco e quebras de linha extras
+            cleaned = cleaned.replace(/>\s+</g, '><');
+            cleaned = cleaned.replace(/\s+/g, ' ');
+            
+            return cleaned;
         }
     </script>
     

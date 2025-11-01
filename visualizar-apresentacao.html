@@ -157,14 +157,19 @@
                 
                 // Aguardar renderização para aplicar customizações e ativar edição
                 setTimeout(() => {
-                    // Aplicar customizações
-                    applyCustomizations();
-                    
-                    // Preparar elementos para edição (mas não ativar ainda)
-                    prepareEditMode();
-                    
-                    // Iniciar em modo visualização
-                    updateEditModeUI();
+                // Aplicar customizações
+                applyCustomizations();
+                
+                // Preparar elementos para edição (mas não ativar ainda)
+                prepareEditMode();
+                
+                // Iniciar em modo visualização
+                updateEditModeUI();
+                
+                // Reorganizar cards de anúncios inicialmente
+                setTimeout(() => {
+                    reorganizeAdCards();
+                }, 600);
                 }, 1000);
                 
             } catch (error) {
@@ -277,8 +282,32 @@
                 });
             });
             
+            // Adicionar métricas de anúncios como editáveis
+            setTimeout(() => {
+                const adMetrics = document.querySelectorAll('[data-ad-leads], [data-ad-cost]');
+                adMetrics.forEach((element) => {
+                    const adId = element.getAttribute('data-ad-leads') || element.getAttribute('data-ad-cost');
+                    const metricType = element.classList.contains('ranking-metrics-leads') ? 'leads' : 'cost';
+                    const editId = `ad_${adId}_${metricType}`;
+                    
+                    element.setAttribute('data-edit-id', editId);
+                    element.classList.add('editable');
+                    
+                    element.addEventListener('click', () => {
+                        if (isEditMode && !element.hasAttribute('contenteditable')) {
+                            startEditing(element, editId);
+                        }
+                    });
+                    
+                    element.addEventListener('blur', () => {
+                        stopEditing(element, editId);
+                    });
+                });
+            }, 100);
+            
             // Atualizar UI baseado no modo
             updateEditModeUI();
+            setupAdImageEditing();
         }
         
         // Atualizar UI baseado no modo
@@ -292,6 +321,196 @@
                     el.removeAttribute('contenteditable');
                 }
             });
+            
+            // Mostrar/ocultar botões de deletar anúncios
+            const deleteButtons = document.querySelectorAll('.ranking-card-delete');
+            deleteButtons.forEach(btn => {
+                btn.style.display = isEditMode ? 'flex' : 'none';
+            });
+        }
+        
+        // Configurar edição de imagens dos anúncios
+        function setupAdImageEditing() {
+            const thumbnails = document.querySelectorAll('.ranking-thumbnail-editable');
+            
+            thumbnails.forEach(thumbnail => {
+                const adId = thumbnail.getAttribute('data-ad-image');
+                if (!adId) return;
+                
+                const fileInput = document.querySelector(`[data-ad-input="${adId}"]`);
+                if (!fileInput) return;
+                
+                // Remover listeners antigos
+                const newThumbnail = thumbnail.cloneNode(true);
+                thumbnail.parentNode.replaceChild(newThumbnail, thumbnail);
+                
+                // Click para selecionar arquivo
+                newThumbnail.addEventListener('click', (e) => {
+                    if (isEditMode && !e.target.closest('.ranking-card-delete')) {
+                        fileInput.click();
+                    }
+                });
+                
+                // Drag & Drop
+                newThumbnail.addEventListener('dragover', (e) => {
+                    if (isEditMode) {
+                        e.preventDefault();
+                        newThumbnail.style.border = '2px solid #9333EA';
+                        newThumbnail.style.backgroundColor = 'rgba(147, 51, 234, 0.1)';
+                    }
+                });
+                
+                newThumbnail.addEventListener('dragleave', () => {
+                    newThumbnail.style.border = '';
+                    newThumbnail.style.backgroundColor = '';
+                });
+                
+                newThumbnail.addEventListener('drop', (e) => {
+                    if (isEditMode) {
+                        e.preventDefault();
+                        newThumbnail.style.border = '';
+                        newThumbnail.style.backgroundColor = '';
+                        
+                        const files = e.dataTransfer.files;
+                        if (files.length > 0 && files[0].type.startsWith('image/')) {
+                            handleImageUpload(files[0], adId, newThumbnail);
+                        }
+                    }
+                });
+                
+                // File input change
+                fileInput.addEventListener('change', (e) => {
+                    if (e.target.files.length > 0) {
+                        handleImageUpload(e.target.files[0], adId, newThumbnail);
+                    }
+                });
+            });
+            
+            // Configurar botões de deletar
+            setupDeleteButtons();
+        }
+        
+        // Processar upload de imagem
+        function handleImageUpload(file, adId, thumbnail) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const imageUrl = e.target.result; // Base64
+                
+                // Atualizar imagem
+                const existingImg = thumbnail.querySelector('img');
+                if (existingImg) {
+                    existingImg.src = imageUrl;
+                } else {
+                    const placeholder = thumbnail.querySelector('div');
+                    if (placeholder) {
+                        thumbnail.innerHTML = `<img src="${imageUrl}" alt="Anúncio" style="width:100%;height:100%;object-fit:cover;">`;
+                    }
+                }
+                
+                // Remover placeholder class se existir
+                thumbnail.classList.remove('ranking-thumbnail-placeholder');
+                if (thumbnail.parentElement) {
+                    thumbnail.parentElement.classList.remove('ranking-card-placeholder');
+                }
+                
+                // Salvar no customData
+                if (!customData.adImages) customData.adImages = {};
+                customData.adImages[adId] = imageUrl;
+                
+                // Se for placeholder_new, criar novo ID
+                if (adId === 'placeholder_new') {
+                    const newAdId = `ad_custom_${Date.now()}`;
+                    thumbnail.setAttribute('data-ad-image', newAdId);
+                    const img = thumbnail.querySelector('img');
+                    if (img) img.setAttribute('data-ad-image', newAdId);
+                    customData.adImages[newAdId] = imageUrl;
+                    delete customData.adImages[adId];
+                    
+                    // Atualizar outros atributos
+                    const card = thumbnail.closest('.ranking-card');
+                    if (card) {
+                        card.setAttribute('data-ad-id', newAdId);
+                        const leadsEl = card.querySelector('[data-ad-leads]');
+                        const costEl = card.querySelector('[data-ad-cost]');
+                        if (leadsEl) leadsEl.setAttribute('data-ad-leads', newAdId);
+                        if (costEl) costEl.setAttribute('data-ad-cost', newAdId);
+                    }
+                    const input = document.querySelector(`[data-ad-input="${adId}"]`);
+                    if (input) input.setAttribute('data-ad-input', newAdId);
+                }
+                
+                markAsChanged();
+            };
+            reader.readAsDataURL(file);
+        }
+        
+        // Configurar botões de deletar
+        function setupDeleteButtons() {
+            const deleteButtons = document.querySelectorAll('.ranking-card-delete');
+            deleteButtons.forEach(btn => {
+                // Remover listeners antigos
+                const newBtn = btn.cloneNode(true);
+                btn.parentNode.replaceChild(newBtn, btn);
+                
+                newBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    if (isEditMode && confirm('Tem certeza que deseja remover este anúncio?')) {
+                        deleteAdCard(newBtn.closest('.ranking-card'));
+                    }
+                });
+            });
+        }
+        
+        // Deletar card de anúncio
+        function deleteAdCard(card) {
+            const adId = card.getAttribute('data-ad-id');
+            
+            // Remover do customData
+            if (customData.adImages && customData.adImages[adId]) {
+                delete customData.adImages[adId];
+            }
+            
+            // Remover card
+            card.remove();
+            
+            // Reorganizar cards e mostrar placeholder se necessário
+            reorganizeAdCards();
+            markAsChanged();
+        }
+        
+        // Reorganizar cards após deletar
+        function reorganizeAdCards() {
+            const grid = document.querySelector('.ranking-grid');
+            if (!grid) return;
+            
+            const cards = Array.from(grid.querySelectorAll('.ranking-card:not(.ranking-card-placeholder)'));
+            const placeholder = grid.querySelector('.ranking-card-placeholder');
+            
+            // Ajustar grid para quantidade de cards (1, 2 ou 3 colunas)
+            if (cards.length === 1) {
+                grid.style.gridTemplateColumns = '1fr';
+            } else if (cards.length === 2) {
+                grid.style.gridTemplateColumns = '1fr 1fr';
+            } else {
+                grid.style.gridTemplateColumns = 'repeat(3, 1fr)';
+            }
+            
+            // Se tem menos de 3 cards e não tem placeholder visível, mostrar placeholder
+            if (cards.length < 3 && placeholder && (placeholder.style.display === 'none' || !placeholder.style.display)) {
+                placeholder.style.display = 'flex';
+            }
+            
+            // Se tem 3 ou mais cards, esconder placeholder
+            if (cards.length >= 3 && placeholder) {
+                placeholder.style.display = 'none';
+            }
+            
+            // Reconfigurar edição de imagens após reorganizar
+            if (isEditMode) {
+                setTimeout(() => {
+                    setupAdImageEditing();
+                }, 100);
+            }
         }
 
         // Iniciar edição
@@ -323,10 +542,19 @@
             
             const originalValue = element.getAttribute('data-original-value') || '';
             
-            if (newValue !== originalValue && newValue !== '') {
-                customData[editId] = newValue;
+            // Detectar qualquer alteração (adicionar, remover, modificar - mesmo que fique vazio)
+            if (newValue !== originalValue) {
+                if (newValue === '') {
+                    // Se ficou vazio, remover do customData mas manter a mudança registrada
+                    delete customData[editId];
+                    // Restaurar valor original visualmente
+                    element.textContent = originalValue;
+                    element.setAttribute('data-original-value', originalValue);
+                } else {
+                    customData[editId] = newValue;
+                }
                 markAsChanged();
-                console.log(`💾 Alteração salva: ${editId} = ${newValue}`);
+                console.log(`💾 Alteração detectada: ${editId} (original: "${originalValue}" -> novo: "${newValue}")`);
             }
         }
 
@@ -350,8 +578,15 @@
             saveChangesBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Salvando...';
 
             try {
+                // Aplicar customizações de imagens no HTML antes de salvar
+                applyImageCustomizationsToHTML();
+                
+                // Atualizar HTML com as alterações
+                const updatedHTML = presentationContainer.innerHTML;
+                
                 await presentationsService.updatePresentation(projectId, presentationId, {
                     customData: customData,
+                    html: updatedHTML,
                     updatedAt: new Date().toISOString()
                 });
 
@@ -398,6 +633,11 @@
             isEditMode = !isEditMode;
             updateEditModeUI();
             
+            // Reconfigurar edição de imagens quando mudar modo
+            if (isEditMode) {
+                setupAdImageEditing();
+            }
+            
             toggleEditBtn.innerHTML = isEditMode 
                 ? '<i class="fas fa-eye"></i> Modo Visualização'
                 : '<i class="fas fa-edit"></i> Modo Edição';
@@ -409,6 +649,9 @@
 
         // Exportar PDF
         exportPDFBtn.addEventListener('click', () => {
+            // Aplicar customizações de imagens antes de exportar
+            applyImageCustomizationsToHTML();
+            
             // Remover classes e atributos de edição
             const editables = document.querySelectorAll('.editable');
             editables.forEach(el => {
@@ -420,6 +663,14 @@
                 el.style.outline = '';
                 el.style.backgroundColor = '';
             });
+            
+            // Remover botões de deletar e inputs de arquivo
+            document.querySelectorAll('.ranking-card-delete').forEach(btn => btn.remove());
+            document.querySelectorAll('.ranking-image-input').forEach(input => input.remove());
+            
+            // Remover placeholder se existir
+            const placeholder = document.querySelector('.ranking-card-placeholder');
+            if (placeholder) placeholder.remove();
             
             // Obter HTML limpo (sem elementos de edição)
             const cleanHTML = presentationContainer.innerHTML;
@@ -437,6 +688,21 @@
             // Abrir página de impressão
             window.open(`apresentacao-print.html?mode=session&auto=1`, '_blank');
         });
+        
+        // Aplicar customizações de imagens ao HTML antes de salvar
+        function applyImageCustomizationsToHTML() {
+            if (!customData.adImages) return;
+            
+            Object.keys(customData.adImages).forEach(adId => {
+                const thumbnail = document.querySelector(`[data-ad-image="${adId}"]`);
+                if (thumbnail) {
+                    const img = thumbnail.querySelector('img');
+                    if (img && customData.adImages[adId]) {
+                        img.src = customData.adImages[adId];
+                    }
+                }
+            });
+        }
 
         // Carregar quando autenticado
         onAuthStateChanged(auth, async (user) => {

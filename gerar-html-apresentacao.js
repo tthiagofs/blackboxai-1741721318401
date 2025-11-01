@@ -297,7 +297,7 @@ function generateResultsPage(metrics, platformName, budgetsCompleted, salesCount
 function generateRankingPage(ads, branding = {}) {
     console.log('🏆 Gerando ranking com anúncios:', ads);
     
-    const adsHTML = ads.slice(0, 3).map((ad) => {
+    const adsHTML = ads.slice(0, 3).map((ad, index) => {
         // Calcular métricas
         const leads = ad.leads || ad.messages || 0;
         const spend = ad.spend || 0;
@@ -306,10 +306,14 @@ function generateRankingPage(ads, branding = {}) {
         // Detectar tipo (vídeo ou imagem)
         const isVideo = ad.type === 'video' || ad.type === 'VIDEO';
         const imageUrl = ad.imageUrl || ad.thumbnailUrl;
+        const adId = ad.id || `ad_${index}`;
         
         return `
-        <div class="ranking-card">
-            <div class="ranking-thumbnail">
+        <div class="ranking-card" data-ad-id="${adId}" data-ad-index="${index}">
+            <button class="ranking-card-delete" style="display:none;position:absolute;top:10px;right:10px;z-index:10;width:32px;height:32px;background:rgba(239,68,68,0.9);border:none;border-radius:50%;color:white;cursor:pointer;align-items:center;justify-content:center;display:none;" title="Remover anúncio">
+                <i class="fas fa-trash" style="font-size:14px;"></i>
+            </button>
+            <div class="ranking-thumbnail ranking-thumbnail-editable" data-ad-image="${adId}">
                 ${imageUrl 
                     ? `<img src="${imageUrl}" alt="Anúncio" style="width:100%;height:100%;object-fit:cover;" onerror="this.src='https://via.placeholder.com/300x300?text=Sem+Imagem'">`
                     : `<div style="width:100%;height:100%;background:#f3f4f6;display:flex;align-items:center;justify-content:center;color:#9ca3af;">Sem Imagem</div>`
@@ -317,12 +321,31 @@ function generateRankingPage(ads, branding = {}) {
                 ${isVideo ? `<div class="ranking-video-play"><i class="fas fa-play"></i></div>` : ''}
             </div>
             <div class="ranking-metrics-bar">
-                <span class="ranking-metrics-leads">${formatNumber(leads)} Leads</span>
-                <span class="ranking-metrics-cost">${formatCurrency(costPerLead)}</span>
+                <span class="ranking-metrics-leads" data-ad-leads="${adId}">${formatNumber(leads)} Leads</span>
+                <span class="ranking-metrics-cost" data-ad-cost="${adId}">${formatCurrency(costPerLead)}</span>
             </div>
+            <input type="file" accept="image/*" class="ranking-image-input" data-ad-input="${adId}" style="display:none;">
         </div>
         `;
     }).join('');
+    
+    // Adicionar placeholder para novo anúncio (opcional)
+    const placeholderHTML = `
+    <div class="ranking-card ranking-card-placeholder" data-ad-id="placeholder_new" style="display:none;">
+        <button class="ranking-card-delete" style="display:none;position:absolute;top:10px;right:10px;z-index:10;width:32px;height:32px;background:rgba(239,68,68,0.9);border:none;border-radius:50%;color:white;cursor:pointer;align-items:center;justify-content:center;" title="Remover anúncio">
+            <i class="fas fa-trash" style="font-size:14px;"></i>
+        </button>
+        <div class="ranking-thumbnail ranking-thumbnail-editable ranking-thumbnail-placeholder" data-ad-image="placeholder_new" style="border:2px dashed #9333EA;background:#f9fafb;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-direction:column;color:#9333EA;">
+            <i class="fas fa-plus-circle" style="font-size:48px;margin-bottom:8px;"></i>
+            <span style="font-size:14px;font-weight:500;">Clique ou arraste uma imagem</span>
+        </div>
+        <div class="ranking-metrics-bar">
+            <span class="ranking-metrics-leads" data-ad-leads="placeholder_new">0 Leads</span>
+            <span class="ranking-metrics-cost" data-ad-cost="placeholder_new">R$ 0,00</span>
+        </div>
+        <input type="file" accept="image/*" class="ranking-image-input" data-ad-input="placeholder_new" style="display:none;">
+    </div>
+    `;
 
     return `
     <div class="page slide ranking">
@@ -339,6 +362,7 @@ function generateRankingPage(ads, branding = {}) {
 
         <div class="ranking-grid">
             ${adsHTML}
+            ${placeholderHTML}
         </div>
     </div>
     `;
@@ -695,6 +719,48 @@ function getStyles() {
       overflow: hidden;
       display: flex;
       flex-direction: column;
+      position: relative;
+    }
+    
+    .ranking-card-delete {
+      transition: all 0.2s;
+    }
+    
+    .ranking-card-delete:hover {
+      background: rgba(239,68,68,1) !important;
+      transform: scale(1.1);
+    }
+    
+    .ranking-thumbnail-editable {
+      position: relative;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    
+    .ranking-thumbnail-editable:hover {
+      opacity: 0.9;
+    }
+    
+    .ranking-thumbnail-editable::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(147, 51, 234, 0.1);
+      opacity: 0;
+      transition: opacity 0.2s;
+      pointer-events: none;
+    }
+    
+    .ranking-thumbnail-editable:hover::after {
+      opacity: 1;
+    }
+    
+    .ranking-card-placeholder {
+      border: 2px dashed #9333EA;
+      background: #f9fafb;
     }
 
     .ranking-thumbnail {

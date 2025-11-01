@@ -326,15 +326,16 @@
                 window.presentationData = {
                     id: savedPresentation.id,
                     html: presentationHTML,
-                    name: presentationData.presentationName
+                    name: presentationData.presentationName,
+                    projectId: presentationData.projectId
                 };
                 
                 updateStep('step5', 'success');
 
-                // Mostrar sucesso
+                // Redirecionar para visualizar apresentação após 1 segundo
                 setTimeout(() => {
-                    showSuccess();
-                }, 500);
+                    window.location.href = `visualizar-apresentacao.html?projectId=${presentationData.projectId}&id=${savedPresentation.id}`;
+                }, 1500);
 
             } catch (error) {
                 console.error('❌ Erro ao processar apresentação:', error);

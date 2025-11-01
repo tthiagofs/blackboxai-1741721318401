@@ -349,10 +349,16 @@
                 }
             });
             
-            // Mostrar/ocultar botões de deletar anúncios
+            // Mostrar/ocultar botões de deletar anúncios (não mostrar no placeholder)
             const deleteButtons = document.querySelectorAll('.ranking-card-delete');
             deleteButtons.forEach(btn => {
-                btn.style.display = isEditMode ? 'flex' : 'none';
+                const card = btn.closest('.ranking-card');
+                // Não mostrar botão de deletar no placeholder
+                if (card && card.classList.contains('ranking-card-placeholder')) {
+                    btn.style.display = 'none';
+                } else {
+                    btn.style.display = isEditMode ? 'flex' : 'none';
+                }
             });
         }
         
@@ -475,6 +481,12 @@
         function setupDeleteButtons() {
             const deleteButtons = document.querySelectorAll('.ranking-card-delete');
             deleteButtons.forEach(btn => {
+                // Não adicionar listener no placeholder
+                const card = btn.closest('.ranking-card');
+                if (card && card.classList.contains('ranking-card-placeholder')) {
+                    return; // Não adicionar listener em placeholder
+                }
+                
                 // Remover listeners antigos
                 const newBtn = btn.cloneNode(true);
                 btn.parentNode.replaceChild(newBtn, btn);
@@ -513,23 +525,36 @@
             const cards = Array.from(grid.querySelectorAll('.ranking-card:not(.ranking-card-placeholder)'));
             const placeholder = grid.querySelector('.ranking-card-placeholder');
             
-            // Ajustar grid para quantidade de cards (1, 2 ou 3 colunas)
-            if (cards.length === 1) {
-                grid.style.gridTemplateColumns = '1fr';
-            } else if (cards.length === 2) {
-                grid.style.gridTemplateColumns = '1fr 1fr';
-            } else {
-                grid.style.gridTemplateColumns = 'repeat(3, 1fr)';
-            }
+            // Sempre manter 3 colunas para layout consistente
+            grid.style.gridTemplateColumns = 'repeat(3, 1fr)';
             
             // Se tem menos de 3 cards e não tem placeholder visível, mostrar placeholder
-            if (cards.length < 3 && placeholder && (placeholder.style.display === 'none' || !placeholder.style.display)) {
+            if (cards.length < 3 && placeholder) {
                 placeholder.style.display = 'flex';
+                // Esconder botão de deletar do placeholder
+                const placeholderDeleteBtn = placeholder.querySelector('.ranking-card-delete');
+                if (placeholderDeleteBtn) {
+                    placeholderDeleteBtn.style.display = 'none';
+                }
+            } else if (placeholder) {
+                placeholder.style.display = 'none';
             }
             
-            // Se tem 3 ou mais cards, esconder placeholder
-            if (cards.length >= 3 && placeholder) {
-                placeholder.style.display = 'none';
+            // Centralizar cards se houver menos de 3
+            if (cards.length === 1) {
+                // Centralizar o único card
+                grid.style.justifyItems = 'center';
+                grid.style.maxWidth = '450px';
+                grid.style.margin = '0 auto';
+            } else if (cards.length === 2) {
+                // Centralizar os 2 cards
+                grid.style.justifyItems = 'center';
+                grid.style.maxWidth = '950px';
+                grid.style.margin = '0 auto';
+            } else {
+                grid.style.justifyItems = 'stretch';
+                grid.style.maxWidth = '';
+                grid.style.margin = '';
             }
             
             // Reconfigurar edição de imagens após reorganizar

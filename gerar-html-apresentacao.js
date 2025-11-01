@@ -333,9 +333,6 @@ function generateRankingPage(ads, branding = {}) {
     const shouldShowPlaceholder = ads.length < 3;
     const placeholderHTML = `
     <div class="ranking-card ranking-card-placeholder" data-ad-id="placeholder_new" style="display:${shouldShowPlaceholder ? 'flex' : 'none'};">
-        <button class="ranking-card-delete" style="display:none;position:absolute;top:10px;right:10px;z-index:10;width:32px;height:32px;background:rgba(239,68,68,0.9);border:none;border-radius:50%;color:white;cursor:pointer;align-items:center;justify-content:center;" title="Remover anúncio">
-            <i class="fas fa-trash" style="font-size:14px;"></i>
-        </button>
         <div class="ranking-thumbnail ranking-thumbnail-editable ranking-thumbnail-placeholder" data-ad-image="placeholder_new" style="border:2px dashed #9333EA;background:#f9fafb;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-direction:column;color:#9333EA;">
             <i class="fas fa-plus-circle" style="font-size:48px;margin-bottom:8px;"></i>
             <span style="font-size:14px;font-weight:500;">Clique ou arraste uma imagem</span>
@@ -712,6 +709,7 @@ function getStyles() {
       max-width: 1400px;
       margin-left: auto;
       margin-right: auto;
+      justify-items: stretch;
     }
 
     .ranking-card {
@@ -743,20 +741,32 @@ function getStyles() {
     }
     
     .ranking-thumbnail-editable::after {
-      content: '';
+      content: 'Clique para alterar';
       position: absolute;
       top: 0;
       left: 0;
       right: 0;
       bottom: 0;
-      background: rgba(147, 51, 234, 0.1);
+      background: rgba(147, 51, 234, 0.85);
+      color: white;
+      font-size: 16px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      justify-content: center;
       opacity: 0;
       transition: opacity 0.2s;
       pointer-events: none;
+      z-index: 5;
     }
     
     .ranking-thumbnail-editable:hover::after {
       opacity: 1;
+    }
+    
+    .ranking-thumbnail-placeholder::after {
+      content: 'Clique ou arraste para adicionar';
+      background: rgba(147, 51, 234, 0.9);
     }
     
     .ranking-card-placeholder {

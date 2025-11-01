@@ -842,9 +842,51 @@
                     const img = thumbnail.querySelector('img');
                     if (img && customData.adImages[adId]) {
                         img.src = customData.adImages[adId];
+                        // Remover bordas das imagens customizadas
+                        img.style.border = 'none';
+                        img.style.outline = 'none';
+                        img.style.boxShadow = 'none';
+                        img.style.borderRadius = '0';
                     }
                 }
             });
+        }
+        
+        // Limpar e otimizar HTML antes de salvar para reduzir tamanho
+        function cleanHTMLForSave(html) {
+            // Criar um elemento temporário para manipular o HTML
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = html;
+            
+            // Remover elementos de edição desnecessários
+            tempDiv.querySelectorAll('.ranking-card-delete').forEach(el => el.remove());
+            tempDiv.querySelectorAll('.ranking-image-input').forEach(el => el.remove());
+            tempDiv.querySelectorAll('.ranking-card-placeholder').forEach(el => el.remove());
+            tempDiv.querySelectorAll('[contenteditable]').forEach(el => el.removeAttribute('contenteditable'));
+            tempDiv.querySelectorAll('[data-edit-id]').forEach(el => el.removeAttribute('data-edit-id'));
+            tempDiv.querySelectorAll('.editable').forEach(el => el.classList.remove('editable'));
+            
+            // Remover imagens Base64 e substituir por placeholders (as imagens já estão em customData.adImages)
+            // Isso reduz drasticamente o tamanho do HTML
+            const images = tempDiv.querySelectorAll('.ranking-thumbnail img');
+            images.forEach(img => {
+                const src = img.getAttribute('src');
+                if (src && src.startsWith('data:image')) {
+                    // Se a imagem é Base64 (customizada), substituir por placeholder
+                    // A referência será restaurada via customData.adImages
+                    img.setAttribute('src', '');
+                    img.setAttribute('data-custom-image', 'true');
+                }
+            });
+            
+            // Minificar HTML removendo espaços extras
+            let cleaned = tempDiv.innerHTML;
+            
+            // Remover múltiplos espaços em branco e quebras de linha extras
+            cleaned = cleaned.replace(/>\s+</g, '><');
+            cleaned = cleaned.replace(/\s+/g, ' ');
+            
+            return cleaned;
         }
 
         // Carregar quando autenticado

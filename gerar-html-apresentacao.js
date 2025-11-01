@@ -446,6 +446,7 @@ function getStyles() {
       display: flex;
       flex-direction: column;
       justify-content: center;
+      align-items: flex-start;
       padding: 50px 65px;
       position: relative;
     }
@@ -460,6 +461,7 @@ function getStyles() {
     .capa-content {
       max-width: 600px;
       z-index: 2;
+      margin-left: 0;
     }
 
     .capa-title {

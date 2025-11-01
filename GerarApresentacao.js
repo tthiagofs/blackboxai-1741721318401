@@ -1549,6 +1549,16 @@ async function generateCompleteReport() {
             reportContainer.innerHTML = presentationHTML;
             reportContainer.style.display = 'block';
             
+            // Preparar edição inline após renderizar
+            setTimeout(() => {
+                if (window.prepareEditMode) {
+                    window.prepareEditMode();
+                }
+                if (window.applyCustomizations && window.currentPresentationData?.customData) {
+                    window.applyCustomizations();
+                }
+            }, 500);
+            
             // Scroll suave até a apresentação
             setTimeout(() => {
                 reportContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });

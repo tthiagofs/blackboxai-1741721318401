@@ -434,6 +434,21 @@ ul.list-disc li br {
                 </div>
             </div>
 
+            <!-- Controles de Edição (aparecem após gerar apresentação) -->
+            <div id="editControls" class="mt-6 mb-4 flex items-center justify-between bg-white rounded-xl shadow-sm border border-gray-200 p-4" style="display: none;">
+                <div class="flex items-center gap-3">
+                    <button id="toggleEditModeBtn" class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-all flex items-center gap-2">
+                        <i class="fas fa-edit"></i>
+                        Modo Edição
+                    </button>
+                    <button id="saveEditsBtn" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-all flex items-center gap-2 hidden">
+                        <i class="fas fa-save"></i>
+                        Salvar Alterações
+                    </button>
+                </div>
+                <p class="text-sm text-gray-600">Clique em "Modo Edição" para personalizar os dados da apresentação</p>
+            </div>
+
             <!-- Container do Relatório Gerado -->
         <div id="reportContainer" class="mt-8 space-y-8"></div>
 
@@ -965,9 +980,36 @@ ul.list-disc li br {
                     
                     console.log('🖨️ Abrindo tela de impressão nativa...');
 
-                    // Guardar HTML atual na sessão para a rota de impressão
+                    // Remover todos os indicadores "Clique para editar" antes de exportar
+                    const indicators = document.querySelectorAll('.edit-indicator');
+                    indicators.forEach(indicator => indicator.remove());
+                    
+                    // Remover classes e atributos de edição
+                    const editables = document.querySelectorAll('.editable');
+                    editables.forEach(el => {
+                        el.classList.remove('editable');
+                        el.removeAttribute('data-editable');
+                        el.removeAttribute('data-edit-id');
+                        el.removeAttribute('contenteditable');
+                        el.style.cursor = '';
+                        el.style.outline = '';
+                        el.style.backgroundColor = '';
+                    });
+                    
+                    // Obter HTML limpo do container
+                    const reportContainer = document.getElementById('reportContainer');
+                    const cleanHTML = reportContainer.innerHTML;
+                    
+                    // Restaurar elementos para edição (caso o usuário queira editar depois)
+                    setTimeout(() => {
+                        if (window.prepareEditMode) {
+                            window.prepareEditMode();
+                        }
+                    }, 100);
+                    
+                    // Guardar HTML limpo na sessão para a rota de impressão
                     const printPayload = {
-                        html: (window.currentPresentationData.html || '').replaceAll('class="page', 'class="page slide'),
+                        html: cleanHTML.replaceAll('class="page', 'class="page slide'),
                         unitName: window.currentPresentationData.unitName || 'Apresentacao'
                     };
                     sessionStorage.setItem('presentationPrintPayload', JSON.stringify(printPayload));
@@ -1040,11 +1082,255 @@ ul.list-disc li br {
                 const reportContainer = document.getElementById('reportContainer');
                 if (reportContainer) {
                     reportContainer.innerHTML = updatedHTML;
+                    
+                    // Preparar edição inline após atualizar
+                    setTimeout(() => {
+                        if (window.prepareEditMode) {
+                            window.prepareEditMode();
+                        }
+                    }, 500);
                 }
                 
                 console.log('✅ Apresentação atualizada com sucesso!');
             });
         }
+        
+        // ===== SISTEMA DE EDIÇÃO INLINE =====
+        let isEditMode = false;
+        let hasUnsavedChanges = false;
+        let customData = {};
+        
+        // Preparar modo de edição
+        window.prepareEditMode = function() {
+            const editControls = document.getElementById('editControls');
+            if (editControls) {
+                editControls.style.display = 'flex';
+            }
+            
+            const editables = [
+                '.capa-title',
+                '.capa-unidade',
+                '.capa-periodo',
+                '.card-value',
+                '.card-label',
+                '.resultados-title',
+                '.resultados-subtitle',
+                '.ranking-title',
+                '.ranking-metrics-leads',
+                '.ranking-metrics-cost',
+                '.proximos-title',
+                '.proximos-subtitle',
+                '.proximos-list li',
+                '.obrigado-text'
+            ];
+
+            editables.forEach(selector => {
+                const elements = document.querySelectorAll(selector);
+                elements.forEach((element, index) => {
+                    const editId = `${selector.replace(/[.#\s]/g, '_')}_${index}`;
+                    element.setAttribute('data-edit-id', editId);
+                    element.classList.add('editable');
+                    
+                    const indicator = document.createElement('span');
+                    indicator.className = 'edit-indicator';
+                    indicator.textContent = 'Clique para editar';
+                    indicator.style.cssText = 'position:absolute;top:-25px;left:0;font-size:11px;color:#9333EA;background:white;padding:2px 6px;border-radius:4px;opacity:0;transition:opacity 0.2s;pointer-events:none;border:1px solid rgba(147,51,234,0.2);';
+                    element.style.position = 'relative';
+                    element.appendChild(indicator);
+                    
+                    element.addEventListener('click', () => {
+                        if (isEditMode && !element.hasAttribute('contenteditable')) {
+                            startEditing(element, editId);
+                        }
+                    });
+                    
+                    element.addEventListener('blur', () => {
+                        stopEditing(element, editId);
+                    });
+                });
+            });
+            
+            updateEditModeUI();
+        };
+        
+        function updateEditModeUI() {
+            const indicators = document.querySelectorAll('.edit-indicator');
+            indicators.forEach(indicator => {
+                indicator.style.opacity = isEditMode ? '1' : '0';
+            });
+            
+            const editables = document.querySelectorAll('.editable');
+            editables.forEach(el => {
+                if (isEditMode) {
+                    el.style.cursor = 'text';
+                } else {
+                    el.style.cursor = 'default';
+                    el.removeAttribute('contenteditable');
+                }
+            });
+        }
+        
+        function startEditing(element, editId) {
+            element.setAttribute('contenteditable', 'true');
+            element.focus();
+            const range = document.createRange();
+            range.selectNodeContents(element);
+            const selection = window.getSelection();
+            selection.removeAllRanges();
+            selection.addRange(range);
+        }
+        
+        function stopEditing(element, editId) {
+            element.removeAttribute('contenteditable');
+            const newValue = element.textContent.trim();
+            
+            if (!element.hasAttribute('data-original-value')) {
+                const originalText = element.textContent.trim();
+                element.setAttribute('data-original-value', originalText);
+            }
+            
+            const originalValue = element.getAttribute('data-original-value') || '';
+            
+            if (newValue !== originalValue && newValue !== '') {
+                customData[editId] = newValue;
+                markAsChanged();
+            }
+        }
+        
+        function markAsChanged() {
+            if (!hasUnsavedChanges) {
+                hasUnsavedChanges = true;
+                const saveBtn = document.getElementById('saveEditsBtn');
+                if (saveBtn) {
+                    saveBtn.classList.remove('hidden');
+                }
+            }
+        }
+        
+        async function saveEdits() {
+            if (!hasUnsavedChanges || !window.currentPresentationData) {
+                return;
+            }
+
+            const saveBtn = document.getElementById('saveEditsBtn');
+            if (saveBtn) {
+                saveBtn.disabled = true;
+                saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Salvando...';
+            }
+
+            try {
+                // Atualizar HTML com as alterações
+                const reportContainer = document.getElementById('reportContainer');
+                const updatedHTML = reportContainer.innerHTML;
+                window.currentPresentationData.html = updatedHTML;
+                
+                // Salvar customData no objeto da apresentação
+                if (!window.currentPresentationData.customData) {
+                    window.currentPresentationData.customData = {};
+                }
+                window.currentPresentationData.customData = { ...window.currentPresentationData.customData, ...customData };
+                
+                // Se a apresentação já foi salva, atualizar no Firestore
+                if (window.currentPresentationData.presentationId) {
+                    const { presentationsService } = await import('./services/presentationsService.js?v=1.0');
+                    const projectId = localStorage.getItem('currentProject');
+                    await presentationsService.updatePresentation(projectId, window.currentPresentationData.presentationId, {
+                        customData: window.currentPresentationData.customData,
+                        html: updatedHTML,
+                        updatedAt: new Date().toISOString()
+                    });
+                }
+                
+                hasUnsavedChanges = false;
+                if (saveBtn) {
+                    saveBtn.classList.add('hidden');
+                    saveBtn.disabled = false;
+                    saveBtn.innerHTML = '<i class="fas fa-save"></i> Salvar Alterações';
+                }
+                
+                // Feedback visual
+                const notification = document.createElement('div');
+                notification.className = 'fixed top-4 right-4 px-6 py-3 rounded-lg shadow-lg z-50 bg-green-600 text-white';
+                notification.innerHTML = '<div class="flex items-center gap-2"><i class="fas fa-check-circle"></i><span>Alterações salvas!</span></div>';
+                document.body.appendChild(notification);
+                setTimeout(() => {
+                    notification.style.opacity = '0';
+                    notification.style.transition = 'opacity 0.3s';
+                    setTimeout(() => notification.remove(), 300);
+                }, 3000);
+                
+            } catch (error) {
+                console.error('❌ Erro ao salvar:', error);
+                if (saveBtn) {
+                    saveBtn.disabled = false;
+                    saveBtn.innerHTML = '<i class="fas fa-save"></i> Salvar Alterações';
+                }
+                alert('Erro ao salvar alterações');
+            }
+        }
+        
+        // Toggle modo de edição
+        const toggleEditModeBtn = document.getElementById('toggleEditModeBtn');
+        if (toggleEditModeBtn) {
+            toggleEditModeBtn.addEventListener('click', () => {
+                isEditMode = !isEditMode;
+                updateEditModeUI();
+                
+                toggleEditModeBtn.innerHTML = isEditMode 
+                    ? '<i class="fas fa-eye"></i> Modo Visualização'
+                    : '<i class="fas fa-edit"></i> Modo Edição';
+            });
+        }
+        
+        // Salvar edições
+        const saveEditsBtn = document.getElementById('saveEditsBtn');
+        if (saveEditsBtn) {
+            saveEditsBtn.addEventListener('click', saveEdits);
+        }
+        
+        // Aplicar customizações ao carregar
+        window.applyCustomizations = function() {
+            if (!window.currentPresentationData?.customData || Object.keys(window.currentPresentationData.customData).length === 0) {
+                return;
+            }
+            
+            setTimeout(() => {
+                Object.keys(window.currentPresentationData.customData).forEach(editId => {
+                    const element = document.querySelector(`[data-edit-id="${editId}"]`);
+                    if (element) {
+                        const customValue = window.currentPresentationData.customData[editId];
+                        element.textContent = customValue;
+                        element.setAttribute('data-original-value', customValue);
+                    }
+                });
+            }, 500);
+        };
     </script>
+    
+    <style>
+        /* Estilos para edição inline */
+        .editable {
+            position: relative;
+            transition: all 0.2s;
+        }
+        
+        .editable:hover {
+            background-color: rgba(147, 51, 234, 0.1);
+            outline: 2px dashed rgba(147, 51, 234, 0.3);
+            outline-offset: 2px;
+            cursor: text;
+        }
+        
+        .editable[contenteditable="true"] {
+            background-color: rgba(147, 51, 234, 0.15);
+            outline: 2px solid rgba(147, 51, 234, 0.5);
+            outline-offset: 2px;
+        }
+        
+        .editable[contenteditable="true"]:focus {
+            outline: 2px solid rgba(147, 51, 234, 0.8);
+            background-color: rgba(147, 51, 234, 0.2);
+        }
+    </style>
 <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'93075eeb8ba96b9d',t:'MTc0NDY3NzQwOC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script><script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'930c0ec9980abce6',t:'MTc0NDcyNjU1NS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script><script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'930e06e76bdd8027',t:'MTc0NDc0NzIwMy4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>

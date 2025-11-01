@@ -558,6 +558,9 @@
         function deleteAdCard(card) {
             const adId = card.getAttribute('data-ad-id');
             
+            // SEMPRE marcar como mudado ANTES de qualquer operação
+            markAsChanged();
+            
             // Remover do customData
             if (customData.adImages && customData.adImages[adId]) {
                 delete customData.adImages[adId];
@@ -568,7 +571,6 @@
             
             // Reorganizar cards e mostrar placeholder se necessário
             reorganizeAdCards();
-            markAsChanged();
         }
         
         // Reorganizar cards após deletar
@@ -584,13 +586,37 @@
             // Garantir que os cards mantenham o mesmo tamanho
             grid.style.gridAutoRows = 'auto';
             
-            // Se tem menos de 3 cards e não tem placeholder visível, mostrar placeholder
-            if (cards.length < 3 && placeholder) {
-                placeholder.style.display = 'flex';
-                // Esconder botão de deletar do placeholder
-                const placeholderDeleteBtn = placeholder.querySelector('.ranking-card-delete');
-                if (placeholderDeleteBtn) {
-                    placeholderDeleteBtn.style.display = 'none';
+            // Se tem menos de 3 cards, garantir que placeholder existe e está visível
+            if (cards.length < 3) {
+                if (!placeholder) {
+                    // Criar placeholder se não existir
+                    const placeholderHTML = `
+                    <div class="ranking-card ranking-card-placeholder" data-ad-id="placeholder_new" style="display:flex;">
+                        <div class="ranking-thumbnail ranking-thumbnail-editable ranking-thumbnail-placeholder" data-ad-image="placeholder_new" style="border:2px dashed #9333EA;background:#f9fafb;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-direction:column;color:#9333EA;">
+                            <i class="fas fa-plus-circle" style="font-size:48px;margin-bottom:8px;"></i>
+                            <span style="font-size:14px;font-weight:500;">Clique ou arraste uma imagem</span>
+                        </div>
+                        <div class="ranking-metrics-bar">
+                            <span class="ranking-metrics-leads" data-ad-leads="placeholder_new">0 Leads</span>
+                            <span class="ranking-metrics-cost" data-ad-cost="placeholder_new">R$ 0,00</span>
+                        </div>
+                        <input type="file" accept="image/*" class="ranking-image-input" data-ad-input="placeholder_new" style="display:none;">
+                    </div>
+                    `;
+                    grid.insertAdjacentHTML('beforeend', placeholderHTML);
+                    // Reconfigurar edição de imagens após criar placeholder
+                    if (isEditMode) {
+                        setTimeout(() => {
+                            setupAdImageEditing();
+                        }, 100);
+                    }
+                } else {
+                    placeholder.style.display = 'flex';
+                    // Esconder botão de deletar do placeholder
+                    const placeholderDeleteBtn = placeholder.querySelector('.ranking-card-delete');
+                    if (placeholderDeleteBtn) {
+                        placeholderDeleteBtn.style.display = 'none';
+                    }
                 }
             } else if (placeholder) {
                 placeholder.style.display = 'none';

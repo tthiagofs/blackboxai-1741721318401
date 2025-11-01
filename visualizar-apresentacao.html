@@ -405,9 +405,38 @@
                 });
             }, 100);
             
+            // Garantir que file inputs existam para todos os anúncios
+            ensureFileInputsExist();
+            
             // Atualizar UI baseado no modo
             updateEditModeUI();
             setupAdImageEditing();
+        }
+        
+        // Garantir que file inputs existam para todos os anúncios (necessário ao carregar apresentação salva)
+        function ensureFileInputsExist() {
+            const thumbnails = document.querySelectorAll('.ranking-thumbnail[data-ad-image]');
+            thumbnails.forEach(thumbnail => {
+                const adId = thumbnail.getAttribute('data-ad-image');
+                if (!adId || adId === 'placeholder_new') return;
+                
+                // Verificar se já existe file input
+                let fileInput = document.querySelector(`[data-ad-input="${adId}"]`);
+                if (!fileInput) {
+                    // Criar file input se não existir
+                    const card = thumbnail.closest('.ranking-card');
+                    if (card) {
+                        fileInput = document.createElement('input');
+                        fileInput.type = 'file';
+                        fileInput.accept = 'image/*';
+                        fileInput.className = 'ranking-image-input';
+                        fileInput.setAttribute('data-ad-input', adId);
+                        fileInput.style.display = 'none';
+                        card.appendChild(fileInput);
+                        console.log(`✅ File input criado para anúncio: ${adId}`);
+                    }
+                }
+            });
         }
         
         // Atualizar UI baseado no modo
@@ -859,6 +888,11 @@
         // Toggle modo de edição
         toggleEditBtn.addEventListener('click', () => {
             isEditMode = !isEditMode;
+            
+            // Garantir que file inputs existam ao entrar em modo edição
+            if (isEditMode && typeof ensureFileInputsExist === 'function') {
+                ensureFileInputsExist();
+            }
             updateEditModeUI();
             
             // Reconfigurar edição de imagens quando mudar modo
@@ -905,6 +939,10 @@
             
             // Restaurar elementos para edição (caso o usuário queira editar depois)
             setTimeout(() => {
+                // Garantir que file inputs existam
+                if (typeof ensureFileInputsExist === 'function') {
+                    ensureFileInputsExist();
+                }
                 prepareEditMode();
             }, 100);
             

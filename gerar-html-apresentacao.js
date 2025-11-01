@@ -732,11 +732,14 @@ function getStyles() {
     
     .ranking-thumbnail-editable {
       position: relative;
-      cursor: pointer;
       transition: all 0.2s;
     }
     
-    .ranking-thumbnail-editable:hover {
+    .ranking-thumbnail-editable.edit-mode {
+      cursor: pointer;
+    }
+    
+    .ranking-thumbnail-editable.edit-mode:hover {
       opacity: 0.9;
     }
     
@@ -751,7 +754,7 @@ function getStyles() {
       color: white;
       font-size: 16px;
       font-weight: 600;
-      display: flex;
+      display: none;
       align-items: center;
       justify-content: center;
       opacity: 0;
@@ -760,7 +763,11 @@ function getStyles() {
       z-index: 5;
     }
     
-    .ranking-thumbnail-editable:hover::after {
+    .ranking-thumbnail-editable.edit-mode::after {
+      display: flex;
+    }
+    
+    .ranking-thumbnail-editable.edit-mode:hover::after {
       opacity: 1;
     }
     

@@ -194,15 +194,33 @@
                 const allThumbnails = presentationContainer.querySelectorAll('.ranking-thumbnail[data-ad-image]');
                 allThumbnails.forEach(thumbnail => {
                     const adId = thumbnail.getAttribute('data-ad-image');
-                    const img = thumbnail.querySelector('img');
-                    if (img && img.src && img.src.startsWith('data:image')) {
-                        // Se a imagem é Base64 (customizada), extrair para customData em memória
-                        if (!customData.adImages) customData.adImages = {};
-                        customData.adImages[adId] = img.src;
-                        console.log(`✅ Imagem Base64 extraída do HTML para anúncio: ${adId}`);
+                    if (adId && adId !== 'placeholder_new') {
+                        const img = thumbnail.querySelector('img');
+                        if (img && img.src && img.src.startsWith('data:image')) {
+                            // Se a imagem é Base64 (customizada), extrair para customData em memória
+                            if (!customData.adImages) customData.adImages = {};
+                            customData.adImages[adId] = img.src;
+                            console.log(`✅ Imagem Base64 extraída do HTML para anúncio: ${adId}`);
+                        }
+                        
+                        // Garantir que file input existe para este anúncio
+                        let fileInput = document.querySelector(`[data-ad-input="${adId}"]`);
+                        if (!fileInput) {
+                            const card = thumbnail.closest('.ranking-card');
+                            if (card) {
+                                fileInput = document.createElement('input');
+                                fileInput.type = 'file';
+                                fileInput.accept = 'image/*';
+                                fileInput.className = 'ranking-image-input';
+                                fileInput.setAttribute('data-ad-input', adId);
+                                fileInput.style.display = 'none';
+                                card.appendChild(fileInput);
+                                console.log(`✅ File input criado para: ${adId}`);
+                            }
+                        }
                     }
                 });
-            }, 100);
+            }, 200);
             
             // Aguardar carregamento de fontes e imagens
             document.fonts.ready.then(() => {
@@ -292,6 +310,16 @@
                             }
                         }
                     });
+                    
+                    // Garantir que file inputs existam após extrair imagens
+                    if (typeof ensureFileInputsExist === 'function') {
+                        ensureFileInputsExist();
+                    }
+                    
+                    // Reconfigurar edição de imagens após garantir inputs
+                    if (typeof setupAdImageEditing === 'function') {
+                        setupAdImageEditing();
+                    }
                 }, 200);
                 
                 // Reorganizar cards após aplicar customizações para garantir placeholder se necessário
@@ -403,6 +431,16 @@
                     btn.style.display = 'none';
                 } else {
                     btn.style.display = isEditMode ? 'flex' : 'none';
+                }
+            });
+            
+            // Adicionar/remover classe edit-mode nos thumbnails para controlar hover
+            const thumbnails = document.querySelectorAll('.ranking-thumbnail-editable');
+            thumbnails.forEach(thumbnail => {
+                if (isEditMode) {
+                    thumbnail.classList.add('edit-mode');
+                } else {
+                    thumbnail.classList.remove('edit-mode');
                 }
             });
         }

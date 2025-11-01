@@ -1227,6 +1227,16 @@ ul.list-disc li br {
                     btn.style.display = isEditMode ? 'flex' : 'none';
                 }
             });
+            
+            // Adicionar/remover classe edit-mode nos thumbnails para controlar hover
+            const thumbnails = document.querySelectorAll('.ranking-thumbnail-editable');
+            thumbnails.forEach(thumbnail => {
+                if (isEditMode) {
+                    thumbnail.classList.add('edit-mode');
+                } else {
+                    thumbnail.classList.remove('edit-mode');
+                }
+            });
         }
         
         // Configurar edição de imagens dos anúncios

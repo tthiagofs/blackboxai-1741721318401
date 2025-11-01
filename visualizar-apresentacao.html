@@ -239,13 +239,18 @@
                             const img = thumbnail.querySelector('img');
                             if (img) {
                                 img.src = customData.adImages[adId];
+                                // Remover bordas das imagens customizadas
+                                img.style.border = 'none';
+                                img.style.outline = 'none';
+                                img.style.boxShadow = 'none';
+                                img.style.borderRadius = '0';
                                 thumbnail.classList.remove('ranking-thumbnail-placeholder');
                                 if (thumbnail.parentElement) {
                                     thumbnail.parentElement.classList.remove('ranking-card-placeholder');
                                 }
                             } else {
                                 // Se não tem img, criar uma
-                                thumbnail.innerHTML = `<img src="${customData.adImages[adId]}" alt="Anúncio" style="width:100%;height:100%;object-fit:cover;">`;
+                                thumbnail.innerHTML = `<img src="${customData.adImages[adId]}" alt="Anúncio" style="width:100%;height:100%;object-fit:cover;border:none;outline:none;box-shadow:none;border-radius:0;">`;
                                 thumbnail.classList.remove('ranking-thumbnail-placeholder');
                                 if (thumbnail.parentElement) {
                                     thumbnail.parentElement.classList.remove('ranking-card-placeholder');
@@ -255,6 +260,13 @@
                         }
                     });
                 }
+                
+                // Reorganizar cards após aplicar customizações para garantir placeholder se necessário
+                setTimeout(() => {
+                    if (typeof reorganizeAdCards === 'function') {
+                        reorganizeAdCards();
+                    }
+                }, 300);
             }, 500);
         }
 

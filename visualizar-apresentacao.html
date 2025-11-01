@@ -464,8 +464,14 @@
             });
             
             // Adicionar/remover classe edit-mode nos thumbnails para controlar hover
-            const thumbnails = document.querySelectorAll('.ranking-thumbnail-editable');
-            thumbnails.forEach(thumbnail => {
+            // Garantir que todos os thumbnails com data-ad-image tenham a classe ranking-thumbnail-editable
+            const allThumbnails = document.querySelectorAll('.ranking-thumbnail[data-ad-image]');
+            allThumbnails.forEach(thumbnail => {
+                // Garantir que tem a classe necessária
+                if (!thumbnail.classList.contains('ranking-thumbnail-editable')) {
+                    thumbnail.classList.add('ranking-thumbnail-editable');
+                }
+                
                 if (isEditMode) {
                     thumbnail.classList.add('edit-mode');
                 } else {
@@ -476,6 +482,14 @@
         
         // Configurar edição de imagens dos anúncios
         function setupAdImageEditing() {
+            // Garantir que todos os thumbnails tenham a classe necessária
+            const allThumbnails = document.querySelectorAll('.ranking-thumbnail[data-ad-image]');
+            allThumbnails.forEach(thumbnail => {
+                if (!thumbnail.classList.contains('ranking-thumbnail-editable')) {
+                    thumbnail.classList.add('ranking-thumbnail-editable');
+                }
+            });
+            
             const thumbnails = document.querySelectorAll('.ranking-thumbnail-editable');
             
             thumbnails.forEach(thumbnail => {

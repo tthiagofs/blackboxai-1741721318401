@@ -1092,14 +1092,18 @@ ul.list-disc li br {
                 try { branding = await getBranding(projectId); } catch(e){ console.warn('Branding não encontrado', e?.message); }
                 
                 // Gerar HTML atualizado
+                // Obter métricas (pode estar em metaMetrics/googleMetrics ou savedMetrics/savedGoogleMetrics)
+                const metaMetrics = window.currentPresentationData.metaMetrics || window.currentPresentationData.savedMetrics;
+                const googleMetrics = window.currentPresentationData.googleMetrics || window.currentPresentationData.savedGoogleMetrics;
+                
                 const updatedHTML = generatePresentationHTML({
                     unitName: window.currentPresentationData.unitName,
                     startDate: window.currentPresentationData.startDate,
                     endDate: window.currentPresentationData.endDate,
-                    hasMeta: !!window.currentPresentationData.metaMetrics,
-                    hasGoogle: !!window.currentPresentationData.googleMetrics,
-                    metaMetrics: window.currentPresentationData.metaMetrics,
-                    googleMetrics: window.currentPresentationData.googleMetrics,
+                    hasMeta: !!metaMetrics,
+                    hasGoogle: !!googleMetrics,
+                    metaMetrics: metaMetrics,
+                    googleMetrics: googleMetrics,
                     metaTop3Ads: window.currentPresentationData.bestAds?.filter(ad => ad.platform === 'meta').slice(0, 3),
                     performanceAnalysis: performanceAnalysis,
                     budgetsCompleted: window.currentPresentationData.budgetsCompleted,
@@ -1201,9 +1205,39 @@ ul.list-disc li br {
                 });
             });
             
+            // Garantir que file inputs existam para todos os anúncios
+            ensureFileInputsExist();
+            
             updateEditModeUI();
             setupAdImageEditing();
+            setupDeleteButtons();
         };
+        
+        // Garantir que file inputs existam para todos os anúncios (necessário ao carregar apresentação salva)
+        function ensureFileInputsExist() {
+            const thumbnails = document.querySelectorAll('.ranking-thumbnail[data-ad-image]');
+            thumbnails.forEach(thumbnail => {
+                const adId = thumbnail.getAttribute('data-ad-image');
+                if (!adId || adId === 'placeholder_new') return;
+                
+                // Verificar se já existe file input
+                let fileInput = document.querySelector(`[data-ad-input="${adId}"]`);
+                if (!fileInput) {
+                    // Criar file input se não existir
+                    const card = thumbnail.closest('.ranking-card');
+                    if (card) {
+                        fileInput = document.createElement('input');
+                        fileInput.type = 'file';
+                        fileInput.accept = 'image/*';
+                        fileInput.className = 'ranking-image-input';
+                        fileInput.setAttribute('data-ad-input', adId);
+                        fileInput.style.display = 'none';
+                        card.appendChild(fileInput);
+                        console.log(`✅ File input criado para anúncio: ${adId}`);
+                    }
+                }
+            });
+        }
         
         function updateEditModeUI() {
             const editables = document.querySelectorAll('.editable');

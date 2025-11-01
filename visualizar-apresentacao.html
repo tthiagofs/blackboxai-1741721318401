@@ -320,6 +320,15 @@
                     if (typeof setupAdImageEditing === 'function') {
                         setupAdImageEditing();
                     }
+                    
+                    // Garantir que botões de deletar existam e estejam configurados
+                    if (typeof setupDeleteButtons === 'function') {
+                        setupDeleteButtons();
+                        // Atualizar visibilidade dos botões baseado no modo
+                        if (typeof updateEditModeUI === 'function') {
+                            updateEditModeUI();
+                        }
+                    }
                 }, 200);
                 
                 // Reorganizar cards após aplicar customizações para garantir placeholder se necessário

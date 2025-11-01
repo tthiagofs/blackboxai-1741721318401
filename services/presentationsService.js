@@ -8,7 +8,8 @@ import {
     addDoc, 
     getDocs, 
     getDoc,
-    deleteDoc, 
+    deleteDoc,
+    updateDoc,
     doc, 
     query, 
     orderBy,
@@ -125,6 +126,33 @@ class PresentationsService {
 
         } catch (error) {
             console.error('❌ Erro ao buscar apresentação:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Atualiza uma apresentação
+     */
+    async updatePresentation(projectId, presentationId, updateData) {
+        try {
+            const user = auth.currentUser;
+            if (!user) {
+                throw new Error('Usuário não autenticado');
+            }
+
+            console.log('💾 Atualizando apresentação:', presentationId);
+
+            const presentationRef = doc(db, 'projects', projectId, 'presentations', presentationId);
+            await updateDoc(presentationRef, {
+                ...updateData,
+                updatedAt: new Date().toISOString()
+            });
+
+            console.log('✅ Apresentação atualizada com sucesso');
+            return { success: true };
+
+        } catch (error) {
+            console.error('❌ Erro ao atualizar apresentação:', error);
             throw error;
         }
     }

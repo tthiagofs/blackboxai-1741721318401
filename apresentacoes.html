@@ -779,11 +779,7 @@
             if (isSelectionMode) return;
 
             console.log('Abrindo apresentação:', presentationId);
-            localStorage.setItem('currentProject', currentProjectId);
-            localStorage.setItem('currentPresentation', presentationId);
-            const timestamp = new Date().getTime();
-            // TODO: Criar página de visualização de apresentação
-            alert('Visualização de apresentação em desenvolvimento');
+            window.location.href = `visualizar-apresentacao.html?projectId=${currentProjectId}&id=${presentationId}`;
         };
 
         // Deletar apresentação

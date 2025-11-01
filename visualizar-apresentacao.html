@@ -216,10 +216,12 @@
             
             // Aguardar um pouco para garantir que todos os elementos foram renderizados
             setTimeout(() => {
+                // Aplicar customizações de texto
                 Object.keys(customData).forEach(editId => {
+                    if (editId === 'adImages') return; // Pular objeto de imagens
+                    
                     const element = document.querySelector(`[data-edit-id="${editId}"]`);
                     if (element) {
-                        // Preservar HTML interno se necessário
                         const customValue = customData[editId];
                         element.textContent = customValue;
                         element.setAttribute('data-original-value', customValue);
@@ -228,6 +230,31 @@
                         console.warn(`⚠️ Elemento não encontrado: ${editId}`);
                     }
                 });
+                
+                // Aplicar customizações de imagens de anúncios
+                if (customData.adImages && typeof customData.adImages === 'object') {
+                    Object.keys(customData.adImages).forEach(adId => {
+                        const thumbnail = document.querySelector(`[data-ad-image="${adId}"]`);
+                        if (thumbnail) {
+                            const img = thumbnail.querySelector('img');
+                            if (img) {
+                                img.src = customData.adImages[adId];
+                                thumbnail.classList.remove('ranking-thumbnail-placeholder');
+                                if (thumbnail.parentElement) {
+                                    thumbnail.parentElement.classList.remove('ranking-card-placeholder');
+                                }
+                            } else {
+                                // Se não tem img, criar uma
+                                thumbnail.innerHTML = `<img src="${customData.adImages[adId]}" alt="Anúncio" style="width:100%;height:100%;object-fit:cover;">`;
+                                thumbnail.classList.remove('ranking-thumbnail-placeholder');
+                                if (thumbnail.parentElement) {
+                                    thumbnail.parentElement.classList.remove('ranking-card-placeholder');
+                                }
+                            }
+                            console.log(`✅ Aplicada imagem customizada para anúncio: ${adId}`);
+                        }
+                    });
+                }
             }, 500);
         }
 

@@ -329,9 +329,10 @@ function generateRankingPage(ads, branding = {}) {
         `;
     }).join('');
     
-    // Adicionar placeholder para novo anúncio (opcional)
+    // Adicionar placeholder para novo anúncio (opcional) - só aparece se tiver menos de 3 anúncios
+    const shouldShowPlaceholder = ads.length < 3;
     const placeholderHTML = `
-    <div class="ranking-card ranking-card-placeholder" data-ad-id="placeholder_new" style="display:none;">
+    <div class="ranking-card ranking-card-placeholder" data-ad-id="placeholder_new" style="display:${shouldShowPlaceholder ? 'flex' : 'none'};">
         <button class="ranking-card-delete" style="display:none;position:absolute;top:10px;right:10px;z-index:10;width:32px;height:32px;background:rgba(239,68,68,0.9);border:none;border-radius:50%;color:white;cursor:pointer;align-items:center;justify-content:center;" title="Remover anúncio">
             <i class="fas fa-trash" style="font-size:14px;"></i>
         </button>

@@ -1574,7 +1574,7 @@ ul.list-disc li br {
                 
                 // Limpar HTML antes de salvar (remover elementos de edição e otimizar)
                 const reportContainer = document.getElementById('reportContainer');
-                const cleanedHTML = cleanHTMLForSave(reportContainer.innerHTML);
+                const cleanedHTML = await cleanHTMLForSave(reportContainer.innerHTML);
                 
                 window.currentPresentationData.html = cleanedHTML;
                 
@@ -1605,7 +1605,7 @@ ul.list-disc li br {
                     const projectId = localStorage.getItem('currentProject');
                     await presentationsService.updatePresentation(projectId, window.currentPresentationData.presentationId, {
                         customData: window.currentPresentationData.customData,
-                        html: updatedHTML,
+                        html: cleanedHTML,
                         updatedAt: new Date().toISOString()
                     });
                 }
@@ -1727,8 +1727,38 @@ ul.list-disc li br {
             });
         }
         
+        // Comprimir imagem Base64 reduzindo qualidade
+        async function compressBase64Image(base64String, maxWidth = 800, quality = 0.7) {
+            return new Promise((resolve) => {
+                const img = new Image();
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    let width = img.width;
+                    let height = img.height;
+                    
+                    // Redimensionar se necessário
+                    if (width > maxWidth) {
+                        height = (height * maxWidth) / width;
+                        width = maxWidth;
+                    }
+                    
+                    canvas.width = width;
+                    canvas.height = height;
+                    
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+                    
+                    // Converter para JPEG com qualidade reduzida
+                    const compressed = canvas.toDataURL('image/jpeg', quality);
+                    resolve(compressed);
+                };
+                img.onerror = () => resolve(base64String); // Se falhar, retorna original
+                img.src = base64String;
+            });
+        }
+        
         // Limpar e otimizar HTML antes de salvar para reduzir tamanho
-        function cleanHTMLForSave(html) {
+        async function cleanHTMLForSave(html) {
             // Criar um elemento temporário para manipular o HTML
             const tempDiv = document.createElement('div');
             tempDiv.innerHTML = html;
@@ -1741,9 +1771,16 @@ ul.list-disc li br {
             tempDiv.querySelectorAll('[data-edit-id]').forEach(el => el.removeAttribute('data-edit-id'));
             tempDiv.querySelectorAll('.editable').forEach(el => el.classList.remove('editable'));
             
-            // NÃO remover imagens Base64 do HTML - elas precisam ficar para visualização
-            // Apenas removemos do customData.adImages antes de salvar (feito em saveEdits)
-            // As imagens Base64 no HTML são necessárias para visualização e serão extraídas quando carregar
+            // Comprimir imagens Base64 se necessário
+            const images = tempDiv.querySelectorAll('.ranking-thumbnail img');
+            for (const img of images) {
+                const src = img.getAttribute('src');
+                if (src && src.startsWith('data:image')) {
+                    // Comprimir imagem Base64 para reduzir tamanho
+                    const compressed = await compressBase64Image(src, 800, 0.75);
+                    img.setAttribute('src', compressed);
+                }
+            }
             
             // Minificar HTML removendo espaços extras
             let cleaned = tempDiv.innerHTML;
@@ -1751,6 +1788,30 @@ ul.list-disc li br {
             // Remover múltiplos espaços em branco e quebras de linha extras
             cleaned = cleaned.replace(/>\s+</g, '><');
             cleaned = cleaned.replace(/\s+/g, ' ');
+            
+            // Verificar tamanho do HTML
+            const htmlSize = new Blob([cleaned]).size;
+            console.log(`📊 Tamanho do HTML após limpeza: ${(htmlSize / 1024).toFixed(2)} KB`);
+            
+            // Se ainda estiver muito grande (>950KB), comprimir mais agressivamente
+            if (htmlSize > 950 * 1024) {
+                console.warn('⚠️ HTML ainda muito grande, comprimindo imagens mais agressivamente...');
+                const tempDiv2 = document.createElement('div');
+                tempDiv2.innerHTML = cleaned;
+                const images2 = tempDiv2.querySelectorAll('.ranking-thumbnail img');
+                for (const img of images2) {
+                    const src = img.getAttribute('src');
+                    if (src && src.startsWith('data:image')) {
+                        const compressed = await compressBase64Image(src, 600, 0.6);
+                        img.setAttribute('src', compressed);
+                    }
+                }
+                cleaned = tempDiv2.innerHTML;
+                cleaned = cleaned.replace(/>\s+</g, '><');
+                cleaned = cleaned.replace(/\s+/g, ' ');
+                const finalSize = new Blob([cleaned]).size;
+                console.log(`📊 Tamanho final do HTML: ${(finalSize / 1024).toFixed(2)} KB`);
+            }
             
             return cleaned;
         }

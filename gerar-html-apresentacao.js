@@ -681,7 +681,10 @@ function getStyles() {
       gap: 25px;
       position: relative;
       z-index: 2;
-      margin-top: 25px;
+      margin-top: 50px;
+      max-width: 1400px;
+      margin-left: auto;
+      margin-right: auto;
     }
 
     .ranking-card {

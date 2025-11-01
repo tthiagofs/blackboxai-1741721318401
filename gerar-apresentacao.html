@@ -999,8 +999,9 @@ ul.list-disc li br {
                     document.querySelectorAll('.ranking-card-delete').forEach(btn => btn.remove());
                     document.querySelectorAll('.ranking-image-input').forEach(input => input.remove());
                     
-                    // Remover placeholder se existir
+                    // Remover placeholder se existir (mas guardar informação para restaurar depois)
                     const placeholder = document.querySelector('.ranking-card-placeholder');
+                    const hadPlaceholder = placeholder !== null;
                     if (placeholder) placeholder.remove();
                     
                     // Obter HTML limpo do container
@@ -1008,10 +1009,17 @@ ul.list-disc li br {
                     const cleanHTML = reportContainer.innerHTML;
                     
                     // Restaurar elementos para edição (caso o usuário queira editar depois)
+                    // Mas primeiro precisamos re-renderizar o HTML com os dados atuais
                     setTimeout(() => {
                         if (window.prepareEditMode) {
                             window.prepareEditMode();
                         }
+                        // Reorganizar cards para restaurar placeholder se necessário
+                        setTimeout(() => {
+                            if (typeof reorganizeAdCards === 'function') {
+                                reorganizeAdCards();
+                            }
+                        }, 200);
                     }, 100);
                     
                     // Guardar HTML limpo na sessão para a rota de impressão
@@ -1275,18 +1283,23 @@ ul.list-disc li br {
             reader.onload = (e) => {
                 const imageUrl = e.target.result; // Base64
                 
-                // Atualizar imagem
+                    // Atualizar imagem
                 const existingImg = thumbnail.querySelector('img');
                 if (existingImg) {
                     existingImg.src = imageUrl;
+                    // Remover qualquer borda ou outline das imagens customizadas
+                    existingImg.style.border = 'none';
+                    existingImg.style.outline = 'none';
+                    existingImg.style.boxShadow = 'none';
+                    existingImg.style.borderRadius = '0';
                 } else {
                     // Se não tem img, criar uma
                     const placeholder = thumbnail.querySelector('div');
                     if (placeholder) {
-                        thumbnail.innerHTML = `<img src="${imageUrl}" alt="Anúncio" style="width:100%;height:100%;object-fit:cover;">`;
+                        thumbnail.innerHTML = `<img src="${imageUrl}" alt="Anúncio" style="width:100%;height:100%;object-fit:cover;border:none;outline:none;box-shadow:none;border-radius:0;">`;
                     } else {
                         // Se não tem nada, criar img diretamente
-                        thumbnail.innerHTML = `<img src="${imageUrl}" alt="Anúncio" style="width:100%;height:100%;object-fit:cover;">`;
+                        thumbnail.innerHTML = `<img src="${imageUrl}" alt="Anúncio" style="width:100%;height:100%;object-fit:cover;border:none;outline:none;box-shadow:none;border-radius:0;">`;
                     }
                 }
                 
@@ -1295,6 +1308,23 @@ ul.list-disc li br {
                 const card = thumbnail.closest('.ranking-card');
                 if (card) {
                     card.classList.remove('ranking-card-placeholder');
+                    
+                    // Garantir que o botão de deletar existe e está visível (se em modo edição)
+                    if (isEditMode) {
+                        let deleteBtn = card.querySelector('.ranking-card-delete');
+                        if (!deleteBtn) {
+                            // Criar botão de deletar se não existir
+                            deleteBtn = document.createElement('button');
+                            deleteBtn.className = 'ranking-card-delete';
+                            deleteBtn.style.cssText = 'position:absolute;top:10px;right:10px;z-index:10;width:32px;height:32px;background:rgba(239,68,68,0.9);border:none;border-radius:50%;color:white;cursor:pointer;display:flex;align-items:center;justify-content:center;';
+                            deleteBtn.innerHTML = '<i class="fas fa-trash" style="font-size:14px;"></i>';
+                            deleteBtn.title = 'Remover anúncio';
+                            card.style.position = 'relative';
+                            card.appendChild(deleteBtn);
+                        }
+                        // Mostrar botão de deletar
+                        deleteBtn.style.display = 'flex';
+                    }
                 }
                 
                 // Salvar no customData
@@ -1334,6 +1364,11 @@ ul.list-disc li br {
                         fileInput.setAttribute('data-ad-input', newAdId);
                     }
                 }
+                
+                // Reconfigurar botões de deletar após adicionar imagem
+                setTimeout(() => {
+                    setupDeleteButtons();
+                }, 100);
                 
                 markAsChanged();
             };
@@ -1444,6 +1479,7 @@ ul.list-disc li br {
             element.removeAttribute('contenteditable');
             const newValue = element.textContent.trim();
             
+            // Obter valor original antes de qualquer alteração
             if (!element.hasAttribute('data-original-value')) {
                 const originalText = element.textContent.trim();
                 element.setAttribute('data-original-value', originalText);
@@ -1453,6 +1489,9 @@ ul.list-disc li br {
             
             // Detectar qualquer alteração (adicionar, remover, modificar - mesmo que fique vazio)
             if (newValue !== originalValue) {
+                // SEMPRE marcar como mudado ANTES de restaurar qualquer valor visual
+                markAsChanged();
+                
                 if (newValue === '') {
                     // Se ficou vazio, salvar como string vazia ou remover do customData
                     delete customData[editId];
@@ -1462,7 +1501,6 @@ ul.list-disc li br {
                 } else {
                     customData[editId] = newValue;
                 }
-                markAsChanged();
             }
         }
         
@@ -1609,6 +1647,11 @@ ul.list-disc li br {
                     const img = thumbnail.querySelector('img');
                     if (img && customData.adImages[adId]) {
                         img.src = customData.adImages[adId];
+                        // Remover qualquer borda ou outline das imagens customizadas
+                        img.style.border = 'none';
+                        img.style.outline = 'none';
+                        img.style.boxShadow = 'none';
+                        img.style.borderRadius = '0';
                     }
                 }
             });

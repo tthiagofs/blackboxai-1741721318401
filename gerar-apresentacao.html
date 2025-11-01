@@ -1582,7 +1582,22 @@ ul.list-disc li br {
                 if (!window.currentPresentationData.customData) {
                     window.currentPresentationData.customData = {};
                 }
-                window.currentPresentationData.customData = { ...window.currentPresentationData.customData, ...customData };
+                
+                // Preparar customData para salvar (remover imagens Base64 grandes para reduzir tamanho)
+                const customDataToSave = { ...window.currentPresentationData.customData, ...customData };
+                
+                // Remover imagens Base64 de customData.adImages (elas já estão no HTML)
+                // Manter apenas referência de quais anúncios foram customizados
+                if (customDataToSave.adImages) {
+                    const adImagesReference = {};
+                    // Guardar apenas IDs dos anúncios customizados, sem as imagens Base64
+                    Object.keys(customDataToSave.adImages).forEach(adId => {
+                        adImagesReference[adId] = true; // Apenas marcação, não a imagem
+                    });
+                    customDataToSave.adImages = adImagesReference;
+                }
+                
+                window.currentPresentationData.customData = customDataToSave;
                 
                 // Se a apresentação já foi salva, atualizar no Firestore
                 if (window.currentPresentationData.presentationId) {
@@ -1667,13 +1682,19 @@ ul.list-disc li br {
                 });
                 
                 // Aplicar customizações de imagens
+                // Nota: As imagens já estão no HTML quando carregamos, então só precisamos
+                // extrair as URLs das imagens Base64 do HTML para o customData em memória
                 if (window.currentPresentationData.customData.adImages) {
                     Object.keys(window.currentPresentationData.customData.adImages).forEach(adId => {
                         const thumbnail = document.querySelector(`[data-ad-image="${adId}"]`);
                         if (thumbnail) {
                             const img = thumbnail.querySelector('img');
-                            if (img) {
-                                img.src = window.currentPresentationData.customData.adImages[adId];
+                            if (img && img.src && img.src.startsWith('data:image')) {
+                                // Se a imagem é Base64 (customizada), extrair para customData em memória
+                                // Isso permite editar novamente após carregar
+                                if (!customData.adImages) customData.adImages = {};
+                                customData.adImages[adId] = img.src;
+                                console.log(`✅ Imagem customizada extraída do HTML para anúncio: ${adId}`);
                             }
                         }
                     });

@@ -53,26 +53,6 @@
             }
         }
         
-        /* Indicador de edição */
-        .edit-indicator {
-            position: absolute;
-            top: -25px;
-            left: 0;
-            font-size: 11px;
-            color: #9333EA;
-            background: white;
-            padding: 2px 6px;
-            border-radius: 4px;
-            opacity: 0;
-            transition: opacity 0.2s;
-            pointer-events: none;
-            border: 1px solid rgba(147, 51, 234, 0.2);
-        }
-        
-        .editable:hover .edit-indicator {
-            opacity: 1;
-        }
-        
         /* Preview container */
         .presentation-container {
             background: #f0f0f0;
@@ -97,7 +77,7 @@
                         </button>
                         <div>
                             <h1 id="presentationName" class="text-xl font-bold text-gray-900">Carregando...</h1>
-                            <p class="text-sm text-gray-600">Clique nos elementos para editar</p>
+                            <p class="text-sm text-gray-600">Ative o modo edição para personalizar os dados</p>
                         </div>
                     </div>
                     <div class="flex items-center gap-3">
@@ -284,14 +264,6 @@
                     element.classList.add('editable');
                     element.setAttribute('data-editable', 'true');
                     
-                    // Adicionar indicador (será ocultado quando não estiver em modo edição)
-                    const indicator = document.createElement('span');
-                    indicator.className = 'edit-indicator';
-                    indicator.textContent = 'Clique para editar';
-                    indicator.setAttribute('data-indicator', 'true');
-                    element.style.position = 'relative';
-                    element.appendChild(indicator);
-                    
                     // Event listeners
                     element.addEventListener('click', () => {
                         if (isEditMode && !element.hasAttribute('contenteditable')) {
@@ -305,21 +277,12 @@
                 });
             });
             
-            // Atualizar visibilidade dos indicadores baseado no modo
+            // Atualizar UI baseado no modo
             updateEditModeUI();
         }
         
         // Atualizar UI baseado no modo
         function updateEditModeUI() {
-            const indicators = document.querySelectorAll('.edit-indicator');
-            indicators.forEach(indicator => {
-                if (isEditMode) {
-                    indicator.style.opacity = '1';
-                } else {
-                    indicator.style.opacity = '0';
-                }
-            });
-            
             const editables = document.querySelectorAll('.editable');
             editables.forEach(el => {
                 if (isEditMode) {
@@ -446,10 +409,6 @@
 
         // Exportar PDF
         exportPDFBtn.addEventListener('click', () => {
-            // Remover todos os indicadores "Clique para editar" antes de exportar
-            const indicators = document.querySelectorAll('.edit-indicator');
-            indicators.forEach(indicator => indicator.remove());
-            
             // Remover classes e atributos de edição
             const editables = document.querySelectorAll('.editable');
             editables.forEach(el => {

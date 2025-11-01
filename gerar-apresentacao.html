@@ -446,7 +446,7 @@ ul.list-disc li br {
                         Salvar Alterações
                     </button>
                 </div>
-                <p class="text-sm text-gray-600">Clique em "Modo Edição" para personalizar os dados da apresentação</p>
+                <p class="text-sm text-gray-600">Ative o modo edição e passe o mouse sobre os elementos para editá-los</p>
             </div>
 
             <!-- Container do Relatório Gerado -->
@@ -980,10 +980,6 @@ ul.list-disc li br {
                     
                     console.log('🖨️ Abrindo tela de impressão nativa...');
 
-                    // Remover todos os indicadores "Clique para editar" antes de exportar
-                    const indicators = document.querySelectorAll('.edit-indicator');
-                    indicators.forEach(indicator => indicator.remove());
-                    
                     // Remover classes e atributos de edição
                     const editables = document.querySelectorAll('.editable');
                     editables.forEach(el => {
@@ -1131,13 +1127,6 @@ ul.list-disc li br {
                     element.setAttribute('data-edit-id', editId);
                     element.classList.add('editable');
                     
-                    const indicator = document.createElement('span');
-                    indicator.className = 'edit-indicator';
-                    indicator.textContent = 'Clique para editar';
-                    indicator.style.cssText = 'position:absolute;top:-25px;left:0;font-size:11px;color:#9333EA;background:white;padding:2px 6px;border-radius:4px;opacity:0;transition:opacity 0.2s;pointer-events:none;border:1px solid rgba(147,51,234,0.2);';
-                    element.style.position = 'relative';
-                    element.appendChild(indicator);
-                    
                     element.addEventListener('click', () => {
                         if (isEditMode && !element.hasAttribute('contenteditable')) {
                             startEditing(element, editId);
@@ -1154,11 +1143,6 @@ ul.list-disc li br {
         };
         
         function updateEditModeUI() {
-            const indicators = document.querySelectorAll('.edit-indicator');
-            indicators.forEach(indicator => {
-                indicator.style.opacity = isEditMode ? '1' : '0';
-            });
-            
             const editables = document.querySelectorAll('.editable');
             editables.forEach(el => {
                 if (isEditMode) {

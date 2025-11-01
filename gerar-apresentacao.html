@@ -983,6 +983,24 @@ ul.list-disc li br {
                     // Aplicar customizações de imagens antes de exportar
                     applyImageCustomizationsToHTML();
                     
+                    // Remover TODAS as bordas de imagens e containers antes de exportar
+                    const allImages = document.querySelectorAll('.ranking-thumbnail img, .ranking-thumbnail');
+                    allImages.forEach(img => {
+                        img.style.border = 'none !important';
+                        img.style.outline = 'none !important';
+                        img.style.boxShadow = 'none !important';
+                        img.style.borderRadius = '0';
+                        img.style.margin = '0';
+                        img.style.padding = '0';
+                    });
+                    
+                    // Remover bordas dos cards também
+                    const allCards = document.querySelectorAll('.ranking-card');
+                    allCards.forEach(card => {
+                        card.style.border = 'none';
+                        card.style.outline = 'none';
+                    });
+                    
                     // Remover classes e atributos de edição
                     const editables = document.querySelectorAll('.editable');
                     editables.forEach(el => {
@@ -1647,12 +1665,17 @@ ul.list-disc li br {
                     const img = thumbnail.querySelector('img');
                     if (img && customData.adImages[adId]) {
                         img.src = customData.adImages[adId];
-                        // Remover qualquer borda ou outline das imagens customizadas
-                        img.style.border = 'none';
-                        img.style.outline = 'none';
-                        img.style.boxShadow = 'none';
-                        img.style.borderRadius = '0';
+                        // Remover qualquer borda ou outline das imagens customizadas com !important
+                        img.setAttribute('style', 
+                            (img.getAttribute('style') || '') + 
+                            'border:none !important;outline:none !important;box-shadow:none !important;border-radius:0 !important;margin:0 !important;padding:0 !important;'
+                        );
                     }
+                    // Remover borda do container também
+                    thumbnail.setAttribute('style', 
+                        (thumbnail.getAttribute('style') || '') + 
+                        'border:none !important;outline:none !important;box-shadow:none !important;margin:0 !important;padding:0 !important;'
+                    );
                 }
             });
         }

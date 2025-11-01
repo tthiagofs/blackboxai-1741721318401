@@ -313,10 +313,10 @@ function generateRankingPage(ads, branding = {}) {
             <button class="ranking-card-delete" style="display:none;position:absolute;top:10px;right:10px;z-index:10;width:32px;height:32px;background:rgba(239,68,68,0.9);border:none;border-radius:50%;color:white;cursor:pointer;align-items:center;justify-content:center;display:none;" title="Remover anúncio">
                 <i class="fas fa-trash" style="font-size:14px;"></i>
             </button>
-            <div class="ranking-thumbnail ranking-thumbnail-editable" data-ad-image="${adId}">
+            <div class="ranking-thumbnail ranking-thumbnail-editable" data-ad-image="${adId}" style="border:none;outline:none;">
                 ${imageUrl 
-                    ? `<img src="${imageUrl}" alt="Anúncio" style="width:100%;height:100%;object-fit:cover;" onerror="this.src='https://via.placeholder.com/300x300?text=Sem+Imagem'">`
-                    : `<div style="width:100%;height:100%;background:#f3f4f6;display:flex;align-items:center;justify-content:center;color:#9ca3af;">Sem Imagem</div>`
+                    ? `<img src="${imageUrl}" alt="Anúncio" style="width:100%;height:100%;object-fit:cover;border:none;outline:none;box-shadow:none;margin:0;padding:0;" onerror="this.src='https://via.placeholder.com/300x300?text=Sem+Imagem'">`
+                    : `<div style="width:100%;height:100%;background:#f3f4f6;display:flex;align-items:center;justify-content:center;color:#9ca3af;border:none;outline:none;">Sem Imagem</div>`
                 }
                 ${isVideo ? `<div class="ranking-video-play"><i class="fas fa-play"></i></div>` : ''}
             </div>

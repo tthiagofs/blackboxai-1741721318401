@@ -188,6 +188,22 @@
         function renderPresentation(html) {
             presentationContainer.innerHTML = html;
             
+            // Extrair todas as imagens Base64 do HTML para customData.adImages em memória
+            // Isso permite editar novamente após carregar
+            setTimeout(() => {
+                const allThumbnails = presentationContainer.querySelectorAll('.ranking-thumbnail[data-ad-image]');
+                allThumbnails.forEach(thumbnail => {
+                    const adId = thumbnail.getAttribute('data-ad-image');
+                    const img = thumbnail.querySelector('img');
+                    if (img && img.src && img.src.startsWith('data:image')) {
+                        // Se a imagem é Base64 (customizada), extrair para customData em memória
+                        if (!customData.adImages) customData.adImages = {};
+                        customData.adImages[adId] = img.src;
+                        console.log(`✅ Imagem Base64 extraída do HTML para anúncio: ${adId}`);
+                    }
+                });
+            }, 100);
+            
             // Aguardar carregamento de fontes e imagens
             document.fonts.ready.then(() => {
                 waitForImages().then(() => {
@@ -233,17 +249,20 @@
                 
                 // Aplicar customizações de imagens de anúncios
                 // Nota: As imagens já estão no HTML quando carregamos, então só precisamos
-                // extrair as URLs das imagens Base64 do HTML para o customData em memória
+                // garantir que as bordas estão removidas e extrair para customData em memória se necessário
                 if (customData.adImages && typeof customData.adImages === 'object') {
                     Object.keys(customData.adImages).forEach(adId => {
                         const thumbnail = document.querySelector(`[data-ad-image="${adId}"]`);
                         if (thumbnail) {
                             const img = thumbnail.querySelector('img');
-                            if (img && img.src && img.src.startsWith('data:image')) {
-                                // Se a imagem é Base64 (customizada), extrair para customData em memória
-                                // Isso permite editar novamente após carregar
-                                if (!customData.adImages) customData.adImages = {};
-                                customData.adImages[adId] = img.src;
+                            if (img) {
+                                // Se a imagem é Base64 e ainda não está em customData, extrair para memória
+                                if (img.src && img.src.startsWith('data:image')) {
+                                    if (!customData.adImages[adId] || customData.adImages[adId] === true) {
+                                        customData.adImages[adId] = img.src;
+                                        console.log(`✅ Imagem Base64 extraída para customData: ${adId}`);
+                                    }
+                                }
                                 
                                 // Remover bordas das imagens customizadas
                                 img.style.border = 'none';
@@ -254,11 +273,26 @@
                                 if (thumbnail.parentElement) {
                                     thumbnail.parentElement.classList.remove('ranking-card-placeholder');
                                 }
-                                console.log(`✅ Imagem customizada extraída do HTML para anúncio: ${adId}`);
                             }
                         }
                     });
                 }
+                
+                // Extrair TODAS as imagens Base64 do HTML para customData (mesmo as que não estão marcadas em customData.adImages)
+                setTimeout(() => {
+                    const allThumbnails = document.querySelectorAll('.ranking-thumbnail[data-ad-image]');
+                    allThumbnails.forEach(thumbnail => {
+                        const adId = thumbnail.getAttribute('data-ad-image');
+                        if (adId && adId !== 'placeholder_new') {
+                            const img = thumbnail.querySelector('img');
+                            if (img && img.src && img.src.startsWith('data:image')) {
+                                if (!customData.adImages) customData.adImages = {};
+                                customData.adImages[adId] = img.src;
+                                console.log(`✅ Imagem Base64 extraída do HTML: ${adId}`);
+                            }
+                        }
+                    });
+                }, 200);
                 
                 // Reorganizar cards após aplicar customizações para garantir placeholder se necessário
                 setTimeout(() => {
@@ -879,18 +913,9 @@
             tempDiv.querySelectorAll('[data-edit-id]').forEach(el => el.removeAttribute('data-edit-id'));
             tempDiv.querySelectorAll('.editable').forEach(el => el.classList.remove('editable'));
             
-            // Remover imagens Base64 e substituir por placeholders (as imagens já estão em customData.adImages)
-            // Isso reduz drasticamente o tamanho do HTML
-            const images = tempDiv.querySelectorAll('.ranking-thumbnail img');
-            images.forEach(img => {
-                const src = img.getAttribute('src');
-                if (src && src.startsWith('data:image')) {
-                    // Se a imagem é Base64 (customizada), substituir por placeholder
-                    // A referência será restaurada via customData.adImages
-                    img.setAttribute('src', '');
-                    img.setAttribute('data-custom-image', 'true');
-                }
-            });
+            // NÃO remover imagens Base64 do HTML - elas precisam ficar para visualização
+            // Apenas removemos do customData.adImages antes de salvar (feito em saveChanges)
+            // As imagens Base64 no HTML são necessárias para visualização e serão extraídas quando carregar
             
             // Minificar HTML removendo espaços extras
             let cleaned = tempDiv.innerHTML;

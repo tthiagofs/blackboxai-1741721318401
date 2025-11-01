@@ -1741,18 +1741,9 @@ ul.list-disc li br {
             tempDiv.querySelectorAll('[data-edit-id]').forEach(el => el.removeAttribute('data-edit-id'));
             tempDiv.querySelectorAll('.editable').forEach(el => el.classList.remove('editable'));
             
-            // Remover imagens Base64 e substituir por placeholders (as imagens já estão em customData.adImages)
-            // Isso reduz drasticamente o tamanho do HTML
-            const images = tempDiv.querySelectorAll('.ranking-thumbnail img');
-            images.forEach(img => {
-                const src = img.getAttribute('src');
-                if (src && src.startsWith('data:image')) {
-                    // Se a imagem é Base64 (customizada), substituir por placeholder
-                    // A referência será restaurada via customData.adImages
-                    img.setAttribute('src', '');
-                    img.setAttribute('data-custom-image', 'true');
-                }
-            });
+            // NÃO remover imagens Base64 do HTML - elas precisam ficar para visualização
+            // Apenas removemos do customData.adImages antes de salvar (feito em saveEdits)
+            // As imagens Base64 no HTML são necessárias para visualização e serão extraídas quando carregar
             
             // Minificar HTML removendo espaços extras
             let cleaned = tempDiv.innerHTML;

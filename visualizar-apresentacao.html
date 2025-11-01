@@ -373,14 +373,18 @@
                 const fileInput = document.querySelector(`[data-ad-input="${adId}"]`);
                 if (!fileInput) return;
                 
-                // Remover listeners antigos
+                // Remover listeners antigos clonando o elemento
                 const newThumbnail = thumbnail.cloneNode(true);
                 thumbnail.parentNode.replaceChild(newThumbnail, thumbnail);
+                
+                // Remover listeners antigos do file input clonando
+                const newFileInput = fileInput.cloneNode(true);
+                fileInput.parentNode.replaceChild(newFileInput, fileInput);
                 
                 // Click para selecionar arquivo
                 newThumbnail.addEventListener('click', (e) => {
                     if (isEditMode && !e.target.closest('.ranking-card-delete')) {
-                        fileInput.click();
+                        newFileInput.click();
                     }
                 });
                 
@@ -406,15 +410,17 @@
                         
                         const files = e.dataTransfer.files;
                         if (files.length > 0 && files[0].type.startsWith('image/')) {
-                            handleImageUpload(files[0], adId, newThumbnail);
+                            handleImageUpload(files[0], adId, newThumbnail, newFileInput);
                         }
                     }
                 });
                 
                 // File input change
-                fileInput.addEventListener('change', (e) => {
+                newFileInput.addEventListener('change', (e) => {
                     if (e.target.files.length > 0) {
-                        handleImageUpload(e.target.files[0], adId, newThumbnail);
+                        handleImageUpload(e.target.files[0], adId, newThumbnail, newFileInput);
+                        // Limpar o valor para permitir selecionar o mesmo arquivo novamente
+                        e.target.value = '';
                     }
                 });
             });
@@ -424,7 +430,7 @@
         }
         
         // Processar upload de imagem
-        function handleImageUpload(file, adId, thumbnail) {
+        function handleImageUpload(file, adId, thumbnail, fileInput) {
             const reader = new FileReader();
             reader.onload = (e) => {
                 const imageUrl = e.target.result; // Base64
@@ -434,16 +440,21 @@
                 if (existingImg) {
                     existingImg.src = imageUrl;
                 } else {
+                    // Se não tem img, criar uma
                     const placeholder = thumbnail.querySelector('div');
                     if (placeholder) {
+                        thumbnail.innerHTML = `<img src="${imageUrl}" alt="Anúncio" style="width:100%;height:100%;object-fit:cover;">`;
+                    } else {
+                        // Se não tem nada, criar img diretamente
                         thumbnail.innerHTML = `<img src="${imageUrl}" alt="Anúncio" style="width:100%;height:100%;object-fit:cover;">`;
                     }
                 }
                 
                 // Remover placeholder class se existir
                 thumbnail.classList.remove('ranking-thumbnail-placeholder');
-                if (thumbnail.parentElement) {
-                    thumbnail.parentElement.classList.remove('ranking-card-placeholder');
+                const card = thumbnail.closest('.ranking-card');
+                if (card) {
+                    card.classList.remove('ranking-card-placeholder');
                 }
                 
                 // Salvar no customData
@@ -454,22 +465,34 @@
                 if (adId === 'placeholder_new') {
                     const newAdId = `ad_custom_${Date.now()}`;
                     thumbnail.setAttribute('data-ad-image', newAdId);
+                    
+                    // Verificar se o img existe antes de atualizar
                     const img = thumbnail.querySelector('img');
-                    if (img) img.setAttribute('data-ad-image', newAdId);
+                    if (img) {
+                        img.setAttribute('data-ad-image', newAdId);
+                    }
+                    
                     customData.adImages[newAdId] = imageUrl;
                     delete customData.adImages[adId];
                     
                     // Atualizar outros atributos
-                    const card = thumbnail.closest('.ranking-card');
                     if (card) {
                         card.setAttribute('data-ad-id', newAdId);
-                        const leadsEl = card.querySelector('[data-ad-leads]');
-                        const costEl = card.querySelector('[data-ad-cost]');
-                        if (leadsEl) leadsEl.setAttribute('data-ad-leads', newAdId);
-                        if (costEl) costEl.setAttribute('data-ad-cost', newAdId);
+                        
+                        const leadsElement = card.querySelector('[data-ad-leads]');
+                        if (leadsElement) {
+                            leadsElement.setAttribute('data-ad-leads', newAdId);
+                        }
+                        
+                        const costElement = card.querySelector('[data-ad-cost]');
+                        if (costElement) {
+                            costElement.setAttribute('data-ad-cost', newAdId);
+                        }
                     }
-                    const input = document.querySelector(`[data-ad-input="${adId}"]`);
-                    if (input) input.setAttribute('data-ad-input', newAdId);
+                    
+                    if (fileInput) {
+                        fileInput.setAttribute('data-ad-input', newAdId);
+                    }
                 }
                 
                 markAsChanged();
@@ -487,14 +510,18 @@
                     return; // Não adicionar listener em placeholder
                 }
                 
-                // Remover listeners antigos
+                // Remover listeners antigos clonando o botão
                 const newBtn = btn.cloneNode(true);
                 btn.parentNode.replaceChild(newBtn, btn);
                 
                 newBtn.addEventListener('click', (e) => {
                     e.stopPropagation();
-                    if (isEditMode && confirm('Tem certeza que deseja remover este anúncio?')) {
-                        deleteAdCard(newBtn.closest('.ranking-card'));
+                    e.preventDefault();
+                    const currentCard = newBtn.closest('.ranking-card');
+                    if (isEditMode && currentCard && !currentCard.classList.contains('ranking-card-placeholder')) {
+                        if (confirm('Tem certeza que deseja remover este anúncio?')) {
+                            deleteAdCard(currentCard);
+                        }
                     }
                 });
             });
@@ -527,6 +554,8 @@
             
             // Sempre manter 3 colunas para layout consistente
             grid.style.gridTemplateColumns = 'repeat(3, 1fr)';
+            // Garantir que os cards mantenham o mesmo tamanho
+            grid.style.gridAutoRows = 'auto';
             
             // Se tem menos de 3 cards e não tem placeholder visível, mostrar placeholder
             if (cards.length < 3 && placeholder) {
@@ -540,21 +569,17 @@
                 placeholder.style.display = 'none';
             }
             
-            // Centralizar cards se houver menos de 3
+            // Centralizar grid sem alterar tamanho dos cards
             if (cards.length === 1) {
-                // Centralizar o único card
-                grid.style.justifyItems = 'center';
-                grid.style.maxWidth = '450px';
-                grid.style.margin = '0 auto';
-            } else if (cards.length === 2) {
-                // Centralizar os 2 cards
-                grid.style.justifyItems = 'center';
-                grid.style.maxWidth = '950px';
-                grid.style.margin = '0 auto';
-            } else {
+                // Usar justify-content no grid container sem alterar o tamanho dos cards
+                grid.style.justifyContent = 'center';
                 grid.style.justifyItems = 'stretch';
-                grid.style.maxWidth = '';
-                grid.style.margin = '';
+            } else if (cards.length === 2) {
+                grid.style.justifyContent = 'center';
+                grid.style.justifyItems = 'stretch';
+            } else {
+                grid.style.justifyContent = '';
+                grid.style.justifyItems = 'stretch';
             }
             
             // Reconfigurar edição de imagens após reorganizar

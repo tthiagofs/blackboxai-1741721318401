@@ -1213,44 +1213,54 @@ ul.list-disc li br {
                 
                 if (!fileInput) return;
                 
+                // Remover listeners antigos clonando o elemento
+                const newThumbnail = thumbnail.cloneNode(true);
+                thumbnail.parentNode.replaceChild(newThumbnail, thumbnail);
+                
+                // Remover listeners antigos do file input clonando
+                const newFileInput = fileInput.cloneNode(true);
+                fileInput.parentNode.replaceChild(newFileInput, fileInput);
+                
                 // Click para selecionar arquivo
-                thumbnail.addEventListener('click', (e) => {
+                newThumbnail.addEventListener('click', (e) => {
                     if (isEditMode && !e.target.closest('.ranking-card-delete')) {
-                        fileInput.click();
+                        newFileInput.click();
                     }
                 });
                 
                 // Drag & Drop
-                thumbnail.addEventListener('dragover', (e) => {
+                newThumbnail.addEventListener('dragover', (e) => {
                     if (isEditMode) {
                         e.preventDefault();
-                        thumbnail.style.border = '2px solid #9333EA';
-                        thumbnail.style.backgroundColor = 'rgba(147, 51, 234, 0.1)';
+                        newThumbnail.style.border = '2px solid #9333EA';
+                        newThumbnail.style.backgroundColor = 'rgba(147, 51, 234, 0.1)';
                     }
                 });
                 
-                thumbnail.addEventListener('dragleave', () => {
-                    thumbnail.style.border = '';
-                    thumbnail.style.backgroundColor = '';
+                newThumbnail.addEventListener('dragleave', () => {
+                    newThumbnail.style.border = '';
+                    newThumbnail.style.backgroundColor = '';
                 });
                 
-                thumbnail.addEventListener('drop', (e) => {
+                newThumbnail.addEventListener('drop', (e) => {
                     if (isEditMode) {
                         e.preventDefault();
-                        thumbnail.style.border = '';
-                        thumbnail.style.backgroundColor = '';
+                        newThumbnail.style.border = '';
+                        newThumbnail.style.backgroundColor = '';
                         
                         const files = e.dataTransfer.files;
                         if (files.length > 0 && files[0].type.startsWith('image/')) {
-                            handleImageUpload(files[0], adId, thumbnail);
+                            handleImageUpload(files[0], adId, newThumbnail, newFileInput);
                         }
                     }
                 });
                 
                 // File input change
-                fileInput.addEventListener('change', (e) => {
+                newFileInput.addEventListener('change', (e) => {
                     if (e.target.files.length > 0) {
-                        handleImageUpload(e.target.files[0], adId, thumbnail);
+                        handleImageUpload(e.target.files[0], adId, newThumbnail, newFileInput);
+                        // Limpar o valor para permitir selecionar o mesmo arquivo novamente
+                        e.target.value = '';
                     }
                 });
             });
@@ -1260,7 +1270,7 @@ ul.list-disc li br {
         }
         
         // Processar upload de imagem
-        function handleImageUpload(file, adId, thumbnail) {
+        function handleImageUpload(file, adId, thumbnail, fileInput) {
             const reader = new FileReader();
             reader.onload = (e) => {
                 const imageUrl = e.target.result; // Base64
@@ -1274,12 +1284,18 @@ ul.list-disc li br {
                     const placeholder = thumbnail.querySelector('div');
                     if (placeholder) {
                         thumbnail.innerHTML = `<img src="${imageUrl}" alt="Anúncio" style="width:100%;height:100%;object-fit:cover;">`;
+                    } else {
+                        // Se não tem nada, criar img diretamente
+                        thumbnail.innerHTML = `<img src="${imageUrl}" alt="Anúncio" style="width:100%;height:100%;object-fit:cover;">`;
                     }
                 }
                 
                 // Remover placeholder class se existir
                 thumbnail.classList.remove('ranking-thumbnail-placeholder');
-                thumbnail.parentElement.classList.remove('ranking-card-placeholder');
+                const card = thumbnail.closest('.ranking-card');
+                if (card) {
+                    card.classList.remove('ranking-card-placeholder');
+                }
                 
                 // Salvar no customData
                 if (!customData.adImages) customData.adImages = {};
@@ -1289,15 +1305,34 @@ ul.list-disc li br {
                 if (adId === 'placeholder_new') {
                     const newAdId = `ad_custom_${Date.now()}`;
                     thumbnail.setAttribute('data-ad-image', newAdId);
-                    thumbnail.querySelector('img').setAttribute('data-ad-image', newAdId);
+                    
+                    // Verificar se o img existe antes de atualizar
+                    const img = thumbnail.querySelector('img');
+                    if (img) {
+                        img.setAttribute('data-ad-image', newAdId);
+                    }
+                    
                     customData.adImages[newAdId] = imageUrl;
                     delete customData.adImages[adId];
                     
                     // Atualizar outros atributos
-                    thumbnail.closest('.ranking-card').setAttribute('data-ad-id', newAdId);
-                    thumbnail.closest('.ranking-card').querySelector('[data-ad-leads]').setAttribute('data-ad-leads', newAdId);
-                    thumbnail.closest('.ranking-card').querySelector('[data-ad-cost]').setAttribute('data-ad-cost', newAdId);
-                    fileInput.setAttribute('data-ad-input', newAdId);
+                    if (card) {
+                        card.setAttribute('data-ad-id', newAdId);
+                        
+                        const leadsElement = card.querySelector('[data-ad-leads]');
+                        if (leadsElement) {
+                            leadsElement.setAttribute('data-ad-leads', newAdId);
+                        }
+                        
+                        const costElement = card.querySelector('[data-ad-cost]');
+                        if (costElement) {
+                            costElement.setAttribute('data-ad-cost', newAdId);
+                        }
+                    }
+                    
+                    if (fileInput) {
+                        fileInput.setAttribute('data-ad-input', newAdId);
+                    }
                 }
                 
                 markAsChanged();
@@ -1315,10 +1350,18 @@ ul.list-disc li br {
                     return; // Não adicionar listener em placeholder
                 }
                 
-                btn.addEventListener('click', (e) => {
+                // Remover listeners antigos clonando o botão
+                const newBtn = btn.cloneNode(true);
+                btn.parentNode.replaceChild(newBtn, btn);
+                
+                newBtn.addEventListener('click', (e) => {
                     e.stopPropagation();
-                    if (isEditMode && confirm('Tem certeza que deseja remover este anúncio?')) {
-                        deleteAdCard(card);
+                    e.preventDefault();
+                    const currentCard = newBtn.closest('.ranking-card');
+                    if (isEditMode && currentCard && !currentCard.classList.contains('ranking-card-placeholder')) {
+                        if (confirm('Tem certeza que deseja remover este anúncio?')) {
+                            deleteAdCard(currentCard);
+                        }
                     }
                 });
             });
@@ -1349,8 +1392,10 @@ ul.list-disc li br {
             const cards = Array.from(grid.querySelectorAll('.ranking-card:not(.ranking-card-placeholder)'));
             const placeholder = grid.querySelector('.ranking-card-placeholder');
             
-            // Sempre ajustar para 3 colunas para manter layout consistente
+            // Sempre manter 3 colunas para layout consistente
             grid.style.gridTemplateColumns = 'repeat(3, 1fr)';
+            // Garantir que os cards mantenham o mesmo tamanho
+            grid.style.gridAutoRows = 'auto';
             
             // Se tem menos de 3 cards e não tem placeholder visível, mostrar placeholder
             if (cards.length < 3 && placeholder) {
@@ -1364,21 +1409,17 @@ ul.list-disc li br {
                 placeholder.style.display = 'none';
             }
             
-            // Centralizar cards se houver menos de 3
+            // Centralizar grid sem alterar tamanho dos cards
             if (cards.length === 1) {
-                // Centralizar o único card
-                grid.style.justifyItems = 'center';
-                grid.style.maxWidth = '450px';
-                grid.style.margin = '0 auto';
-            } else if (cards.length === 2) {
-                // Centralizar os 2 cards
-                grid.style.justifyItems = 'center';
-                grid.style.maxWidth = '950px';
-                grid.style.margin = '0 auto';
-            } else {
+                // Usar justify-content no grid container sem alterar o tamanho dos cards
+                grid.style.justifyContent = 'center';
                 grid.style.justifyItems = 'stretch';
-                grid.style.maxWidth = '';
-                grid.style.margin = '';
+            } else if (cards.length === 2) {
+                grid.style.justifyContent = 'center';
+                grid.style.justifyItems = 'stretch';
+            } else {
+                grid.style.justifyContent = '';
+                grid.style.justifyItems = 'stretch';
             }
             
             // Reconfigurar edição de imagens após reorganizar

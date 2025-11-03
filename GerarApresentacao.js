@@ -1249,10 +1249,21 @@ async function generateCompleteReport() {
     }
     
         // IMPORTANTE: unitId vem do unitSelect (ID da unidade), não do select unitId (que é conta Meta)
+        console.log('🔍 [DEBUG] Iniciando busca de contas...');
         const unitSelect = document.getElementById('unitSelect');
-        const metaAccountId = document.getElementById('unitId').value; // Este é o ID da conta Meta, não da unidade
+        const metaSelect = document.getElementById('unitId');
+        const metaAccountId = metaSelect?.value || ''; // Este é o ID da conta Meta, não da unidade
         let actualUnitId = null;
         let googleAccountId = googleAdsAccountSelect?.value || '';
+        
+        console.log('🔍 [DEBUG] Elementos encontrados:', {
+            unitSelect: !!unitSelect,
+            unitSelectValue: unitSelect?.value,
+            metaSelect: !!metaSelect,
+            metaAccountId: metaAccountId,
+            googleAdsAccountSelect: !!googleAdsAccountSelect,
+            googleAccountId: googleAccountId
+        });
         
         // Buscar ID da unidade real do unitSelect
         if (unitSelect && unitSelect.value) {
@@ -1263,9 +1274,20 @@ async function generateCompleteReport() {
             if (!googleAccountId) {
                 try {
                     const selectedOption = unitSelect.selectedOptions[0];
+                    console.log('🔍 [DEBUG] Selected option:', {
+                        exists: !!selectedOption,
+                        hasDataset: !!selectedOption?.dataset?.unit,
+                        value: selectedOption?.value
+                    });
+                    
                     if (selectedOption && selectedOption.dataset.unit) {
                         const unit = JSON.parse(selectedOption.dataset.unit);
-                        console.log('🔍 Dados da unidade:', { id: unit.id, linkedAccounts: unit.linkedAccounts });
+                        console.log('🔍 Dados da unidade:', { 
+                            id: unit.id, 
+                            linkedAccounts: unit.linkedAccounts,
+                            hasGoogle: !!unit.linkedAccounts?.google?.id,
+                            googleId: unit.linkedAccounts?.google?.id
+                        });
                         
                         if (unit.linkedAccounts?.google?.id) {
                             googleAccountId = unit.linkedAccounts.google.id;
@@ -1273,19 +1295,36 @@ async function generateCompleteReport() {
                             // Também preencher o select para manter consistência
                             if (googleAdsAccountSelect && googleAccountId) {
                                 googleAdsAccountSelect.value = googleAccountId;
+                                console.log('✅ Select do Google preenchido com:', googleAccountId);
                             }
                         } else {
                             console.log('ℹ️ Unidade não tem conta Google vinculada');
                         }
+                    } else {
+                        console.warn('⚠️ SelectedOption não tem dataset.unit:', selectedOption);
                     }
                 } catch (error) {
-                    console.warn('⚠️ Erro ao buscar conta Google vinculada da unidade:', error);
+                    console.error('❌ Erro ao buscar conta Google vinculada da unidade:', error);
+                    console.error('Stack:', error.stack);
                 }
+            } else {
+                console.log('ℹ️ Google Account ID já existe no select:', googleAccountId);
             }
+        } else {
+            console.warn('⚠️ unitSelect não encontrado ou sem valor:', {
+                unitSelect: !!unitSelect,
+                value: unitSelect?.value
+            });
         }
         
         // Usar metaAccountId como unitId para compatibilidade (Meta usa o ID da conta como unitId)
         const unitId = metaAccountId || actualUnitId;
+        console.log('🔍 [DEBUG] Final:', {
+            unitId: unitId,
+            actualUnitId: actualUnitId,
+            googleAccountId: googleAccountId,
+            metaAccountId: metaAccountId
+        });
     
     const startDate = document.getElementById('startDate').value;
         const endDate = document.getElementById('endDate').value;

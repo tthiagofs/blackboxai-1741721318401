@@ -18,6 +18,13 @@ export class GoogleAdsService {
                 ...params,
             };
 
+            console.log(`🔍 [GoogleAdsService._call] Chamando ${action}:`, {
+                customerId: this.customerId,
+                hasToken: !!this.accessToken,
+                loginCustomerId: this.loginCustomerId,
+                params: Object.keys(params)
+            });
+
             const response = await fetch(this.apiUrl, {
                 method: 'POST',
                 headers: {
@@ -26,14 +33,25 @@ export class GoogleAdsService {
                 body: JSON.stringify(body),
             });
 
+            console.log(`📡 [GoogleAdsService._call] Resposta status: ${response.status} ${response.statusText}`);
+
             if (!response.ok) {
-                const error = await response.json();
-                throw new Error(error.error || 'Erro na requisição');
+                const errorText = await response.text();
+                console.error(`❌ [GoogleAdsService._call] Erro na resposta:`, errorText);
+                let error;
+                try {
+                    error = JSON.parse(errorText);
+                } catch {
+                    error = { error: errorText };
+                }
+                throw new Error(error.error || `Erro na requisição: ${response.status}`);
             }
 
-            return await response.json();
+            const data = await response.json();
+            console.log(`✅ [GoogleAdsService._call] Dados retornados para ${action}:`, data);
+            return data;
         } catch (error) {
-            console.error(`Erro ao chamar ${action}:`, error);
+            console.error(`❌ [GoogleAdsService._call] Erro ao chamar ${action}:`, error);
             throw error;
         }
     }
@@ -54,19 +72,25 @@ export class GoogleAdsService {
     // Buscar insights da conta
     async getAccountInsights(startDate, endDate) {
         try {
+            console.log(`📊 [getAccountInsights] Buscando insights para ${this.customerId}`, { startDate, endDate });
             const data = await this._call('getAccountInsights', { startDate, endDate });
+            console.log(`📊 [getAccountInsights] Dados recebidos do _call:`, data);
+            
             // ⭐ API retorna { insights: {...} }, então extrair insights
             const insights = data.insights || data;
-            console.log('📊 Insights brutos do Google:', insights);
+            console.log('📊 [getAccountInsights] Insights extraídos:', insights);
             return insights;
         } catch (error) {
-            console.error('Erro ao buscar insights do Google:', error);
+            console.error('❌ [getAccountInsights] Erro ao buscar insights do Google:', error);
+            console.error('❌ [getAccountInsights] Stack:', error.stack);
+            // Retornar objeto de erro para que o dashboard saiba que houve problema
             return {
                 impressions: 0,
                 clicks: 0,
                 conversions: 0,
                 cost: 0,
                 costPerConversion: 0,
+                error: error.message // Adicionar mensagem de erro para debug
             };
         }
     }

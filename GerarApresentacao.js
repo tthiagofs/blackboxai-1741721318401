@@ -1638,13 +1638,80 @@ async function generateCompleteReport() {
             console.warn('⚠️ Branding não encontrado:', e?.message);
         }
         
+        // ⭐ FILTRAR DADOS DA PLANILHA POR PLATAFORMA
+        let metaSpreadsheetData = { sales: 0, revenue: 0, budgets: 0 };
+        let googleSpreadsheetData = { sales: 0, revenue: 0, budgets: 0 };
+        
+        // Se há unidade com dados da planilha, filtrar separadamente
+        if (selectedUnit?.budgetData?.rawData && (separateMetaMetrics || separateGoogleMetrics)) {
+            const { filterSpreadsheetByPlatform } = await import('./processar-apresentacao.js');
+            
+            // Obter configurações de filtro da unidade
+            const trafficSourcesMeta = selectedUnit.trafficSources?.meta || {
+                facebook: true,
+                instagram: true,
+                google: false,
+                revista: false,
+                empty: false,
+                dots: false
+            };
+            const trafficSourcesGoogle = selectedUnit.trafficSources?.google || {
+                facebook: false,
+                instagram: false,
+                google: true,
+                revista: false,
+                empty: false,
+                dots: false
+            };
+            const customKeywordsMeta = selectedUnit.customKeywords?.meta || { enabled: false, terms: [] };
+            const customKeywordsGoogle = selectedUnit.customKeywords?.google || { enabled: false, terms: [] };
+            const excludeMaintenance = selectedUnit.excludeMaintenance ?? true;
+            
+            // Filtrar por período primeiro
+            const periodFilteredData = filterUnitDataByPeriod(selectedUnit.budgetData.rawData, startDate, endDate);
+            
+            // Filtrar por plataforma usando os filtros específicos
+            if (separateMetaMetrics) {
+                metaSpreadsheetData = filterSpreadsheetByPlatform(
+                    periodFilteredData,
+                    'meta',
+                    trafficSourcesMeta,
+                    customKeywordsMeta,
+                    excludeMaintenance
+                );
+                console.log('📊 Dados Meta filtrados da planilha:', metaSpreadsheetData);
+            }
+            
+            if (separateGoogleMetrics) {
+                googleSpreadsheetData = filterSpreadsheetByPlatform(
+                    periodFilteredData,
+                    'google',
+                    trafficSourcesGoogle,
+                    customKeywordsGoogle,
+                    excludeMaintenance
+                );
+                console.log('📊 Dados Google filtrados da planilha:', googleSpreadsheetData);
+            }
+        } else {
+            // Fallback: usar dados manuais se não houver planilha
+            metaSpreadsheetData = {
+                budgets: budgetsCompleted || 0,
+                sales: salesCount || 0,
+                revenue: revenue || 0
+            };
+            googleSpreadsheetData = {
+                budgets: budgetsCompleted || 0,
+                sales: salesCount || 0,
+                revenue: revenue || 0
+            };
+        }
+        
         // Log das métricas que serão enviadas
         console.log('📊 Métricas que serão enviadas para a apresentação:', {
             metaMetrics: separateMetaMetrics,
             googleMetrics: separateGoogleMetrics,
-            budgetsCompleted,
-            salesCount,
-            revenue
+            metaSpreadsheetData,
+            googleSpreadsheetData
         });
         
         const presentationHTML = generatePresentationHTML({
@@ -1657,9 +1724,17 @@ async function generateCompleteReport() {
             googleMetrics: separateGoogleMetrics,
             metaTop3Ads: bestAds.filter(ad => ad.platform === 'meta').slice(0, 3),
             performanceAnalysis: '', // Deixar vazio para o usuário preencher
-            budgetsCompleted,
-            salesCount,
-            revenue,
+            // ⭐ PASSAR DADOS SEPARADOS POR PLATAFORMA
+            metaBudgetsCompleted: metaSpreadsheetData.budgets,
+            metaSalesCount: metaSpreadsheetData.sales,
+            metaRevenue: metaSpreadsheetData.revenue,
+            googleBudgetsCompleted: googleSpreadsheetData.budgets,
+            googleSalesCount: googleSpreadsheetData.sales,
+            googleRevenue: googleSpreadsheetData.revenue,
+            // Manter dados globais para compatibilidade (usar Meta por padrão)
+            budgetsCompleted: metaSpreadsheetData.budgets || budgetsCompleted || 0,
+            salesCount: metaSpreadsheetData.sales || salesCount || 0,
+            revenue: metaSpreadsheetData.revenue || revenue || 0,
             branding
         });
         

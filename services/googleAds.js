@@ -102,6 +102,8 @@ export class GoogleAdsService {
             reach: impressions, // Google usa impressions como "alcance"
             conversations: conversions, // Conversões = "conversas iniciadas" no contexto
             costPerConversation: conversions > 0 ? (cost / conversions).toFixed(2) : '0.00',
+            clicks: clicks, // ✅ Adicionar cliques
+            impressions: impressions, // ✅ Adicionar impressões
         };
     }
 }

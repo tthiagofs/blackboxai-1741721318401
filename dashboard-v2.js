@@ -265,18 +265,39 @@ async function computeUnitMetricsFromSpreadsheet(unit, startDate, endDate) {
         });
       }
       
-      if (linkedAccounts.google?.id) {
+      if (linkedAccounts.google?.id && googleAuth?.isAuthenticated && googleAuth.isAuthenticated()) {
         console.log(`🔍 Buscando gastos Google para conta ${linkedAccounts.google.id}`);
-        await googleAuth.initialize();
-        const ga = new GoogleAdsService();
-        if (ga?.getAccountInsights) {
-          const gInsights = await ga.getAccountInsights(startDate, endDate);
-          console.log(`💰 Gastos Google encontrados: R$ ${gInsights.spend}`);
-          invested += Number(gInsights.spend || 0);
-          // Google Ads não tem mensagens do WhatsApp
-        } else {
-          console.warn(`⚠️ GoogleAdsService.getAccountInsights não disponível`);
+        try {
+          await googleAuth.initialize();
+          const googleAccessToken = googleAuth.getAccessToken();
+          const managedBy = linkedAccounts.google.managedBy || null;
+          const ga = new GoogleAdsService(linkedAccounts.google.id, googleAccessToken, managedBy);
+          if (ga?.getAccountInsights) {
+            const gInsights = await ga.getAccountInsights(startDate, endDate);
+            // ⭐ gInsights retorna { insights: { cost, clicks, conversions, impressions } }
+            const googleCost = gInsights.insights?.cost || gInsights.cost || 0;
+            console.log(`💰 Gastos Google encontrados: R$ ${googleCost}`);
+            invested += Number(googleCost);
+            
+            // ⭐ Calcular mensagens e CPA do Google
+            // Google não tem mensagens diretas do WhatsApp, mas tem conversões
+            // Para fins de cálculo, podemos considerar conversões como "mensagens"
+            const googleConversions = Number(gInsights.insights?.conversions || gInsights.conversions || 0);
+            if (googleConversions > 0) {
+              messages += googleConversions;
+              console.log(`💬 Conversões Google adicionadas às mensagens: ${googleConversions}`);
+            }
+          } else {
+            console.warn(`⚠️ GoogleAdsService.getAccountInsights não disponível`);
+          }
+        } catch (error) {
+          console.error(`❌ Erro ao buscar dados Google para ${unit.name}:`, error);
         }
+      } else {
+        console.warn(`⚠️ Google não disponível para ${unit.name}:`, {
+          hasId: !!linkedAccounts.google?.id,
+          isAuthenticated: !!(googleAuth?.isAuthenticated && googleAuth.isAuthenticated())
+        });
       }
     } catch (error) {
       console.error(`❌ Erro ao buscar dados de anúncios para ${unit.name}:`, error);

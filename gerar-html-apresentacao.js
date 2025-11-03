@@ -22,6 +22,14 @@ export function generatePresentationHTML(params) {
         googleMetrics,
         metaTop3Ads,
         performanceAnalysis,
+        // ⭐ DADOS SEPARADOS POR PLATAFORMA
+        metaBudgetsCompleted,
+        metaSalesCount,
+        metaRevenue,
+        googleBudgetsCompleted,
+        googleSalesCount,
+        googleRevenue,
+        // Dados globais (fallback para compatibilidade)
         budgetsCompleted,
         salesCount,
         revenue,
@@ -35,6 +43,8 @@ export function generatePresentationHTML(params) {
         metaMetrics: metaMetrics ? 'Presente' : 'Ausente',
         googleMetrics: googleMetrics ? 'Presente' : 'Ausente',
         adsCount: metaTop3Ads?.length || 0,
+        metaSpreadsheet: { budgets: metaBudgetsCompleted, sales: metaSalesCount, revenue: metaRevenue },
+        googleSpreadsheet: { budgets: googleBudgetsCompleted, sales: googleSalesCount, revenue: googleRevenue },
         branding: branding ? {
             hasLogoHorizontal: !!branding.logoHorizontalUrl,
             hasLogoSquare: !!branding.logoSquareUrl,
@@ -49,7 +59,11 @@ export function generatePresentationHTML(params) {
 
     // PÁGINA 2: Resultados Meta (se disponível)
     if (hasMeta && metaMetrics) {
-        pages.push(generateResultsPage(metaMetrics, 'Meta Ads', budgetsCompleted, salesCount, revenue, branding));
+        // ⭐ Usar dados específicos do Meta ou fallback
+        const metaBudgets = metaBudgetsCompleted !== undefined ? metaBudgetsCompleted : budgetsCompleted || 0;
+        const metaSales = metaSalesCount !== undefined ? metaSalesCount : salesCount || 0;
+        const metaRev = metaRevenue !== undefined ? metaRevenue : revenue || 0;
+        pages.push(generateResultsPage(metaMetrics, 'Meta Ads', metaBudgets, metaSales, metaRev, branding));
     }
 
     // PÁGINA 3: Ranking de Anúncios (logo após Resultados Meta)
@@ -59,7 +73,11 @@ export function generatePresentationHTML(params) {
 
     // PÁGINA 4: Resultados Google (se disponível)
     if (hasGoogle && googleMetrics) {
-        pages.push(generateResultsPage(googleMetrics, 'Google Ads', budgetsCompleted, salesCount, revenue, branding));
+        // ⭐ Usar dados específicos do Google ou fallback
+        const googleBudgets = googleBudgetsCompleted !== undefined ? googleBudgetsCompleted : budgetsCompleted || 0;
+        const googleSales = googleSalesCount !== undefined ? googleSalesCount : salesCount || 0;
+        const googleRev = googleRevenue !== undefined ? googleRevenue : revenue || 0;
+        pages.push(generateResultsPage(googleMetrics, 'Google Ads', googleBudgets, googleSales, googleRev, branding));
     }
 
     // PÁGINA 5: Próximos Passos

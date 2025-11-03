@@ -1436,9 +1436,21 @@ async function generateCompleteReport() {
                 const managedBy = selectedOption?.dataset?.managedBy || googleAccount?.managedBy || null;
                 const googleService = new GoogleAdsService(googleAccountId, accessToken, managedBy);
                 const googleInsights = await googleService.getAccountInsights(startDate, endDate);
-                googleMetrics = googleService.calculateMetrics(googleInsights);
+                console.log(`📊 Google Insights recebidos:`, googleInsights);
                 
-                console.log(`✓ Métricas Google Ads carregadas`, googleMetrics);
+                // ⭐ Calcular métricas formatadas
+                googleMetrics = googleService.calculateMetrics(googleInsights);
+                console.log(`📊 Google Metrics após calculateMetrics:`, googleMetrics);
+                
+                // ⭐ Garantir que clicks e impressions estejam presentes como números (se não foram incluídos)
+                if (!googleMetrics.clicks && googleInsights.clicks !== undefined) {
+                    googleMetrics.clicks = parseInt(googleInsights.clicks || 0);
+                }
+                if (!googleMetrics.impressions && googleInsights.impressions !== undefined) {
+                    googleMetrics.impressions = parseInt(googleInsights.impressions || 0);
+                }
+                
+                console.log(`✓ Métricas Google Ads finais:`, googleMetrics);
             } catch (error) {
                 console.error('Erro ao carregar Google Ads:', error);
                 console.error('Detalhes do erro:', error.message, error.stack);

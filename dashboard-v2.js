@@ -273,16 +273,17 @@ async function computeUnitMetricsFromSpreadsheet(unit, startDate, endDate) {
           const managedBy = linkedAccounts.google.managedBy || null;
           const ga = new GoogleAdsService(linkedAccounts.google.id, googleAccessToken, managedBy);
           if (ga?.getAccountInsights) {
-            const gInsights = await ga.getAccountInsights(startDate, endDate);
-            // ⭐ gInsights retorna { insights: { cost, clicks, conversions, impressions } }
-            const googleCost = gInsights.insights?.cost || gInsights.cost || 0;
+            const gInsightsData = await ga.getAccountInsights(startDate, endDate);
+            // ⭐ getAccountInsights pode retornar { insights: {...} } ou diretamente os insights
+            const gInsights = gInsightsData.insights || gInsightsData;
+            const googleCost = Number(gInsights.cost || 0);
             console.log(`💰 Gastos Google encontrados: R$ ${googleCost}`);
-            invested += Number(googleCost);
+            invested += googleCost;
             
             // ⭐ Calcular mensagens e CPA do Google
             // Google não tem mensagens diretas do WhatsApp, mas tem conversões
             // Para fins de cálculo, podemos considerar conversões como "mensagens"
-            const googleConversions = Number(gInsights.insights?.conversions || gInsights.conversions || 0);
+            const googleConversions = Number(gInsights.conversions || 0);
             if (googleConversions > 0) {
               messages += googleConversions;
               console.log(`💬 Conversões Google adicionadas às mensagens: ${googleConversions}`);

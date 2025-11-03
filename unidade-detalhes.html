@@ -645,7 +645,100 @@ trafego pago</textarea>
                         .filter(t => t.length > 0)
                 };
                 
-                await updateUnit(currentProjectId, currentUnitId, {
+                // ⭐ REPROCESSAR PLANILHA SE EXISTIR allData (planilhas antigas)
+                let updatedBudgetData = currentUnit.budgetData;
+                if (currentUnit.budgetData?.allData && currentUnit.budgetData.allData.length > 0) {
+                    console.log('🔄 Reprocessando planilha com novos filtros...');
+                    try {
+                        const { processSpreadsheet } = await import('./services/spreadsheetProcessor.js');
+                        
+                        // ⭐ REPROCESSAR usando allData como base
+                        // Como não temos o arquivo original, vamos reprocessar o allData
+                        // criando um objeto temporário que simula o processamento
+                        const allData = currentUnit.budgetData.allData || [];
+                        
+                        // Aplicar filtros para Meta (somar ambos para o relatório que usa filtros antigos)
+                        const trafficSourcesForRelatorio = {
+                            facebook: trafficSourcesMeta.facebook || trafficSourcesGoogle.facebook,
+                            instagram: trafficSourcesMeta.instagram || trafficSourcesGoogle.instagram,
+                            google: trafficSourcesMeta.google || trafficSourcesGoogle.google,
+                            revista: trafficSourcesMeta.revista || trafficSourcesGoogle.revista,
+                            empty: trafficSourcesMeta.empty || trafficSourcesGoogle.empty,
+                            dots: trafficSourcesMeta.dots || trafficSourcesGoogle.dots
+                        };
+                        
+                        // Função helper para verificar regras (reutilizar lógica)
+                        function checkTrafficRules(row, trafficSources, customKeywords) {
+                            const colL = (row.source || row.L || "").toString().trim();
+                            const colLLower = colL.toLowerCase();
+                            const colK = (row.observations || row.K || "").toString().toLowerCase();
+                            
+                            if (trafficSources.empty && colL === "") return true;
+                            if (trafficSources.dots && colL === "...") return true;
+                            
+                            const platforms = [];
+                            if (trafficSources.facebook) platforms.push("facebook");
+                            if (trafficSources.instagram) platforms.push("instagram");
+                            if (trafficSources.google) platforms.push("google");
+                            if (trafficSources.revista) platforms.push("revista");
+                            
+                            const matchesPlatform = platforms.some(platform => colLLower.includes(platform));
+                            
+                            let matchesCustom = false;
+                            if (customKeywords && customKeywords.enabled && colLLower.includes("outros")) {
+                                matchesCustom = customKeywords.terms.some(term => colK.includes(term.toLowerCase()));
+                            }
+                            
+                            return matchesPlatform || matchesCustom;
+                        }
+                        
+                        // Função helper para verificar se é manutenção
+                        function isMaintenance(row) {
+                            const procedure = (row.procedure || row.H || "").toString().trim().toLowerCase();
+                            const maintenanceTerms = [
+                                "manutenção aparelho móvel",
+                                "manutenção aparelho ortodôntico autoligado",
+                                "manutenção aparelho ortodôntico safira",
+                                "manutenção ortodôntica mensal"
+                            ];
+                            return maintenanceTerms.some(term => procedure.includes(term));
+                        }
+                        
+                        // Filtrar rawData usando os novos filtros (combinados para compatibilidade)
+                        const newRawData = allData.filter(row => {
+                            // Excluir manutenções se opção estiver ativa
+                            if (excludeMaintenance && isMaintenance(row)) {
+                                return false;
+                            }
+                            
+                            // Verificar se atende regras de tráfego (usando filtros combinados para compatibilidade)
+                            return checkTrafficRules(row, trafficSourcesForRelatorio, customKeywordsMeta);
+                        });
+                        
+                        // Recalcular métricas
+                        updatedBudgetData = {
+                            ...currentUnit.budgetData,
+                            rawData: newRawData,
+                            totalBudgets: newRawData.length,
+                            totalSales: newRawData.filter(r => r.status === "APPROVED").length,
+                            totalRevenue: newRawData.filter(r => r.status === "APPROVED")
+                                .reduce((sum, r) => sum + (r.value || 0), 0),
+                            updatedAt: new Date().toISOString()
+                        };
+                        
+                        console.log('✅ Planilha reprocessada:', {
+                            totalBudgets: updatedBudgetData.totalBudgets,
+                            totalSales: updatedBudgetData.totalSales,
+                            totalRevenue: updatedBudgetData.totalRevenue
+                        });
+                    } catch (error) {
+                        console.error('⚠️ Erro ao reprocessar planilha (mantendo dados originais):', error);
+                        // Manter dados originais se houver erro
+                    }
+                }
+                
+                // Atualizar unidade com novos filtros e dados reprocessados
+                const updateData = {
                     trafficSources: {
                         meta: trafficSourcesMeta,
                         google: trafficSourcesGoogle
@@ -655,9 +748,17 @@ trafego pago</textarea>
                         google: customKeywordsGoogle
                     },
                     excludeMaintenance
-                });
+                };
                 
-                alert('✅ Configurações salvas com sucesso!');
+                // Se reprocessou a planilha, incluir nos dados de atualização
+                if (updatedBudgetData && updatedBudgetData !== currentUnit.budgetData) {
+                    await updateBudgetData(currentProjectId, currentUnitId, updatedBudgetData);
+                    console.log('✅ Dados da planilha atualizados');
+                }
+                
+                await updateUnit(currentProjectId, currentUnitId, updateData);
+                
+                alert('✅ Configurações salvas com sucesso!' + (updatedBudgetData && updatedBudgetData !== currentUnit.budgetData ? '\n\n📊 Planilha reprocessada automaticamente com os novos filtros.' : ''));
             } catch (error) {
                 console.error('Erro ao salvar configurações:', error);
                 alert('Erro ao salvar configurações');

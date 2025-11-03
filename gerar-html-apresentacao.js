@@ -198,9 +198,11 @@ function generateCoverPage(unitName, startDate, endDate, branding) {
  */
 function generateResultsPage(metrics, platformName, budgetsCompleted, salesCount, revenue, branding = {}) {
     // Usar dados da API de anúncios
-    const invested = metrics?.spend || 0;
-    const clicks = metrics?.clicks || 0;
-    const messages = metrics?.conversations || 0;
+    const invested = parseFloat(metrics?.spend || 0);
+    // ⭐ Garantir que clicks esteja presente (pode vir de diferentes lugares)
+    const clicks = parseInt(metrics?.clicks || metrics?.totalClicks || 0);
+    // ⭐ conversations ou leads (Meta usa conversations, Google usa conversions)
+    const messages = parseInt(metrics?.conversations || metrics?.conversions || 0);
     
     // Usar dados manuais da planilha
     const sales = salesCount || 0;

@@ -55,13 +55,10 @@ export class GoogleAdsService {
     async getAccountInsights(startDate, endDate) {
         try {
             const data = await this._call('getAccountInsights', { startDate, endDate });
-            return data.insights || {
-                impressions: 0,
-                clicks: 0,
-                conversions: 0,
-                cost: 0,
-                costPerConversion: 0,
-            };
+            // ⭐ API retorna { insights: {...} }, então extrair insights
+            const insights = data.insights || data;
+            console.log('📊 Insights brutos do Google:', insights);
+            return insights;
         } catch (error) {
             console.error('Erro ao buscar insights do Google:', error);
             return {

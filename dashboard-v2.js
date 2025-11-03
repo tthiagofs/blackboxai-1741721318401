@@ -301,7 +301,8 @@ async function computeUnitMetricsFromSpreadsheet(unit, startDate, endDate) {
                 
                 console.log(`📊 Dados brutos retornados do getAccountInsights:`, gInsightsData);
                 
-                // ⭐ getAccountInsights já retorna os insights diretamente (não precisa extrair .insights)
+                // ⭐ getAccountInsights retorna diretamente { cost, conversions, ... } ou { insights: {...} }
+                // Verificar se vem aninhado ou não
                 const gInsights = gInsightsData.insights || gInsightsData;
                 
                 console.log(`📊 Insights processados:`, gInsights);

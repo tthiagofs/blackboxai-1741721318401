@@ -1248,44 +1248,44 @@ async function generateCompleteReport() {
         window.resetSaveButton();
     }
     
-        const unitId = document.getElementById('unitId').value;
-    // Obter Google Account ID do select ou da unidade vinculada
-    let googleAccountId = googleAdsAccountSelect?.value || '';
-    
-    // Se há unitId mas não há googleAccountId no select, buscar da unidade vinculada (mesma lógica do Meta)
-    if (unitId && !googleAccountId) {
-        try {
-            // Buscar dados da unidade para obter conta Google vinculada
-            const unitSelect = document.getElementById('unitSelect');
-            if (unitSelect) {
-                const selectedOption = Array.from(unitSelect.options).find(opt => {
-                    if (opt.dataset.unit) {
-                        try {
-                            const unit = JSON.parse(opt.dataset.unit);
-                            return unit.id === unitId;
-                        } catch (e) {
-                            return false;
+        // IMPORTANTE: unitId vem do unitSelect (ID da unidade), não do select unitId (que é conta Meta)
+        const unitSelect = document.getElementById('unitSelect');
+        const metaAccountId = document.getElementById('unitId').value; // Este é o ID da conta Meta, não da unidade
+        let actualUnitId = null;
+        let googleAccountId = googleAdsAccountSelect?.value || '';
+        
+        // Buscar ID da unidade real do unitSelect
+        if (unitSelect && unitSelect.value) {
+            actualUnitId = unitSelect.value;
+            console.log('📋 Unidade selecionada:', actualUnitId);
+            
+            // Se não há googleAccountId no select, buscar da unidade vinculada (mesma lógica do Meta)
+            if (!googleAccountId) {
+                try {
+                    const selectedOption = unitSelect.selectedOptions[0];
+                    if (selectedOption && selectedOption.dataset.unit) {
+                        const unit = JSON.parse(selectedOption.dataset.unit);
+                        console.log('🔍 Dados da unidade:', { id: unit.id, linkedAccounts: unit.linkedAccounts });
+                        
+                        if (unit.linkedAccounts?.google?.id) {
+                            googleAccountId = unit.linkedAccounts.google.id;
+                            console.log('✅ Usando conta Google vinculada da unidade:', googleAccountId);
+                            // Também preencher o select para manter consistência
+                            if (googleAdsAccountSelect && googleAccountId) {
+                                googleAdsAccountSelect.value = googleAccountId;
+                            }
+                        } else {
+                            console.log('ℹ️ Unidade não tem conta Google vinculada');
                         }
                     }
-                    return false;
-                });
-                
-                if (selectedOption && selectedOption.dataset.unit) {
-                    const unit = JSON.parse(selectedOption.dataset.unit);
-                    if (unit.linkedAccounts?.google?.id) {
-                        googleAccountId = unit.linkedAccounts.google.id;
-                        console.log('✅ Usando conta Google vinculada da unidade:', googleAccountId);
-                        // Também preencher o select para manter consistência
-                        if (googleAdsAccountSelect && googleAccountId) {
-                            googleAdsAccountSelect.value = googleAccountId;
-                        }
-                    }
+                } catch (error) {
+                    console.warn('⚠️ Erro ao buscar conta Google vinculada da unidade:', error);
                 }
             }
-        } catch (error) {
-            console.warn('⚠️ Erro ao buscar conta Google vinculada da unidade:', error);
         }
-    }
+        
+        // Usar metaAccountId como unitId para compatibilidade (Meta usa o ID da conta como unitId)
+        const unitId = metaAccountId || actualUnitId;
     
     const startDate = document.getElementById('startDate').value;
         const endDate = document.getElementById('endDate').value;

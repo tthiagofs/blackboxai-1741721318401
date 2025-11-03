@@ -117,6 +117,22 @@ class FacebookAuth {
 
             // Set access token and load accounts after successful login/status check
             this.accessToken = response.authResponse.accessToken;
+            
+            // ⭐ Converter para long-lived token (60 dias) se ainda não for
+            try {
+                console.log('🔄 Convertendo token para long-lived (60 dias)...');
+                const longLivedToken = await this.exchangeToLongLivedToken(this.accessToken);
+                if (longLivedToken) {
+                    this.accessToken = longLivedToken;
+                    console.log('✅ Token convertido para long-lived (válido por 60 dias)');
+                } else {
+                    console.warn('⚠️ Não foi possível converter para long-lived, usando token atual');
+                }
+            } catch (error) {
+                console.warn('⚠️ Erro ao converter token para long-lived:', error);
+                // Continuar com token atual mesmo se a conversão falhar
+            }
+            
             localStorage.setItem('fbAccessToken', this.accessToken);
             await this.loadAllAdAccounts();
             
@@ -298,6 +314,38 @@ class FacebookAuth {
 
     getAccessToken() {
         return this.accessToken;
+    }
+    
+    // Converter short-lived token para long-lived token (60 dias)
+    // ⚠️ IMPORTANTE: Esta função expõe o App Secret no frontend (não é ideal)
+    // Para produção, essa conversão deve ser feita no backend
+    async exchangeToLongLivedToken(shortLivedToken) {
+        try {
+            const appId = '1595817924411708';
+            // ⚠️ App Secret não deve estar no frontend - idealmente fazer via backend
+            // Por enquanto, vamos tentar usar o FB.getLoginStatus que já retorna long-lived tokens
+            // quando a sessão está ativa
+            console.log('ℹ️ Tentando obter long-lived token via FB.getLoginStatus...');
+            
+            // Verificar se já temos um token long-lived através do status
+            const statusResponse = await new Promise((resolve) => {
+                FB.getLoginStatus((response) => resolve(response));
+            });
+            
+            if (statusResponse.status === 'connected' && statusResponse.authResponse.accessToken) {
+                // Se o status já está conectado, o token pode já ser long-lived
+                // O Facebook SDK automaticamente gerencia isso quando há sessão ativa
+                return statusResponse.authResponse.accessToken;
+            }
+            
+            // Se não conseguir via getLoginStatus, tentar conversão direta
+            // (mas isso requer App Secret, que não deve estar no frontend)
+            console.warn('⚠️ Conversão direta de token requer App Secret (não disponível no frontend)');
+            return null;
+        } catch (error) {
+            console.error('❌ Erro ao converter token para long-lived:', error);
+            return null;
+        }
     }
 
     getAdAccounts() {

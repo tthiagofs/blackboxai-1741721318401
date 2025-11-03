@@ -13,8 +13,8 @@ class GoogleAuthService {
 
     // Inicializar Google Identity Services
     async initialize() {
-        // Sempre tentar carregar token salvo primeiro
-        const savedToken = this.loadToken();
+        // Sempre tentar carregar token salvo primeiro (e renovar se necessário)
+        const savedToken = await this.loadToken();
         if (savedToken) {
             this.accessToken = savedToken;
             console.log('✅ Token Google restaurado do localStorage');
@@ -102,19 +102,40 @@ class GoogleAuthService {
         }
     }
 
-    // Carregar token do localStorage
-    loadToken() {
+    // Carregar token do localStorage e renovar se necessário
+    async loadToken() {
         try {
             const token = localStorage.getItem('google_ads_access_token');
             const tokenTime = localStorage.getItem('google_ads_token_time');
             
             if (!token || !tokenTime) return null;
             
-            // Verificar se token expirou (1 hora)
+            // Verificar se token está próximo de expirar (55 minutos = renovar antes de expirar)
             const elapsed = Date.now() - parseInt(tokenTime);
-            if (elapsed > 3600000) { // 1 hora em ms
-                this.clearToken();
-                return null;
+            const EXPIRY_TIME = 3600000; // 1 hora em ms
+            const RENEWAL_THRESHOLD = 3300000; // 55 minutos - renovar antes de expirar
+            
+            if (elapsed > EXPIRY_TIME) {
+                // Token expirado - tentar renovar automaticamente
+                console.log('🔄 Token Google expirado, tentando renovar automaticamente...');
+                try {
+                    await this.refreshToken();
+                    return this.accessToken;
+                } catch (error) {
+                    console.warn('⚠️ Não foi possível renovar token automaticamente:', error);
+                    this.clearToken();
+                    return null;
+                }
+            } else if (elapsed > RENEWAL_THRESHOLD) {
+                // Token próximo de expirar - renovar proativamente
+                console.log('🔄 Token Google próximo de expirar, renovando proativamente...');
+                try {
+                    await this.refreshToken();
+                    return this.accessToken;
+                } catch (error) {
+                    console.warn('⚠️ Não foi possível renovar token proativamente, usando token atual:', error);
+                    return token; // Usar token atual mesmo que esteja próximo de expirar
+                }
             }
             
             return token;
@@ -122,6 +143,46 @@ class GoogleAuthService {
             console.error('Erro ao carregar token:', error);
             return null;
         }
+    }
+    
+    // Renovar token automaticamente (sem forçar novo consentimento)
+    async refreshToken() {
+        if (!this.isInitialized) {
+            await this.initialize();
+        }
+        
+        return new Promise((resolve, reject) => {
+            // Configurar callback temporário
+            const originalCallback = this.tokenClient.callback;
+            
+            this.tokenClient.callback = (response) => {
+                // Restaurar callback original
+                this.tokenClient.callback = originalCallback;
+                
+                if (response.error) {
+                    // Se erro de consentimento, o token precisa ser renovado manualmente
+                    if (response.error === 'popup_closed_by_user' || response.error.includes('consent')) {
+                        console.warn('⚠️ Renovação automática falhou - usuário precisa reconectar');
+                        reject(new Error('TOKEN_REFRESH_REQUIRES_CONSENT'));
+                    } else {
+                        reject(response);
+                    }
+                    return;
+                }
+                
+                this.accessToken = response.access_token;
+                this.saveToken(response.access_token);
+                console.log('✅ Token Google renovado automaticamente');
+                resolve(response.access_token);
+            };
+            
+            // Solicitar token sem forçar novo consentimento (sem prompt)
+            try {
+                this.tokenClient.requestAccessToken({ prompt: '' }); // Vazio = sem prompt, apenas renovar se possível
+            } catch (error) {
+                reject(error);
+            }
+        });
     }
 
     // Limpar token

@@ -15,6 +15,10 @@ let currentSortDirection = 'asc';
 // ⭐ Variável global para passar currentProjectId para computeUnitMetricsFromSpreadsheet
 let dashboardProjectId = null;
 
+// ⭐ Variável global para armazenar dados da tabela para exportação
+let currentTableData = [];
+let currentPeriodInfo = { start: '', end: '', period: '' };
+
 function formatCurrency(v) { 
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v || 0); 
 }
@@ -212,6 +216,17 @@ async function generateDashboard() {
 
     renderCards(totals); 
     renderTable(rows);
+    
+    // ⭐ Salvar dados para exportação
+    currentTableData = rows;
+    currentPeriodInfo = {
+      start: start,
+      end: end,
+      period: currentPeriod
+    };
+    
+    // Configurar botão de exportação após renderizar tabela
+    setupExportButton();
     
     empty.classList.add('hidden'); 
     document.getElementById('cardsSection').classList.remove('hidden'); 
@@ -642,4 +657,84 @@ function setupTableSorting(rows) {
       renderTable(rows);
     });
   });
+}
+
+// ⭐ Função para exportar tabela para XLSX
+window.exportToExcel = function() {
+  if (!currentTableData || currentTableData.length === 0) {
+    alert('Não há dados para exportar. Gere o dashboard primeiro.');
+    return;
+  }
+  
+  try {
+    // Verificar se XLSX está disponível
+    if (typeof XLSX === 'undefined') {
+      alert('Biblioteca XLSX não carregada. Recarregue a página e tente novamente.');
+      return;
+    }
+    
+    // Preparar dados para exportação
+    const exportData = currentTableData.map(row => ({
+      'Unidade': row.name,
+      'Investido (R$)': row.invested,
+      'Mensagens': row.messages,
+      'CPA (R$)': row.cpa,
+      'Vendas': row.sales,
+      'Faturamento (R$)': row.revenue,
+      'ROI': row.roi > 0 ? `${row.roi.toFixed(2)}x` : '0x'
+    }));
+    
+    // Criar workbook
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.json_to_sheet(exportData);
+    
+    // Ajustar largura das colunas
+    const colWidths = [
+      { wch: 30 }, // Unidade
+      { wch: 15 }, // Investido
+      { wch: 12 }, // Mensagens
+      { wch: 12 }, // CPA
+      { wch: 10 }, // Vendas
+      { wch: 15 }, // Faturamento
+      { wch: 10 }  // ROI
+    ];
+    ws['!cols'] = colWidths;
+    
+    // Adicionar worksheet ao workbook
+    XLSX.utils.book_append_sheet(wb, ws, 'Dashboard');
+    
+    // Gerar nome do arquivo com período
+    const periodLabel = currentPeriodInfo.period || 'personalizado';
+    const dateStr = new Date().toISOString().split('T')[0];
+    const fileName = `Dashboard_${periodLabel}_${dateStr}.xlsx`;
+    
+    // Exportar arquivo
+    XLSX.writeFile(wb, fileName);
+    
+    console.log('✅ Planilha exportada com sucesso!');
+  } catch (error) {
+    console.error('❌ Erro ao exportar planilha:', error);
+    alert('Erro ao exportar planilha. Tente novamente.');
+  }
+};
+
+// Configurar evento do botão de exportação
+function setupExportButton() {
+  const exportBtn = document.getElementById('exportBtn');
+  if (exportBtn) {
+    // Remover listener anterior se existir
+    const newBtn = exportBtn.cloneNode(true);
+    exportBtn.parentNode.replaceChild(newBtn, exportBtn);
+    
+    newBtn.addEventListener('click', window.exportToExcel);
+    console.log('✅ Botão de exportação configurado');
+  }
+}
+
+// Configurar quando o DOM estiver pronto
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', setupExportButton);
+} else {
+  // DOM já carregado
+  setupExportButton();
 }

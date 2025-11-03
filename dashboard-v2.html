@@ -61,15 +61,57 @@
     <div id="tableSection" class="bg-white border border-gray-200 rounded-xl overflow-hidden hidden">
       <div class="px-5 py-4 border-b border-gray-200 flex items-center justify-between">
         <h2 class="text-lg font-semibold text-gray-900">Detalhes por Unidade</h2>
+        <button id="exportBtn" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2">
+          <i class="fas fa-file-excel"></i>
+          Exportar XLSX
+        </button>
       </div>
       <div class="overflow-x-auto">
         <table class="min-w-full divide-y divide-gray-200">
           <thead class="bg-gray-50">
             <tr>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Unidade</th>
-              <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Investido</th>
-              <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Vendas</th>
-              <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Faturamento</th>
+              <th data-sort="name" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors select-none">
+                <div class="flex items-center justify-between">
+                  <span>Unidade</span>
+                  <i class="fas fa-sort text-gray-400"></i>
+                </div>
+              </th>
+              <th data-sort="invested" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors select-none">
+                <div class="flex items-center justify-end">
+                  <span>Investido</span>
+                  <i class="fas fa-sort text-gray-400 ml-2"></i>
+                </div>
+              </th>
+              <th data-sort="messages" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors select-none">
+                <div class="flex items-center justify-end">
+                  <span>Mensagens</span>
+                  <i class="fas fa-sort text-gray-400 ml-2"></i>
+                </div>
+              </th>
+              <th data-sort="cpa" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors select-none">
+                <div class="flex items-center justify-end">
+                  <span>CPA</span>
+                  <i class="fas fa-sort text-gray-400 ml-2"></i>
+                </div>
+              </th>
+              <th data-sort="sales" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors select-none">
+                <div class="flex items-center justify-end">
+                  <span>Vendas</span>
+                  <i class="fas fa-sort text-gray-400 ml-2"></i>
+                </div>
+              </th>
+              <th data-sort="revenue" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors select-none">
+                <div class="flex items-center justify-end">
+                  <span>Faturamento</span>
+                  <i class="fas fa-sort text-gray-400 ml-2"></i>
+                </div>
+              </th>
+              <th data-sort="roi" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors select-none">
+                <div class="flex items-center justify-end">
+                  <span>ROI</span>
+                  <i class="fas fa-sort text-gray-400 ml-2"></i>
+                </div>
+              </th>
             </tr>
           </thead>
           <tbody id="unitsTableBody" class="bg-white divide-y divide-gray-200"></tbody>
@@ -84,6 +126,8 @@
     </div>
   </div>
 
+  <!-- XLSX.js para exportação -->
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
   <script type="module" src="./dashboard-v2.js?v=2"></script>
 </body>
 </html>

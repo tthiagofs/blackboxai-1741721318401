@@ -1702,6 +1702,10 @@ async function generateCompleteReport() {
             
             // Filtrar por plataforma usando os filtros específicos
             if (separateMetaMetrics) {
+                // Habilitar debug temporário
+                window._debugTrafficRules = true;
+                window._debugTrafficRulesCount = 0;
+                
                 console.log('🔍 Filtrando dados Meta com filtros:', {
                     trafficSourcesMeta,
                     customKeywordsMeta,
@@ -1724,6 +1728,10 @@ async function generateCompleteReport() {
             }
             
             if (separateGoogleMetrics) {
+                // Habilitar debug temporário
+                window._debugTrafficRules = true;
+                window._debugTrafficRulesCount = 0;
+                
                 console.log('🔍 Filtrando dados Google com filtros:', {
                     trafficSourcesGoogle,
                     customKeywordsGoogle,

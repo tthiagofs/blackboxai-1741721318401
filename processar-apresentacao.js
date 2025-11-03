@@ -13,6 +13,11 @@ function matchesTrafficRules(row, trafficSources, customKeywords) {
     const colLLower = colL.toLowerCase();
     const colK = (row.K || "").toString().toLowerCase();
     
+    // Se não há filtros configurados, retornar true (incluir tudo)
+    if (!trafficSources) {
+        return true;
+    }
+    
     // Regra 1: Células vazias (sem fonte definida)
     if (trafficSources.empty && colL === "") {
         return true;
@@ -42,7 +47,23 @@ function matchesTrafficRules(row, trafficSources, customKeywords) {
         );
     }
     
-    return matchesPlatform || matchesCustom;
+    const result = matchesPlatform || matchesCustom;
+    
+    // Log detalhado apenas para os primeiros casos (para debug)
+    if (window._debugTrafficRules && window._debugTrafficRulesCount < 10) {
+        console.log('🔍 matchesTrafficRules:', {
+            colL,
+            colLLower,
+            platforms,
+            matchesPlatform,
+            matchesCustom,
+            result,
+            trafficSources
+        });
+        window._debugTrafficRulesCount = (window._debugTrafficRulesCount || 0) + 1;
+    }
+    
+    return result;
 }
 
 /**
@@ -62,14 +83,39 @@ export function filterSpreadsheetByPlatform(rawData, platform, trafficSources, c
     console.log(`🔍 Filtrando ${rawData.length} registros para plataforma: ${platform}`);
     console.log(`⚙️ Configurações de filtro:`, { trafficSources, customKeywords, excludeMaintenance });
 
+    let excludedByMaintenance = 0;
+    let excludedByTrafficRules = 0;
+    let included = 0;
+    const sampleExcluded = []; // Primeiros 5 excluídos para debug
+
     const filteredData = rawData.filter(row => {
         // Excluir manutenções se opção estiver ativa
         if (excludeMaintenance && isMaintenanceProcedure(row)) {
+            excludedByMaintenance++;
+            if (sampleExcluded.length < 5) {
+                sampleExcluded.push({ reason: 'maintenance', source: row.source || row.L, procedure: row.procedure || row.H });
+            }
             return false;
         }
 
         // Filtrar por regras de tráfego específicas da plataforma
-        return matchesTrafficRules(row, trafficSources, customKeywords);
+        const matches = matchesTrafficRules(row, trafficSources, customKeywords);
+        if (!matches) {
+            excludedByTrafficRules++;
+            if (sampleExcluded.length < 5 && excludedByTrafficRules <= 5) {
+                sampleExcluded.push({ 
+                    reason: 'trafficRules', 
+                    source: row.source || row.L, 
+                    colK: row.K,
+                    trafficSources,
+                    customKeywords: customKeywords?.enabled ? 'enabled' : 'disabled'
+                });
+            }
+            return false;
+        }
+
+        included++;
+        return true;
     });
 
     // Calcular métricas
@@ -79,7 +125,16 @@ export function filterSpreadsheetByPlatform(rawData, platform, trafficSources, c
         .reduce((sum, r) => sum + (r.value || 0), 0);
     const budgets = filteredData.length;
 
-    console.log(`✅ Resultados filtrados:`, { sales, revenue, budgets, total: rawData.length });
+    console.log(`✅ Resultados filtrados:`, { 
+        sales, 
+        revenue, 
+        budgets, 
+        total: rawData.length,
+        excludedByMaintenance,
+        excludedByTrafficRules,
+        included,
+        sampleExcluded: sampleExcluded.slice(0, 3) // Mostrar apenas 3 para não poluir
+    });
 
     return { sales, revenue, budgets };
 }

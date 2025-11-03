@@ -63,6 +63,17 @@ export function generatePresentationHTML(params) {
         const metaBudgets = metaBudgetsCompleted !== undefined ? metaBudgetsCompleted : budgetsCompleted || 0;
         const metaSales = metaSalesCount !== undefined ? metaSalesCount : salesCount || 0;
         const metaRev = metaRevenue !== undefined ? metaRevenue : revenue || 0;
+        
+        console.log('📊 Preparando página Meta com dados:', {
+            metaBudgetsCompleted,
+            metaSalesCount,
+            metaRevenue,
+            budgetsCompleted,
+            salesCount,
+            revenue,
+            final: { metaBudgets, metaSales, metaRev }
+        });
+        
         pages.push(generateResultsPage(metaMetrics, 'Meta Ads', metaBudgets, metaSales, metaRev, branding));
     }
 
@@ -77,6 +88,17 @@ export function generatePresentationHTML(params) {
         const googleBudgets = googleBudgetsCompleted !== undefined ? googleBudgetsCompleted : budgetsCompleted || 0;
         const googleSales = googleSalesCount !== undefined ? googleSalesCount : salesCount || 0;
         const googleRev = googleRevenue !== undefined ? googleRevenue : revenue || 0;
+        
+        console.log('📊 Preparando página Google com dados:', {
+            googleBudgetsCompleted,
+            googleSalesCount,
+            googleRevenue,
+            budgetsCompleted,
+            salesCount,
+            revenue,
+            final: { googleBudgets, googleSales, googleRev }
+        });
+        
         pages.push(generateResultsPage(googleMetrics, 'Google Ads', googleBudgets, googleSales, googleRev, branding));
     }
 

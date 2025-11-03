@@ -1691,11 +1691,23 @@ async function generateCompleteReport() {
             });
             
             // Filtrar por período primeiro (dos dados completos)
-            const periodFilteredData = filterUnitDataByPeriod(allDataToFilter, startDate, endDate);
+            // ⭐ Criar função que retorna o array filtrado (não apenas métricas)
+            const start = new Date(startDate);
+            const end = new Date(endDate);
+            const periodFilteredData = allDataToFilter.filter(item => {
+                const itemDate = new Date(item.date);
+                return itemDate >= start && itemDate <= end;
+            });
             console.log('📅 Dados filtrados por período:', periodFilteredData.length, 'registros');
             
             // Filtrar por plataforma usando os filtros específicos
             if (separateMetaMetrics) {
+                console.log('🔍 Filtrando dados Meta com filtros:', {
+                    trafficSourcesMeta,
+                    customKeywordsMeta,
+                    excludeMaintenance,
+                    periodDataLength: periodFilteredData.length
+                });
                 metaSpreadsheetData = filterSpreadsheetByPlatform(
                     periodFilteredData,
                     'meta',
@@ -1704,9 +1716,20 @@ async function generateCompleteReport() {
                     excludeMaintenance
                 );
                 console.log('📊 Dados Meta filtrados da planilha:', metaSpreadsheetData);
+                console.log('📊 Valores Meta:', {
+                    budgets: metaSpreadsheetData.budgets,
+                    sales: metaSpreadsheetData.sales,
+                    revenue: metaSpreadsheetData.revenue
+                });
             }
             
             if (separateGoogleMetrics) {
+                console.log('🔍 Filtrando dados Google com filtros:', {
+                    trafficSourcesGoogle,
+                    customKeywordsGoogle,
+                    excludeMaintenance,
+                    periodDataLength: periodFilteredData.length
+                });
                 googleSpreadsheetData = filterSpreadsheetByPlatform(
                     periodFilteredData,
                     'google',
@@ -1715,6 +1738,11 @@ async function generateCompleteReport() {
                     excludeMaintenance
                 );
                 console.log('📊 Dados Google filtrados da planilha:', googleSpreadsheetData);
+                console.log('📊 Valores Google:', {
+                    budgets: googleSpreadsheetData.budgets,
+                    sales: googleSpreadsheetData.sales,
+                    revenue: googleSpreadsheetData.revenue
+                });
             }
         } else {
             // Fallback: usar dados manuais se não houver planilha

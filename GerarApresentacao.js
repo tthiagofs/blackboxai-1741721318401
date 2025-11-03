@@ -201,7 +201,36 @@ function handleUnitSelection(e) {
                     <span class="text-xs font-medium text-gray-700">${linkedAccounts.google.name}</span>
                 </div>
             `;
-            if (googleSelect) googleSelect.value = linkedAccounts.google.id;
+            // Garantir que o select do Google esteja populado antes de definir o valor
+            if (googleSelect) {
+                // Se o select ainda não tem opções, carregar primeiro
+                if (googleSelect.options.length <= 1 || (googleSelect.options.length === 1 && googleSelect.options[0].value === '')) {
+                    loadGoogleAdsAccounts().then(() => {
+                        // Após carregar, tentar encontrar e selecionar a conta vinculada
+                        const accounts = googleAuth.getStoredAccounts();
+                        const googleAccount = accounts.find(acc => acc.customerId === linkedAccounts.google.id);
+                        if (googleAccount) {
+                            googleSelect.value = linkedAccounts.google.id;
+                            console.log('✅ Conta Google vinculada selecionada:', linkedAccounts.google.id);
+                        } else {
+                            // Se não encontrou pelo ID exato, tentar por customerId no select
+                            for (let i = 0; i < googleSelect.options.length; i++) {
+                                if (googleSelect.options[i].value === linkedAccounts.google.id) {
+                                    googleSelect.value = linkedAccounts.google.id;
+                                    console.log('✅ Conta Google vinculada selecionada (por customerId):', linkedAccounts.google.id);
+                                    break;
+                                }
+                            }
+                        }
+                    }).catch(err => {
+                        console.error('Erro ao carregar contas Google:', err);
+                    });
+                } else {
+                    // Select já tem opções, apenas definir o valor
+                    googleSelect.value = linkedAccounts.google.id;
+                    console.log('✅ Conta Google vinculada selecionada (select já populado):', linkedAccounts.google.id);
+                }
+            }
         }
         
         if (unitLinkedInfo) unitLinkedInfo.classList.remove('hidden');
@@ -1220,7 +1249,13 @@ async function generateCompleteReport() {
     }
     
         const unitId = document.getElementById('unitId').value;
-    const googleAccountId = googleAdsAccountSelect.value;
+    // Obter Google Account ID do select ou da unidade vinculada
+    let googleAccountId = googleAdsAccountSelect?.value || '';
+    // Se não há seleção manual mas a unidade tem Google vinculado, usar da unidade
+    if (!googleAccountId && selectedUnit?.linkedAccounts?.google?.id) {
+        googleAccountId = selectedUnit.linkedAccounts.google.id;
+        console.log('✅ Usando conta Google vinculada da unidade:', googleAccountId);
+    }
         const startDate = document.getElementById('startDate').value;
         const endDate = document.getElementById('endDate').value;
         const budgetsCompleted = parseInt(document.getElementById('budgetsCompleted').value) || 0;
@@ -1303,30 +1338,47 @@ async function generateCompleteReport() {
         }
 
         // ========== PROCESSAR GOOGLE ADS ==========
-        if (googleAccountId && googleAuth.isAuthenticated()) {
+        // Verificar também se a unidade tem Google vinculado (mesmo sem seleção manual)
+        const unitHasGoogle = selectedUnit?.linkedAccounts?.google?.id;
+        const effectiveGoogleAccountId = googleAccountId || unitHasGoogle;
+        
+        if (effectiveGoogleAccountId && googleAuth.isAuthenticated()) {
             const accounts = googleAuth.getStoredAccounts();
-            const googleAccount = accounts.find(acc => acc.customerId === googleAccountId);
-            const googleAccountName = googleAccount ? googleAccount.name : googleAccountId;
+            const googleAccount = accounts.find(acc => acc.customerId === effectiveGoogleAccountId);
+            const googleAccountName = googleAccount ? googleAccount.name : effectiveGoogleAccountId;
 
             console.log(`🌐 Processando Google Ads: ${googleAccountName}`);
+            console.log(`🔍 Google Account ID: ${effectiveGoogleAccountId} (unitId: ${unitId}, googleAccountId: ${googleAccountId}, unitHasGoogle: ${unitHasGoogle})`);
 
             try {
                 // Usar o accessToken do Google Auth
                 const accessToken = googleAuth.getAccessToken();
                 // Pegar managedBy (MCC ID) se a conta for gerenciada
-                const selectedOption = googleAdsAccountSelect.options[googleAdsAccountSelect.selectedIndex];
-                const managedBy = selectedOption?.dataset?.managedBy || null;
-                const googleService = new GoogleAdsService(googleAccountId, accessToken, managedBy);
+                // Tentar encontrar a opção no select primeiro
+                let selectedOption = null;
+                if (googleAdsAccountSelect) {
+                    for (let i = 0; i < googleAdsAccountSelect.options.length; i++) {
+                        if (googleAdsAccountSelect.options[i].value === effectiveGoogleAccountId) {
+                            selectedOption = googleAdsAccountSelect.options[i];
+                            break;
+                        }
+                    }
+                }
+                const managedBy = selectedOption?.dataset?.managedBy || googleAccount?.managedBy || null;
+                const googleService = new GoogleAdsService(effectiveGoogleAccountId, accessToken, managedBy);
                 const googleInsights = await googleService.getAccountInsights(startDate, endDate);
                 googleMetrics = googleService.calculateMetrics(googleInsights);
                 
                 console.log(`✓ Métricas Google Ads carregadas`, googleMetrics);
             } catch (error) {
                 console.error('Erro ao carregar Google Ads:', error);
+                console.error('Detalhes do erro:', error.message, error.stack);
                 alert('Erro ao carregar dados do Google Ads. Verifique sua autenticação.');
             }
-        } else if (googleAccountId && !googleAuth.isAuthenticated()) {
+        } else if (effectiveGoogleAccountId && !googleAuth.isAuthenticated()) {
             alert('Faça login com Google Ads para gerar o relatório.');
+        } else if (unitHasGoogle && !effectiveGoogleAccountId) {
+            console.warn('⚠️ Unidade tem Google vinculado mas conta não foi encontrada:', selectedUnit);
         }
 
         // Determinar tipo de relatório e preparar métricas

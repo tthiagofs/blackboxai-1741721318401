@@ -360,13 +360,16 @@ async function getTrafficData(unit, startDate, endDate) {
 
     // Google Ads - buscar dados diários
     if (linkedAccounts.google?.id) {
-      await googleAuth.initialize();
-      if (googleAuth?.getAccessToken && googleAuth.getAccessToken()) {
-        try {
+      try {
+        await googleAuth.initialize();
+        const googleAccessToken = googleAuth?.getAccessToken && googleAuth.getAccessToken();
+        
+        if (googleAccessToken) {
+          const managedBy = linkedAccounts.google.managedBy || null;
           const googleService = new GoogleAdsService(
             linkedAccounts.google.id,
-            null,
-            linkedAccounts.google.managedBy
+            googleAccessToken,
+            managedBy
           );
           
           // Buscar insights (pode precisar de ajuste para dados diários)
@@ -392,9 +395,9 @@ async function getTrafficData(unit, startDate, endDate) {
               });
             });
           }
-        } catch (error) {
-          console.warn('⚠️ Erro ao buscar dados do Google:', error);
         }
+      } catch (error) {
+        console.warn('⚠️ Erro ao buscar dados do Google:', error);
       }
     }
   } catch (error) {

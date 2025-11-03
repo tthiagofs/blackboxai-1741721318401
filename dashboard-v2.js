@@ -12,6 +12,8 @@ let currentPeriod = 'last7days';
 let allUnits = [];
 let currentSortColumn = null;
 let currentSortDirection = 'asc';
+// ⭐ Variável global para passar currentProjectId para computeUnitMetricsFromSpreadsheet
+let dashboardProjectId = null;
 
 function formatCurrency(v) { 
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v || 0); 

@@ -228,15 +228,21 @@ function normalizeStr(v) {
 }
 
 async function computeUnitMetricsFromSpreadsheet(unit, startDate, endDate) {
-  if (!unit.budgetData || !unit.budgetData.rawData) {
-    return { invested: 0, messages: 0, sales: 0, revenue: 0 };
-  }
-  
-  const filteredData = filterUnitDataByPeriod(unit.budgetData.rawData, startDate, endDate);
-  
-  // Calcular investido e mensagens se a unidade tem conta vinculada
+  // ⭐ Inicializar valores padrão
   let invested = 0;
   let messages = 0;
+  let sales = 0;
+  let revenue = 0;
+  
+  // ⭐ Filtrar dados da planilha se houver
+  let filteredData = { totalSales: 0, totalRevenue: 0 };
+  if (unit.budgetData && unit.budgetData.rawData) {
+    filteredData = filterUnitDataByPeriod(unit.budgetData.rawData, startDate, endDate);
+    sales = filteredData.totalSales;
+    revenue = filteredData.totalRevenue;
+  }
+  
+  // ⭐ Buscar dados de tráfego se a unidade tem conta vinculada (mesmo sem planilha)
   const linkedAccounts = unit.linkedAccounts || {};
   
   if (linkedAccounts.meta?.id || linkedAccounts.google?.id) {
@@ -280,7 +286,7 @@ async function computeUnitMetricsFromSpreadsheet(unit, startDate, endDate) {
           // ⭐ Inicializar Google Auth se ainda não foi inicializado
           if (!googleAuth || typeof googleAuth.initialize !== 'function') {
             console.warn(`⚠️ GoogleAuth não disponível`);
-            return { invested, messages, sales: filteredData.totalSales, revenue: filteredData.totalRevenue };
+            return { invested, messages, sales, revenue };
           }
           
           await googleAuth.initialize();
@@ -456,8 +462,8 @@ async function computeUnitMetricsFromSpreadsheet(unit, startDate, endDate) {
   return {
     invested: invested,
     messages: messages,
-    sales: filteredData.totalSales,
-    revenue: filteredData.totalRevenue
+    sales: sales,
+    revenue: revenue
   };
 }
 

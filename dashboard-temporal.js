@@ -430,7 +430,8 @@ async function getTrafficData(unit, startDate, endDate) {
               const dailyCost = cost / days.length;
               const dailyConversions = Math.round(conversions / days.length);
               
-              console.log(`📊 Distribuindo dados do Google: ${cost} de custo e ${conversions} conversões em ${days.length} dias`);
+              console.log(`📊 Distribuindo dados do Google: R$ ${cost.toFixed(2)} de custo e ${conversions} conversões em ${days.length} dias`);
+              console.log(`📊 Valores diários: R$ ${dailyCost.toFixed(2)} por dia, ${dailyConversions} conversões por dia`);
               
               days.forEach(day => {
                 data.push({
@@ -443,7 +444,7 @@ async function getTrafficData(unit, startDate, endDate) {
                 });
               });
               
-              console.log(`✅ ${data.length} registros do Google adicionados`);
+              console.log(`✅ ${days.length} registros do Google adicionados`);
             } else {
               console.log('⚠️ Google retornou dados mas sem custo ou conversões');
             }
@@ -490,14 +491,43 @@ function getSpreadsheetData(unit, startDate, endDate) {
     return itemDate >= startDate && itemDate <= endDate;
   });
 
-  return data.map(item => ({
-    date: item.date,
-    invested: item.budgetCompleted === 'Sim' ? parseFloat(item.budgetValue || 0) : 0,
-    messages: 0,
-    sales: item.status === 'APPROVED' ? 1 : 0,
-    revenue: item.status === 'APPROVED' ? parseFloat(item.saleValue || 0) : 0,
-    source: 'spreadsheet'
-  }));
+  console.log(`📊 Processando ${data.length} registros da planilha`);
+
+  const mappedData = data.map(item => {
+    // Verificar múltiplos campos para faturamento (como no dashboard-v2.js)
+    const revenue = item.status === 'APPROVED' 
+      ? parseFloat(item.value || item.saleValue || item.revenue || item.faturamento || 0)
+      : 0;
+    
+    const result = {
+      date: item.date,
+      invested: item.budgetCompleted === 'Sim' ? parseFloat(item.budgetValue || 0) : 0,
+      messages: 0,
+      sales: item.status === 'APPROVED' ? 1 : 0,
+      revenue: revenue,
+      source: 'spreadsheet'
+    };
+    
+    // Log para debug se encontrar vendas
+    if (item.status === 'APPROVED') {
+      console.log(`  💰 Venda encontrada:`, {
+        date: item.date,
+        revenue: revenue,
+        value: item.value,
+        saleValue: item.saleValue,
+        revenueField: item.revenue,
+        faturamento: item.faturamento
+      });
+    }
+    
+    return result;
+  });
+
+  const totalRevenue = mappedData.reduce((sum, item) => sum + item.revenue, 0);
+  const totalSales = mappedData.reduce((sum, item) => sum + item.sales, 0);
+  console.log(`📊 Planilha: ${totalSales} vendas, R$ ${totalRevenue.toFixed(2)} de faturamento`);
+
+  return mappedData;
 }
 
 // Agregar dados por dia da semana

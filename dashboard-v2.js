@@ -156,6 +156,9 @@ async function generateDashboard() {
   try {
     allUnits = await unitsService.listUnits(currentProjectId);
     const { start, end } = periodDates;
+    
+    // ⭐ Passar currentProjectId para a função computeUnitMetricsFromSpreadsheet
+    dashboardProjectId = currentProjectId;
 
     // Calcula métricas da planilha por unidade
     const rows = await Promise.all(allUnits.map(async u => {
@@ -317,13 +320,11 @@ async function computeUnitMetricsFromSpreadsheet(unit, startDate, endDate) {
                           managedBy: managedBy
                         }
                       };
-                      // Extrair projectId e unitId do objeto unit
-                      const projectId = currentProjectId || (unit.id?.includes('/') ? unit.id.split('/')[0] : null);
-                      const unitId = unit.id?.includes('/') ? unit.id.split('/').pop() : unit.id;
-                      if (projectId && unitId) {
-                        await updateUnit(projectId, unitId, {
-                        linkedAccounts: updatedLinkedAccounts
-                      });
+                      // Usar dashboardProjectId capturado do escopo externo
+                      if (dashboardProjectId && unit.id) {
+                        await updateUnit(dashboardProjectId, unit.id, {
+                          linkedAccounts: updatedLinkedAccounts
+                        });
                         console.log(`✅ managedBy salvo na unidade para uso futuro`);
                       }
                     } catch (saveError) {

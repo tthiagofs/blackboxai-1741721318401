@@ -287,12 +287,55 @@ async function computeUnitMetricsFromSpreadsheet(unit, startDate, endDate) {
           if (isAuthenticated) {
             const googleAccessToken = googleAuth.getAccessToken();
             if (googleAccessToken) {
-              const managedBy = linkedAccounts.google.managedBy || null;
+              let managedBy = linkedAccounts.google.managedBy || null;
+              
               console.log(`🔍 Criando GoogleAdsService para ${unit.name}:`, {
                 accountId: linkedAccounts.google.id,
                 hasToken: !!googleAccessToken,
-                managedBy
+                managedBy: managedBy || 'não definido'
               });
+              
+              // ⭐ Se managedBy não estiver definido, tentar detectar automaticamente
+              if (!managedBy) {
+                try {
+                  console.log(`🔍 Tentando detectar MCC ID automaticamente para ${unit.name}...`);
+                  const accounts = await googleAuth.fetchAccessibleAccounts();
+                  
+                  // Procurar a conta nas contas retornadas para ver se tem managedBy
+                  const accountInfo = accounts.find(acc => acc.customerId === linkedAccounts.google.id);
+                  if (accountInfo && accountInfo.managedBy) {
+                    managedBy = accountInfo.managedBy;
+                    console.log(`✅ MCC ID detectado automaticamente: ${managedBy}`);
+                    
+                    // Salvar o managedBy na unidade para uso futuro
+                    try {
+                      const { updateUnit } = await import('./services/unitsService.js');
+                      const updatedLinkedAccounts = {
+                        ...linkedAccounts,
+                        google: {
+                          ...linkedAccounts.google,
+                          managedBy: managedBy
+                        }
+                      };
+                      // Extrair projectId e unitId do objeto unit
+                      const projectId = currentProjectId || (unit.id?.includes('/') ? unit.id.split('/')[0] : null);
+                      const unitId = unit.id?.includes('/') ? unit.id.split('/').pop() : unit.id;
+                      if (projectId && unitId) {
+                        await updateUnit(projectId, unitId, {
+                        linkedAccounts: updatedLinkedAccounts
+                      });
+                        console.log(`✅ managedBy salvo na unidade para uso futuro`);
+                      }
+                    } catch (saveError) {
+                      console.warn(`⚠️ Erro ao salvar managedBy (continuando):`, saveError);
+                    }
+                  } else {
+                    console.log(`ℹ️ Conta não encontrada como gerenciada, tentando sem MCC ID`);
+                  }
+                } catch (detectError) {
+                  console.warn(`⚠️ Erro ao detectar MCC ID automaticamente (continuando):`, detectError);
+                }
+              }
               
               const ga = new GoogleAdsService(linkedAccounts.google.id, googleAccessToken, managedBy);
               if (ga?.getAccountInsights) {
@@ -300,35 +343,90 @@ async function computeUnitMetricsFromSpreadsheet(unit, startDate, endDate) {
                 console.log(`📅 Período: ${startDate} a ${endDate}`);
                 const gInsightsData = await ga.getAccountInsights(startDate, endDate);
                 
-                console.log(`📊 Dados brutos retornados do getAccountInsights:`, JSON.stringify(gInsightsData, null, 2));
-                
-                // ⭐ getAccountInsights retorna diretamente { cost, conversions, ... } ou { insights: {...} }
-                // Verificar se vem aninhado ou não
-                const gInsights = gInsightsData.insights || gInsightsData;
-                
-                console.log(`📊 Insights processados (JSON):`, JSON.stringify(gInsights, null, 2));
-                console.log(`📊 Propriedades disponíveis:`, Object.keys(gInsights || {}));
-                console.log(`📊 Valores individuais:`, {
-                  cost: gInsights?.cost,
-                  'metrics.cost': gInsights?.metrics?.cost,
-                  conversions: gInsights?.conversions,
-                  'metrics.conversions': gInsights?.metrics?.conversions,
-                  impressions: gInsights?.impressions,
-                  clicks: gInsights?.clicks
-                });
-                
-                const googleCost = Number(gInsights?.cost || gInsights?.metrics?.cost || 0);
-                console.log(`💰 Gastos Google encontrados: R$ ${googleCost}`);
-                invested += googleCost;
-                
-                // ⭐ Calcular mensagens e CPA do Google
-                // Google não tem mensagens diretas do WhatsApp, mas tem conversões
-                // Para fins de cálculo, podemos considerar conversões como "mensagens"
-                const googleConversions = Number(gInsights?.conversions || gInsights?.metrics?.conversions || 0);
-                console.log(`💬 Conversões Google: ${googleConversions}`);
-                if (googleConversions > 0) {
-                  messages += googleConversions;
-                  console.log(`💬 Conversões Google adicionadas às mensagens: ${googleConversions}`);
+                // Verificar se há erro de permissão
+                if (gInsightsData.error && gInsightsData.error.includes('PERMISSION_DENIED')) {
+                  console.warn(`⚠️ Erro de permissão detectado. Tentando encontrar MCC ID...`);
+                  
+                  // Se ainda não temos managedBy e houve erro de permissão, tentar todas as contas MCC disponíveis
+                  if (!managedBy) {
+                    try {
+                      const accounts = await googleAuth.fetchAccessibleAccounts();
+                      // Contas MCC são aquelas que têm contas gerenciadas
+                      const mccAccounts = accounts.filter(acc => !acc.managedBy); // Contas que não são gerenciadas (são MCCs ou diretas)
+                      
+                      console.log(`🔍 Tentando ${mccAccounts.length} contas MCC possíveis...`);
+                      for (const mccAccount of mccAccounts.slice(0, 5)) { // Limitar a 5 tentativas
+                        try {
+                          const gaWithMCC = new GoogleAdsService(linkedAccounts.google.id, googleAccessToken, mccAccount.customerId);
+                          const testData = await gaWithMCC.getAccountInsights(startDate, endDate);
+                          if (!testData.error) {
+                            managedBy = mccAccount.customerId;
+                            console.log(`✅ MCC ID encontrado: ${managedBy}`);
+                            // Usar os dados que funcionaram
+                            const gInsights = testData.insights || testData;
+                            const googleCost = Number(gInsights?.cost || 0);
+                            console.log(`💰 Gastos Google encontrados: R$ ${googleCost}`);
+                            invested += googleCost;
+                            const googleConversions = Number(gInsights?.conversions || 0);
+                            console.log(`💬 Conversões Google: ${googleConversions}`);
+                            if (googleConversions > 0) {
+                              messages += googleConversions;
+                              console.log(`💬 Conversões Google adicionadas às mensagens: ${googleConversions}`);
+                            }
+                            break;
+                          }
+                        } catch (testError) {
+                          // Continuar tentando
+                          continue;
+                        }
+                      }
+                    } catch (mccError) {
+                      console.warn(`⚠️ Erro ao tentar encontrar MCC ID:`, mccError);
+                    }
+                  }
+                  
+                  if (managedBy && gInsightsData.error) {
+                    // Tentar novamente com o MCC ID encontrado
+                    console.log(`🔄 Tentando novamente com MCC ID: ${managedBy}`);
+                    const gaWithMCC = new GoogleAdsService(linkedAccounts.google.id, googleAccessToken, managedBy);
+                    const retryData = await gaWithMCC.getAccountInsights(startDate, endDate);
+                    const gInsights = retryData.insights || retryData;
+                    if (!gInsights.error) {
+                      const googleCost = Number(gInsights?.cost || 0);
+                      console.log(`💰 Gastos Google encontrados: R$ ${googleCost}`);
+                      invested += googleCost;
+                      const googleConversions = Number(gInsights?.conversions || 0);
+                      console.log(`💬 Conversões Google: ${googleConversions}`);
+                      if (googleConversions > 0) {
+                        messages += googleConversions;
+                        console.log(`💬 Conversões Google adicionadas às mensagens: ${googleConversions}`);
+                      }
+                    }
+                  }
+                } else {
+                  // Sem erro, processar normalmente
+                  console.log(`📊 Dados brutos retornados do getAccountInsights:`, JSON.stringify(gInsightsData, null, 2));
+                  
+                  // ⭐ getAccountInsights retorna diretamente { cost, conversions, ... } ou { insights: {...} }
+                  // Verificar se vem aninhado ou não
+                  const gInsights = gInsightsData.insights || gInsightsData;
+                  
+                  console.log(`📊 Insights processados (JSON):`, JSON.stringify(gInsights, null, 2));
+                  console.log(`📊 Propriedades disponíveis:`, Object.keys(gInsights || {}));
+                  
+                  const googleCost = Number(gInsights?.cost || gInsights?.metrics?.cost || 0);
+                  console.log(`💰 Gastos Google encontrados: R$ ${googleCost}`);
+                  invested += googleCost;
+                  
+                  // ⭐ Calcular mensagens e CPA do Google
+                  // Google não tem mensagens diretas do WhatsApp, mas tem conversões
+                  // Para fins de cálculo, podemos considerar conversões como "mensagens"
+                  const googleConversions = Number(gInsights?.conversions || gInsights?.metrics?.conversions || 0);
+                  console.log(`💬 Conversões Google: ${googleConversions}`);
+                  if (googleConversions > 0) {
+                    messages += googleConversions;
+                    console.log(`💬 Conversões Google adicionadas às mensagens: ${googleConversions}`);
+                  }
                 }
               } else {
                 console.warn(`⚠️ GoogleAdsService.getAccountInsights não disponível`);

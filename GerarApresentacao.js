@@ -1655,8 +1655,13 @@ async function generateCompleteReport() {
         let googleSpreadsheetData = { sales: 0, revenue: 0, budgets: 0 };
         
         // Se há unidade com dados da planilha, filtrar separadamente
-        if (selectedUnit?.budgetData?.rawData && (separateMetaMetrics || separateGoogleMetrics)) {
+        // ⭐ IMPORTANTE: usar allData (todos os dados) como base, não rawData (já filtrado)
+        const budgetData = selectedUnit?.budgetData;
+        if (budgetData && (budgetData.allData || budgetData.rawData) && (separateMetaMetrics || separateGoogleMetrics)) {
             const { filterSpreadsheetByPlatform } = await import('./processar-apresentacao.js');
+            
+            // ⭐ Usar allData se disponível (dados completos), senão usar rawData
+            const allDataToFilter = budgetData.allData || budgetData.rawData || [];
             
             // Obter configurações de filtro da unidade
             const trafficSourcesMeta = selectedUnit.trafficSources?.meta || {
@@ -1679,8 +1684,15 @@ async function generateCompleteReport() {
             const customKeywordsGoogle = selectedUnit.customKeywords?.google || { enabled: false, terms: [] };
             const excludeMaintenance = selectedUnit.excludeMaintenance ?? true;
             
-            // Filtrar por período primeiro
-            const periodFilteredData = filterUnitDataByPeriod(selectedUnit.budgetData.rawData, startDate, endDate);
+            console.log('📊 Dados da planilha para filtrar:', {
+                totalAllData: allDataToFilter.length,
+                totalRawData: budgetData.rawData?.length || 0,
+                usando: budgetData.allData ? 'allData (completo)' : 'rawData (já filtrado)'
+            });
+            
+            // Filtrar por período primeiro (dos dados completos)
+            const periodFilteredData = filterUnitDataByPeriod(allDataToFilter, startDate, endDate);
+            console.log('📅 Dados filtrados por período:', periodFilteredData.length, 'registros');
             
             // Filtrar por plataforma usando os filtros específicos
             if (separateMetaMetrics) {
@@ -1716,6 +1728,7 @@ async function generateCompleteReport() {
                 sales: salesCount || 0,
                 revenue: revenue || 0
             };
+            console.log('⚠️ Usando dados manuais (fallback):', { metaSpreadsheetData, googleSpreadsheetData });
         }
         
         // Log das métricas que serão enviadas

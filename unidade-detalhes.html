@@ -754,6 +754,12 @@ trafego pago</textarea>
                 if (updatedBudgetData && updatedBudgetData !== currentUnit.budgetData) {
                     await updateBudgetData(currentProjectId, currentUnitId, updatedBudgetData);
                     console.log('✅ Dados da planilha atualizados');
+                    
+                    // ⭐ Atualizar currentUnit com os novos dados para atualizar a tela
+                    currentUnit.budgetData = updatedBudgetData;
+                    
+                    // ⭐ Atualizar os cards na tela com os novos dados
+                    showBudgetData();
                 }
                 
                 await updateUnit(currentProjectId, currentUnitId, updateData);

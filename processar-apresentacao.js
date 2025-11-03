@@ -5,18 +5,62 @@
  */
 
 /**
+ * Verificar se linha atende regras de tráfego (reutilizando lógica do spreadsheetProcessor)
+ */
+function matchesTrafficRules(row, trafficSources, customKeywords) {
+    // Se row.source existe, usar ele (formato processado)
+    const colL = (row.source || row.L || "").toString().trim();
+    const colLLower = colL.toLowerCase();
+    const colK = (row.K || "").toString().toLowerCase();
+    
+    // Regra 1: Células vazias (sem fonte definida)
+    if (trafficSources.empty && colL === "") {
+        return true;
+    }
+    
+    // Regra 2: Células com "..."
+    if (trafficSources.dots && colL === "...") {
+        return true;
+    }
+    
+    // Regra 3: Fontes de tráfego padrão (coluna L)
+    const platforms = [];
+    if (trafficSources.facebook) platforms.push("facebook");
+    if (trafficSources.instagram) platforms.push("instagram");
+    if (trafficSources.google) platforms.push("google");
+    if (trafficSources.revista) platforms.push("revista");
+    
+    const matchesPlatform = platforms.some(platform => 
+        colLLower.includes(platform)
+    );
+    
+    // Regra 4: "Outros" + palavras-chave personalizadas
+    let matchesCustom = false;
+    if (customKeywords && customKeywords.enabled && colLLower.includes("outros")) {
+        matchesCustom = customKeywords.terms.some(term => 
+            colK.includes(term.toLowerCase())
+        );
+    }
+    
+    return matchesPlatform || matchesCustom;
+}
+
+/**
  * Filtrar dados da planilha por fonte de tráfego (Meta ou Google)
  * @param {Array} rawData - Dados brutos da planilha
  * @param {String} platform - 'meta' ou 'google'
+ * @param {Object} trafficSources - Configurações de fontes de tráfego para a plataforma
+ * @param {Object} customKeywords - Configurações de palavras-chave personalizadas para a plataforma
  * @param {Boolean} excludeMaintenance - Se deve excluir manutenções
  * @returns {Object} - Dados filtrados { sales, revenue, budgets }
  */
-export function filterSpreadsheetByPlatform(rawData, platform, excludeMaintenance = false) {
+export function filterSpreadsheetByPlatform(rawData, platform, trafficSources, customKeywords, excludeMaintenance = false) {
     if (!rawData || !Array.isArray(rawData)) {
         return { sales: 0, revenue: 0, budgets: 0 };
     }
 
     console.log(`🔍 Filtrando ${rawData.length} registros para plataforma: ${platform}`);
+    console.log(`⚙️ Configurações de filtro:`, { trafficSources, customKeywords, excludeMaintenance });
 
     const filteredData = rawData.filter(row => {
         // Excluir manutenções se opção estiver ativa
@@ -24,18 +68,8 @@ export function filterSpreadsheetByPlatform(rawData, platform, excludeMaintenanc
             return false;
         }
 
-        // Filtrar por fonte de tráfego
-        const source = (row.source || "").toString().toLowerCase().trim();
-
-        if (platform === 'meta') {
-            // Meta = Facebook + Instagram
-            return source.includes('facebook') || source.includes('instagram');
-        } else if (platform === 'google') {
-            // Google = Google Ads
-            return source.includes('google');
-        }
-
-        return false;
+        // Filtrar por regras de tráfego específicas da plataforma
+        return matchesTrafficRules(row, trafficSources, customKeywords);
     });
 
     // Calcular métricas

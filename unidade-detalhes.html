@@ -169,68 +169,136 @@
                         Configurações de Filtro
                     </h2>
                     
-                    <div class="space-y-4 mb-6">
-                        <div>
-                            <h3 class="font-semibold text-gray-900 mb-3">Fontes de Tráfego Pago</h3>
+                    <!-- Duas seções lado a lado: Meta e Google -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                        <!-- Configuração Meta -->
+                        <div class="space-y-4">
+                            <h3 class="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                                <i class="fab fa-meta text-blue-600"></i>
+                                Configurações de Filtro - Meta
+                            </h3>
                             <div class="space-y-2">
                                 <label class="flex items-center gap-3 p-3 border-2 border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
-                                    <input type="checkbox" id="cbFacebook" class="w-5 h-5 text-blue-600">
+                                    <input type="checkbox" id="cbFacebookMeta" class="w-5 h-5 text-blue-600">
                                     <i class="fab fa-facebook text-blue-600"></i>
                                     <span>Facebook</span>
                                 </label>
                                 <label class="flex items-center gap-3 p-3 border-2 border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
-                                    <input type="checkbox" id="cbInstagram" class="w-5 h-5 text-pink-600">
+                                    <input type="checkbox" id="cbInstagramMeta" class="w-5 h-5 text-pink-600">
                                     <i class="fab fa-instagram text-pink-600"></i>
                                     <span>Instagram</span>
                                 </label>
                                 <label class="flex items-center gap-3 p-3 border-2 border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
-                                    <input type="checkbox" id="cbGoogle" class="w-5 h-5 text-red-600">
+                                    <input type="checkbox" id="cbGoogleMeta" class="w-5 h-5 text-red-600">
                                     <i class="fab fa-google text-red-600"></i>
                                     <span>Google Ads</span>
                                 </label>
                                 <label class="flex items-center gap-3 p-3 border-2 border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
-                                    <input type="checkbox" id="cbRevista" class="w-5 h-5 text-gray-600">
+                                    <input type="checkbox" id="cbRevistaMeta" class="w-5 h-5 text-gray-600">
                                     <i class="fas fa-book text-gray-600"></i>
                                     <span>Revista (campanhas black)</span>
                                 </label>
                                 <label class="flex items-center gap-3 p-3 border-2 border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
-                                    <input type="checkbox" id="cbEmpty" class="w-5 h-5 text-gray-400">
+                                    <input type="checkbox" id="cbEmptyMeta" class="w-5 h-5 text-gray-400">
                                     <i class="fas fa-ban text-gray-400"></i>
                                     <span>(Vazias)</span>
                                 </label>
                                 <label class="flex items-center gap-3 p-3 border-2 border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
-                                    <input type="checkbox" id="cbDots" class="w-5 h-5 text-gray-400">
+                                    <input type="checkbox" id="cbDotsMeta" class="w-5 h-5 text-gray-400">
                                     <i class="fas fa-ellipsis-h text-gray-400"></i>
                                     <span>...</span>
                                 </label>
                             </div>
-                        </div>
-
-                        <div>
-                            <label class="flex items-center gap-3 p-3 border-2 border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer mb-3">
-                                <input type="checkbox" id="cbCustomKeywords" class="w-5 h-5 text-blue-600">
-                                <i class="fas fa-search text-blue-600"></i>
-                                <span class="font-semibold">Busca em "Outros" + Observações</span>
-                            </label>
                             
-                            <div id="keywordsSection" class="hidden">
-                                <label class="block text-sm font-semibold text-gray-700 mb-2">
-                                    Palavras-chave (uma por linha):
+                            <div>
+                                <label class="flex items-center gap-3 p-3 border-2 border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer mb-3">
+                                    <input type="checkbox" id="cbCustomKeywordsMeta" class="w-5 h-5 text-blue-600">
+                                    <i class="fas fa-search text-blue-600"></i>
+                                    <span class="font-semibold text-sm">Busca em "Outros" + Observações</span>
                                 </label>
-                                <textarea 
-                                    id="customKeywords"
-                                    rows="5"
-                                    placeholder="Tráfego&#10;Tráfego Pago&#10;trafego face&#10;facebook ads"
-                                    class="w-full border-2 border-gray-200 rounded-lg p-3 font-mono text-sm focus:outline-none focus:border-blue-500"
-                                >Tráfego
+                                
+                                <div id="keywordsSectionMeta" class="hidden">
+                                    <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                        Palavras-chave (uma por linha):
+                                    </label>
+                                    <textarea 
+                                        id="customKeywordsMeta"
+                                        rows="5"
+                                        placeholder="Tráfego&#10;Tráfego Pago&#10;trafego face&#10;facebook ads"
+                                        class="w-full border-2 border-gray-200 rounded-lg p-3 font-mono text-sm focus:outline-none focus:border-blue-500"
+                                    >Tráfego
 Tráfego Pago
 trafego
 trafego pago</textarea>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Configuração Google -->
+                        <div class="space-y-4">
+                            <h3 class="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                                <i class="fab fa-google text-red-600"></i>
+                                Configurações de Filtro - Google
+                            </h3>
+                            <div class="space-y-2">
+                                <label class="flex items-center gap-3 p-3 border-2 border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+                                    <input type="checkbox" id="cbFacebookGoogle" class="w-5 h-5 text-blue-600">
+                                    <i class="fab fa-facebook text-blue-600"></i>
+                                    <span>Facebook</span>
+                                </label>
+                                <label class="flex items-center gap-3 p-3 border-2 border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+                                    <input type="checkbox" id="cbInstagramGoogle" class="w-5 h-5 text-pink-600">
+                                    <i class="fab fa-instagram text-pink-600"></i>
+                                    <span>Instagram</span>
+                                </label>
+                                <label class="flex items-center gap-3 p-3 border-2 border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+                                    <input type="checkbox" id="cbGoogleGoogle" class="w-5 h-5 text-red-600">
+                                    <i class="fab fa-google text-red-600"></i>
+                                    <span>Google Ads</span>
+                                </label>
+                                <label class="flex items-center gap-3 p-3 border-2 border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+                                    <input type="checkbox" id="cbRevistaGoogle" class="w-5 h-5 text-gray-600">
+                                    <i class="fas fa-book text-gray-600"></i>
+                                    <span>Revista (campanhas black)</span>
+                                </label>
+                                <label class="flex items-center gap-3 p-3 border-2 border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+                                    <input type="checkbox" id="cbEmptyGoogle" class="w-5 h-5 text-gray-400">
+                                    <i class="fas fa-ban text-gray-400"></i>
+                                    <span>(Vazias)</span>
+                                </label>
+                                <label class="flex items-center gap-3 p-3 border-2 border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+                                    <input type="checkbox" id="cbDotsGoogle" class="w-5 h-5 text-gray-400">
+                                    <i class="fas fa-ellipsis-h text-gray-400"></i>
+                                    <span>...</span>
+                                </label>
+                            </div>
+                            
+                            <div>
+                                <label class="flex items-center gap-3 p-3 border-2 border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer mb-3">
+                                    <input type="checkbox" id="cbCustomKeywordsGoogle" class="w-5 h-5 text-blue-600">
+                                    <i class="fas fa-search text-blue-600"></i>
+                                    <span class="font-semibold text-sm">Busca em "Outros" + Observações</span>
+                                </label>
+                                
+                                <div id="keywordsSectionGoogle" class="hidden">
+                                    <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                        Palavras-chave (uma por linha):
+                                    </label>
+                                    <textarea 
+                                        id="customKeywordsGoogle"
+                                        rows="5"
+                                        placeholder="Tráfego&#10;Tráfego Pago&#10;trafego google&#10;google ads"
+                                        class="w-full border-2 border-gray-200 rounded-lg p-3 font-mono text-sm focus:outline-none focus:border-blue-500"
+                                    >Tráfego
+Tráfego Pago
+trafego
+trafego pago</textarea>
+                                </div>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Exclusão de Manutenções -->
+                    <!-- Exclusão de Manutenções (único para ambas plataformas) -->
                     <div class="bg-white rounded-xl border-2 border-gray-200 p-6">
                         <h3 class="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
                             <i class="fas fa-filter text-red-600"></i>
@@ -242,7 +310,7 @@ trafego pago</textarea>
                             <i class="fas fa-ban text-red-600"></i>
                             <div>
                                 <span class="font-semibold">Excluir Manutenções Ortodônticas</span>
-                                <p class="text-xs text-gray-600 mt-1">Remove da contagem: Manutenção Aparelho Móvel, Manutenção Aparelho Ortodôntico (Autoligado/Safira), Manutenção Ortodôntica Mensal</p>
+                                <p class="text-xs text-gray-600 mt-1">Remove da contagem (Meta e Google): Manutenção Aparelho Móvel, Manutenção Aparelho Ortodôntico (Autoligado/Safira), Manutenção Ortodôntica Mensal</p>
                             </div>
                         </label>
                     </div>
@@ -379,21 +447,106 @@ trafego pago</textarea>
                 // Atualizar UI
                 document.getElementById('unitName').textContent = currentUnit.name;
                 
-                // Carregar configurações
-                document.getElementById('cbFacebook').checked = currentUnit.trafficSources?.facebook === true;
-                document.getElementById('cbInstagram').checked = currentUnit.trafficSources?.instagram === true;
-                document.getElementById('cbGoogle').checked = currentUnit.trafficSources?.google === true;
-                document.getElementById('cbRevista').checked = currentUnit.trafficSources?.revista === true;
-                document.getElementById('cbEmpty').checked = currentUnit.trafficSources?.empty === true;
-                document.getElementById('cbDots').checked = currentUnit.trafficSources?.dots === true;
+                // ⭐ MIGRAÇÃO: Se trafficSources não tem .meta e .google, criar a partir da estrutura antiga
+                let trafficSourcesMeta = currentUnit.trafficSources?.meta || null;
+                let trafficSourcesGoogle = currentUnit.trafficSources?.google || null;
                 
-                // ⭐ SEMPRE false por padrão (para unidades antigas sem o campo)
-                const customKeywordsEnabled = currentUnit.customKeywords?.enabled === true;
-                console.log('🔍 [DEBUG] customKeywords.enabled:', currentUnit.customKeywords?.enabled, '→', customKeywordsEnabled);
-                document.getElementById('cbCustomKeywords').checked = customKeywordsEnabled;
-                document.getElementById('customKeywords').value = (currentUnit.customKeywords?.terms || []).join('\n');
+                if (!trafficSourcesMeta && !trafficSourcesGoogle) {
+                    // Unidade antiga - migrar para nova estrutura
+                    console.log('🔄 [MIGRAÇÃO] Convertendo estrutura antiga de trafficSources para nova');
+                    const oldSources = currentUnit.trafficSources || {
+                        facebook: true,
+                        instagram: true,
+                        google: false,
+                        revista: false,
+                        empty: false,
+                        dots: false
+                    };
+                    
+                    // Meta: manter Facebook + Instagram como padrão
+                    trafficSourcesMeta = {
+                        facebook: oldSources.facebook ?? true,
+                        instagram: oldSources.instagram ?? true,
+                        google: oldSources.google ?? false,
+                        revista: oldSources.revista ?? false,
+                        empty: oldSources.empty ?? false,
+                        dots: oldSources.dots ?? false
+                    };
+                    
+                    // Google: apenas Google Ads marcado por padrão
+                    trafficSourcesGoogle = {
+                        facebook: false,
+                        instagram: false,
+                        google: true, // ✅ Padrão: Google Ads selecionado
+                        revista: false,
+                        empty: false,
+                        dots: false
+                    };
+                    
+                    // Salvar estrutura migrada
+                    needsUpdate = true;
+                } else {
+                    // Usar valores existentes
+                    trafficSourcesMeta = trafficSourcesMeta || {
+                        facebook: true,
+                        instagram: true,
+                        google: false,
+                        revista: false,
+                        empty: false,
+                        dots: false
+                    };
+                    trafficSourcesGoogle = trafficSourcesGoogle || {
+                        facebook: false,
+                        instagram: false,
+                        google: true,
+                        revista: false,
+                        empty: false,
+                        dots: false
+                    };
+                }
+                
+                // Carregar configurações Meta
+                document.getElementById('cbFacebookMeta').checked = trafficSourcesMeta.facebook === true;
+                document.getElementById('cbInstagramMeta').checked = trafficSourcesMeta.instagram === true;
+                document.getElementById('cbGoogleMeta').checked = trafficSourcesMeta.google === true;
+                document.getElementById('cbRevistaMeta').checked = trafficSourcesMeta.revista === true;
+                document.getElementById('cbEmptyMeta').checked = trafficSourcesMeta.empty === true;
+                document.getElementById('cbDotsMeta').checked = trafficSourcesMeta.dots === true;
+                
+                // Carregar configurações Google
+                document.getElementById('cbFacebookGoogle').checked = trafficSourcesGoogle.facebook === true;
+                document.getElementById('cbInstagramGoogle').checked = trafficSourcesGoogle.instagram === true;
+                document.getElementById('cbGoogleGoogle').checked = trafficSourcesGoogle.google === true;
+                document.getElementById('cbRevistaGoogle').checked = trafficSourcesGoogle.revista === true;
+                document.getElementById('cbEmptyGoogle').checked = trafficSourcesGoogle.empty === true;
+                document.getElementById('cbDotsGoogle').checked = trafficSourcesGoogle.dots === true;
+                
+                // Carregar customKeywords (Meta e Google separados)
+                const customKeywordsMeta = currentUnit.customKeywords?.meta || currentUnit.customKeywords || { enabled: false, terms: ['Tráfego', 'Tráfego Pago', 'trafego', 'trafego pago'] };
+                const customKeywordsGoogle = currentUnit.customKeywords?.google || { enabled: false, terms: ['Tráfego', 'Tráfego Pago', 'trafego', 'trafego pago'] };
+                
+                document.getElementById('cbCustomKeywordsMeta').checked = customKeywordsMeta.enabled === true;
+                document.getElementById('customKeywordsMeta').value = (customKeywordsMeta.terms || []).join('\n');
+                
+                document.getElementById('cbCustomKeywordsGoogle').checked = customKeywordsGoogle.enabled === true;
+                document.getElementById('customKeywordsGoogle').value = (customKeywordsGoogle.terms || []).join('\n');
                 
                 document.getElementById('cbExcludeMaintenance').checked = currentUnit.excludeMaintenance === true;
+                
+                // Atualizar estrutura no Firestore se foi migrada
+                if (needsUpdate) {
+                    await updateUnit(currentProjectId, currentUnitId, {
+                        trafficSources: {
+                            meta: trafficSourcesMeta,
+                            google: trafficSourcesGoogle
+                        },
+                        customKeywords: {
+                            meta: customKeywordsMeta,
+                            google: customKeywordsGoogle
+                        }
+                    });
+                    console.log('✅ [MIGRAÇÃO] Estrutura atualizada no Firestore');
+                }
                 
                 toggleKeywordsSection();
                 
@@ -411,43 +564,96 @@ trafego pago</textarea>
             }
         }
 
-        // Mostrar/ocultar seção de palavras-chave
-        document.getElementById('cbCustomKeywords').addEventListener('change', toggleKeywordsSection);
-        
-        function toggleKeywordsSection() {
-            const section = document.getElementById('keywordsSection');
-            if (document.getElementById('cbCustomKeywords').checked) {
+        // Mostrar/ocultar seção de palavras-chave (Meta)
+        document.getElementById('cbCustomKeywordsMeta').addEventListener('change', () => {
+            const section = document.getElementById('keywordsSectionMeta');
+            if (document.getElementById('cbCustomKeywordsMeta').checked) {
                 section.classList.remove('hidden');
             } else {
                 section.classList.add('hidden');
+            }
+        });
+        
+        // Mostrar/ocultar seção de palavras-chave (Google)
+        document.getElementById('cbCustomKeywordsGoogle').addEventListener('change', () => {
+            const section = document.getElementById('keywordsSectionGoogle');
+            if (document.getElementById('cbCustomKeywordsGoogle').checked) {
+                section.classList.remove('hidden');
+            } else {
+                section.classList.add('hidden');
+            }
+        });
+        
+        function toggleKeywordsSection() {
+            // Atualizar seção Meta
+            const sectionMeta = document.getElementById('keywordsSectionMeta');
+            if (document.getElementById('cbCustomKeywordsMeta').checked) {
+                sectionMeta.classList.remove('hidden');
+            } else {
+                sectionMeta.classList.add('hidden');
+            }
+            
+            // Atualizar seção Google
+            const sectionGoogle = document.getElementById('keywordsSectionGoogle');
+            if (document.getElementById('cbCustomKeywordsGoogle').checked) {
+                sectionGoogle.classList.remove('hidden');
+            } else {
+                sectionGoogle.classList.add('hidden');
             }
         }
 
         // Salvar configurações
         document.getElementById('saveConfigBtn').addEventListener('click', async () => {
             try {
-                const trafficSources = {
-                    facebook: document.getElementById('cbFacebook').checked,
-                    instagram: document.getElementById('cbInstagram').checked,
-                    google: document.getElementById('cbGoogle').checked,
-                    revista: document.getElementById('cbRevista').checked,
-                    empty: document.getElementById('cbEmpty').checked,
-                    dots: document.getElementById('cbDots').checked
+                // Configurações Meta
+                const trafficSourcesMeta = {
+                    facebook: document.getElementById('cbFacebookMeta').checked,
+                    instagram: document.getElementById('cbInstagramMeta').checked,
+                    google: document.getElementById('cbGoogleMeta').checked,
+                    revista: document.getElementById('cbRevistaMeta').checked,
+                    empty: document.getElementById('cbEmptyMeta').checked,
+                    dots: document.getElementById('cbDotsMeta').checked
+                };
+                
+                // Configurações Google
+                const trafficSourcesGoogle = {
+                    facebook: document.getElementById('cbFacebookGoogle').checked,
+                    instagram: document.getElementById('cbInstagramGoogle').checked,
+                    google: document.getElementById('cbGoogleGoogle').checked,
+                    revista: document.getElementById('cbRevistaGoogle').checked,
+                    empty: document.getElementById('cbEmptyGoogle').checked,
+                    dots: document.getElementById('cbDotsGoogle').checked
                 };
                 
                 const excludeMaintenance = document.getElementById('cbExcludeMaintenance').checked;
                 
-                const customKeywords = {
-                    enabled: document.getElementById('cbCustomKeywords').checked,
-                    terms: document.getElementById('customKeywords').value
+                // Custom Keywords Meta
+                const customKeywordsMeta = {
+                    enabled: document.getElementById('cbCustomKeywordsMeta').checked,
+                    terms: document.getElementById('customKeywordsMeta').value
+                        .split('\n')
+                        .map(t => t.trim())
+                        .filter(t => t.length > 0)
+                };
+                
+                // Custom Keywords Google
+                const customKeywordsGoogle = {
+                    enabled: document.getElementById('cbCustomKeywordsGoogle').checked,
+                    terms: document.getElementById('customKeywordsGoogle').value
                         .split('\n')
                         .map(t => t.trim())
                         .filter(t => t.length > 0)
                 };
                 
                 await updateUnit(currentProjectId, currentUnitId, {
-                    trafficSources,
-                    customKeywords,
+                    trafficSources: {
+                        meta: trafficSourcesMeta,
+                        google: trafficSourcesGoogle
+                    },
+                    customKeywords: {
+                        meta: customKeywordsMeta,
+                        google: customKeywordsGoogle
+                    },
                     excludeMaintenance
                 });
                 

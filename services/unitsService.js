@@ -22,20 +22,41 @@ export async function createUnit(projectId, unitData) {
     try {
         console.log('📝 [createUnit] Criando unidade:', unitData.name);
         
-        const unitRef = await addDoc(collection(db, `projects/${projectId}/units`), {
-            name: unitData.name,
-            trafficSources: unitData.trafficSources || {
-                facebook: true,      // ✅ Facebook ativado por padrão
-                instagram: true,     // ✅ Instagram ativado por padrão
+        // Estrutura nova: trafficSources separados por plataforma
+        const defaultTrafficSources = unitData.trafficSources || {
+            meta: {
+                facebook: true,      // ✅ Facebook ativado por padrão (Meta)
+                instagram: true,     // ✅ Instagram ativado por padrão (Meta)
                 google: false,
                 revista: false,
                 empty: false,
                 dots: false
             },
-            customKeywords: unitData.customKeywords || {
+            google: {
+                facebook: false,
+                instagram: false,
+                google: true,        // ✅ Google Ads ativado por padrão (Google)
+                revista: false,
+                empty: false,
+                dots: false
+            }
+        };
+        
+        const defaultCustomKeywords = unitData.customKeywords || {
+            meta: {
                 enabled: false, // ❌ Busca em "Outros" desativada por padrão
                 terms: ['Tráfego', 'Tráfego Pago', 'trafego', 'trafego pago']
             },
+            google: {
+                enabled: false,
+                terms: ['Tráfego', 'Tráfego Pago', 'trafego', 'trafego pago']
+            }
+        };
+        
+        const unitRef = await addDoc(collection(db, `projects/${projectId}/units`), {
+            name: unitData.name,
+            trafficSources: defaultTrafficSources,
+            customKeywords: defaultCustomKeywords,
             excludeMaintenance: true, // ✅ Excluir manutenções ativado por padrão
             budgetData: null, // Será preenchido no upload
             createdAt: serverTimestamp(),

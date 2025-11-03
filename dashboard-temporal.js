@@ -408,33 +408,56 @@ async function getTrafficData(unit, startDate, endDate) {
             managedBy
           );
           
-          // Buscar insights (pode precisar de ajuste para dados diários)
+          // Buscar insights
           const insights = await googleService.getAccountInsights(
             startDate,
             endDate
           );
           
-          if (insights && insights.metrics) {
-            // Se não houver dados diários, distribuir uniformemente
-            const days = getDaysBetween(startDate, endDate);
-            const dailyCost = insights.metrics.cost / days.length;
-            const dailyConversions = Math.round(insights.metrics.conversions / days.length);
+          console.log('📊 Insights do Google recebidos:', insights);
+          
+          if (insights && !insights.error) {
+            // A estrutura pode ser insights.metrics ou insights diretamente
+            const metrics = insights.metrics || insights;
+            const cost = parseFloat(metrics.cost || 0);
+            const conversions = parseInt(metrics.conversions || 0);
             
-            days.forEach(day => {
-              data.push({
-                date: day,
-                invested: dailyCost,
-                messages: dailyConversions,
-                sales: 0,
-                revenue: 0,
-                source: 'google'
+            console.log('📊 Métricas do Google:', { cost, conversions });
+            
+            if (cost > 0 || conversions > 0) {
+              // Se não houver dados diários, distribuir uniformemente
+              const days = getDaysBetween(startDate, endDate);
+              const dailyCost = cost / days.length;
+              const dailyConversions = Math.round(conversions / days.length);
+              
+              console.log(`📊 Distribuindo dados do Google: ${cost} de custo e ${conversions} conversões em ${days.length} dias`);
+              
+              days.forEach(day => {
+                data.push({
+                  date: day,
+                  invested: dailyCost,
+                  messages: dailyConversions,
+                  sales: 0,
+                  revenue: 0,
+                  source: 'google'
+                });
               });
-            });
+              
+              console.log(`✅ ${data.length} registros do Google adicionados`);
+            } else {
+              console.log('⚠️ Google retornou dados mas sem custo ou conversões');
+            }
+          } else {
+            console.log('⚠️ Google retornou erro ou sem dados:', insights?.error);
           }
+        } else {
+          console.log('⚠️ Google não autenticado');
         }
       } catch (error) {
         console.warn('⚠️ Erro ao buscar dados do Google:', error);
       }
+    } else {
+      console.log('⚠️ Unidade sem conta Google vinculada');
     }
   } catch (error) {
     console.warn('⚠️ Erro ao buscar dados de tráfego:', error);
@@ -479,6 +502,8 @@ function getSpreadsheetData(unit, startDate, endDate) {
 
 // Agregar dados por dia da semana
 function aggregateByDayOfWeek(data) {
+  console.log('🔄 Agregando dados por dia da semana. Total de registros:', data.length);
+  
   const byDay = {};
   
   // Inicializar todos os dias
@@ -495,13 +520,22 @@ function aggregateByDayOfWeek(data) {
 
   // Agregar dados
   data.forEach(item => {
-    const date = new Date(item.date);
-    const dayOfWeek = date.getDay(); // 0 = Domingo, 1 = Segunda, etc.
-    
-    byDay[dayOfWeek].invested += item.invested || 0;
-    byDay[dayOfWeek].messages += item.messages || 0;
-    byDay[dayOfWeek].sales += item.sales || 0;
-    byDay[dayOfWeek].revenue += item.revenue || 0;
+    try {
+      const date = new Date(item.date + 'T00:00:00'); // Adicionar hora para evitar problemas de timezone
+      const dayOfWeek = date.getDay(); // 0 = Domingo, 1 = Segunda, etc.
+      
+      if (isNaN(dayOfWeek)) {
+        console.warn('⚠️ Data inválida:', item.date);
+        return;
+      }
+      
+      byDay[dayOfWeek].invested += parseFloat(item.invested || 0);
+      byDay[dayOfWeek].messages += parseInt(item.messages || 0);
+      byDay[dayOfWeek].sales += parseInt(item.sales || 0);
+      byDay[dayOfWeek].revenue += parseFloat(item.revenue || 0);
+    } catch (error) {
+      console.warn('⚠️ Erro ao processar item:', item, error);
+    }
   });
 
   // Calcular CPA e ROI
@@ -522,6 +556,14 @@ function aggregateByDayOfWeek(data) {
     result[6], // Sábado
     result[0]  // Domingo
   ];
+
+  console.log('✅ Dados agregados:', ordered.map(d => ({
+    dia: d.dayName,
+    invested: d.invested,
+    messages: d.messages,
+    sales: d.sales,
+    revenue: d.revenue
+  })));
 
   return ordered;
 }

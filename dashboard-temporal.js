@@ -216,6 +216,16 @@ async function generateTemporalAnalysis() {
     const dates = calculatePeriodDates(period);
     if (!dates) return;
 
+    // Mostrar loading
+    const loadingEl = document.getElementById('temporalLoading');
+    const contentDiaSemana = document.getElementById('temporalContentDiaSemana');
+    const contentComparacao = document.getElementById('temporalContentComparacao');
+    
+    loadingEl.classList.remove('hidden');
+    contentDiaSemana.classList.add('hidden');
+    contentComparacao.classList.add('hidden');
+    document.getElementById('temporalInsightsSection').classList.add('hidden');
+
     console.log('📊 Gerando análise temporal...', { projectId, period, unitId, dates });
 
     // Determinar unidades a processar
@@ -225,6 +235,7 @@ async function generateTemporalAnalysis() {
 
     if (unitsToProcess.length === 0) {
       alert('Nenhuma unidade encontrada');
+      loadingEl.classList.add('hidden');
       return;
     }
 
@@ -242,25 +253,41 @@ async function generateTemporalAnalysis() {
       end: previousEndDate.toISOString().split('T')[0]
     };
 
+    console.log('📅 Períodos:', { atual: dates, anterior: previousDates });
+
     // Processar dados do período atual
+    console.log('🔄 Processando dados do período atual...');
     currentPeriodData = await processPeriodData(unitsToProcess, dates.start, dates.end);
+    console.log('✅ Dados do período atual:', currentPeriodData.length, 'registros');
     
     // Processar dados do período anterior
+    console.log('🔄 Processando dados do período anterior...');
     previousPeriodData = await processPeriodData(unitsToProcess, previousDates.start, previousDates.end);
+    console.log('✅ Dados do período anterior:', previousPeriodData.length, 'registros');
 
     // Agregar por dia da semana
+    console.log('🔄 Agregando por dia da semana...');
     currentDataByDay = aggregateByDayOfWeek(currentPeriodData);
+    console.log('✅ Dados agregados por dia:', currentDataByDay);
 
     // Renderizar visualizações
+    console.log('🔄 Renderizando visualizações...');
     renderDayOfWeekAnalysis();
     renderComparisonAnalysis();
     generateInsights();
 
+    // Ocultar loading e mostrar conteúdo
+    loadingEl.classList.add('hidden');
+    contentDiaSemana.classList.remove('hidden');
+    
     // Mostrar seção de insights
     document.getElementById('temporalInsightsSection').classList.remove('hidden');
+    
+    console.log('✅ Análise temporal gerada com sucesso!');
 
   } catch (error) {
     console.error('❌ Erro ao gerar análise temporal:', error);
+    document.getElementById('temporalLoading').classList.add('hidden');
     alert('Erro ao gerar análise. Verifique o console para mais detalhes.');
   }
 }
@@ -270,19 +297,28 @@ async function processPeriodData(units, startDate, endDate) {
   const allData = [];
 
   for (const unit of units) {
+    console.log(`📊 Processando unidade: ${unit.name}`);
+    
     // Dados de tráfego (Meta/Google)
     const trafficData = await getTrafficData(unit, startDate, endDate);
-    if (trafficData) {
+    if (trafficData && trafficData.length > 0) {
+      console.log(`  ✅ Tráfego: ${trafficData.length} registros`);
       allData.push(...trafficData);
+    } else {
+      console.log(`  ⚠️ Sem dados de tráfego`);
     }
 
     // Dados de planilha
     const spreadsheetData = getSpreadsheetData(unit, startDate, endDate);
-    if (spreadsheetData) {
+    if (spreadsheetData && spreadsheetData.length > 0) {
+      console.log(`  ✅ Planilha: ${spreadsheetData.length} registros`);
       allData.push(...spreadsheetData);
+    } else {
+      console.log(`  ⚠️ Sem dados de planilha`);
     }
   }
 
+  console.log(`📊 Total de registros processados: ${allData.length}`);
   return allData;
 }
 
@@ -499,7 +535,15 @@ function renderDayOfWeekAnalysis() {
 // Renderizar gráfico de barras
 function renderBarChart() {
   const ctx = document.getElementById('temporalBarChart');
-  if (!ctx) return;
+  if (!ctx) {
+    console.warn('⚠️ Canvas do gráfico não encontrado');
+    return;
+  }
+
+  if (!currentDataByDay || currentDataByDay.length === 0) {
+    console.warn('⚠️ Nenhum dado para renderizar no gráfico');
+    return;
+  }
 
   const metric = document.getElementById('temporalMetricSelect').value;
   const labels = currentDataByDay.map(d => d.dayShort);
@@ -515,15 +559,17 @@ function renderBarChart() {
 
   const metricValues = currentDataByDay.map(day => {
     switch(metric) {
-      case 'invested': return parseFloat(day.invested);
-      case 'messages': return parseInt(day.messages);
-      case 'sales': return parseInt(day.sales);
-      case 'revenue': return parseFloat(day.revenue);
-      case 'cpa': return parseFloat(day.cpa);
+      case 'invested': return parseFloat(day.invested || 0);
+      case 'messages': return parseInt(day.messages || 0);
+      case 'sales': return parseInt(day.sales || 0);
+      case 'revenue': return parseFloat(day.revenue || 0);
+      case 'cpa': return parseFloat(day.cpa || 0);
       case 'roi': return parseFloat(day.roi || 0);
       default: return 0;
     }
   });
+
+  console.log('📊 Renderizando gráfico:', { labels, metricValues, metric });
 
   // Destruir gráfico anterior se existir
   if (barChart) {
@@ -531,36 +577,44 @@ function renderBarChart() {
   }
 
   // Atualizar título
-  document.getElementById('temporalChartTitle').textContent = `${metricLabels[metric]} por Dia da Semana`;
+  const titleEl = document.getElementById('temporalChartTitle');
+  if (titleEl) {
+    titleEl.textContent = `${metricLabels[metric]} por Dia da Semana`;
+  }
 
   // Criar novo gráfico
-  barChart = new Chart(ctx, {
-    type: 'bar',
-    data: {
-      labels: labels,
-      datasets: [{
-        label: metricLabels[metric],
-        data: metricValues,
-        backgroundColor: 'rgba(59, 130, 246, 0.5)',
-        borderColor: 'rgba(59, 130, 246, 1)',
-        borderWidth: 1
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: {
-          display: false
-        }
+  try {
+    barChart = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: labels,
+        datasets: [{
+          label: metricLabels[metric],
+          data: metricValues,
+          backgroundColor: 'rgba(59, 130, 246, 0.5)',
+          borderColor: 'rgba(59, 130, 246, 1)',
+          borderWidth: 1
+        }]
       },
-      scales: {
-        y: {
-          beginAtZero: true
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            display: false
+          }
+        },
+        scales: {
+          y: {
+            beginAtZero: true
+          }
         }
       }
-    }
-  });
+    });
+    console.log('✅ Gráfico de barras renderizado com sucesso');
+  } catch (error) {
+    console.error('❌ Erro ao criar gráfico:', error);
+  }
 }
 
 // Atualizar gráfico de barras

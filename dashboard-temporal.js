@@ -293,7 +293,7 @@ async function getTrafficData(unit, startDate, endDate) {
 
   try {
     // Meta Ads - buscar com breakdown diário
-    if (linkedAccounts.meta?.id && fbAuth.isAuthenticated()) {
+    if (linkedAccounts.meta?.id && fbAuth?.getAccessToken && fbAuth.getAccessToken()) {
       const token = fbAuth.getAccessToken();
       if (token) {
         try {
@@ -359,9 +359,9 @@ async function getTrafficData(unit, startDate, endDate) {
     }
 
     // Google Ads - buscar dados diários
-    if (linkedAccounts.google?.id && googleAuth.isAuthenticated()) {
+    if (linkedAccounts.google?.id) {
       await googleAuth.initialize();
-      if (googleAuth.isAuthenticated()) {
+      if (googleAuth?.getAccessToken && googleAuth.getAccessToken()) {
         try {
           const googleService = new GoogleAdsService(
             linkedAccounts.google.id,

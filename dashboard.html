@@ -110,6 +110,10 @@
         <div id="tableSection" class="bg-white border border-gray-200 rounded-xl overflow-hidden hidden">
           <div class="px-5 py-4 border-b border-gray-200 flex items-center justify-between">
             <h2 class="text-lg font-semibold text-gray-900">Detalhes por Unidade</h2>
+            <button id="exportBtn" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2">
+              <i class="fas fa-file-excel"></i>
+              Exportar XLSX
+            </button>
           </div>
           <div class="overflow-x-auto">
             <table class="min-w-full divide-y divide-gray-200">
@@ -384,6 +388,8 @@
     });
   </script>
 
+  <!-- XLSX.js para exportação -->
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
   <script type="module" src="./dashboard-v2.js?v=22.1"></script>
     <script type="module" src="./dashboard-criativos.js?v=7.5"></script>
 </body>

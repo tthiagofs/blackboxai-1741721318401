@@ -297,16 +297,25 @@ async function computeUnitMetricsFromSpreadsheet(unit, startDate, endDate) {
               const ga = new GoogleAdsService(linkedAccounts.google.id, googleAccessToken, managedBy);
               if (ga?.getAccountInsights) {
                 console.log(`📊 Buscando insights do Google para ${unit.name}...`);
+                console.log(`📅 Período: ${startDate} a ${endDate}`);
                 const gInsightsData = await ga.getAccountInsights(startDate, endDate);
                 
-                console.log(`📊 Dados brutos retornados do getAccountInsights:`, gInsightsData);
+                console.log(`📊 Dados brutos retornados do getAccountInsights:`, JSON.stringify(gInsightsData, null, 2));
                 
                 // ⭐ getAccountInsights retorna diretamente { cost, conversions, ... } ou { insights: {...} }
                 // Verificar se vem aninhado ou não
                 const gInsights = gInsightsData.insights || gInsightsData;
                 
-                console.log(`📊 Insights processados:`, gInsights);
+                console.log(`📊 Insights processados (JSON):`, JSON.stringify(gInsights, null, 2));
                 console.log(`📊 Propriedades disponíveis:`, Object.keys(gInsights || {}));
+                console.log(`📊 Valores individuais:`, {
+                  cost: gInsights?.cost,
+                  'metrics.cost': gInsights?.metrics?.cost,
+                  conversions: gInsights?.conversions,
+                  'metrics.conversions': gInsights?.metrics?.conversions,
+                  impressions: gInsights?.impressions,
+                  clicks: gInsights?.clicks
+                });
                 
                 const googleCost = Number(gInsights?.cost || gInsights?.metrics?.cost || 0);
                 console.log(`💰 Gastos Google encontrados: R$ ${googleCost}`);

@@ -668,12 +668,45 @@
                 console.log('✅ [handleFileUpload] Unidade carregada:', unit.name);
                 console.log('⚙️ [handleFileUpload] Fontes de tráfego:', unit.trafficSources);
                 
+                // ⭐ Combinar filtros Meta e Google em um objeto plano para processamento inicial
+                const trafficSourcesMeta = unit.trafficSources?.meta || {
+                    facebook: true,
+                    instagram: true,
+                    google: false,
+                    revista: false,
+                    empty: false,
+                    dots: false
+                };
+                const trafficSourcesGoogle = unit.trafficSources?.google || {
+                    facebook: false,
+                    instagram: false,
+                    google: true,
+                    revista: false,
+                    empty: false,
+                    dots: false
+                };
+                
+                // Combinar: incluir se estiver em Meta OU Google
+                const combinedTrafficSources = {
+                    facebook: trafficSourcesMeta.facebook || trafficSourcesGoogle.facebook,
+                    instagram: trafficSourcesMeta.instagram || trafficSourcesGoogle.instagram,
+                    google: trafficSourcesMeta.google || trafficSourcesGoogle.google,
+                    revista: trafficSourcesMeta.revista || trafficSourcesGoogle.revista,
+                    empty: trafficSourcesMeta.empty || trafficSourcesGoogle.empty,
+                    dots: trafficSourcesMeta.dots || trafficSourcesGoogle.dots
+                };
+                
+                // Para customKeywords, usar Meta como padrão
+                const customKeywords = unit.customKeywords?.meta || unit.customKeywords || { enabled: false, terms: [] };
+                
+                console.log('🔍 [handleFileUpload] Filtros combinados:', combinedTrafficSources);
+                
                 // Processar planilha
                 console.log('📊 [handleFileUpload] Processando planilha...');
                 const newBudgetData = await processSpreadsheet(
                     file,
-                    unit.trafficSources,
-                    unit.customKeywords,
+                    combinedTrafficSources,
+                    customKeywords,
                     unit.excludeMaintenance || false
                 );
                 console.log('✅ [handleFileUpload] Planilha processada!');

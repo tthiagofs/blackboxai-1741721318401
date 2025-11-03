@@ -140,12 +140,14 @@ export function filterSpreadsheetByPlatform(rawData, platform, trafficSources, c
 }
 
 /**
- * Verificar se um registro é procedimento de manutenção ortodôntica
+ * Verificar se um registro é SOMENTE manutenção ortodôntica (para exclusão)
+ * Exclui apenas se for SOMENTE manutenção, sem outros procedimentos
  * @param {Object} row - Linha da planilha
  * @returns {Boolean}
  */
 function isMaintenanceProcedure(row) {
-    const procedure = (row.procedure || row.H || "").toString().trim().toLowerCase();
+    const colH = (row.procedure || row.H || "").toString().trim();
+    const colHLower = colH.toLowerCase();
     
     const maintenanceTerms = [
         "manutenção aparelho móvel",
@@ -154,8 +156,27 @@ function isMaintenanceProcedure(row) {
         "manutenção ortodôntica mensal"
     ];
     
-    // Verificar se tem APENAS manutenção (sem outros procedimentos)
-    return maintenanceTerms.some(term => procedure.includes(term));
+    // Verificar se contém algum termo de manutenção
+    const hasMaintenance = maintenanceTerms.some(term => colHLower.includes(term));
+    
+    if (!hasMaintenance) {
+        return false; // Não tem manutenção, não excluir
+    }
+    
+    // Verificar se tem vírgula (múltiplos procedimentos)
+    if (colH.includes(',')) {
+        return false; // Tem outros procedimentos junto, não excluir
+    }
+    
+    // Verificar se o texto é exatamente igual a algum termo de manutenção (sem outros textos)
+    const isOnlyMaintenance = maintenanceTerms.some(term => {
+        // Remove espaços extras e compara
+        const cleanedH = colHLower.replace(/\s+/g, ' ').trim();
+        const cleanedTerm = term.replace(/\s+/g, ' ').trim();
+        return cleanedH === cleanedTerm;
+    });
+    
+    return isOnlyMaintenance;
 }
 
 /**

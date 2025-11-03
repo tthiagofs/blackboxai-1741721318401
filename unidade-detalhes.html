@@ -692,16 +692,39 @@ trafego pago</textarea>
                             return matchesPlatform || matchesCustom;
                         }
                         
-                        // Função helper para verificar se é manutenção
+                        // Função helper para verificar se é SOMENTE manutenção (sem outros procedimentos)
                         function isMaintenance(row) {
-                            const procedure = (row.procedure || row.H || "").toString().trim().toLowerCase();
+                            const colH = (row.procedure || row.H || "").toString().trim();
+                            const colHLower = colH.toLowerCase();
+                            
                             const maintenanceTerms = [
                                 "manutenção aparelho móvel",
                                 "manutenção aparelho ortodôntico autoligado",
                                 "manutenção aparelho ortodôntico safira",
                                 "manutenção ortodôntica mensal"
                             ];
-                            return maintenanceTerms.some(term => procedure.includes(term));
+                            
+                            // Verificar se contém algum termo de manutenção
+                            const hasMaintenance = maintenanceTerms.some(term => colHLower.includes(term));
+                            
+                            if (!hasMaintenance) {
+                                return false; // Não tem manutenção, não excluir
+                            }
+                            
+                            // Verificar se tem vírgula (múltiplos procedimentos)
+                            if (colH.includes(',')) {
+                                return false; // Tem outros procedimentos junto, não excluir
+                            }
+                            
+                            // Verificar se o texto é exatamente igual a algum termo de manutenção (sem outros textos)
+                            const isOnlyMaintenance = maintenanceTerms.some(term => {
+                                // Remove espaços extras e compara
+                                const cleanedH = colHLower.replace(/\s+/g, ' ').trim();
+                                const cleanedTerm = term.replace(/\s+/g, ' ').trim();
+                                return cleanedH === cleanedTerm;
+                            });
+                            
+                            return isOnlyMaintenance;
                         }
                         
                         // Filtrar rawData usando os novos filtros (combinados para compatibilidade)
@@ -985,11 +1008,49 @@ trafego pago</textarea>
                 
                 updateProgress(30);
                 
+                // ⭐ Combinar filtros Meta e Google em um objeto plano para processamento inicial
+                // O processSpreadsheet espera um objeto plano, não aninhado
+                const trafficSourcesMeta = currentUnit.trafficSources?.meta || {
+                    facebook: true,
+                    instagram: true,
+                    google: false,
+                    revista: false,
+                    empty: false,
+                    dots: false
+                };
+                const trafficSourcesGoogle = currentUnit.trafficSources?.google || {
+                    facebook: false,
+                    instagram: false,
+                    google: true,
+                    revista: false,
+                    empty: false,
+                    dots: false
+                };
+                
+                // Combinar: incluir se estiver em Meta OU Google
+                const combinedTrafficSources = {
+                    facebook: trafficSourcesMeta.facebook || trafficSourcesGoogle.facebook,
+                    instagram: trafficSourcesMeta.instagram || trafficSourcesGoogle.instagram,
+                    google: trafficSourcesMeta.google || trafficSourcesGoogle.google,
+                    revista: trafficSourcesMeta.revista || trafficSourcesGoogle.revista,
+                    empty: trafficSourcesMeta.empty || trafficSourcesGoogle.empty,
+                    dots: trafficSourcesMeta.dots || trafficSourcesGoogle.dots
+                };
+                
+                // Para customKeywords, usar Meta como padrão (ou combinar se necessário)
+                const customKeywords = currentUnit.customKeywords?.meta || currentUnit.customKeywords || { enabled: false, terms: [] };
+                
+                console.log('🔍 Filtros combinados para processamento:', {
+                    combinedTrafficSources,
+                    customKeywords,
+                    excludeMaintenance: currentUnit.excludeMaintenance || false
+                });
+                
                 // Processar planilha
                 const newBudgetData = await processSpreadsheet(
                     file, 
-                    currentUnit.trafficSources, 
-                    currentUnit.customKeywords,
+                    combinedTrafficSources, 
+                    customKeywords,
                     currentUnit.excludeMaintenance || false
                 );
                 

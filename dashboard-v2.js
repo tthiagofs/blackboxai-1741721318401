@@ -288,19 +288,34 @@ async function computeUnitMetricsFromSpreadsheet(unit, startDate, endDate) {
             const googleAccessToken = googleAuth.getAccessToken();
             if (googleAccessToken) {
               const managedBy = linkedAccounts.google.managedBy || null;
+              console.log(`🔍 Criando GoogleAdsService para ${unit.name}:`, {
+                accountId: linkedAccounts.google.id,
+                hasToken: !!googleAccessToken,
+                managedBy
+              });
+              
               const ga = new GoogleAdsService(linkedAccounts.google.id, googleAccessToken, managedBy);
               if (ga?.getAccountInsights) {
+                console.log(`📊 Buscando insights do Google para ${unit.name}...`);
                 const gInsightsData = await ga.getAccountInsights(startDate, endDate);
-                // ⭐ getAccountInsights pode retornar { insights: {...} } ou diretamente os insights
+                
+                console.log(`📊 Dados brutos retornados do getAccountInsights:`, gInsightsData);
+                
+                // ⭐ getAccountInsights já retorna os insights diretamente (não precisa extrair .insights)
                 const gInsights = gInsightsData.insights || gInsightsData;
-                const googleCost = Number(gInsights.cost || 0);
+                
+                console.log(`📊 Insights processados:`, gInsights);
+                console.log(`📊 Propriedades disponíveis:`, Object.keys(gInsights || {}));
+                
+                const googleCost = Number(gInsights?.cost || gInsights?.metrics?.cost || 0);
                 console.log(`💰 Gastos Google encontrados: R$ ${googleCost}`);
                 invested += googleCost;
                 
                 // ⭐ Calcular mensagens e CPA do Google
                 // Google não tem mensagens diretas do WhatsApp, mas tem conversões
                 // Para fins de cálculo, podemos considerar conversões como "mensagens"
-                const googleConversions = Number(gInsights.conversions || 0);
+                const googleConversions = Number(gInsights?.conversions || gInsights?.metrics?.conversions || 0);
+                console.log(`💬 Conversões Google: ${googleConversions}`);
                 if (googleConversions > 0) {
                   messages += googleConversions;
                   console.log(`💬 Conversões Google adicionadas às mensagens: ${googleConversions}`);

@@ -1189,8 +1189,84 @@ async function generateCompleteReport() {
         window.resetSaveButton();
     }
     
-        const unitId = document.getElementById('unitId').value;
-    const googleAccountId = googleAdsAccountSelect.value;
+        // IMPORTANTE: unitId vem do unitSelect (ID da unidade), não do select unitId (que é conta Meta)
+        console.log('🔍 [DEBUG] Iniciando busca de contas...');
+        const unitSelect = document.getElementById('unitSelect');
+        const metaSelect = document.getElementById('unitId');
+        const metaAccountId = metaSelect?.value || ''; // Este é o ID da conta Meta, não da unidade
+        let actualUnitId = null;
+        let googleAccountId = googleAdsAccountSelect?.value || '';
+        
+        console.log('🔍 [DEBUG] Elementos encontrados:', {
+            unitSelect: !!unitSelect,
+            unitSelectValue: unitSelect?.value,
+            metaSelect: !!metaSelect,
+            metaAccountId: metaAccountId,
+            googleAdsAccountSelect: !!googleAdsAccountSelect,
+            googleAccountId: googleAccountId
+        });
+        
+        // Buscar ID da unidade real do unitSelect
+        if (unitSelect && unitSelect.value) {
+            actualUnitId = unitSelect.value;
+            console.log('📋 Unidade selecionada:', actualUnitId);
+            
+            // Se não há googleAccountId no select, buscar da unidade vinculada (mesma lógica do Meta)
+            if (!googleAccountId) {
+                try {
+                    const selectedOption = unitSelect.selectedOptions[0];
+                    console.log('🔍 [DEBUG] Selected option:', {
+                        exists: !!selectedOption,
+                        hasDataset: !!selectedOption?.dataset?.unit,
+                        value: selectedOption?.value
+                    });
+                    
+                    if (selectedOption && selectedOption.dataset.unit) {
+                        const unit = JSON.parse(selectedOption.dataset.unit);
+                        console.log('🔍 Dados da unidade:', { 
+                            id: unit.id, 
+                            linkedAccounts: unit.linkedAccounts,
+                            hasGoogle: !!unit.linkedAccounts?.google?.id,
+                            googleId: unit.linkedAccounts?.google?.id
+                        });
+                        
+                        if (unit.linkedAccounts?.google?.id) {
+                            googleAccountId = unit.linkedAccounts.google.id;
+                            console.log('✅ Usando conta Google vinculada da unidade:', googleAccountId);
+                            // Também preencher o select para manter consistência
+                            if (googleAdsAccountSelect && googleAccountId) {
+                                googleAdsAccountSelect.value = googleAccountId;
+                                console.log('✅ Select do Google preenchido com:', googleAccountId);
+                            }
+                        } else {
+                            console.log('ℹ️ Unidade não tem conta Google vinculada');
+                        }
+                    } else {
+                        console.warn('⚠️ SelectedOption não tem dataset.unit:', selectedOption);
+                    }
+                } catch (error) {
+                    console.error('❌ Erro ao buscar conta Google vinculada da unidade:', error);
+                    console.error('Stack:', error.stack);
+                }
+            } else {
+                console.log('ℹ️ Google Account ID já existe no select:', googleAccountId);
+            }
+        } else {
+            console.warn('⚠️ unitSelect não encontrado ou sem valor:', {
+                unitSelect: !!unitSelect,
+                value: unitSelect?.value
+            });
+        }
+        
+        // Usar metaAccountId como unitId para compatibilidade (Meta usa o ID da conta como unitId)
+        const unitId = metaAccountId || actualUnitId;
+        console.log('🔍 [DEBUG] Final:', {
+            unitId: unitId,
+            actualUnitId: actualUnitId,
+            googleAccountId: googleAccountId,
+            metaAccountId: metaAccountId
+        });
+    
         const startDate = document.getElementById('startDate').value;
         const endDate = document.getElementById('endDate').value;
         const budgetsCompleted = parseInt(document.getElementById('budgetsCompleted').value) || 0;
@@ -1273,19 +1349,32 @@ async function generateCompleteReport() {
         }
 
         // ========== PROCESSAR GOOGLE ADS ==========
+        // Usar mesma lógica do Meta: se há unitId e não há googleAccountId, processar Google da unidade
+        // (googleAccountId já foi buscado acima da unidade se necessário)
+        
         if (googleAccountId && googleAuth.isAuthenticated()) {
             const accounts = googleAuth.getStoredAccounts();
             const googleAccount = accounts.find(acc => acc.customerId === googleAccountId);
             const googleAccountName = googleAccount ? googleAccount.name : googleAccountId;
 
             console.log(`🌐 Processando Google Ads: ${googleAccountName}`);
+            console.log(`🔍 Google Account ID: ${googleAccountId} (unitId: ${unitId})`);
 
             try {
                 // Usar o accessToken do Google Auth
                 const accessToken = googleAuth.getAccessToken();
                 // Pegar managedBy (MCC ID) se a conta for gerenciada
-                const selectedOption = googleAdsAccountSelect.options[googleAdsAccountSelect.selectedIndex];
-                const managedBy = selectedOption?.dataset?.managedBy || null;
+                // Tentar encontrar a opção no select primeiro
+                let selectedOption = null;
+                if (googleAdsAccountSelect) {
+                    for (let i = 0; i < googleAdsAccountSelect.options.length; i++) {
+                        if (googleAdsAccountSelect.options[i].value === googleAccountId) {
+                            selectedOption = googleAdsAccountSelect.options[i];
+                            break;
+                        }
+                    }
+                }
+                const managedBy = selectedOption?.dataset?.managedBy || googleAccount?.managedBy || null;
                 const googleService = new GoogleAdsService(googleAccountId, accessToken, managedBy);
                 const googleInsights = await googleService.getAccountInsights(startDate, endDate);
                 googleMetrics = googleService.calculateMetrics(googleInsights);
@@ -1293,10 +1382,14 @@ async function generateCompleteReport() {
                 console.log(`✓ Métricas Google Ads carregadas`, googleMetrics);
             } catch (error) {
                 console.error('Erro ao carregar Google Ads:', error);
+                console.error('Detalhes do erro:', error.message, error.stack);
                 alert('Erro ao carregar dados do Google Ads. Verifique sua autenticação.');
             }
         } else if (googleAccountId && !googleAuth.isAuthenticated()) {
             alert('Faça login com Google Ads para gerar o relatório.');
+        } else if (actualUnitId && !googleAccountId) {
+            // Se há unitId mas não encontrou Google vinculado, não é erro (pode não ter Google)
+            console.log('ℹ️ Unidade selecionada mas sem conta Google vinculada');
         }
 
         // Determinar tipo de relatório e preparar métricas

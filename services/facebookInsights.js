@@ -144,7 +144,7 @@ export class FacebookInsightsService {
 
     // Insights de campanha
     async getCampaignInsights(campaignId, startDate, endDate) {
-        const url = `/${campaignId}/insights?fields=spend,impressions,clicks,actions&time_range={'since':'${startDate}','until':'${endDate}'}&access_token=${this.accessToken}`;
+        const url = `/${campaignId}/insights?fields=spend,impressions,link_clicks,actions&time_range={'since':'${startDate}','until':'${endDate}'}&access_token=${this.accessToken}`;
         const data = await this.fetchWithPagination(url);
         
         if (data.length === 0) {
@@ -160,7 +160,7 @@ export class FacebookInsightsService {
         return {
             spend: insights.spend || 0,
             impressions: insights.impressions || 0,
-            clicks: insights.clicks || 0,
+            clicks: parseInt(insights.link_clicks || insights.clicks || 0),
             conversions: parseInt(conversions),
             actions: insights.actions || []
         };
@@ -168,7 +168,7 @@ export class FacebookInsightsService {
 
     // Insights de conjunto de anúncios
     async getAdSetInsights(adSetId, startDate, endDate) {
-        const url = `/${adSetId}/insights?fields=spend,impressions,clicks,actions&time_range={'since':'${startDate}','until':'${endDate}'}&access_token=${this.accessToken}`;
+        const url = `/${adSetId}/insights?fields=spend,impressions,link_clicks,actions&time_range={'since':'${startDate}','until':'${endDate}'}&access_token=${this.accessToken}`;
         const data = await this.fetchWithPagination(url);
         
         if (data.length === 0) {
@@ -184,7 +184,7 @@ export class FacebookInsightsService {
         return {
             spend: insights.spend || 0,
             impressions: insights.impressions || 0,
-            clicks: insights.clicks || 0,
+            clicks: parseInt(insights.link_clicks || insights.clicks || 0),
             conversions: parseInt(conversions),
             actions: insights.actions || []
         };
@@ -192,7 +192,7 @@ export class FacebookInsightsService {
 
     // Insights de anúncio
     async getAdInsights(adId, startDate, endDate) {
-        const url = `/${adId}/insights?fields=spend,impressions,clicks,ctr,cpc,cpm,actions&time_range={'since':'${startDate}','until':'${endDate}'}&access_token=${this.accessToken}`;
+        const url = `/${adId}/insights?fields=spend,impressions,link_clicks,ctr,cpc,cpm,actions&time_range={'since':'${startDate}','until':'${endDate}'}&access_token=${this.accessToken}`;
         const data = await this.fetchWithPagination(url);
         
         if (data.length === 0) {
@@ -216,7 +216,7 @@ export class FacebookInsightsService {
         return {
             spend: parseFloat(insights.spend || 0),
             impressions: parseInt(insights.impressions || 0),
-            clicks: parseInt(insights.clicks || 0),
+            clicks: parseInt(insights.link_clicks || insights.clicks || 0),
             ctr: parseFloat(insights.ctr || 0),
             cpc: parseFloat(insights.cpc || 0),
             cpm: parseFloat(insights.cpm || 0),
@@ -324,7 +324,7 @@ export class FacebookInsightsService {
     async getAccountInsights(unitId, startDate, endDate, selectedCampaigns = [], selectedAdSets = []) {
         // Se não há filtros, buscar insights da conta toda
         if (selectedCampaigns.length === 0 && selectedAdSets.length === 0) {
-            const url = `/${unitId}/insights?fields=spend,impressions,clicks,actions&time_range={'since':'${startDate}','until':'${endDate}'}&access_token=${this.accessToken}`;
+            const url = `/${unitId}/insights?fields=spend,impressions,link_clicks,actions&time_range={'since':'${startDate}','until':'${endDate}'}&access_token=${this.accessToken}`;
             const data = await this.fetchWithPagination(url);
             
             if (data.length === 0) {
@@ -340,7 +340,7 @@ export class FacebookInsightsService {
             return {
                 spend: parseFloat(insights.spend || 0),
                 impressions: parseInt(insights.impressions || 0),
-                clicks: parseInt(insights.clicks || 0),
+                clicks: parseInt(insights.link_clicks || insights.clicks || 0),
                 conversions: parseInt(conversions),
                 actions: insights.actions || []
             };
@@ -363,14 +363,14 @@ export class FacebookInsightsService {
         if (selectedCampaigns.length > 0) {
             for (const campaignId of selectedCampaigns) {
                 try {
-                    const url = `/${campaignId}/insights?fields=spend,impressions,clicks,actions&time_range={'since':'${startDate}','until':'${endDate}'}&access_token=${this.accessToken}`;
+                    const url = `/${campaignId}/insights?fields=spend,impressions,link_clicks,actions&time_range={'since':'${startDate}','until':'${endDate}'}&access_token=${this.accessToken}`;
                     const data = await this.fetchWithPagination(url);
                     
                     if (data.length > 0) {
                         const insights = data[0];
                         totalSpend += parseFloat(insights.spend || 0);
                         totalImpressions += parseInt(insights.impressions || 0);
-                        totalClicks += parseInt(insights.clicks || 0);
+                        totalClicks += parseInt(insights.link_clicks || insights.clicks || 0);
                         
                         if (insights.actions) {
                             allActions.push(...insights.actions);
@@ -386,14 +386,14 @@ export class FacebookInsightsService {
         if (selectedAdSets.length > 0) {
             for (const adSetId of selectedAdSets) {
                 try {
-                    const url = `/${adSetId}/insights?fields=spend,impressions,clicks,actions&time_range={'since':'${startDate}','until':'${endDate}'}&access_token=${this.accessToken}`;
+                    const url = `/${adSetId}/insights?fields=spend,impressions,link_clicks,actions&time_range={'since':'${startDate}','until':'${endDate}'}&access_token=${this.accessToken}`;
                     const data = await this.fetchWithPagination(url);
                     
                     if (data.length > 0) {
                         const insights = data[0];
                         totalSpend += parseFloat(insights.spend || 0);
                         totalImpressions += parseInt(insights.impressions || 0);
-                        totalClicks += parseInt(insights.clicks || 0);
+                        totalClicks += parseInt(insights.link_clicks || insights.clicks || 0);
                         
                         if (insights.actions) {
                             allActions.push(...insights.actions);
@@ -418,7 +418,7 @@ export class FacebookInsightsService {
     calculateMetrics(insights) {
         const spend = parseFloat(insights.spend || 0);
         const impressions = parseInt(insights.impressions || 0);
-        const clicks = parseInt(insights.clicks || 0);
+        const clicks = parseInt(insights.link_clicks || insights.clicks || 0);
         const conversions = parseInt(insights.conversions || 0);
         
         // Extrair mensagens (conversas) das actions
@@ -492,7 +492,7 @@ export class FacebookInsightsService {
             
             // ESTRATÉGIA OTIMIZADA: Buscar insights diretamente do account
             // Isso retorna anúncios JÁ COM dados, evitando múltiplas requisições
-            const url = `/${unitId}/insights?level=ad&fields=ad_id,ad_name,spend,impressions,clicks,ctr,cpc,cpm,actions&time_range={'since':'${startDate}','until':'${endDate}'}&limit=50&access_token=${this.accessToken}`;
+            const url = `/${unitId}/insights?level=ad&fields=ad_id,ad_name,spend,impressions,link_clicks,ctr,cpc,cpm,actions&time_range={'since':'${startDate}','until':'${endDate}'}&limit=50&access_token=${this.accessToken}`;
             
             let adsData = [];
             try {
@@ -528,7 +528,7 @@ export class FacebookInsightsService {
                     name: ad.ad_name || 'Sem nome',
                     spend: parseFloat(ad.spend || 0),
                     impressions: parseInt(ad.impressions || 0),
-                    clicks: parseInt(ad.clicks || 0),
+                    clicks: parseInt(ad.link_clicks || ad.clicks || 0),
                     ctr: parseFloat(ad.ctr || 0),
                     cpc: parseFloat(ad.cpc || 0),
                     cpm: parseFloat(ad.cpm || 0),

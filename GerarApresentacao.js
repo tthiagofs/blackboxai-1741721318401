@@ -1850,10 +1850,17 @@ async function generateCompleteReport() {
             blackMetrics: separateBlackMetrics,
             // Melhores anúncios
             bestAds: bestAds,
-            // Dados manuais
-            budgetsCompleted,
-            salesCount,
-            revenue,
+            // ⭐ Dados separados por plataforma (do período filtrado)
+            metaBudgetsCompleted: metaSpreadsheetData.budgets,
+            metaSalesCount: metaSpreadsheetData.sales,
+            metaRevenue: metaSpreadsheetData.revenue,
+            googleBudgetsCompleted: googleSpreadsheetData.budgets,
+            googleSalesCount: googleSpreadsheetData.sales,
+            googleRevenue: googleSpreadsheetData.revenue,
+            // Dados globais (fallback para compatibilidade)
+            budgetsCompleted: metaSpreadsheetData.budgets || budgetsCompleted || 0,
+            salesCount: metaSpreadsheetData.sales || salesCount || 0,
+            revenue: metaSpreadsheetData.revenue || revenue || 0,
             performanceAnalysis: '', // Será preenchido pelo usuário
             // HTML gerado
             html: presentationHTML,

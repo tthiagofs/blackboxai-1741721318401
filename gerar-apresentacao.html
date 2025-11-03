@@ -1096,6 +1096,15 @@ ul.list-disc li br {
                 const metaMetrics = window.currentPresentationData.metaMetrics || window.currentPresentationData.savedMetrics;
                 const googleMetrics = window.currentPresentationData.googleMetrics || window.currentPresentationData.savedGoogleMetrics;
                 
+                // ⭐ Usar dados separados por plataforma se disponíveis (do período original)
+                // Caso contrário, usar dados globais como fallback
+                const metaBudgetsCompleted = window.currentPresentationData.metaBudgetsCompleted;
+                const metaSalesCount = window.currentPresentationData.metaSalesCount;
+                const metaRevenue = window.currentPresentationData.metaRevenue;
+                const googleBudgetsCompleted = window.currentPresentationData.googleBudgetsCompleted;
+                const googleSalesCount = window.currentPresentationData.googleSalesCount;
+                const googleRevenue = window.currentPresentationData.googleRevenue;
+                
                 const updatedHTML = generatePresentationHTML({
                     unitName: window.currentPresentationData.unitName,
                     startDate: window.currentPresentationData.startDate,
@@ -1106,6 +1115,14 @@ ul.list-disc li br {
                     googleMetrics: googleMetrics,
                     metaTop3Ads: window.currentPresentationData.bestAds?.filter(ad => ad.platform === 'meta').slice(0, 3),
                     performanceAnalysis: performanceAnalysis,
+                    // ⭐ Passar dados separados por plataforma (preservar período original)
+                    metaBudgetsCompleted,
+                    metaSalesCount,
+                    metaRevenue,
+                    googleBudgetsCompleted,
+                    googleSalesCount,
+                    googleRevenue,
+                    // Dados globais (fallback para compatibilidade)
                     budgetsCompleted: window.currentPresentationData.budgetsCompleted,
                     salesCount: window.currentPresentationData.salesCount,
                     revenue: window.currentPresentationData.revenue,

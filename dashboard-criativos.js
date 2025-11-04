@@ -141,6 +141,9 @@ function setupCreativeEventListeners() {
   const exportPDFBtn = document.getElementById('exportCreativesPDFBtn');
   if (exportPDFBtn) {
     exportPDFBtn.addEventListener('click', exportCreativesToPDF);
+    console.log('✅ Botão de exportar PDF de criativos configurado');
+  } else {
+    console.warn('⚠️ Botão exportCreativesPDFBtn não encontrado no DOM');
   }
 }
 
@@ -254,6 +257,13 @@ async function searchCreatives() {
     // Mostrar conteúdo
     loadingEl.classList.add('hidden');
     contentEl.classList.remove('hidden');
+    
+    // Garantir que o botão de exportar PDF esteja visível
+    const exportPDFBtn = document.getElementById('exportCreativesPDFBtn');
+    if (exportPDFBtn) {
+      exportPDFBtn.style.display = 'inline-flex';
+      console.log('✅ Botão de exportar PDF exibido');
+    }
 
   } catch (error) {
     console.error('Erro ao buscar criativos:', error);

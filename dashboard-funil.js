@@ -1,5 +1,6 @@
 // Dashboard - Funil de Conversão
 // Visualização completa do fluxo de conversão: Impressões → Cliques → Mensagens → Orçamentos → Vendas
+import { extractAllMessagesAndLeads } from './utils/messagesExtractor.js';
 
 import { auth } from './config/firebase.js';
 import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
@@ -333,10 +334,9 @@ async function getTrafficDataForFunnel(unit, startDate, endDate) {
             impressions += parseInt(insights.impressions || 0);
             clicks += parseInt(insights.clicks || 0);
             
-            const messagesCount = insights.actions?.find(action => 
-              action.action_type === 'onsite_conversion.messaging_conversation_started_7d'
-            )?.value || 0;
-            messages += parseInt(messagesCount);
+            // Usar função unificada para extrair todas as mensagens/leads/cadastros
+            const messagesCount = extractAllMessagesAndLeads(insights.actions || []);
+            messages += messagesCount;
             
             invested += parseFloat(insights.spend || 0);
           }
@@ -436,10 +436,9 @@ async function aggregateFunnelDataByPlatform(units, startDate, endDate) {
             metaData.impressions += parseInt(insights.impressions || 0);
             metaData.clicks += parseInt(insights.clicks || 0);
             
-            const messagesCount = insights.actions?.find(action => 
-              action.action_type === 'onsite_conversion.messaging_conversation_started_7d'
-            )?.value || 0;
-            metaData.messages += parseInt(messagesCount);
+            // Usar função unificada para extrair todas as mensagens/leads/cadastros
+            const messagesCount = extractAllMessagesAndLeads(insights.actions || []);
+            metaData.messages += messagesCount;
             
             metaData.invested += parseFloat(insights.spend || 0);
           }

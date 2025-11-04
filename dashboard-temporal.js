@@ -1,4 +1,5 @@
 // Dashboard - Análise Temporal
+import { extractAllMessagesAndLeads } from './utils/messagesExtractor.js';
 // Análise de performance por dia da semana e comparação de períodos
 
 import { auth } from './config/firebase.js';
@@ -350,9 +351,8 @@ async function getTrafficData(unit, startDate, endDate) {
               const date = dayData.date_start; // Formato YYYY-MM-DD
               
               // Extrair mensagens das actions
-              const messages = dayData.actions?.find(action => 
-                action.action_type === 'onsite_conversion.messaging_conversation_started_7d'
-              )?.value || 0;
+            // Usar função unificada para extrair todas as mensagens/leads/cadastros
+            const messages = extractAllMessagesAndLeads(dayData.actions || []);
               
               const spend = parseFloat(dayData.spend || 0);
               
@@ -383,9 +383,8 @@ async function getTrafficData(unit, startDate, endDate) {
           );
           
           if (insights) {
-            const messages = insights.actions?.find(action => 
-              action.action_type === 'onsite_conversion.messaging_conversation_started_7d'
-            )?.value || 0;
+            // Usar função unificada para extrair todas as mensagens/leads/cadastros
+            const messages = extractAllMessagesAndLeads(insights.actions || []);
             
             // Distribuir uniformemente pelos dias
             const days = getDaysBetween(startDate, endDate);

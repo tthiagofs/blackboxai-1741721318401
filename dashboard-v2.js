@@ -6,6 +6,7 @@ import { fbAuth } from './auth.js';
 import { googleAuth } from './authGoogle.js';
 import { FacebookInsightsService } from './services/facebookInsights.js';
 import { GoogleAdsService } from './services/googleAds.js';
+import { extractAllMessagesAndLeads } from './utils/messagesExtractor.js';
 
 let currentProjectId = null;
 let currentPeriod = 'last7days';
@@ -483,40 +484,9 @@ async function computeUnitMetricsFromSpreadsheet(unit, startDate, endDate) {
 }
 
 // Função para extrair mensagens das actions (mesma lógica do RelatorioCompleto.js)
+// Função mantida para compatibilidade, mas agora usa a função unificada
 function extractMessages(actions) {
-  let totalMessages = 0;
-  
-  if (actions && Array.isArray(actions)) {
-    // Contabilizar conversas iniciadas
-    const conversationAction = actions.find(
-      action => action.action_type === 'onsite_conversion.messaging_conversation_started_7d'
-    );
-    if (conversationAction && conversationAction.value) {
-      totalMessages += parseInt(conversationAction.value) || 0;
-    }
-
-    // Contabilizar conversões personalizadas
-    const customConversions = actions.filter(
-      action => action.action_type.startsWith('offsite_conversion.')
-    );
-    customConversions.forEach(action => {
-      if (action.value) {
-        totalMessages += parseInt(action.value) || 0;
-      }
-    });
-
-    // Contabilizar cadastros do Facebook
-    const leadActions = actions.filter(
-      action => action.action_type === 'lead'
-    );
-    leadActions.forEach(action => {
-      if (action.value) {
-        totalMessages += parseInt(action.value) || 0;
-      }
-    });
-  }
-
-  return totalMessages;
+  return extractAllMessagesAndLeads(actions);
 }
 
 // Filtrar dados da unidade por período (mesma lógica do RelatorioCompleto.js)

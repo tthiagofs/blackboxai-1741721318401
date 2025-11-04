@@ -1,4 +1,5 @@
 // Dashboard - Análise de Criativos
+import { extractAllMessagesAndLeads } from './utils/messagesExtractor.js';
 // Busca e analisa performance de criativos (anúncios) do Meta Ads
 
 import { auth } from './config/firebase.js';
@@ -135,6 +136,12 @@ function setupCreativeEventListeners() {
 
   // Botão de buscar
   document.getElementById('searchCreativesBtn').addEventListener('click', searchCreatives);
+
+  // Botão de exportar PDF
+  const exportPDFBtn = document.getElementById('exportCreativesPDFBtn');
+  if (exportPDFBtn) {
+    exportPDFBtn.addEventListener('click', exportCreativesToPDF);
+  }
 }
 
 // Calcular datas do período
@@ -354,7 +361,7 @@ function processAdsDataFast(adsData, unitName) {
   
   for (const ad of adsData) {
     const actions = ad.actions || [];
-    const leads = extractLeads(actions);
+    const leads = extractAllMessagesAndLeads(actions);
     const spend = parseFloat(ad.spend || 0);
     const cpl = leads > 0 ? spend / leads : 0;
     const impressions = parseInt(ad.impressions || 0);
@@ -386,7 +393,7 @@ async function processAdsData(adsData, fbService, accessToken, unitName) {
     const actions = ad.actions || [];
     
     // Extrair leads (mensagens)
-    const leads = extractLeads(actions);
+    const leads = extractAllMessagesAndLeads(actions);
     
     // Calcular CPL
     const spend = parseFloat(ad.spend || 0);
@@ -425,18 +432,6 @@ async function processAdsData(adsData, fbService, accessToken, unitName) {
   }
   
   return processed;
-}
-
-// Extrair leads das actions
-function extractLeads(actions) {
-  if (!actions || !Array.isArray(actions)) return 0;
-  
-  const leadActions = actions.find(a => 
-    a.action_type === 'onsite_conversion.messaging_conversation_started_7d' ||
-    a.action_type === 'onsite_conversion.lead_grouped'
-  );
-  
-  return leadActions ? parseInt(leadActions.value || 0) : 0;
 }
 
 // Ordenar criativos
@@ -563,6 +558,194 @@ function renderTypeComparison(creatives) {
     document.getElementById(`type${type.charAt(0).toUpperCase() + type.slice(1)}Stats`).textContent = 
       `${data.leads.toLocaleString('pt-BR')} Leads · CPL médio: R$ ${avgCPL.toFixed(2)}`;
   });
+}
+
+// Exportar criativos para PDF
+async function exportCreativesToPDF() {
+  if (!allCreatives || allCreatives.length === 0) {
+    alert('Não há criativos para exportar. Busque criativos primeiro.');
+    return;
+  }
+
+  try {
+    // Verificar se jsPDF está disponível
+    if (typeof window.jspdf === 'undefined') {
+      alert('Biblioteca jsPDF não carregada. Adicione o script no HTML.');
+      return;
+    }
+
+    const { jsPDF } = window.jspdf;
+
+    // Verificar se html2canvas está disponível
+    if (typeof html2canvas === 'undefined') {
+      alert('Biblioteca html2canvas não carregada. Adicione o script no HTML.');
+      return;
+    }
+
+    // Ocultar botão durante captura
+    const exportBtn = document.getElementById('exportCreativesPDFBtn');
+    const originalDisplay = exportBtn ? window.getComputedStyle(exportBtn).display : 'inline-flex';
+    if (exportBtn) exportBtn.style.display = 'none';
+
+    // Criar PDF
+    const doc = new jsPDF({
+      orientation: 'portrait',
+      unit: 'mm',
+      format: 'a4'
+    });
+
+    const pdfWidth = 210;
+    const pdfHeight = 297;
+    const margin = 10;
+    let currentY = margin;
+
+    // Título
+    doc.setFontSize(18);
+    doc.text('Top 10 Criativos - Análise de Performance', pdfWidth / 2, currentY, { align: 'center' });
+    currentY += 10;
+
+    // Período
+    const periodSelect = document.getElementById('creativePeriodSelect');
+    const projectSelect = document.getElementById('creativeProjectSelect');
+    const period = periodSelect ? periodSelect.options[periodSelect.selectedIndex].text : 'Período não selecionado';
+    const project = projectSelect ? projectSelect.options[projectSelect.selectedIndex].text : 'Projeto não selecionado';
+    
+    doc.setFontSize(10);
+    doc.text(`Projeto: ${project}`, margin, currentY);
+    currentY += 6;
+    doc.text(`Período: ${period}`, margin, currentY);
+    currentY += 6;
+    doc.text(`Total de criativos: ${allCreatives.length}`, margin, currentY);
+    currentY += 15;
+
+    // Criar tabela de resumo
+    doc.setFontSize(12);
+    doc.text('Resumo dos Top 10 Criativos', margin, currentY);
+    currentY += 8;
+
+    doc.setFontSize(9);
+    doc.setFont(undefined, 'bold');
+    doc.text('Posição', margin, currentY);
+    doc.text('Nome', margin + 20, currentY);
+    doc.text('Impressões', margin + 90, currentY);
+    doc.text('Leads', margin + 120, currentY);
+    doc.text('CPL', margin + 145, currentY);
+    doc.text('Gasto', margin + 165, currentY);
+    currentY += 5;
+
+    doc.setFont(undefined, 'normal');
+    allCreatives.forEach((creative, index) => {
+      if (currentY > pdfHeight - 20) {
+        doc.addPage();
+        currentY = margin;
+      }
+
+      doc.text(`${index + 1}`, margin, currentY);
+      const name = creative.name.length > 30 ? creative.name.substring(0, 27) + '...' : creative.name;
+      doc.text(name, margin + 20, currentY);
+      doc.text(creative.impressions.toLocaleString('pt-BR'), margin + 90, currentY);
+      doc.text(creative.leads.toString(), margin + 120, currentY);
+      doc.text(creative.cpl > 0 ? `R$ ${creative.cpl.toFixed(2)}` : '-', margin + 145, currentY);
+      doc.text(`R$ ${creative.spend.toFixed(2)}`, margin + 165, currentY);
+      currentY += 5;
+    });
+
+    // Adicionar informações de comparação por tipo se disponível
+    currentY += 10;
+    if (currentY > pdfHeight - 40) {
+      doc.addPage();
+      currentY = margin;
+    }
+
+    const typeImage = document.getElementById('typeImage');
+    const typeVideo = document.getElementById('typeVideo');
+    const typeCarousel = document.getElementById('typeCarousel');
+
+    if (typeImage && !typeImage.classList.contains('hidden')) {
+      doc.setFontSize(12);
+      doc.text('Comparação por Tipo', margin, currentY);
+      currentY += 8;
+
+      doc.setFontSize(9);
+      const imagePercent = document.getElementById('typeImagePercent')?.textContent || '0%';
+      const videoPercent = document.getElementById('typeVideoPercent')?.textContent || '0%';
+      const carouselPercent = document.getElementById('typeCarouselPercent')?.textContent || '0%';
+
+      doc.text(`Imagem Estática: ${imagePercent}`, margin + 5, currentY);
+      currentY += 5;
+      doc.text(`Vídeo: ${videoPercent}`, margin + 5, currentY);
+      currentY += 5;
+      doc.text(`Carrossel: ${carouselPercent}`, margin + 5, currentY);
+      currentY += 10;
+    }
+
+    // Capturar imagens dos criativos (se houver espaço)
+    currentY += 10;
+    if (currentY > pdfHeight - 80) {
+      doc.addPage();
+      currentY = margin;
+    }
+
+    doc.setFontSize(12);
+    doc.text('Preview dos Criativos', margin, currentY);
+    currentY += 10;
+
+    // Tentar adicionar algumas imagens (máximo 3 por página)
+    let imagesAdded = 0;
+    for (let i = 0; i < Math.min(allCreatives.length, 6); i++) {
+      const creative = allCreatives[i];
+      
+      if (currentY > pdfHeight - 60) {
+        doc.addPage();
+        currentY = margin;
+        imagesAdded = 0;
+      }
+
+      if (creative.thumbnailUrl && creative.thumbnailUrl.startsWith('http')) {
+        try {
+          // Criar imagem temporária para converter
+          const img = new Image();
+          img.crossOrigin = 'anonymous';
+          
+          await new Promise((resolve, reject) => {
+            img.onload = () => {
+              try {
+                const imgWidth = 40;
+                const imgHeight = 40;
+                doc.addImage(img, 'JPEG', margin + (imagesAdded % 3) * 65, currentY, imgWidth, imgHeight);
+                imagesAdded++;
+                
+                if (imagesAdded % 3 === 0) {
+                  currentY += 45;
+                }
+                resolve();
+              } catch (error) {
+                console.warn('Erro ao adicionar imagem:', error);
+                resolve(); // Continuar mesmo se falhar
+              }
+            };
+            img.onerror = () => resolve(); // Continuar mesmo se falhar
+            img.src = creative.thumbnailUrl;
+          });
+        } catch (error) {
+          console.warn('Erro ao processar imagem:', error);
+        }
+      }
+    }
+
+    // Salvar PDF
+    const dateStr = new Date().toISOString().split('T')[0];
+    doc.save(`Analise_Criativos_${dateStr}.pdf`);
+
+    console.log('✅ PDF exportado com sucesso!');
+  } catch (error) {
+    console.error('❌ Erro ao exportar PDF:', error);
+    alert('Erro ao exportar PDF. Tente novamente.');
+  } finally {
+    // Sempre restaurar botão no final
+    const exportBtn = document.getElementById('exportCreativesPDFBtn');
+    if (exportBtn) exportBtn.style.display = originalDisplay || 'inline-flex';
+  }
 }
 
 // Renderizar insights

@@ -525,80 +525,124 @@ function renderPlatformFunnels() {
 }
 
 // Renderizar funil de uma plataforma específica
-function renderPlatformFunnel(canvasId, data, platformName) {
-  const ctx = document.getElementById(canvasId);
-  if (!ctx) return;
+function renderPlatformFunnel(containerId, data, platformName) {
+  // Encontrar o container pai
+  const chartContainer = document.getElementById(containerId)?.parentElement;
+  if (!chartContainer) return;
 
-  // Destruir gráfico anterior se existir
-  if (canvasId === 'funilChartMeta' && funilChartMeta) {
-    funilChartMeta.destroy();
-  } else if (canvasId === 'funilChartGoogle' && funilChartGoogle) {
-    funilChartGoogle.destroy();
+  // Limpar container
+  const canvasEl = chartContainer.querySelector('canvas');
+  if (canvasEl) {
+    canvasEl.remove();
   }
 
-  // Remover Impressões do funil por plataforma (começar em Cliques)
-  const labels = ['Cliques', 'Mensagens', 'Orçamentos', 'Vendas'];
-  const values = [
-    data.clicks,
-    data.messages,
-    data.orcamentos || 0,
-    data.vendas || 0
-  ];
+  // Destruir gráfico Chart.js se existir
+  if (containerId === 'funilChartMeta' && funilChartMeta) {
+    funilChartMeta.destroy();
+    funilChartMeta = null;
+  } else if (containerId === 'funilChartGoogle' && funilChartGoogle) {
+    funilChartGoogle.destroy();
+    funilChartGoogle = null;
+  }
 
-  // Cores para cada etapa (removido Impressões)
-  const colors = [
-    'rgba(33, 150, 243, 0.8)',   // Azul - Cliques
-    'rgba(200, 230, 201, 0.8)',  // Verde claro - Mensagens
-    'rgba(255, 249, 196, 0.8)',  // Amarelo - Orçamentos
-    'rgba(76, 175, 80, 0.8)'     // Verde - Vendas
-  ];
+  // Criar canvas
+  const canvas = document.createElement('canvas');
+  canvas.id = containerId;
+  canvas.width = 600;
+  canvas.height = 400;
+  canvas.style.width = '100%';
+  canvas.style.height = 'auto';
+  canvas.style.maxHeight = '400px';
+  chartContainer.insertBefore(canvas, chartContainer.firstChild);
 
-  const chart = new Chart(ctx, {
-    type: 'bar',
-    data: {
-      labels: labels,
-      datasets: [{
-        label: 'Quantidade',
-        data: values,
-        backgroundColor: colors,
-        borderColor: colors.map(c => c.replace('0.6', '1').replace('0.8', '1')),
-        borderWidth: 2
-      }]
+  const ctx = canvas.getContext('2d');
+  const width = canvas.width;
+  const height = canvas.height;
+
+  // Definir etapas do funil
+  const steps = [
+    { 
+      name: 'Cliques', 
+      value: data.clicks,
+      conversionRate: data.impressions > 0 ? ((data.clicks / data.impressions) * 100).toFixed(2) + '%' : '-'
     },
-    options: {
-      indexAxis: 'y',
-      responsive: true,
-      maintainAspectRatio: true,
-      plugins: {
-        legend: {
-          display: false
-        },
-        title: {
-          display: true,
-          text: platformName,
-          font: {
-            size: 16,
-            weight: 'bold'
-          }
-        }
-      },
-      scales: {
-        x: {
-          beginAtZero: true,
-          ticks: {
-            callback: function(value) {
-              return value.toLocaleString('pt-BR');
-            }
-          }
-        }
-      }
+    { 
+      name: 'Mensagens', 
+      value: data.messages,
+      conversionRate: data.clicks > 0 ? ((data.messages / data.clicks) * 100).toFixed(2) + '%' : '-'
+    },
+    { 
+      name: 'Orçamentos', 
+      value: data.orcamentos || 0,
+      conversionRate: data.messages > 0 ? ((data.orcamentos / data.messages) * 100).toFixed(2) + '%' : '-'
+    },
+    { 
+      name: 'Vendas', 
+      value: data.vendas || 0,
+      conversionRate: data.orcamentos > 0 ? ((data.vendas / data.orcamentos) * 100).toFixed(2) + '%' : '-'
     }
+  ];
+
+  // Configurações do funil
+  const funnelTopWidth = 450;
+  const funnelBottomWidth = 150;
+  const barHeight = 60;
+  const barSpacing = 15;
+  const startY = 30;
+  const leftMargin = 100;
+  const rightMargin = 150;
+
+  // Calcular larguras das barras (fixas)
+  const totalSteps = steps.length;
+  const widthDecrement = (funnelTopWidth - funnelBottomWidth) / (totalSteps - 1);
+
+  steps.forEach((step, index) => {
+    const barWidth = funnelTopWidth - (widthDecrement * index);
+    const x = leftMargin + (funnelTopWidth - barWidth) / 2;
+    const y = startY + (barHeight + barSpacing) * index;
+
+    // Desenhar barra
+    drawFunnelBar(ctx, x, y, barWidth, barHeight, index);
+
+    // Valor no centro
+    ctx.fillStyle = '#FFFFFF';
+    ctx.font = 'bold 18px Arial';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(
+      step.value.toLocaleString('pt-BR'),
+      x + barWidth / 2,
+      y + barHeight / 2
+    );
+
+    // Taxa de conversão à esquerda
+    ctx.fillStyle = '#4B5563';
+    ctx.font = '14px Arial';
+    ctx.textAlign = 'right';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(
+      step.conversionRate,
+      x - 8,
+      y + barHeight / 2
+    );
+
+    // Nome da métrica à direita
+    ctx.fillStyle = '#1F2937';
+    ctx.font = 'bold 16px Arial';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(
+      step.name,
+      x + barWidth + 8,
+      y + barHeight / 2
+    );
   });
 
-  if (canvasId === 'funilChartMeta') {
-    funilChartMeta = chart;
-  } else if (canvasId === 'funilChartGoogle') {
-    funilChartGoogle = chart;
+  // Salvar referência do canvas
+  if (containerId === 'funilChartMeta') {
+    funilChartMeta = canvas;
+  } else if (containerId === 'funilChartGoogle') {
+    funilChartGoogle = canvas;
   }
 }
 
@@ -1097,7 +1141,7 @@ async function exportFunnelToPDF() {
       currentY += 6;
     });
 
-    // Capturar gráfico como imagem
+    // Capturar gráfico como imagem (funil customizado)
     currentY += 10;
     if (currentY > pdfHeight - 80) {
       doc.addPage();
@@ -1109,7 +1153,7 @@ async function exportFunnelToPDF() {
       if (chartCanvas) {
         const chartImg = chartCanvas.toDataURL('image/png');
         const imgWidth = 190;
-        const imgHeight = 100;
+        const imgHeight = 120;
         doc.addImage(chartImg, 'PNG', margin, currentY, imgWidth, imgHeight);
         currentY += imgHeight + 10;
       }

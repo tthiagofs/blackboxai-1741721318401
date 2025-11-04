@@ -526,22 +526,20 @@ function renderPlatformFunnels() {
 
 // Renderizar funil de uma plataforma específica
 function renderPlatformFunnel(containerId, data, platformName) {
-  // Encontrar o container pai
-  const chartContainer = document.getElementById(containerId)?.parentElement;
+  // Encontrar o container
+  const chartContainer = document.getElementById(containerId);
   if (!chartContainer) return;
 
-  // Limpar container
+  // Limpar container (remover canvas anterior se existir)
   const canvasEl = chartContainer.querySelector('canvas');
   if (canvasEl) {
     canvasEl.remove();
   }
 
-  // Destruir gráfico Chart.js se existir
+  // Limpar referências antigas
   if (containerId === 'funilChartMeta' && funilChartMeta) {
-    funilChartMeta.destroy();
     funilChartMeta = null;
   } else if (containerId === 'funilChartGoogle' && funilChartGoogle) {
-    funilChartGoogle.destroy();
     funilChartGoogle = null;
   }
 
@@ -554,7 +552,7 @@ function renderPlatformFunnel(containerId, data, platformName) {
   canvas.style.height = 'auto';
   canvas.style.maxHeight = '350px';
   canvas.style.display = 'block';
-  chartContainer.insertBefore(canvas, chartContainer.firstChild);
+  chartContainer.appendChild(canvas);
 
   const ctx = canvas.getContext('2d');
   const width = canvas.width;

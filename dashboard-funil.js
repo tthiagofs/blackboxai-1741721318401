@@ -548,11 +548,12 @@ function renderPlatformFunnel(containerId, data, platformName) {
   // Criar canvas
   const canvas = document.createElement('canvas');
   canvas.id = containerId;
-  canvas.width = 600;
-  canvas.height = 400;
+  canvas.width = 650;
+  canvas.height = 350;
   canvas.style.width = '100%';
   canvas.style.height = 'auto';
-  canvas.style.maxHeight = '400px';
+  canvas.style.maxHeight = '350px';
+  canvas.style.display = 'block';
   chartContainer.insertBefore(canvas, chartContainer.firstChild);
 
   const ctx = canvas.getContext('2d');
@@ -583,14 +584,14 @@ function renderPlatformFunnel(containerId, data, platformName) {
     }
   ];
 
-  // Configurações do funil
-  const funnelTopWidth = 450;
-  const funnelBottomWidth = 150;
-  const barHeight = 60;
-  const barSpacing = 15;
-  const startY = 30;
-  const leftMargin = 100;
-  const rightMargin = 150;
+  // Configurações do funil (plataforma)
+  const funnelTopWidth = 400;
+  const funnelBottomWidth = 130;
+  const barHeight = 55;
+  const barSpacing = 20;
+  const startY = 40;
+  const leftMargin = 120;
+  const rightMargin = 15;
 
   // Calcular larguras das barras (fixas)
   const totalSteps = steps.length;
@@ -598,8 +599,20 @@ function renderPlatformFunnel(containerId, data, platformName) {
 
   steps.forEach((step, index) => {
     const barWidth = funnelTopWidth - (widthDecrement * index);
-    const x = leftMargin + (funnelTopWidth - barWidth) / 2;
+    // Todas as barras alinhadas à esquerda
+    const x = leftMargin;
     const y = startY + (barHeight + barSpacing) * index;
+
+    // Taxa de conversão à esquerda
+    ctx.fillStyle = '#6B7280';
+    ctx.font = '13px Arial';
+    ctx.textAlign = 'right';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(
+      step.conversionRate,
+      x - 12,
+      y + barHeight / 2
+    );
 
     // Desenhar barra
     drawFunnelBar(ctx, x, y, barWidth, barHeight, index);
@@ -609,31 +622,32 @@ function renderPlatformFunnel(containerId, data, platformName) {
     ctx.font = 'bold 18px Arial';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText(
-      step.value.toLocaleString('pt-BR'),
-      x + barWidth / 2,
-      y + barHeight / 2
-    );
+    
+    const valueText = step.value.toLocaleString('pt-BR');
+    const valueWidth = ctx.measureText(valueText).width;
+    if (valueWidth < barWidth - 20) {
+      ctx.fillText(
+        valueText,
+        x + barWidth / 2,
+        y + barHeight / 2
+      );
+    } else {
+      ctx.font = 'bold 15px Arial';
+      ctx.fillText(
+        valueText,
+        x + barWidth / 2,
+        y + barHeight / 2
+      );
+    }
 
-    // Taxa de conversão à esquerda
-    ctx.fillStyle = '#4B5563';
-    ctx.font = '14px Arial';
-    ctx.textAlign = 'right';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(
-      step.conversionRate,
-      x - 8,
-      y + barHeight / 2
-    );
-
-    // Nome da métrica à direita
+    // Nome da métrica à direita (completo)
     ctx.fillStyle = '#1F2937';
-    ctx.font = 'bold 16px Arial';
+    ctx.font = 'bold 15px Arial';
     ctx.textAlign = 'left';
     ctx.textBaseline = 'middle';
     ctx.fillText(
       step.name,
-      x + barWidth + 8,
+      x + barWidth + 12,
       y + barHeight / 2
     );
   });
@@ -740,11 +754,12 @@ function renderFunnel() {
   // Criar canvas para o funil
   const canvas = document.createElement('canvas');
   canvas.id = 'funilChart';
-  canvas.width = 800;
-  canvas.height = 500;
+  canvas.width = 900;
+  canvas.height = 450;
   canvas.style.width = '100%';
   canvas.style.height = 'auto';
-  canvas.style.maxHeight = '500px';
+  canvas.style.maxHeight = '450px';
+  canvas.style.display = 'block';
   container.appendChild(canvas);
 
   const ctx = canvas.getContext('2d');
@@ -754,11 +769,11 @@ function renderFunnel() {
   // Configurações do funil
   const funnelTopWidth = 600;
   const funnelBottomWidth = 200;
-  const barHeight = 80;
-  const barSpacing = 20;
-  const startY = 50;
-  const leftMargin = 150; // Espaço para taxa de conversão
-  const rightMargin = 200; // Espaço para nome da métrica
+  const barHeight = 70;
+  const barSpacing = 25;
+  const startY = 60;
+  const leftMargin = 180; // Espaço para taxa de conversão
+  const rightMargin = 20; // Espaço para nome da métrica
 
   // Calcular larguras das barras (fixas, não baseadas no valor)
   const totalSteps = steps.length;
@@ -766,42 +781,64 @@ function renderFunnel() {
 
   steps.forEach((step, index) => {
     const barWidth = funnelTopWidth - (widthDecrement * index);
-    const x = leftMargin + (funnelTopWidth - barWidth) / 2;
+    // Todas as barras começam na mesma posição X (alinhadas à esquerda)
+    const x = leftMargin;
     const y = startY + (barHeight + barSpacing) * index;
+
+    // Desenhar taxa de conversão no lado esquerdo (antes da barra)
+    ctx.fillStyle = '#6B7280'; // Cinza médio
+    ctx.font = '14px Arial';
+    ctx.textAlign = 'right';
+    ctx.textBaseline = 'middle';
+    
+    // Medir texto para garantir que não corte
+    const conversionText = step.conversionRate;
+    const conversionWidth = ctx.measureText(conversionText).width;
+    ctx.fillText(
+      conversionText,
+      x - 15,
+      y + barHeight / 2
+    );
 
     // Desenhar barra principal (funil 3D)
     drawFunnelBar(ctx, x, y, barWidth, barHeight, index);
 
     // Desenhar valor no centro da barra (fonte branca)
     ctx.fillStyle = '#FFFFFF';
-    ctx.font = 'bold 24px Arial';
+    ctx.font = 'bold 22px Arial';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText(
-      step.value.toLocaleString('pt-BR'),
-      x + barWidth / 2,
-      y + barHeight / 2
-    );
+    
+    // Verificar se o valor cabe na barra
+    const valueText = step.value.toLocaleString('pt-BR');
+    const valueWidth = ctx.measureText(valueText).width;
+    if (valueWidth < barWidth - 20) {
+      ctx.fillText(
+        valueText,
+        x + barWidth / 2,
+        y + barHeight / 2
+      );
+    } else {
+      // Se não couber, usar fonte menor
+      ctx.font = 'bold 18px Arial';
+      ctx.fillText(
+        valueText,
+        x + barWidth / 2,
+        y + barHeight / 2
+      );
+    }
 
-    // Desenhar taxa de conversão no lado esquerdo
-    ctx.fillStyle = '#4B5563'; // Cinza escuro
-    ctx.font = '16px Arial';
-    ctx.textAlign = 'right';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(
-      step.conversionRate,
-      x - 10,
-      y + barHeight / 2
-    );
-
-    // Desenhar nome da métrica no lado direito
+    // Desenhar nome da métrica no lado direito (completar o texto)
     ctx.fillStyle = '#1F2937'; // Cinza muito escuro
-    ctx.font = 'bold 18px Arial';
+    ctx.font = 'bold 16px Arial';
     ctx.textAlign = 'left';
     ctx.textBaseline = 'middle';
+    
+    // Garantir que o nome completo seja exibido
+    const metricName = step.name;
     ctx.fillText(
-      step.name,
-      x + barWidth + 10,
+      metricName,
+      x + barWidth + 15,
       y + barHeight / 2
     );
   });
@@ -810,34 +847,40 @@ function renderFunnel() {
   funilChart = canvas;
 }
 
-// Desenhar barra do funil com efeito 3D
+// Desenhar barra do funil com efeito 3D melhorado
 function drawFunnelBar(ctx, x, y, width, height, index) {
-  // Cor azul gradiente
+  // Cor azul gradiente mais suave e moderna
   const gradient = ctx.createLinearGradient(x, y, x, y + height);
-  gradient.addColorStop(0, '#3B82F6'); // Azul mais claro no topo
-  gradient.addColorStop(1, '#1E40AF'); // Azul mais escuro na base
+  gradient.addColorStop(0, '#4F9CF9'); // Azul mais claro e vibrante
+  gradient.addColorStop(0.5, '#3B82F6'); // Azul médio
+  gradient.addColorStop(1, '#2563EB'); // Azul mais escuro
+
+  // Sombra externa para profundidade
+  ctx.shadowColor = 'rgba(0, 0, 0, 0.15)';
+  ctx.shadowBlur = 8;
+  ctx.shadowOffsetX = 0;
+  ctx.shadowOffsetY = 2;
 
   // Desenhar barra principal
   ctx.fillStyle = gradient;
   ctx.beginPath();
-  ctx.roundRect(x, y, width, height, 8);
+  ctx.roundRect(x, y, width, height, 10);
   ctx.fill();
 
-  // Adicionar efeito de profundidade (sombra/3D)
-  // Sombra na parte inferior
-  ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
-  ctx.beginPath();
-  ctx.roundRect(x + 2, y + height - 5, width - 4, 5, 4);
-  ctx.fill();
+  // Resetar sombra
+  ctx.shadowColor = 'transparent';
+  ctx.shadowBlur = 0;
+  ctx.shadowOffsetX = 0;
+  ctx.shadowOffsetY = 0;
 
-  // Destaque no topo (brilho)
-  const highlightGradient = ctx.createLinearGradient(x, y, x, y + 15);
-  highlightGradient.addColorStop(0, 'rgba(255, 255, 255, 0.3)');
+  // Destaque no topo (brilho sutil)
+  const highlightGradient = ctx.createLinearGradient(x, y, x, y + 20);
+  highlightGradient.addColorStop(0, 'rgba(255, 255, 255, 0.25)');
   highlightGradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
   
   ctx.fillStyle = highlightGradient;
   ctx.beginPath();
-  ctx.roundRect(x + 2, y + 2, width - 4, 15, 6);
+  ctx.roundRect(x + 3, y + 3, width - 6, 20, 8);
   ctx.fill();
 }
 

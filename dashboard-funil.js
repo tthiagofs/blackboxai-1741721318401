@@ -543,20 +543,29 @@ function renderPlatformFunnel(containerId, data, platformName) {
     funilChartGoogle = null;
   }
 
-  // Criar canvas
+  // Criar canvas com alta resolução
   const canvas = document.createElement('canvas');
   canvas.id = containerId;
-  canvas.width = 650;
-  canvas.height = 350;
-  canvas.style.width = '100%';
-  canvas.style.height = 'auto';
-  canvas.style.maxHeight = '350px';
+  
+  const dpr = window.devicePixelRatio || 1;
+  const displayWidth = 650;
+  const displayHeight = 350;
+  
+  canvas.width = displayWidth * dpr;
+  canvas.height = displayHeight * dpr;
+  
+  canvas.style.width = displayWidth + 'px';
+  canvas.style.height = displayHeight + 'px';
+  canvas.style.maxHeight = displayHeight + 'px';
   canvas.style.display = 'block';
+  canvas.style.imageRendering = 'crisp-edges';
   chartContainer.appendChild(canvas);
 
   const ctx = canvas.getContext('2d');
-  const width = canvas.width;
-  const height = canvas.height;
+  ctx.scale(dpr, dpr);
+  
+  const width = displayWidth;
+  const height = displayHeight;
 
   // Definir etapas do funil
   const steps = [
@@ -749,20 +758,34 @@ function renderFunnel() {
     }
   ];
 
-  // Criar canvas para o funil
+  // Criar canvas para o funil com alta resolução (retina/high DPI)
   const canvas = document.createElement('canvas');
   canvas.id = 'funilChart';
-  canvas.width = 900;
-  canvas.height = 450;
-  canvas.style.width = '100%';
-  canvas.style.height = 'auto';
-  canvas.style.maxHeight = '450px';
+  
+  // Obter device pixel ratio para alta qualidade
+  const dpr = window.devicePixelRatio || 1;
+  const displayWidth = 900;
+  const displayHeight = 450;
+  
+  // Definir tamanho real do canvas (multiplicado pelo DPR)
+  canvas.width = displayWidth * dpr;
+  canvas.height = displayHeight * dpr;
+  
+  // Definir tamanho de exibição
+  canvas.style.width = displayWidth + 'px';
+  canvas.style.height = displayHeight + 'px';
+  canvas.style.maxHeight = displayHeight + 'px';
   canvas.style.display = 'block';
+  canvas.style.imageRendering = 'crisp-edges';
   container.appendChild(canvas);
 
   const ctx = canvas.getContext('2d');
-  const width = canvas.width;
-  const height = canvas.height;
+  
+  // Escalar o contexto para alta resolução
+  ctx.scale(dpr, dpr);
+  
+  const width = displayWidth;
+  const height = displayHeight;
 
   // Configurações do funil
   const funnelTopWidth = 600;
@@ -845,24 +868,25 @@ function renderFunnel() {
   funilChart = canvas;
 }
 
-// Desenhar barra do funil com efeito 3D melhorado
+// Desenhar barra do funil com efeito 3D melhorado e alta qualidade
 function drawFunnelBar(ctx, x, y, width, height, index) {
   // Cor azul gradiente mais suave e moderna
   const gradient = ctx.createLinearGradient(x, y, x, y + height);
-  gradient.addColorStop(0, '#4F9CF9'); // Azul mais claro e vibrante
-  gradient.addColorStop(0.5, '#3B82F6'); // Azul médio
-  gradient.addColorStop(1, '#2563EB'); // Azul mais escuro
+  gradient.addColorStop(0, '#60A5FA'); // Azul claro vibrante
+  gradient.addColorStop(0.3, '#3B82F6'); // Azul médio
+  gradient.addColorStop(0.7, '#2563EB'); // Azul escuro
+  gradient.addColorStop(1, '#1E40AF'); // Azul muito escuro na base
 
-  // Sombra externa para profundidade
-  ctx.shadowColor = 'rgba(0, 0, 0, 0.15)';
-  ctx.shadowBlur = 8;
+  // Sombra externa para profundidade (mais suave)
+  ctx.shadowColor = 'rgba(0, 0, 0, 0.12)';
+  ctx.shadowBlur = 12;
   ctx.shadowOffsetX = 0;
-  ctx.shadowOffsetY = 2;
+  ctx.shadowOffsetY = 3;
 
-  // Desenhar barra principal
+  // Desenhar barra principal com bordas arredondadas
   ctx.fillStyle = gradient;
   ctx.beginPath();
-  ctx.roundRect(x, y, width, height, 10);
+  ctx.roundRect(x, y, width, height, 12);
   ctx.fill();
 
   // Resetar sombra
@@ -871,15 +895,23 @@ function drawFunnelBar(ctx, x, y, width, height, index) {
   ctx.shadowOffsetX = 0;
   ctx.shadowOffsetY = 0;
 
-  // Destaque no topo (brilho sutil)
-  const highlightGradient = ctx.createLinearGradient(x, y, x, y + 20);
-  highlightGradient.addColorStop(0, 'rgba(255, 255, 255, 0.25)');
+  // Destaque no topo (brilho mais pronunciado)
+  const highlightGradient = ctx.createLinearGradient(x, y, x, y + 25);
+  highlightGradient.addColorStop(0, 'rgba(255, 255, 255, 0.35)');
+  highlightGradient.addColorStop(0.5, 'rgba(255, 255, 255, 0.15)');
   highlightGradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
   
   ctx.fillStyle = highlightGradient;
   ctx.beginPath();
-  ctx.roundRect(x + 3, y + 3, width - 6, 20, 8);
+  ctx.roundRect(x + 2, y + 2, width - 4, 25, 10);
   ctx.fill();
+
+  // Borda sutil no topo para definição
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.roundRect(x, y, width, height, 12);
+  ctx.stroke();
 }
 
 // Polyfill para roundRect se não estiver disponível
@@ -1025,19 +1057,21 @@ function renderBottlenecks() {
   container.innerHTML = '';
 
   const data = currentFunnelData;
+  const previous = previousFunnelData;
   
-  // Encontrar maior perda (removendo Impressões)
+  // Analisar apenas: Mensagens → Orçamentos e Orçamentos → Vendas
+  // (remover Cliques → Mensagens da análise)
   const steps = [
-    { name: 'Cliques', value: data.clicks },
-    { name: 'Mensagens', value: data.messages },
-    { name: 'Orçamentos', value: data.orcamentos },
-    { name: 'Vendas', value: data.vendas }
+    { name: 'Mensagens', value: data.messages, previousValue: previous?.messages || null },
+    { name: 'Orçamentos', value: data.orcamentos, previousValue: previous?.orcamentos || null },
+    { name: 'Vendas', value: data.vendas, previousValue: previous?.vendas || null }
   ];
 
   let maxLoss = 0;
   let maxLossStep = null;
   let maxLossPercentage = 0;
 
+  // Analisar apenas as duas transições relevantes
   for (let i = 0; i < steps.length - 1; i++) {
     const loss = steps[i].value - steps[i + 1].value;
     const lossPercentage = steps[i].value > 0 ? (loss / steps[i].value * 100) : 0;
@@ -1076,7 +1110,7 @@ function renderBottlenecks() {
     container.appendChild(lossCard);
   }
 
-  // Encontrar melhor conversão (usando steps já definido acima)
+  // Encontrar melhor conversão (apenas entre Mensagens→Orçamentos e Orçamentos→Vendas)
   let bestConversion = 0;
   let bestConversionStep = null;
 
@@ -1089,6 +1123,9 @@ function renderBottlenecks() {
       }
     }
   }
+
+  // Adicionar análises de comparação com período anterior
+  addPeriodComparison(container, steps, data, previous);
 
   // Criar card de melhor conversão
   if (bestConversionStep && bestConversion > 0) {
@@ -1112,14 +1149,110 @@ function renderBottlenecks() {
   }
 }
 
+// Adicionar comparação com período anterior
+function addPeriodComparison(container, steps, currentData, previousData) {
+  if (!previousData) return;
+
+  // Comparar Mensagens
+  if (steps[0].previousValue !== null && steps[0].previousValue > 0) {
+    const currentMessages = steps[0].value;
+    const previousMessages = steps[0].previousValue;
+    const change = ((currentMessages - previousMessages) / previousMessages * 100);
+    const changeAbs = Math.abs(change).toFixed(1);
+
+    if (Math.abs(change) > 5) { // Só mostrar se houver mudança significativa
+      const comparisonCard = document.createElement('div');
+      comparisonCard.className = change > 0 
+        ? 'bg-blue-50 border border-blue-200 rounded-lg p-4'
+        : 'bg-yellow-50 border border-yellow-200 rounded-lg p-4';
+      
+      const icon = change > 0 ? '📈' : '📉';
+      const direction = change > 0 ? 'aumento' : 'queda';
+      
+      comparisonCard.innerHTML = `
+        <div class="flex items-start gap-3">
+          <span class="text-2xl">${icon}</span>
+          <div>
+            <h3 class="font-semibold text-gray-900 mb-1">Comparação com Período Anterior</h3>
+            <p class="text-sm text-gray-700">
+              Tivemos uma ${direction} de ${changeAbs}% no número de mensagens em comparação com o período anterior 
+              (${previousMessages.toLocaleString('pt-BR')} → ${currentMessages.toLocaleString('pt-BR')}).
+            </p>
+          </div>
+        </div>
+      `;
+      container.appendChild(comparisonCard);
+    }
+  }
+
+  // Comparar taxa de conversão Mensagens → Orçamentos
+  if (steps[0].value > 0 && steps[1].value > 0 && 
+      steps[0].previousValue !== null && steps[0].previousValue > 0 && steps[1].previousValue > 0) {
+    const currentRate = (steps[1].value / steps[0].value * 100);
+    const previousRate = (steps[1].previousValue / steps[0].previousValue * 100);
+    const rateChange = currentRate - previousRate;
+
+    if (Math.abs(rateChange) > 5) { // Só mostrar se houver mudança significativa
+      const comparisonCard = document.createElement('div');
+      comparisonCard.className = rateChange > 0 
+        ? 'bg-green-50 border border-green-200 rounded-lg p-4 mt-4'
+        : 'bg-orange-50 border border-orange-200 rounded-lg p-4 mt-4';
+      
+      const icon = rateChange > 0 ? '✅' : '⚠️';
+      const direction = rateChange > 0 ? 'aumentou' : 'diminuiu';
+      
+      comparisonCard.innerHTML = `
+        <div class="flex items-start gap-3">
+          <span class="text-2xl">${icon}</span>
+          <div>
+            <h3 class="font-semibold text-gray-900 mb-1">Taxa de Conversão Mensagens → Orçamentos</h3>
+            <p class="text-sm text-gray-700">
+              A taxa de conversão de mensagens para orçamentos ${direction} consideravelmente neste período 
+              (${previousRate.toFixed(2)}% → ${currentRate.toFixed(2)}%, ${rateChange > 0 ? '+' : ''}${rateChange.toFixed(2)} pontos percentuais).
+            </p>
+          </div>
+        </div>
+      `;
+      container.appendChild(comparisonCard);
+    }
+  }
+
+  // Comparar taxa de conversão Orçamentos → Vendas
+  if (steps[1].value > 0 && steps[2].value > 0 &&
+      steps[1].previousValue !== null && steps[1].previousValue > 0 && steps[2].previousValue > 0) {
+    const currentRate = (steps[2].value / steps[1].value * 100);
+    const previousRate = (steps[2].previousValue / steps[1].previousValue * 100);
+    const rateChange = currentRate - previousRate;
+
+    if (Math.abs(rateChange) > 5) { // Só mostrar se houver mudança significativa
+      const comparisonCard = document.createElement('div');
+      comparisonCard.className = rateChange > 0 
+        ? 'bg-green-50 border border-green-200 rounded-lg p-4 mt-4'
+        : 'bg-orange-50 border border-orange-200 rounded-lg p-4 mt-4';
+      
+      const icon = rateChange > 0 ? '✅' : '⚠️';
+      const direction = rateChange > 0 ? 'aumentou' : 'diminuiu';
+      
+      comparisonCard.innerHTML = `
+        <div class="flex items-start gap-3">
+          <span class="text-2xl">${icon}</span>
+          <div>
+            <h3 class="font-semibold text-gray-900 mb-1">Taxa de Conversão Orçamentos → Vendas</h3>
+            <p class="text-sm text-gray-700">
+              A taxa de conversão de orçamentos para vendas ${direction} consideravelmente neste período 
+              (${previousRate.toFixed(2)}% → ${currentRate.toFixed(2)}%, ${rateChange > 0 ? '+' : ''}${rateChange.toFixed(2)} pontos percentuais).
+            </p>
+          </div>
+        </div>
+      `;
+      container.appendChild(comparisonCard);
+    }
+  }
+}
+
 // Obter recomendações baseadas no gargalo
 function getRecommendations(step) {
   const recommendations = {
-    'Cliques': [
-      'Melhorar copy e CTA dos anúncios',
-      'Testar diferentes criativos',
-      'Otimizar título e descrição'
-    ],
     'Mensagens': [
       'Melhorar experiência na landing page',
       'Simplificar processo de contato',

@@ -140,8 +140,15 @@ function setupCreativeEventListeners() {
   // Botão de buscar
   document.getElementById('searchCreativesBtn').addEventListener('click', searchCreatives);
 
-  // Botão de exportar PDF - mesma lógica do funil (buscar diretamente)
-  document.getElementById('exportCreativesPDFBtn').addEventListener('click', exportCreativesToPDF);
+  // Botão de exportar PDF - verificar se existe antes de adicionar listener
+  const exportPDFBtn = document.getElementById('exportCreativesPDFBtn');
+  if (exportPDFBtn) {
+    exportPDFBtn.addEventListener('click', exportCreativesToPDF);
+    console.log('✅ Botão de exportar PDF configurado');
+  } else {
+    console.warn('⚠️ Botão exportCreativesPDFBtn não encontrado na inicialização');
+    // Tentar configurar quando o conteúdo for exibido
+  }
 }
 
 // Calcular datas do período
@@ -255,16 +262,18 @@ async function searchCreatives() {
     loadingEl.classList.add('hidden');
     contentEl.classList.remove('hidden');
     
-    // Garantir que o botão de exportar PDF esteja visível e configurado
+    // Garantir que o botão de exportar PDF esteja configurado quando o conteúdo for exibido
     const exportPDFBtn = document.getElementById('exportCreativesPDFBtn');
     if (exportPDFBtn) {
-      exportPDFBtn.style.display = 'inline-flex';
       // Garantir que o event listener esteja configurado
-      exportPDFBtn.removeEventListener('click', exportCreativesToPDF); // Remover duplicatas
+      exportPDFBtn.removeEventListener('click', exportCreativesToPDF); // Remover duplicatas se existir
       exportPDFBtn.addEventListener('click', exportCreativesToPDF);
-      console.log('✅ Botão de exportar PDF exibido e configurado');
+      exportPDFBtn.style.display = 'inline-flex'; // Garantir que está visível
+      console.log('✅ Botão de exportar PDF configurado e exibido');
     } else {
       console.error('❌ Botão exportCreativesPDFBtn não encontrado após buscar criativos');
+      console.error('❌ Verificando se creativesContent existe:', document.getElementById('creativesContent'));
+      console.error('❌ Verificando se contentCriativos existe:', document.getElementById('contentCriativos'));
     }
 
   } catch (error) {

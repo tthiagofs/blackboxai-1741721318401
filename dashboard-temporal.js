@@ -351,8 +351,23 @@ async function getTrafficData(unit, startDate, endDate) {
               const date = dayData.date_start; // Formato YYYY-MM-DD
               
               // Extrair mensagens das actions
-            // Usar função unificada para extrair todas as mensagens/leads/cadastros
-            const messages = extractAllMessagesAndLeads(dayData.actions || []);
+              // Para análise temporal, usar apenas métrica principal para evitar duplicação
+              // (mensagens + cadastros + conversões podem ser a mesma pessoa)
+              const messageAction = dayData.actions?.find(action => 
+                action.action_type === 'onsite_conversion.messaging_conversation_started_7d'
+              );
+              let messages = 0;
+              if (messageAction && messageAction.value) {
+                messages = parseInt(messageAction.value) || 0;
+              } else {
+                // Fallback: se não tiver a métrica principal, usar lead_grouped
+                const leadAction = dayData.actions?.find(action => 
+                  action.action_type === 'onsite_conversion.lead_grouped'
+                );
+                if (leadAction && leadAction.value) {
+                  messages = parseInt(leadAction.value) || 0;
+                }
+              }
               
               const spend = parseFloat(dayData.spend || 0);
               
@@ -383,8 +398,22 @@ async function getTrafficData(unit, startDate, endDate) {
           );
           
           if (insights) {
-            // Usar função unificada para extrair todas as mensagens/leads/cadastros
-            const messages = extractAllMessagesAndLeads(insights.actions || []);
+            // Para análise temporal, usar apenas métrica principal para evitar duplicação
+            const messageAction = insights.actions?.find(action => 
+              action.action_type === 'onsite_conversion.messaging_conversation_started_7d'
+            );
+            let messages = 0;
+            if (messageAction && messageAction.value) {
+              messages = parseInt(messageAction.value) || 0;
+            } else {
+              // Fallback: se não tiver a métrica principal, usar lead_grouped
+              const leadAction = insights.actions?.find(action => 
+                action.action_type === 'onsite_conversion.lead_grouped'
+              );
+              if (leadAction && leadAction.value) {
+                messages = parseInt(leadAction.value) || 0;
+              }
+            }
             
             // Distribuir uniformemente pelos dias
             const days = getDaysBetween(startDate, endDate);

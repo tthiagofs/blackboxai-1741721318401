@@ -803,15 +803,38 @@ function renderLineChart() {
   const currentByDate = aggregateByDate(currentPeriodData);
   const previousByDate = aggregateByDate(previousPeriodData);
 
+  console.log('📊 Dados do período atual por data:', Object.keys(currentByDate).length, 'dias');
+  console.log('📊 Dados do período anterior por data:', Object.keys(previousByDate).length, 'dias');
+  console.log('📊 Exemplo de datas do período atual:', Object.keys(currentByDate).slice(0, 5));
+  console.log('📊 Exemplo de datas do período anterior:', Object.keys(previousByDate).slice(0, 5));
+  
+  // Usar as datas do período atual como referência principal
   const dates = Object.keys(currentByDate).sort();
+  
+  // Para o período anterior, mapear por posição relativa (dia 1, dia 2, etc.)
+  // Isso permite comparar períodos mesmo que as datas sejam diferentes
+  const previousDatesSorted = Object.keys(previousByDate).sort();
+  
   const currentValues = dates.map(date => {
-    const day = currentByDate[date];
+    const day = currentByDate[date] || { invested: 0, messages: 0, sales: 0, revenue: 0, cpa: 0, roi: 0 };
     return getMetricValue(day, metric);
   });
-  const previousValues = dates.map(date => {
-    const day = previousByDate[date] || {};
-    return getMetricValue(day, metric);
+  
+  // Mapear valores do período anterior por posição de dia (dia 1, dia 2, etc.)
+  const previousValues = dates.map((currentDate, index) => {
+    // Pegar o dia correspondente do período anterior pela posição
+    const previousDate = previousDatesSorted[index];
+    if (previousDate) {
+      const day = previousByDate[previousDate] || { invested: 0, messages: 0, sales: 0, revenue: 0, cpa: 0, roi: 0 };
+      return getMetricValue(day, metric);
+    }
+    return 0;
   });
+
+  console.log('📊 Total de datas do período atual:', dates.length);
+  console.log('📊 Total de datas do período anterior:', previousDatesSorted.length);
+  console.log('📊 Valores do período atual (primeiros 5):', currentValues.slice(0, 5));
+  console.log('📊 Valores do período anterior (primeiros 5):', previousValues.slice(0, 5));
 
   // Destruir gráfico anterior
   if (lineChart) {
@@ -893,7 +916,8 @@ function aggregateByDate(data) {
   // Calcular CPA e ROI
   Object.values(byDate).forEach(day => {
     day.cpa = day.messages > 0 ? (day.invested / day.messages) : 0;
-    day.roi = day.invested > 0 ? (day.revenue / day.invested) : 0;
+    // ROI = (Faturamento * 0.25) / Investido (se houver investimento)
+    day.roi = day.invested > 0 ? ((day.revenue * 0.25) / day.invested) : 0;
   });
 
   return byDate;
@@ -975,7 +999,8 @@ function aggregateTotals(data) {
   });
 
   total.cpa = total.messages > 0 ? (total.invested / total.messages) : 0;
-  total.roi = total.invested > 0 ? (total.revenue / total.invested) : 0;
+  // ROI = (Faturamento * 0.25) / Investido (se houver investimento)
+  total.roi = total.invested > 0 ? ((total.revenue * 0.25) / total.invested) : 0;
 
   return total;
 }

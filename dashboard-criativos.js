@@ -258,32 +258,41 @@ async function searchCreatives() {
     renderTypeComparison(allCreatives);
     renderInsights(allCreatives);
 
+    // Garantir que o botão de exportar PDF exista antes de exibir o conteúdo
+    const creativesHeader = contentEl.querySelector('.bg-white.border.border-gray-200.rounded-xl.p-5.mb-6');
+    if (creativesHeader) {
+      const headerDiv = creativesHeader.querySelector('.flex.items-center.justify-between.mb-4');
+      if (headerDiv) {
+        // Verificar se o botão já existe
+        let exportPDFBtn = headerDiv.querySelector('#exportCreativesPDFBtn');
+        if (!exportPDFBtn) {
+          // Criar o botão se não existir
+          exportPDFBtn = document.createElement('button');
+          exportPDFBtn.id = 'exportCreativesPDFBtn';
+          exportPDFBtn.className = 'px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm flex items-center gap-2';
+          exportPDFBtn.innerHTML = '<i class="fas fa-file-pdf"></i> Exportar PDF';
+          
+          // Adicionar o botão à direita do título
+          const titleDiv = headerDiv.querySelector('.flex.items-center.gap-4');
+          if (titleDiv && titleDiv.parentNode === headerDiv) {
+            // Se o headerDiv tem flex e justify-between, adicionar o botão após o titleDiv
+            headerDiv.appendChild(exportPDFBtn);
+          } else {
+            // Caso contrário, adicionar no final do headerDiv
+            headerDiv.appendChild(exportPDFBtn);
+          }
+        }
+        // Configurar event listener
+        exportPDFBtn.removeEventListener('click', exportCreativesToPDF);
+        exportPDFBtn.addEventListener('click', exportCreativesToPDF);
+        exportPDFBtn.style.display = 'inline-flex';
+        console.log('✅ Botão de exportar PDF criado e configurado');
+      }
+    }
+
     // Mostrar conteúdo
     loadingEl.classList.add('hidden');
     contentEl.classList.remove('hidden');
-    
-    // Garantir que o botão de exportar PDF esteja configurado quando o conteúdo for exibido
-    // Aguardar um pouco para garantir que o DOM foi atualizado
-    setTimeout(() => {
-      const exportPDFBtn = document.getElementById('exportCreativesPDFBtn');
-      if (exportPDFBtn) {
-        // Garantir que o event listener esteja configurado
-        exportPDFBtn.removeEventListener('click', exportCreativesToPDF); // Remover duplicatas se existir
-        exportPDFBtn.addEventListener('click', exportCreativesToPDF);
-        exportPDFBtn.style.display = 'inline-flex'; // Garantir que está visível
-        console.log('✅ Botão de exportar PDF configurado e exibido');
-      } else {
-        console.error('❌ Botão exportCreativesPDFBtn não encontrado após buscar criativos');
-        const creativesContent = document.getElementById('creativesContent');
-        console.error('❌ Verificando creativesContent:', creativesContent);
-        if (creativesContent) {
-          console.error('❌ HTML dentro de creativesContent:', creativesContent.innerHTML.substring(0, 500));
-          // Tentar encontrar o botão por querySelector
-          const btnByQuery = creativesContent.querySelector('#exportCreativesPDFBtn');
-          console.error('❌ Botão encontrado por querySelector:', btnByQuery);
-        }
-      }
-    }, 100);
 
   } catch (error) {
     console.error('Erro ao buscar criativos:', error);

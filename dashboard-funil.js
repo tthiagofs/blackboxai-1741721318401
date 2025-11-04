@@ -852,14 +852,7 @@ function renderBottlenecks() {
   container.innerHTML = '';
 
   const data = currentFunnelData;
-  const steps = [
-    { name: 'Impressões', value: data.impressions },
-    { name: 'Cliques', value: data.clicks },
-    { name: 'Mensagens', value: data.messages },
-    { name: 'Orçamentos', value: data.orcamentos },
-    { name: 'Vendas', value: data.vendas }
-  ];
-
+  
   // Encontrar maior perda (removendo Impressões)
   const steps = [
     { name: 'Cliques', value: data.clicks },

@@ -140,23 +140,25 @@ function setupCreativeEventListeners() {
   // Botão de buscar
   document.getElementById('searchCreativesBtn').addEventListener('click', searchCreatives);
 
-  // Botão de exportar PDF (pode estar oculto inicialmente, mas ainda existe no DOM)
+  // Botão de exportar PDF - usar event delegation para garantir que funcione mesmo se o elemento não existir ainda
+  // Usar document.body ou um elemento pai que sempre existe
+  document.addEventListener('click', function(e) {
+    if (e.target && (e.target.id === 'exportCreativesPDFBtn' || e.target.closest('#exportCreativesPDFBtn'))) {
+      const btn = e.target.id === 'exportCreativesPDFBtn' ? e.target : e.target.closest('#exportCreativesPDFBtn');
+      if (btn) {
+        e.preventDefault();
+        exportCreativesToPDF();
+      }
+    }
+  });
+  
+  // Também tentar configurar diretamente se o botão já existir
   const exportPDFBtn = document.getElementById('exportCreativesPDFBtn');
   if (exportPDFBtn) {
     exportPDFBtn.addEventListener('click', exportCreativesToPDF);
-    console.log('✅ Botão de exportar PDF de criativos configurado');
+    console.log('✅ Botão de exportar PDF de criativos configurado diretamente');
   } else {
-    console.warn('⚠️ Botão exportCreativesPDFBtn não encontrado no DOM. Tentando novamente...');
-    // Tentar novamente após um delay (pode estar sendo carregado)
-    setTimeout(() => {
-      const retryBtn = document.getElementById('exportCreativesPDFBtn');
-      if (retryBtn) {
-        retryBtn.addEventListener('click', exportCreativesToPDF);
-        console.log('✅ Botão de exportar PDF de criativos configurado (retry)');
-      } else {
-        console.error('❌ Botão exportCreativesPDFBtn não encontrado após retry');
-      }
-    }, 500);
+    console.log('ℹ️ Botão ainda não existe no DOM, mas event delegation está ativo');
   }
 }
 

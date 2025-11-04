@@ -418,7 +418,9 @@ async function getAccountInsightsDaily(customerId, startDate, endDate, accessTok
               dataByDate[date].impressions += parseInt(row.metrics.impressions || 0);
               dataByDate[date].clicks += parseInt(row.metrics.clicks || 0);
               dataByDate[date].conversions += parseFloat(row.metrics.conversions || 0);
-              dataByDate[date].costMicros += parseInt(row.metrics.costMicros || 0);
+              // costMicros pode vir como costMicros ou cost_micros
+              const costMicros = row.metrics.costMicros || row.metrics.cost_micros || 0;
+              dataByDate[date].costMicros += parseInt(costMicros || 0);
             }
           });
         }

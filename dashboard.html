@@ -607,24 +607,81 @@
               </div>
             </div>
 
-            <!-- Visualização do Funil -->
-            <div class="bg-white border border-gray-200 rounded-xl p-6 mb-6">
-              <div class="flex items-center justify-between mb-4">
-                <h2 class="text-xl font-bold text-gray-900">Funil de Conversão</h2>
-                <div class="flex gap-2">
-                  <button id="funilExportPDFBtn" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm flex items-center gap-2">
-                    <i class="fas fa-file-pdf"></i>
-                    Exportar PDF
-                  </button>
-                  <button id="funilExportXLSXBtn" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm flex items-center gap-2">
-                    <i class="fas fa-file-excel"></i>
-                    Exportar XLSX
-                  </button>
+            <!-- Abas de Visualização -->
+            <div class="mb-6 border-b border-gray-200">
+              <nav class="flex space-x-8">
+                <button id="funilTabCompleto" class="funil-tab active pb-3 px-1 border-b-2 border-blue-600 text-blue-600 font-medium transition-all text-sm">
+                  📊 Completo
+                </button>
+                <button id="funilTabPlataforma" class="funil-tab pb-3 px-1 border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 font-medium transition-all text-sm">
+                  🔀 Por Plataforma
+                </button>
+              </nav>
+            </div>
+
+            <!-- Visualização do Funil Completo -->
+            <div id="funilContentCompleto" class="funil-content">
+              <div class="bg-white border border-gray-200 rounded-xl p-6 mb-6">
+                <div class="flex items-center justify-between mb-4">
+                  <h2 class="text-xl font-bold text-gray-900">Funil de Conversão Completo</h2>
+                  <div class="flex gap-2">
+                    <button id="funilExportPDFBtn" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm flex items-center gap-2">
+                      <i class="fas fa-file-pdf"></i>
+                      Exportar PDF
+                    </button>
+                    <button id="funilExportXLSXBtn" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm flex items-center gap-2">
+                      <i class="fas fa-file-excel"></i>
+                      Exportar XLSX
+                    </button>
+                  </div>
+                </div>
+                <div id="funilVisualization" class="mb-6">
+                  <!-- Funil será renderizado aqui -->
+                  <canvas id="funilChart"></canvas>
                 </div>
               </div>
-              <div id="funilVisualization" class="mb-6">
-                <!-- Funil será renderizado aqui -->
-                <canvas id="funilChart"></canvas>
+            </div>
+
+            <!-- Visualização por Plataforma -->
+            <div id="funilContentPlataforma" class="funil-content hidden">
+              <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                <!-- Funil Meta Ads -->
+                <div class="bg-white border border-gray-200 rounded-xl p-6">
+                  <div class="flex items-center gap-3 mb-4">
+                    <i class="fab fa-facebook text-blue-600 text-2xl"></i>
+                    <h2 class="text-xl font-bold text-gray-900">Meta Ads</h2>
+                  </div>
+                  <canvas id="funilChartMeta"></canvas>
+                </div>
+
+                <!-- Funil Google Ads -->
+                <div class="bg-white border border-gray-200 rounded-xl p-6">
+                  <div class="flex items-center gap-3 mb-4">
+                    <i class="fab fa-google text-red-600 text-2xl"></i>
+                    <h2 class="text-xl font-bold text-gray-900">Google Ads</h2>
+                  </div>
+                  <canvas id="funilChartGoogle"></canvas>
+                </div>
+              </div>
+
+              <!-- Comparação de Plataformas -->
+              <div class="bg-white border border-gray-200 rounded-xl p-6 mb-6">
+                <h2 class="text-xl font-bold text-gray-900 mb-4">Comparação de Plataformas</h2>
+                <div class="overflow-x-auto">
+                  <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                      <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Métrica</th>
+                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Meta Ads</th>
+                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Google Ads</th>
+                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
+                      </tr>
+                    </thead>
+                    <tbody id="funilComparisonTableBody" class="bg-white divide-y divide-gray-200">
+                      <!-- Dados serão inseridos aqui -->
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </div>
 
@@ -713,6 +770,10 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <!-- XLSX.js para exportação -->
   <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+  <!-- jsPDF para exportação PDF -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <!-- html2canvas para captura de tela -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <script type="module" src="./dashboard-v2.js?v=22.1"></script>
   <script type="module" src="./dashboard-criativos.js?v=7.5"></script>
   <script type="module" src="./dashboard-temporal.js?v=1.0"></script>

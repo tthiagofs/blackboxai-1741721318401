@@ -14,8 +14,11 @@ let currentUser = null;
 let currentProject = null;
 let allUnits = [];
 let funilChart = null;
+let funilChartMeta = null;
+let funilChartGoogle = null;
 let currentFunnelData = null;
 let previousFunnelData = null;
+let platformData = { meta: null, google: null };
 
 // Inicialização
 onAuthStateChanged(auth, async (user) => {
@@ -101,6 +104,43 @@ function setupFunilEventListeners() {
   // Botões de exportação
   document.getElementById('funilExportPDFBtn').addEventListener('click', exportFunnelToPDF);
   document.getElementById('funilExportXLSXBtn').addEventListener('click', exportFunnelToXLSX);
+
+  // Tabs de visualização
+  document.getElementById('funilTabCompleto').addEventListener('click', () => switchFunilTab('Completo'));
+  document.getElementById('funilTabPlataforma').addEventListener('click', () => switchFunilTab('Plataforma'));
+}
+
+// Trocar aba de visualização
+function switchFunilTab(tabName) {
+  // Remover classe active de todas as tabs
+  document.querySelectorAll('.funil-tab').forEach(tab => {
+    tab.classList.remove('active', 'border-blue-600', 'text-blue-600');
+    tab.classList.add('border-transparent', 'text-gray-500');
+  });
+
+  // Ocultar todo o conteúdo
+  document.querySelectorAll('.funil-content').forEach(content => {
+    content.classList.add('hidden');
+  });
+
+  // Ativar a tab clicada
+  const activeTab = document.getElementById(`funilTab${tabName}`);
+  if (activeTab) {
+    activeTab.classList.add('active', 'border-blue-600', 'text-blue-600');
+    activeTab.classList.remove('border-transparent', 'text-gray-500');
+  }
+
+  // Mostrar o conteúdo correspondente
+  const activeContent = document.getElementById(`funilContent${tabName}`);
+  if (activeContent) {
+    activeContent.classList.remove('hidden');
+  }
+
+  // Renderizar gráficos específicos se necessário
+  if (tabName === 'Plataforma' && platformData.meta && platformData.google) {
+    renderPlatformFunnels();
+    renderPlatformComparison();
+  }
 }
 
 // Calcular datas do período
@@ -202,11 +242,19 @@ async function generateFunnel() {
     previousFunnelData = await aggregateFunnelData(unitsToProcess, previousDates.start, previousDates.end);
     console.log('✅ Dados do período anterior:', previousFunnelData);
 
-    // Renderizar funil
+    // Buscar dados por plataforma
+    platformData = await aggregateFunnelDataByPlatform(unitsToProcess, dates.start, dates.end);
+    console.log('✅ Dados por plataforma:', platformData);
+
+    // Renderizar funil completo
     renderFunnel();
     renderFunnelTable();
     renderBottlenecks();
     renderMetrics();
+
+    // Renderizar funis por plataforma
+    renderPlatformFunnels();
+    renderPlatformComparison();
 
     // Ocultar loading e mostrar conteúdo
     loadingEl.classList.add('hidden');
@@ -351,6 +399,257 @@ function getSpreadsheetDataForFunnel(unit, startDate, endDate) {
     .reduce((sum, item) => sum + parseFloat(item.value || item.saleValue || item.revenue || item.faturamento || 0), 0);
 
   return { orcamentos, vendas, revenue };
+}
+
+// Agregar dados do funil por plataforma
+async function aggregateFunnelDataByPlatform(units, startDate, endDate) {
+  let metaData = {
+    impressions: 0,
+    clicks: 0,
+    messages: 0,
+    invested: 0
+  };
+
+  let googleData = {
+    impressions: 0,
+    clicks: 0,
+    messages: 0,
+    invested: 0
+  };
+
+  for (const unit of units) {
+    const linkedAccounts = unit.linkedAccounts || {};
+
+    // Meta Ads
+    if (linkedAccounts.meta?.id && fbAuth?.getAccessToken && fbAuth.getAccessToken()) {
+      const token = fbAuth.getAccessToken();
+      if (token) {
+        try {
+          const fbService = new FacebookInsightsService(token);
+          const insights = await fbService.getAccountInsights(
+            linkedAccounts.meta.id,
+            startDate,
+            endDate
+          );
+
+          if (insights) {
+            metaData.impressions += parseInt(insights.impressions || 0);
+            metaData.clicks += parseInt(insights.clicks || 0);
+            
+            const messagesCount = insights.actions?.find(action => 
+              action.action_type === 'onsite_conversion.messaging_conversation_started_7d'
+            )?.value || 0;
+            metaData.messages += parseInt(messagesCount);
+            
+            metaData.invested += parseFloat(insights.spend || 0);
+          }
+        } catch (error) {
+          console.warn('⚠️ Erro ao buscar dados do Meta:', error);
+        }
+      }
+    }
+
+    // Google Ads
+    if (linkedAccounts.google?.id) {
+      try {
+        await googleAuth.initialize();
+        const googleAccessToken = googleAuth?.getAccessToken && googleAuth.getAccessToken();
+        
+        if (googleAccessToken) {
+          const managedBy = linkedAccounts.google.managedBy || null;
+          const googleService = new GoogleAdsService(
+            linkedAccounts.google.id,
+            googleAccessToken,
+            managedBy
+          );
+          
+          const insights = await googleService.getAccountInsights(startDate, endDate);
+          
+          if (insights && !insights.error) {
+            const metrics = insights.metrics || insights;
+            googleData.impressions += parseInt(metrics.impressions || 0);
+            googleData.clicks += parseInt(metrics.clicks || 0);
+            googleData.messages += parseInt(metrics.conversions || 0);
+            googleData.invested += parseFloat(metrics.cost || 0);
+          }
+        }
+      } catch (error) {
+        console.warn('⚠️ Erro ao buscar dados do Google:', error);
+      }
+    }
+  }
+
+  // Adicionar dados da planilha (dividir proporcionalmente ou usar para ambas)
+  // Por enquanto, vamos usar os mesmos dados de orçamentos/vendas para ambas as plataformas
+  // (poderia ser melhorado com tracking de origem)
+  const totalOrcamentos = units.reduce((sum, unit) => {
+    const data = getSpreadsheetDataForFunnel(unit, startDate, endDate);
+    return sum + data.orcamentos;
+  }, 0);
+
+  const totalVendas = units.reduce((sum, unit) => {
+    const data = getSpreadsheetDataForFunnel(unit, startDate, endDate);
+    return sum + data.vendas;
+  }, 0);
+
+  const totalRevenue = units.reduce((sum, unit) => {
+    const data = getSpreadsheetDataForFunnel(unit, startDate, endDate);
+    return sum + data.revenue;
+  }, 0);
+
+  // Dividir proporcionalmente pelo investimento
+  const totalInvested = metaData.invested + googleData.invested;
+  const metaRatio = totalInvested > 0 ? metaData.invested / totalInvested : 0.5;
+  const googleRatio = totalInvested > 0 ? googleData.invested / totalInvested : 0.5;
+
+  metaData.orcamentos = Math.round(totalOrcamentos * metaRatio);
+  metaData.vendas = Math.round(totalVendas * metaRatio);
+  metaData.revenue = totalRevenue * metaRatio;
+
+  googleData.orcamentos = Math.round(totalOrcamentos * googleRatio);
+  googleData.vendas = Math.round(totalVendas * googleRatio);
+  googleData.revenue = totalRevenue * googleRatio;
+
+  return { meta: metaData, google: googleData };
+}
+
+// Renderizar funis por plataforma
+function renderPlatformFunnels() {
+  if (!platformData.meta || !platformData.google) return;
+
+  // Meta Ads
+  renderPlatformFunnel('funilChartMeta', platformData.meta, 'Meta Ads');
+
+  // Google Ads
+  renderPlatformFunnel('funilChartGoogle', platformData.google, 'Google Ads');
+}
+
+// Renderizar funil de uma plataforma específica
+function renderPlatformFunnel(canvasId, data, platformName) {
+  const ctx = document.getElementById(canvasId);
+  if (!ctx) return;
+
+  // Destruir gráfico anterior se existir
+  if (canvasId === 'funilChartMeta' && funilChartMeta) {
+    funilChartMeta.destroy();
+  } else if (canvasId === 'funilChartGoogle' && funilChartGoogle) {
+    funilChartGoogle.destroy();
+  }
+
+  const labels = ['Impressões', 'Cliques', 'Mensagens', 'Orçamentos', 'Vendas'];
+  const values = [
+    data.impressions,
+    data.clicks,
+    data.messages,
+    data.orcamentos || 0,
+    data.vendas || 0
+  ];
+
+  const colors = [
+    'rgba(33, 150, 243, 0.6)',
+    'rgba(33, 150, 243, 0.8)',
+    'rgba(200, 230, 201, 0.8)',
+    'rgba(255, 249, 196, 0.8)',
+    'rgba(76, 175, 80, 0.8)'
+  ];
+
+  const chart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: labels,
+      datasets: [{
+        label: 'Quantidade',
+        data: values,
+        backgroundColor: colors,
+        borderColor: colors.map(c => c.replace('0.6', '1').replace('0.8', '1')),
+        borderWidth: 2
+      }]
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true,
+      maintainAspectRatio: true,
+      plugins: {
+        legend: {
+          display: false
+        },
+        title: {
+          display: true,
+          text: platformName,
+          font: {
+            size: 16,
+            weight: 'bold'
+          }
+        }
+      },
+      scales: {
+        x: {
+          beginAtZero: true,
+          ticks: {
+            callback: function(value) {
+              return value.toLocaleString('pt-BR');
+            }
+          }
+        }
+      }
+    }
+  });
+
+  if (canvasId === 'funilChartMeta') {
+    funilChartMeta = chart;
+  } else if (canvasId === 'funilChartGoogle') {
+    funilChartGoogle = chart;
+  }
+}
+
+// Renderizar comparação de plataformas
+function renderPlatformComparison() {
+  const tbody = document.getElementById('funilComparisonTableBody');
+  if (!tbody || !platformData.meta || !platformData.google) return;
+
+  tbody.innerHTML = '';
+
+  const metrics = [
+    { key: 'impressions', label: 'Impressões' },
+    { key: 'clicks', label: 'Cliques' },
+    { key: 'messages', label: 'Mensagens' },
+    { key: 'orcamentos', label: 'Orçamentos' },
+    { key: 'vendas', label: 'Vendas' },
+    { key: 'invested', label: 'Investido', format: 'currency' }
+  ];
+
+  metrics.forEach(metric => {
+    const metaValue = platformData.meta[metric.key] || 0;
+    const googleValue = platformData.google[metric.key] || 0;
+    const total = metaValue + googleValue;
+
+    const row = document.createElement('tr');
+    row.innerHTML = `
+      <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${metric.label}</td>
+      <td class="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-900">
+        ${metric.format === 'currency' 
+          ? formatCurrency(metaValue) 
+          : metaValue.toLocaleString('pt-BR')}
+      </td>
+      <td class="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-900">
+        ${metric.format === 'currency' 
+          ? formatCurrency(googleValue) 
+          : googleValue.toLocaleString('pt-BR')}
+      </td>
+      <td class="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-900 font-semibold">
+        ${metric.format === 'currency' 
+          ? formatCurrency(total) 
+          : total.toLocaleString('pt-BR')}
+      </td>
+    `;
+
+    tbody.appendChild(row);
+  });
+}
+
+// Formatar moeda
+function formatCurrency(value) {
+  return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value || 0);
 }
 
 // Renderizar funil visual
@@ -676,9 +975,175 @@ function getRecommendations(step) {
 }
 
 // Exportar para PDF
-function exportFunnelToPDF() {
-  alert('Exportação para PDF será implementada em breve');
-  // TODO: Implementar exportação PDF usando jsPDF
+async function exportFunnelToPDF() {
+  if (!currentFunnelData) {
+    alert('Não há dados para exportar. Gere o funil primeiro.');
+    return;
+  }
+
+  try {
+    // Verificar se jsPDF está disponível
+    if (typeof window.jspdf === 'undefined') {
+      alert('Biblioteca jsPDF não carregada. Adicione o script no HTML.');
+      return;
+    }
+
+    const { jsPDF } = window.jspdf;
+
+    // Verificar se html2canvas está disponível
+    if (typeof html2canvas === 'undefined') {
+      alert('Biblioteca html2canvas não carregada. Adicione o script no HTML.');
+      return;
+    }
+
+    // Ocultar botões durante captura
+    const exportButtons = document.querySelectorAll('#funilExportPDFBtn, #funilExportXLSXBtn');
+    exportButtons.forEach(btn => {
+      if (btn) btn.style.display = 'none';
+    });
+
+    // Capturar conteúdo principal
+    const funilContent = document.getElementById('funilContent');
+    if (!funilContent) {
+      alert('Erro ao exportar PDF: Conteúdo não encontrado');
+      return;
+    }
+
+    // Criar PDF
+    const doc = new jsPDF({
+      orientation: 'portrait',
+      unit: 'mm',
+      format: 'a4'
+    });
+
+    const pdfWidth = 210;
+    const pdfHeight = 297;
+    const margin = 10;
+    let currentY = margin;
+
+    // Título
+    doc.setFontSize(18);
+    doc.text('Funil de Conversão', pdfWidth / 2, currentY, { align: 'center' });
+    currentY += 10;
+
+    // Data
+    const periodSelect = document.getElementById('funilPeriodSelect').value;
+    const dates = calculateFunilPeriodDates(periodSelect);
+    doc.setFontSize(10);
+    doc.text(`Período: ${dates.start} a ${dates.end}`, pdfWidth / 2, currentY, { align: 'center' });
+    currentY += 15;
+
+    // Métricas principais
+    doc.setFontSize(14);
+    doc.text('Métricas Principais', margin, currentY);
+    currentY += 8;
+
+    doc.setFontSize(10);
+    const conversionRate = currentFunnelData.impressions > 0 
+      ? ((currentFunnelData.vendas / currentFunnelData.impressions) * 100).toFixed(2)
+      : 0;
+    const cpa = currentFunnelData.vendas > 0 
+      ? (currentFunnelData.invested / currentFunnelData.vendas).toFixed(2)
+      : 0;
+    const roi = currentFunnelData.invested > 0 
+      ? ((currentFunnelData.revenue * 0.25) / currentFunnelData.invested).toFixed(2)
+      : 0;
+
+    doc.text(`Taxa de Conversão Geral: ${conversionRate}%`, margin + 5, currentY);
+    currentY += 6;
+    doc.text(`Custo por Venda (CPA): R$ ${parseFloat(cpa).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, margin + 5, currentY);
+    currentY += 6;
+    doc.text(`ROI: ${roi}x`, margin + 5, currentY);
+    currentY += 15;
+
+    // Tabela do funil
+    doc.setFontSize(14);
+    doc.text('Detalhamento por Etapa', margin, currentY);
+    currentY += 8;
+
+    // Cabeçalho da tabela
+    doc.setFontSize(9);
+    doc.setFont(undefined, 'bold');
+    doc.text('Etapa', margin, currentY);
+    doc.text('Quantidade', margin + 50, currentY);
+    doc.text('% Topo', margin + 100, currentY);
+    doc.text('Taxa Conv.', margin + 140, currentY);
+    currentY += 6;
+
+    doc.setFont(undefined, 'normal');
+    const steps = [
+      { name: 'Impressões', value: currentFunnelData.impressions },
+      { name: 'Cliques', value: currentFunnelData.clicks },
+      { name: 'Mensagens', value: currentFunnelData.messages },
+      { name: 'Orçamentos', value: currentFunnelData.orcamentos },
+      { name: 'Vendas', value: currentFunnelData.vendas }
+    ];
+
+    const maxValue = currentFunnelData.impressions;
+
+    steps.forEach((step, index) => {
+      if (currentY > pdfHeight - 20) {
+        doc.addPage();
+        currentY = margin;
+      }
+
+      const percentage = maxValue > 0 ? ((step.value / maxValue) * 100).toFixed(2) : 0;
+      let conversionRate = '-';
+      
+      if (index > 0) {
+        const previousValue = steps[index - 1].value;
+        if (previousValue > 0) {
+          conversionRate = ((step.value / previousValue) * 100).toFixed(2) + '%';
+        }
+      }
+
+      doc.text(step.name, margin, currentY);
+      doc.text(step.value.toLocaleString('pt-BR'), margin + 50, currentY);
+      doc.text(percentage + '%', margin + 100, currentY);
+      doc.text(conversionRate, margin + 140, currentY);
+      currentY += 6;
+    });
+
+    // Capturar gráfico como imagem
+    currentY += 10;
+    if (currentY > pdfHeight - 80) {
+      doc.addPage();
+      currentY = margin;
+    }
+
+    try {
+      const chartCanvas = document.getElementById('funilChart');
+      if (chartCanvas) {
+        const chartImg = chartCanvas.toDataURL('image/png');
+        const imgWidth = 190;
+        const imgHeight = 100;
+        doc.addImage(chartImg, 'PNG', margin, currentY, imgWidth, imgHeight);
+        currentY += imgHeight + 10;
+      }
+    } catch (error) {
+      console.warn('⚠️ Erro ao capturar gráfico:', error);
+    }
+
+    // Restaurar botões
+    exportButtons.forEach(btn => {
+      if (btn) btn.style.display = 'inline-flex';
+    });
+
+    // Salvar PDF
+    const dateStr = new Date().toISOString().split('T')[0];
+    doc.save(`Funil_Conversao_${dateStr}.pdf`);
+
+    console.log('✅ PDF exportado com sucesso!');
+  } catch (error) {
+    console.error('❌ Erro ao exportar PDF:', error);
+    alert('Erro ao exportar PDF. Tente novamente.');
+    
+    // Restaurar botões em caso de erro
+    const exportButtons = document.querySelectorAll('#funilExportPDFBtn, #funilExportXLSXBtn');
+    exportButtons.forEach(btn => {
+      if (btn) btn.style.display = 'inline-flex';
+    });
+  }
 }
 
 // Exportar para XLSX

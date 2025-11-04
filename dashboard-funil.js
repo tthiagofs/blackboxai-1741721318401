@@ -1254,9 +1254,10 @@ function addPeriodComparison(container, steps, currentData, previousData) {
 function getRecommendations(step) {
   const recommendations = {
     'Mensagens': [
-      'Melhorar experiência na landing page',
-      'Simplificar processo de contato',
-      'Adicionar botão de WhatsApp mais visível'
+      'Melhorar follow-up dos leads',
+      'Otimizar tempo de resposta',
+      'Personalizar mensagens iniciais',
+      'Refinar qualificação de leads'
     ],
     'Orçamentos': [
       'Melhorar atendimento inicial',

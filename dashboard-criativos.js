@@ -18,7 +18,10 @@ onAuthStateChanged(auth, async (user) => {
   if (user) {
     currentUser = user;
     await loadCreativeProjects();
-    setupCreativeEventListeners();
+    // Aguardar um pouco para garantir que o DOM esteja pronto
+    setTimeout(() => {
+      setupCreativeEventListeners();
+    }, 100);
   }
 });
 
@@ -137,13 +140,23 @@ function setupCreativeEventListeners() {
   // Botão de buscar
   document.getElementById('searchCreativesBtn').addEventListener('click', searchCreatives);
 
-  // Botão de exportar PDF
+  // Botão de exportar PDF (pode estar oculto inicialmente, mas ainda existe no DOM)
   const exportPDFBtn = document.getElementById('exportCreativesPDFBtn');
   if (exportPDFBtn) {
     exportPDFBtn.addEventListener('click', exportCreativesToPDF);
     console.log('✅ Botão de exportar PDF de criativos configurado');
   } else {
-    console.warn('⚠️ Botão exportCreativesPDFBtn não encontrado no DOM');
+    console.warn('⚠️ Botão exportCreativesPDFBtn não encontrado no DOM. Tentando novamente...');
+    // Tentar novamente após um delay (pode estar sendo carregado)
+    setTimeout(() => {
+      const retryBtn = document.getElementById('exportCreativesPDFBtn');
+      if (retryBtn) {
+        retryBtn.addEventListener('click', exportCreativesToPDF);
+        console.log('✅ Botão de exportar PDF de criativos configurado (retry)');
+      } else {
+        console.error('❌ Botão exportCreativesPDFBtn não encontrado após retry');
+      }
+    }, 500);
   }
 }
 
@@ -258,11 +271,16 @@ async function searchCreatives() {
     loadingEl.classList.add('hidden');
     contentEl.classList.remove('hidden');
     
-    // Garantir que o botão de exportar PDF esteja visível
+    // Garantir que o botão de exportar PDF esteja visível e configurado
     const exportPDFBtn = document.getElementById('exportCreativesPDFBtn');
     if (exportPDFBtn) {
       exportPDFBtn.style.display = 'inline-flex';
-      console.log('✅ Botão de exportar PDF exibido');
+      // Garantir que o event listener esteja configurado
+      exportPDFBtn.removeEventListener('click', exportCreativesToPDF); // Remover duplicatas
+      exportPDFBtn.addEventListener('click', exportCreativesToPDF);
+      console.log('✅ Botão de exportar PDF exibido e configurado');
+    } else {
+      console.error('❌ Botão exportCreativesPDFBtn não encontrado após buscar criativos');
     }
 
   } catch (error) {

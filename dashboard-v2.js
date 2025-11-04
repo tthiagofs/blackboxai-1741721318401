@@ -483,10 +483,30 @@ async function computeUnitMetricsFromSpreadsheet(unit, startDate, endDate) {
   };
 }
 
-// Função para extrair mensagens das actions (mesma lógica do RelatorioCompleto.js)
-// Função mantida para compatibilidade, mas agora usa a função unificada
+// Função para extrair mensagens das actions
+// Usar apenas métrica principal para evitar duplicação (mensagens + cadastros + conversões podem ser a mesma pessoa)
 function extractMessages(actions) {
-  return extractAllMessagesAndLeads(actions);
+  if (!actions || !Array.isArray(actions)) return 0;
+  
+  // Usar apenas métrica principal de mensagens
+  const messageAction = actions.find(action => 
+    action.action_type === 'onsite_conversion.messaging_conversation_started_7d'
+  );
+  
+  if (messageAction && messageAction.value) {
+    return parseInt(messageAction.value) || 0;
+  }
+  
+  // Fallback: se não tiver a métrica principal, usar lead_grouped
+  const leadAction = actions.find(action => 
+    action.action_type === 'onsite_conversion.lead_grouped'
+  );
+  
+  if (leadAction && leadAction.value) {
+    return parseInt(leadAction.value) || 0;
+  }
+  
+  return 0;
 }
 
 // Filtrar dados da unidade por período (mesma lógica do RelatorioCompleto.js)

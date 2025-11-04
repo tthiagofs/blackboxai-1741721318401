@@ -334,8 +334,22 @@ async function getTrafficDataForFunnel(unit, startDate, endDate) {
             impressions += parseInt(insights.impressions || 0);
             clicks += parseInt(insights.clicks || 0);
             
-            // Usar função unificada para extrair todas as mensagens/leads/cadastros
-            const messagesCount = extractAllMessagesAndLeads(insights.actions || []);
+            // Usar apenas métrica principal para evitar duplicação
+            const messageAction = insights.actions?.find(action => 
+              action.action_type === 'onsite_conversion.messaging_conversation_started_7d'
+            );
+            let messagesCount = 0;
+            if (messageAction && messageAction.value) {
+              messagesCount = parseInt(messageAction.value) || 0;
+            } else {
+              // Fallback: se não tiver a métrica principal, usar lead_grouped
+              const leadAction = insights.actions?.find(action => 
+                action.action_type === 'onsite_conversion.lead_grouped'
+              );
+              if (leadAction && leadAction.value) {
+                messagesCount = parseInt(leadAction.value) || 0;
+              }
+            }
             messages += messagesCount;
             
             invested += parseFloat(insights.spend || 0);
@@ -436,8 +450,22 @@ async function aggregateFunnelDataByPlatform(units, startDate, endDate) {
             metaData.impressions += parseInt(insights.impressions || 0);
             metaData.clicks += parseInt(insights.clicks || 0);
             
-            // Usar função unificada para extrair todas as mensagens/leads/cadastros
-            const messagesCount = extractAllMessagesAndLeads(insights.actions || []);
+            // Usar apenas métrica principal para evitar duplicação
+            const messageAction = insights.actions?.find(action => 
+              action.action_type === 'onsite_conversion.messaging_conversation_started_7d'
+            );
+            let messagesCount = 0;
+            if (messageAction && messageAction.value) {
+              messagesCount = parseInt(messageAction.value) || 0;
+            } else {
+              // Fallback: se não tiver a métrica principal, usar lead_grouped
+              const leadAction = insights.actions?.find(action => 
+                action.action_type === 'onsite_conversion.lead_grouped'
+              );
+              if (leadAction && leadAction.value) {
+                messagesCount = parseInt(leadAction.value) || 0;
+              }
+            }
             metaData.messages += messagesCount;
             
             metaData.invested += parseFloat(insights.spend || 0);

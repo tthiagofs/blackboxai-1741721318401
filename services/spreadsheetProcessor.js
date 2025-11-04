@@ -86,7 +86,8 @@ function isMaintenanceProcedure(row) {
         "manutenção aparelho móvel",
         "manutenção aparelho ortodôntico autoligado",
         "manutenção aparelho ortodôntico safira",
-        "manutenção ortodôntica mensal"
+        "manutenção ortodôntica mensal",
+        "manutenção ortodôntica"
     ];
     
     // Verificar se contém algum termo de manutenção

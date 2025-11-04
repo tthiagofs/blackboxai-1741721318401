@@ -128,9 +128,12 @@ function setupTemporalEventListeners() {
   document.getElementById('temporalExportBtn').addEventListener('click', exportToExcel);
 
   // Ordenação de tabela
-  document.querySelectorAll('#temporalTableBody').forEach(() => {
-    document.querySelectorAll('[data-sort]').forEach(th => {
-      th.addEventListener('click', () => sortTable(th.dataset.sort));
+  document.querySelectorAll('[data-sort]').forEach(th => {
+    th.addEventListener('click', () => {
+      const column = th.dataset.sort;
+      if (column) {
+        sortTable(column);
+      }
     });
   });
 }
@@ -608,9 +611,9 @@ function aggregateByDayOfWeek(data) {
       day.cpa = 0;
     }
     
-    // ROI = Faturamento / Investido (se houver investimento)
+    // ROI = (Faturamento * 0.25) / Investido (se houver investimento)
     if (day.invested > 0) {
-      day.roi = parseFloat((day.revenue / day.invested).toFixed(2));
+      day.roi = parseFloat(((day.revenue * 0.25) / day.invested).toFixed(2));
     } else {
       day.roi = 0;
     }
@@ -767,6 +770,7 @@ function renderDayTable() {
       <td class="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-900">${day.sales}</td>
       <td class="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-900">${formatCurrency(day.revenue)}</td>
       <td class="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-900">${day.cpa > 0 ? formatCurrency(day.cpa) : '-'}</td>
+      <td class="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-900">${day.roi > 0 ? (day.roi.toFixed(2) + 'x') : '0x'}</td>
     `;
 
     tbody.appendChild(row);
@@ -1062,9 +1066,97 @@ function formatDateShort(dateStr) {
 }
 
 // Ordenar tabela
+// Variável global para controlar ordenação
+let currentSortColumn = null;
+let currentSortDirection = 'asc'; // 'asc' ou 'desc'
+
 function sortTable(column) {
-  // Implementar ordenação se necessário
-  console.log('Ordenar por:', column);
+  if (!currentDataByDay || currentDataByDay.length === 0) {
+    console.warn('⚠️ Nenhum dado para ordenar');
+    return;
+  }
+
+  // Se clicou na mesma coluna, alternar direção
+  if (currentSortColumn === column) {
+    currentSortDirection = currentSortDirection === 'asc' ? 'desc' : 'asc';
+  } else {
+    currentSortColumn = column;
+    currentSortDirection = 'asc';
+  }
+
+  console.log(`📊 Ordenando por ${column} (${currentSortDirection})`);
+
+  // Ordenar dados
+  const sorted = [...currentDataByDay].sort((a, b) => {
+    let valueA, valueB;
+
+    switch (column) {
+      case 'day':
+        // Ordenar por ordem dos dias da semana
+        const dayOrder = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado', 'Domingo'];
+        valueA = dayOrder.indexOf(a.dayName);
+        valueB = dayOrder.indexOf(b.dayName);
+        break;
+      case 'invested':
+        valueA = parseFloat(a.invested || 0);
+        valueB = parseFloat(b.invested || 0);
+        break;
+      case 'messages':
+        valueA = parseInt(a.messages || 0);
+        valueB = parseInt(b.messages || 0);
+        break;
+      case 'sales':
+        valueA = parseInt(a.sales || 0);
+        valueB = parseInt(b.sales || 0);
+        break;
+      case 'revenue':
+        valueA = parseFloat(a.revenue || 0);
+        valueB = parseFloat(b.revenue || 0);
+        break;
+      case 'cpa':
+        valueA = parseFloat(a.cpa || 0);
+        valueB = parseFloat(b.cpa || 0);
+        break;
+      case 'roi':
+        valueA = parseFloat(a.roi || 0);
+        valueB = parseFloat(b.roi || 0);
+        break;
+      default:
+        return 0;
+    }
+
+    // Comparação
+    if (valueA < valueB) {
+      return currentSortDirection === 'asc' ? -1 : 1;
+    }
+    if (valueA > valueB) {
+      return currentSortDirection === 'asc' ? 1 : -1;
+    }
+    return 0;
+  });
+
+  // Atualizar dados e re-renderizar
+  currentDataByDay = sorted;
+  renderDayTable();
+  updateSortIcons(column, currentSortDirection);
+}
+
+// Atualizar ícones de ordenação
+function updateSortIcons(activeColumn, direction) {
+  document.querySelectorAll('[data-sort]').forEach(th => {
+    const icon = th.querySelector('i');
+    const column = th.dataset.sort;
+    
+    if (column === activeColumn) {
+      // Ícone ativo
+      icon.className = direction === 'asc' 
+        ? 'fas fa-sort-up text-blue-600' 
+        : 'fas fa-sort-down text-blue-600';
+    } else {
+      // Ícone neutro
+      icon.className = 'fas fa-sort text-gray-400';
+    }
+  });
 }
 
 // Exportar para Excel
@@ -1081,7 +1173,7 @@ function exportToExcel() {
     'Vendas': day.sales,
     'Faturamento (R$)': day.revenue,
     'CPA Médio (R$)': day.cpa > 0 ? day.cpa : 0,
-    'ROI': day.roi > 0 ? day.roi.toFixed(2) + 'x' : '0x'
+    'ROI': day.roi > 0 ? (day.roi.toFixed(2) + 'x') : '0x'
   }));
 
   const ws = XLSX.utils.json_to_sheet(data);

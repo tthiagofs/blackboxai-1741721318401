@@ -95,6 +95,29 @@ export class GoogleAdsService {
         }
     }
 
+    // Buscar insights diários da conta
+    async getAccountInsightsDaily(startDate, endDate) {
+        try {
+            console.log(`📊 [getAccountInsightsDaily] Buscando insights diários para ${this.customerId}`, { startDate, endDate });
+            const data = await this._call('getAccountInsightsDaily', { startDate, endDate });
+            console.log(`📊 [getAccountInsightsDaily] Dados recebidos do _call:`, data);
+            
+            // ⭐ API retorna array de dados diários ou { daily: [...] }
+            const dailyData = data.daily || data;
+            if (Array.isArray(dailyData)) {
+                console.log(`📊 [getAccountInsightsDaily] ${dailyData.length} dias de dados retornados`);
+                return dailyData;
+            } else {
+                console.warn('⚠️ [getAccountInsightsDaily] Formato de dados inesperado, retornando vazio');
+                return [];
+            }
+        } catch (error) {
+            console.error('❌ [getAccountInsightsDaily] Erro ao buscar insights diários do Google:', error);
+            // Retornar array vazio para fallback
+            return [];
+        }
+    }
+
     // Buscar dados de comparação
     async getComparison(startDate, endDate) {
         try {

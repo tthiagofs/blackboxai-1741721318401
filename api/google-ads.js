@@ -26,6 +26,9 @@ export default async function handler(req, res) {
       case 'getAccountInsights':
         return await getAccountInsights(customerId, startDate, endDate, accessToken, res, loginCustomerId);
       
+      case 'getAccountInsightsDaily':
+        return await getAccountInsightsDaily(customerId, startDate, endDate, accessToken, res, loginCustomerId);
+      
       case 'getComparison':
         return await getComparison(customerId, startDate, endDate, accessToken, res, loginCustomerId);
       
@@ -331,6 +334,121 @@ async function getAccountInsights(customerId, startDate, endDate, accessToken, r
     }
   } catch (error) {
     console.error('❌ Erro ao buscar insights:', error);
+    throw error;
+  }
+}
+
+// Buscar insights diários da conta
+async function getAccountInsightsDaily(customerId, startDate, endDate, accessToken, res, loginCustomerId = null) {
+  try {
+    if (!customerId || !startDate || !endDate) {
+      throw new Error('customerId, startDate e endDate são obrigatórios');
+    }
+
+    if (!accessToken) {
+      throw new Error('Access token não fornecido');
+    }
+
+    // Query com segments.date para obter dados diários
+    const query = `
+      SELECT
+        segments.date,
+        metrics.impressions,
+        metrics.clicks,
+        metrics.conversions,
+        metrics.cost_micros
+      FROM customer
+      WHERE segments.date BETWEEN '${startDate}' AND '${endDate}'
+      ORDER BY segments.date
+    `;
+
+    console.log('🔍 Query diária:', query);
+    console.log(`📊 Buscando insights diários para conta ${customerId}${loginCustomerId ? ` via MCC ${loginCustomerId}` : ''}`);
+
+    const headers = {
+      'Authorization': `Bearer ${accessToken}`,
+      'developer-token': process.env.GOOGLE_ADS_DEVELOPER_TOKEN,
+      'Content-Type': 'application/json',
+    };
+    
+    // Adicionar login-customer-id se a conta for acessada via MCC
+    if (loginCustomerId) {
+      headers['login-customer-id'] = loginCustomerId;
+    }
+
+    const response = await fetch(
+      `https://googleads.googleapis.com/v19/customers/${customerId}/googleAds:searchStream`,
+      {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ query }),
+      }
+    );
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('❌ Erro na API:', errorText);
+      throw new Error(`Erro na API do Google Ads: ${response.status} - ${errorText}`);
+    }
+
+    const data = await response.json();
+    console.log('✅ Dados diários recebidos:', JSON.stringify(data).substring(0, 500));
+
+    const dailyData = [];
+
+    // Processar resultados - agrupar por data
+    const dataByDate = {};
+    
+    if (data && Array.isArray(data)) {
+      data.forEach(batch => {
+        if (batch.results) {
+          batch.results.forEach(row => {
+            if (row.segments && row.segments.date && row.metrics) {
+              const date = row.segments.date;
+              if (!dataByDate[date]) {
+                dataByDate[date] = {
+                  date: date,
+                  impressions: 0,
+                  clicks: 0,
+                  conversions: 0,
+                  costMicros: 0
+                };
+              }
+              
+              dataByDate[date].impressions += parseInt(row.metrics.impressions || 0);
+              dataByDate[date].clicks += parseInt(row.metrics.clicks || 0);
+              dataByDate[date].conversions += parseFloat(row.metrics.conversions || 0);
+              dataByDate[date].costMicros += parseInt(row.metrics.costMicros || 0);
+            }
+          });
+        }
+      });
+    }
+
+    // Converter para array e calcular custo
+    Object.values(dataByDate).forEach(day => {
+      dailyData.push({
+        date: day.date,
+        cost: day.costMicros / 1000000,
+        conversions: day.conversions,
+        impressions: day.impressions,
+        clicks: day.clicks
+      });
+    });
+
+    // Ordenar por data
+    dailyData.sort((a, b) => a.date.localeCompare(b.date));
+
+    console.log(`📊 Insights diários processados: ${dailyData.length} dias`);
+
+    // Se chamado diretamente, retorna resposta; se chamado por outra função, retorna objeto
+    if (res) {
+      return res.status(200).json({ daily: dailyData });
+    } else {
+      return { daily: dailyData };
+    }
+  } catch (error) {
+    console.error('❌ Erro ao buscar insights diários:', error);
     throw error;
   }
 }

@@ -333,14 +333,16 @@ async function getTrafficData(unit, startDate, endDate) {
       const token = fbAuth.getAccessToken();
       if (token) {
         try {
-          // Buscar insights com breakdown diário
+          // Buscar insights com breakdown diário usando time_increment
           const timeRange = encodeURIComponent(JSON.stringify({ since: startDate, until: endDate }));
-          const url = `https://graph.facebook.com/v21.0/${linkedAccounts.meta.id}/insights?fields=spend,impressions,clicks,actions&time_range=${timeRange}&breakdowns=day&access_token=${token}`;
+          const url = `https://graph.facebook.com/v21.0/${linkedAccounts.meta.id}/insights?fields=spend,impressions,clicks,actions&time_range=${timeRange}&time_increment=1&access_token=${token}`;
           
+          console.log('📊 Buscando dados diários do Meta:', url);
           const response = await fetch(url);
           const result = await response.json();
           
           if (result.data && Array.isArray(result.data)) {
+            console.log(`📊 Meta retornou ${result.data.length} dias de dados`);
             result.data.forEach(dayData => {
               const date = dayData.date_start; // Formato YYYY-MM-DD
               
@@ -349,15 +351,23 @@ async function getTrafficData(unit, startDate, endDate) {
                 action.action_type === 'onsite_conversion.messaging_conversation_started_7d'
               )?.value || 0;
               
-              data.push({
-                date: date,
-                invested: parseFloat(dayData.spend || 0),
-                messages: parseInt(messages),
-                sales: 0,
-                revenue: 0,
-                source: 'meta'
-              });
+              const spend = parseFloat(dayData.spend || 0);
+              
+              if (spend > 0 || messages > 0) {
+                data.push({
+                  date: date,
+                  invested: spend,
+                  messages: parseInt(messages),
+                  sales: 0,
+                  revenue: 0,
+                  source: 'meta'
+                });
+              }
             });
+            console.log(`✅ ${data.length} registros diários do Meta adicionados`);
+          } else if (result.error) {
+            console.warn('⚠️ Erro na API do Meta:', result.error);
+            throw new Error(result.error.message || 'Erro na API do Meta');
           }
         } catch (error) {
           console.warn('⚠️ Erro ao buscar dados diários do Meta:', error);
@@ -408,48 +418,69 @@ async function getTrafficData(unit, startDate, endDate) {
             managedBy
           );
           
-          // Buscar insights
-          const insights = await googleService.getAccountInsights(
+          // Buscar insights com dados diários
+          // Modificar o serviço para buscar dados diários
+          const dailyInsights = await googleService.getAccountInsightsDaily(
             startDate,
             endDate
           );
           
-          console.log('📊 Insights do Google recebidos:', insights);
+          console.log('📊 Insights diários do Google recebidos:', dailyInsights);
           
-          if (insights && !insights.error) {
-            // A estrutura pode ser insights.metrics ou insights diretamente
-            const metrics = insights.metrics || insights;
-            const cost = parseFloat(metrics.cost || 0);
-            const conversions = parseInt(metrics.conversions || 0);
-            
-            console.log('📊 Métricas do Google:', { cost, conversions });
-            
-            if (cost > 0 || conversions > 0) {
-              // Se não houver dados diários, distribuir uniformemente
-              const days = getDaysBetween(startDate, endDate);
-              const dailyCost = cost / days.length;
-              const dailyConversions = Math.round(conversions / days.length);
-              
-              console.log(`📊 Distribuindo dados do Google: R$ ${cost.toFixed(2)} de custo e ${conversions} conversões em ${days.length} dias`);
-              console.log(`📊 Valores diários: R$ ${dailyCost.toFixed(2)} por dia, ${dailyConversions} conversões por dia`);
-              
-              days.forEach(day => {
+          if (dailyInsights && !dailyInsights.error && Array.isArray(dailyInsights)) {
+            // Se retornou array de dados diários
+            dailyInsights.forEach(dayData => {
+              if (dayData.date && (dayData.cost > 0 || dayData.conversions > 0)) {
                 data.push({
-                  date: day,
-                  invested: dailyCost,
-                  messages: dailyConversions,
+                  date: dayData.date,
+                  invested: parseFloat(dayData.cost || 0),
+                  messages: parseInt(dayData.conversions || 0),
                   sales: 0,
                   revenue: 0,
                   source: 'google'
                 });
-              });
-              
-              console.log(`✅ ${days.length} registros do Google adicionados`);
-            } else {
-              console.log('⚠️ Google retornou dados mas sem custo ou conversões');
-            }
+              }
+            });
+            console.log(`✅ ${dailyInsights.length} registros diários do Google adicionados`);
           } else {
-            console.log('⚠️ Google retornou erro ou sem dados:', insights?.error);
+            // Fallback: buscar dados agregados e distribuir uniformemente
+            console.log('⚠️ Tentando buscar dados agregados do Google como fallback...');
+            const insights = await googleService.getAccountInsights(
+              startDate,
+              endDate
+            );
+            
+            if (insights && !insights.error) {
+              const metrics = insights.metrics || insights;
+              const cost = parseFloat(metrics.cost || 0);
+              const conversions = parseInt(metrics.conversions || 0);
+              
+              console.log('📊 Métricas agregadas do Google:', { cost, conversions });
+              
+              if (cost > 0 || conversions > 0) {
+                // Distribuir uniformemente pelos dias
+                const days = getDaysBetween(startDate, endDate);
+                const dailyCost = cost / days.length;
+                const dailyConversions = Math.round(conversions / days.length);
+                
+                console.log(`📊 Distribuindo dados do Google uniformemente: R$ ${cost.toFixed(2)} de custo e ${conversions} conversões em ${days.length} dias`);
+                
+                days.forEach(day => {
+                  data.push({
+                    date: day,
+                    invested: dailyCost,
+                    messages: dailyConversions,
+                    sales: 0,
+                    revenue: 0,
+                    source: 'google'
+                  });
+                });
+                
+                console.log(`✅ ${days.length} registros do Google adicionados (distribuição uniforme)`);
+              }
+            } else {
+              console.log('⚠️ Google retornou erro ou sem dados:', insights?.error);
+            }
           }
         } else {
           console.log('⚠️ Google não autenticado');
@@ -568,10 +599,23 @@ function aggregateByDayOfWeek(data) {
     }
   });
 
-  // Calcular CPA e ROI
+  // Calcular CPA e ROI para cada dia
   Object.values(byDay).forEach(day => {
-    day.cpa = day.messages > 0 ? parseFloat((day.invested / day.messages).toFixed(2)) : 0;
-    day.roi = day.invested > 0 ? parseFloat((day.revenue / day.invested).toFixed(2)) : 0;
+    // CPA = Investido / Mensagens (se houver mensagens)
+    if (day.messages > 0) {
+      day.cpa = parseFloat((day.invested / day.messages).toFixed(2));
+    } else {
+      day.cpa = 0;
+    }
+    
+    // ROI = Faturamento / Investido (se houver investimento)
+    if (day.invested > 0) {
+      day.roi = parseFloat((day.revenue / day.invested).toFixed(2));
+    } else {
+      day.roi = 0;
+    }
+    
+    console.log(`📊 ${day.dayName}: Investido=${day.invested.toFixed(2)}, Mensagens=${day.messages}, CPA=${day.cpa}, Vendas=${day.sales}, Faturamento=${day.revenue.toFixed(2)}`);
   });
 
   // Converter para array e ordenar (Segunda = 1 primeiro)

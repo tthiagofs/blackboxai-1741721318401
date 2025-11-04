@@ -695,79 +695,167 @@ function formatCurrency(value) {
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value || 0);
 }
 
-// Renderizar funil visual
+// Renderizar funil visual com design fixo
 function renderFunnel() {
-  const ctx = document.getElementById('funilChart');
-  if (!ctx || !currentFunnelData) return;
+  const container = document.getElementById('funilVisualization');
+  if (!container || !currentFunnelData) return;
 
-  // Destruir gráfico anterior
+  // Limpar container anterior
+  container.innerHTML = '';
+  
+  // Destruir gráfico Chart.js se existir
   if (funilChart) {
-    funilChart.destroy();
+    if (typeof funilChart.destroy === 'function') {
+      funilChart.destroy();
+    }
+    funilChart = null;
   }
 
   const data = currentFunnelData;
-  // Remover Impressões do funil (começar em Cliques)
-  const labels = ['Cliques', 'Mensagens', 'Orçamentos', 'Vendas'];
-  const values = [
-    data.clicks,
-    data.messages,
-    data.orcamentos,
-    data.vendas
-  ];
-
-  // Calcular percentuais do topo (agora baseado em Cliques)
-  const maxValue = data.clicks;
-  const percentages = values.map(v => maxValue > 0 ? (v / maxValue * 100).toFixed(2) : 0);
-
-  // Cores para cada etapa (removido Impressões)
-  const colors = [
-    'rgba(33, 150, 243, 0.8)',   // Azul - Cliques
-    'rgba(200, 230, 201, 0.8)',  // Verde claro - Mensagens
-    'rgba(255, 249, 196, 0.8)',  // Amarelo - Orçamentos
-    'rgba(76, 175, 80, 0.8)'     // Verde - Vendas
-  ];
-
-  funilChart = new Chart(ctx, {
-    type: 'bar',
-    data: {
-      labels: labels,
-      datasets: [{
-        label: 'Quantidade',
-        data: values,
-        backgroundColor: colors,
-        borderColor: colors.map(c => c.replace('0.6', '1').replace('0.8', '1')),
-        borderWidth: 2
-      }]
+  
+  // Definir etapas do funil
+  const steps = [
+    { 
+      name: 'Cliques', 
+      value: data.clicks,
+      conversionRate: data.impressions > 0 ? ((data.clicks / data.impressions) * 100).toFixed(2) + '%' : '-'
     },
-    options: {
-      indexAxis: 'y', // Barras horizontais para criar efeito de funil
-      responsive: true,
-      maintainAspectRatio: true,
-      plugins: {
-        legend: {
-          display: false
-        },
-        tooltip: {
-          callbacks: {
-            label: function(context) {
-              const index = context.dataIndex;
-              return `Quantidade: ${values[index].toLocaleString('pt-BR')}`;
-            }
-          }
-        }
-      },
-      scales: {
-        x: {
-          beginAtZero: true,
-          ticks: {
-            callback: function(value) {
-              return value.toLocaleString('pt-BR');
-            }
-          }
-        }
-      }
+    { 
+      name: 'Mensagens', 
+      value: data.messages,
+      conversionRate: data.clicks > 0 ? ((data.messages / data.clicks) * 100).toFixed(2) + '%' : '-'
+    },
+    { 
+      name: 'Orçamentos', 
+      value: data.orcamentos,
+      conversionRate: data.messages > 0 ? ((data.orcamentos / data.messages) * 100).toFixed(2) + '%' : '-'
+    },
+    { 
+      name: 'Vendas', 
+      value: data.vendas,
+      conversionRate: data.orcamentos > 0 ? ((data.vendas / data.orcamentos) * 100).toFixed(2) + '%' : '-'
     }
+  ];
+
+  // Criar canvas para o funil
+  const canvas = document.createElement('canvas');
+  canvas.id = 'funilChart';
+  canvas.width = 800;
+  canvas.height = 500;
+  canvas.style.width = '100%';
+  canvas.style.height = 'auto';
+  canvas.style.maxHeight = '500px';
+  container.appendChild(canvas);
+
+  const ctx = canvas.getContext('2d');
+  const width = canvas.width;
+  const height = canvas.height;
+
+  // Configurações do funil
+  const funnelTopWidth = 600;
+  const funnelBottomWidth = 200;
+  const barHeight = 80;
+  const barSpacing = 20;
+  const startY = 50;
+  const leftMargin = 150; // Espaço para taxa de conversão
+  const rightMargin = 200; // Espaço para nome da métrica
+
+  // Calcular larguras das barras (fixas, não baseadas no valor)
+  const totalSteps = steps.length;
+  const widthDecrement = (funnelTopWidth - funnelBottomWidth) / (totalSteps - 1);
+
+  steps.forEach((step, index) => {
+    const barWidth = funnelTopWidth - (widthDecrement * index);
+    const x = leftMargin + (funnelTopWidth - barWidth) / 2;
+    const y = startY + (barHeight + barSpacing) * index;
+
+    // Desenhar barra principal (funil 3D)
+    drawFunnelBar(ctx, x, y, barWidth, barHeight, index);
+
+    // Desenhar valor no centro da barra (fonte branca)
+    ctx.fillStyle = '#FFFFFF';
+    ctx.font = 'bold 24px Arial';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(
+      step.value.toLocaleString('pt-BR'),
+      x + barWidth / 2,
+      y + barHeight / 2
+    );
+
+    // Desenhar taxa de conversão no lado esquerdo
+    ctx.fillStyle = '#4B5563'; // Cinza escuro
+    ctx.font = '16px Arial';
+    ctx.textAlign = 'right';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(
+      step.conversionRate,
+      x - 10,
+      y + barHeight / 2
+    );
+
+    // Desenhar nome da métrica no lado direito
+    ctx.fillStyle = '#1F2937'; // Cinza muito escuro
+    ctx.font = 'bold 18px Arial';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(
+      step.name,
+      x + barWidth + 10,
+      y + barHeight / 2
+    );
   });
+
+  // Salvar referência do canvas
+  funilChart = canvas;
+}
+
+// Desenhar barra do funil com efeito 3D
+function drawFunnelBar(ctx, x, y, width, height, index) {
+  // Cor azul gradiente
+  const gradient = ctx.createLinearGradient(x, y, x, y + height);
+  gradient.addColorStop(0, '#3B82F6'); // Azul mais claro no topo
+  gradient.addColorStop(1, '#1E40AF'); // Azul mais escuro na base
+
+  // Desenhar barra principal
+  ctx.fillStyle = gradient;
+  ctx.beginPath();
+  ctx.roundRect(x, y, width, height, 8);
+  ctx.fill();
+
+  // Adicionar efeito de profundidade (sombra/3D)
+  // Sombra na parte inferior
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
+  ctx.beginPath();
+  ctx.roundRect(x + 2, y + height - 5, width - 4, 5, 4);
+  ctx.fill();
+
+  // Destaque no topo (brilho)
+  const highlightGradient = ctx.createLinearGradient(x, y, x, y + 15);
+  highlightGradient.addColorStop(0, 'rgba(255, 255, 255, 0.3)');
+  highlightGradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
+  
+  ctx.fillStyle = highlightGradient;
+  ctx.beginPath();
+  ctx.roundRect(x + 2, y + 2, width - 4, 15, 6);
+  ctx.fill();
+}
+
+// Polyfill para roundRect se não estiver disponível
+if (!CanvasRenderingContext2D.prototype.roundRect) {
+  CanvasRenderingContext2D.prototype.roundRect = function(x, y, width, height, radius) {
+    this.beginPath();
+    this.moveTo(x + radius, y);
+    this.lineTo(x + width - radius, y);
+    this.quadraticCurveTo(x + width, y, x + width, y + radius);
+    this.lineTo(x + width, y + height - radius);
+    this.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+    this.lineTo(x + radius, y + height);
+    this.quadraticCurveTo(x, y + height, x, y + height - radius);
+    this.lineTo(x, y + radius);
+    this.quadraticCurveTo(x, y, x + radius, y);
+    this.closePath();
+  };
 }
 
 // Renderizar tabela do funil

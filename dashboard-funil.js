@@ -536,21 +536,21 @@ function renderPlatformFunnel(canvasId, data, platformName) {
     funilChartGoogle.destroy();
   }
 
-  const labels = ['Impressões', 'Cliques', 'Mensagens', 'Orçamentos', 'Vendas'];
+  // Remover Impressões do funil por plataforma (começar em Cliques)
+  const labels = ['Cliques', 'Mensagens', 'Orçamentos', 'Vendas'];
   const values = [
-    data.impressions,
     data.clicks,
     data.messages,
     data.orcamentos || 0,
     data.vendas || 0
   ];
 
+  // Cores para cada etapa (removido Impressões)
   const colors = [
-    'rgba(33, 150, 243, 0.6)',
-    'rgba(33, 150, 243, 0.8)',
-    'rgba(200, 230, 201, 0.8)',
-    'rgba(255, 249, 196, 0.8)',
-    'rgba(76, 175, 80, 0.8)'
+    'rgba(33, 150, 243, 0.8)',   // Azul - Cliques
+    'rgba(200, 230, 201, 0.8)',  // Verde claro - Mensagens
+    'rgba(255, 249, 196, 0.8)',  // Amarelo - Orçamentos
+    'rgba(76, 175, 80, 0.8)'     // Verde - Vendas
   ];
 
   const chart = new Chart(ctx, {
@@ -610,7 +610,6 @@ function renderPlatformComparison() {
   tbody.innerHTML = '';
 
   const metrics = [
-    { key: 'impressions', label: 'Impressões' },
     { key: 'clicks', label: 'Cliques' },
     { key: 'messages', label: 'Mensagens' },
     { key: 'orcamentos', label: 'Orçamentos' },
@@ -663,22 +662,21 @@ function renderFunnel() {
   }
 
   const data = currentFunnelData;
-  const labels = ['Impressões', 'Cliques', 'Mensagens', 'Orçamentos', 'Vendas'];
+  // Remover Impressões do funil (começar em Cliques)
+  const labels = ['Cliques', 'Mensagens', 'Orçamentos', 'Vendas'];
   const values = [
-    data.impressions,
     data.clicks,
     data.messages,
     data.orcamentos,
     data.vendas
   ];
 
-  // Calcular percentuais do topo
-  const maxValue = data.impressions;
+  // Calcular percentuais do topo (agora baseado em Cliques)
+  const maxValue = data.clicks;
   const percentages = values.map(v => maxValue > 0 ? (v / maxValue * 100).toFixed(2) : 0);
 
-  // Cores para cada etapa
+  // Cores para cada etapa (removido Impressões)
   const colors = [
-    'rgba(33, 150, 243, 0.6)',   // Azul - Impressões
     'rgba(33, 150, 243, 0.8)',   // Azul - Cliques
     'rgba(200, 230, 201, 0.8)',  // Verde claro - Mensagens
     'rgba(255, 249, 196, 0.8)',  // Amarelo - Orçamentos
@@ -709,10 +707,7 @@ function renderFunnel() {
           callbacks: {
             label: function(context) {
               const index = context.dataIndex;
-              return [
-                `Quantidade: ${values[index].toLocaleString('pt-BR')}`,
-                `% do Topo: ${percentages[index]}%`
-              ];
+              return `Quantidade: ${values[index].toLocaleString('pt-BR')}`;
             }
           }
         }
@@ -739,28 +734,27 @@ function renderFunnelTable() {
   tbody.innerHTML = '';
 
   const data = currentFunnelData;
+  // Remover Impressões da tabela (começar em Cliques)
   const steps = [
-    { name: 'Impressões', value: data.impressions, color: 'bg-blue-100' },
     { name: 'Cliques', value: data.clicks, color: 'bg-blue-200' },
     { name: 'Mensagens', value: data.messages, color: 'bg-green-100' },
     { name: 'Orçamentos', value: data.orcamentos, color: 'bg-yellow-100' },
     { name: 'Vendas', value: data.vendas, color: 'bg-green-200' }
   ];
 
-  const maxValue = data.impressions;
-
   steps.forEach((step, index) => {
-    const percentage = maxValue > 0 ? ((step.value / maxValue) * 100).toFixed(2) : 0;
-    
     // Taxa de conversão em relação à etapa anterior
     let conversionRate = '-';
-    let loss = '-';
     
     if (index > 0) {
       const previousValue = steps[index - 1].value;
       if (previousValue > 0) {
         conversionRate = ((step.value / previousValue) * 100).toFixed(2) + '%';
-        loss = (previousValue - step.value).toLocaleString('pt-BR');
+      }
+    } else {
+      // Primeira etapa (Cliques) - taxa de conversão em relação a impressões
+      if (data.impressions > 0) {
+        conversionRate = ((data.clicks / data.impressions) * 100).toFixed(2) + '%';
       }
     }
 
@@ -769,9 +763,7 @@ function renderFunnelTable() {
     row.innerHTML = `
       <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${step.name}</td>
       <td class="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-900">${step.value.toLocaleString('pt-BR')}</td>
-      <td class="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-900">${percentage}%</td>
       <td class="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-900">${conversionRate}</td>
-      <td class="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-900">${loss}</td>
     `;
 
     tbody.appendChild(row);
@@ -784,10 +776,16 @@ function renderMetrics() {
 
   const data = currentFunnelData;
   
-  // Taxa de conversão geral
-  const conversionRate = data.impressions > 0 
-    ? ((data.vendas / data.impressions) * 100).toFixed(2)
-    : 0;
+    // Taxa de conversão geral (Cliques → Vendas)
+    // Mostrar também taxa de Impressões → Vendas como informação adicional
+    const conversionRate = data.clicks > 0 
+      ? ((data.vendas / data.clicks) * 100).toFixed(2)
+      : 0;
+    
+    // Taxa de Impressões → Vendas (para referência, mas não no card principal)
+    const fullConversionRate = data.impressions > 0 
+      ? ((data.vendas / data.impressions) * 100).toFixed(4)
+      : 0;
   
   // CPA
   const cpa = data.vendas > 0 
@@ -805,8 +803,8 @@ function renderMetrics() {
   let roiChange = '';
 
   if (previousFunnelData) {
-    const prevConversionRate = previousFunnelData.impressions > 0 
-      ? ((previousFunnelData.vendas / previousFunnelData.impressions) * 100).toFixed(2)
+    const prevConversionRate = previousFunnelData.clicks > 0 
+      ? ((previousFunnelData.vendas / previousFunnelData.clicks) * 100).toFixed(2)
       : 0;
     const diff = (parseFloat(conversionRate) - parseFloat(prevConversionRate)).toFixed(2);
     conversionRateChange = diff > 0 
@@ -862,7 +860,14 @@ function renderBottlenecks() {
     { name: 'Vendas', value: data.vendas }
   ];
 
-  // Encontrar maior perda
+  // Encontrar maior perda (removendo Impressões)
+  const steps = [
+    { name: 'Cliques', value: data.clicks },
+    { name: 'Mensagens', value: data.messages },
+    { name: 'Orçamentos', value: data.orcamentos },
+    { name: 'Vendas', value: data.vendas }
+  ];
+
   let maxLoss = 0;
   let maxLossStep = null;
   let maxLossPercentage = 0;
@@ -905,7 +910,7 @@ function renderBottlenecks() {
     container.appendChild(lossCard);
   }
 
-  // Encontrar melhor conversão
+  // Encontrar melhor conversão (usando steps já definido acima)
   let bestConversion = 0;
   let bestConversionStep = null;
 
@@ -944,11 +949,6 @@ function renderBottlenecks() {
 // Obter recomendações baseadas no gargalo
 function getRecommendations(step) {
   const recommendations = {
-    'Impressões': [
-      'Aumentar investimento em anúncios',
-      'Expandir público-alvo',
-      'Melhorar targeting de campanhas'
-    ],
     'Cliques': [
       'Melhorar copy e CTA dos anúncios',
       'Testar diferentes criativos',
@@ -1065,21 +1065,18 @@ async function exportFunnelToPDF() {
     doc.setFontSize(9);
     doc.setFont(undefined, 'bold');
     doc.text('Etapa', margin, currentY);
-    doc.text('Quantidade', margin + 50, currentY);
-    doc.text('% Topo', margin + 100, currentY);
-    doc.text('Taxa Conv.', margin + 140, currentY);
+    doc.text('Quantidade', margin + 60, currentY);
+    doc.text('Taxa Conv.', margin + 130, currentY);
     currentY += 6;
 
     doc.setFont(undefined, 'normal');
+    // Remover Impressões do PDF também
     const steps = [
-      { name: 'Impressões', value: currentFunnelData.impressions },
       { name: 'Cliques', value: currentFunnelData.clicks },
       { name: 'Mensagens', value: currentFunnelData.messages },
       { name: 'Orçamentos', value: currentFunnelData.orcamentos },
       { name: 'Vendas', value: currentFunnelData.vendas }
     ];
-
-    const maxValue = currentFunnelData.impressions;
 
     steps.forEach((step, index) => {
       if (currentY > pdfHeight - 20) {
@@ -1087,10 +1084,14 @@ async function exportFunnelToPDF() {
         currentY = margin;
       }
 
-      const percentage = maxValue > 0 ? ((step.value / maxValue) * 100).toFixed(2) : 0;
       let conversionRate = '-';
       
-      if (index > 0) {
+      if (index === 0) {
+        // Primeira etapa (Cliques) - taxa em relação a impressões
+        if (currentFunnelData.impressions > 0) {
+          conversionRate = ((step.value / currentFunnelData.impressions) * 100).toFixed(2) + '%';
+        }
+      } else {
         const previousValue = steps[index - 1].value;
         if (previousValue > 0) {
           conversionRate = ((step.value / previousValue) * 100).toFixed(2) + '%';
@@ -1098,9 +1099,8 @@ async function exportFunnelToPDF() {
       }
 
       doc.text(step.name, margin, currentY);
-      doc.text(step.value.toLocaleString('pt-BR'), margin + 50, currentY);
-      doc.text(percentage + '%', margin + 100, currentY);
-      doc.text(conversionRate, margin + 140, currentY);
+      doc.text(step.value.toLocaleString('pt-BR'), margin + 60, currentY);
+      doc.text(conversionRate, margin + 130, currentY);
       currentY += 6;
     });
 
@@ -1161,12 +1161,11 @@ function exportFunnelToXLSX() {
 
     const data = currentFunnelData;
     const exportData = [
-      ['Etapa', 'Quantidade', '% do Topo', 'Taxa de Conversão', 'Perda'],
-      ['Impressões', data.impressions, '100.00%', '-', '-'],
-      ['Cliques', data.clicks, ((data.clicks / data.impressions) * 100).toFixed(2) + '%', ((data.clicks / data.impressions) * 100).toFixed(2) + '%', data.impressions - data.clicks],
-      ['Mensagens', data.messages, ((data.messages / data.impressions) * 100).toFixed(2) + '%', data.clicks > 0 ? ((data.messages / data.clicks) * 100).toFixed(2) + '%' : '-', data.clicks - data.messages],
-      ['Orçamentos', data.orcamentos, ((data.orcamentos / data.impressions) * 100).toFixed(2) + '%', data.messages > 0 ? ((data.orcamentos / data.messages) * 100).toFixed(2) + '%' : '-', data.messages - data.orcamentos],
-      ['Vendas', data.vendas, ((data.vendas / data.impressions) * 100).toFixed(2) + '%', data.orcamentos > 0 ? ((data.vendas / data.orcamentos) * 100).toFixed(2) + '%' : '-', data.orcamentos - data.vendas],
+      ['Etapa', 'Quantidade', 'Taxa de Conversão'],
+      ['Cliques', data.clicks, data.impressions > 0 ? ((data.clicks / data.impressions) * 100).toFixed(2) + '%' : '-'],
+      ['Mensagens', data.messages, data.clicks > 0 ? ((data.messages / data.clicks) * 100).toFixed(2) + '%' : '-'],
+      ['Orçamentos', data.orcamentos, data.messages > 0 ? ((data.orcamentos / data.messages) * 100).toFixed(2) + '%' : '-'],
+      ['Vendas', data.vendas, data.orcamentos > 0 ? ((data.vendas / data.orcamentos) * 100).toFixed(2) + '%' : '-'],
       [],
       ['Métricas', 'Valor'],
       ['Taxa de Conversão Geral', ((data.vendas / data.impressions) * 100).toFixed(2) + '%'],
@@ -1182,9 +1181,7 @@ function exportFunnelToXLSX() {
     const colWidths = [
       { wch: 20 }, // Etapa
       { wch: 15 }, // Quantidade
-      { wch: 15 }, // % do Topo
-      { wch: 18 }, // Taxa de Conversão
-      { wch: 15 }  // Perda
+      { wch: 18 }  // Taxa de Conversão
     ];
     ws['!cols'] = colWidths;
 

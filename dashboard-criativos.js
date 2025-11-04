@@ -355,13 +355,40 @@ async function fetchCreativesFromMetaAds(projectId, unitId, dates) {
   }
 }
 
+// Função específica para extrair leads de criativos (apenas mensagens principais, sem duplicar)
+function extractLeadsForCreatives(actions) {
+  if (!actions || !Array.isArray(actions)) return 0;
+  
+  // Para análise de criativos, usar apenas a métrica principal de mensagens
+  // Isso evita contar mensagens + cadastros + conversões separadamente (que podem ser a mesma pessoa)
+  const messageAction = actions.find(action => 
+    action.action_type === 'onsite_conversion.messaging_conversation_started_7d'
+  );
+  
+  if (messageAction && messageAction.value) {
+    return parseInt(messageAction.value) || 0;
+  }
+  
+  // Fallback: se não tiver a métrica principal, tentar lead_grouped
+  const leadAction = actions.find(action => 
+    action.action_type === 'onsite_conversion.lead_grouped'
+  );
+  
+  if (leadAction && leadAction.value) {
+    return parseInt(leadAction.value) || 0;
+  }
+  
+  return 0;
+}
+
 // Processar dados dos anúncios (RÁPIDO - sem buscar creative)
 function processAdsDataFast(adsData, unitName) {
   const processed = [];
   
   for (const ad of adsData) {
     const actions = ad.actions || [];
-    const leads = extractAllMessagesAndLeads(actions);
+    // Para criativos, usar função específica que não duplica métricas
+    const leads = extractLeadsForCreatives(actions);
     const spend = parseFloat(ad.spend || 0);
     const cpl = leads > 0 ? spend / leads : 0;
     const impressions = parseInt(ad.impressions || 0);
@@ -392,8 +419,8 @@ async function processAdsData(adsData, fbService, accessToken, unitName) {
     // O ad já vem com os dados do insights quando usamos level=ad
     const actions = ad.actions || [];
     
-    // Extrair leads (mensagens)
-    const leads = extractAllMessagesAndLeads(actions);
+    // Para criativos, usar função específica que não duplica métricas
+    const leads = extractLeadsForCreatives(actions);
     
     // Calcular CPL
     const spend = parseFloat(ad.spend || 0);

@@ -637,175 +637,144 @@ async function exportCreativesToPDF() {
 
   try {
     // Verificar se jsPDF está disponível
-    if (typeof window.jspdf === 'undefined') {
-      alert('Biblioteca jsPDF não carregada. Adicione o script no HTML.');
+    // Verificar se html2canvas está disponível
+    if (typeof html2canvas === 'undefined') {
+      alert('Biblioteca html2canvas não está carregada. Por favor, recarregue a página.');
       return;
+    }
+
+    if (typeof window.jspdf === 'undefined') {
+      alert('Biblioteca jsPDF não está carregada. Por favor, recarregue a página.');
+      return;
+    }
+
+    // Ocultar botão durante exportação
+    const exportBtn = document.getElementById('exportCreativesPDFBtn');
+    const originalDisplay = exportBtn ? window.getComputedStyle(exportBtn).display : 'inline-flex';
+    if (exportBtn) {
+      exportBtn.style.display = 'none';
     }
 
     const { jsPDF } = window.jspdf;
-
-    // Verificar se html2canvas está disponível
-    if (typeof html2canvas === 'undefined') {
-      alert('Biblioteca html2canvas não carregada. Adicione o script no HTML.');
+    const contentEl = document.getElementById('creativesContent');
+    
+    if (!contentEl) {
+      alert('Conteúdo não encontrado. Por favor, busque os criativos primeiro.');
+      if (exportBtn) exportBtn.style.display = originalDisplay || 'inline-flex';
       return;
     }
 
-    // Ocultar botão durante captura
-    const exportBtn = document.getElementById('exportCreativesPDFBtn');
-    const originalDisplay = exportBtn ? window.getComputedStyle(exportBtn).display : 'inline-flex';
-    if (exportBtn) exportBtn.style.display = 'none';
-
-    // Criar PDF
+    // Criar o PDF
     const doc = new jsPDF({
       orientation: 'portrait',
       unit: 'mm',
-      format: 'a4'
+      format: 'a4',
     });
 
     const pdfWidth = 210;
     const pdfHeight = 297;
     const margin = 10;
-    let currentY = margin;
-
-    // Título
-    doc.setFontSize(18);
-    doc.text('Top 10 Criativos - Análise de Performance', pdfWidth / 2, currentY, { align: 'center' });
-    currentY += 10;
-
-    // Período
-    const periodSelect = document.getElementById('creativePeriodSelect');
-    const projectSelect = document.getElementById('creativeProjectSelect');
-    const period = periodSelect ? periodSelect.options[periodSelect.selectedIndex].text : 'Período não selecionado';
-    const project = projectSelect ? projectSelect.options[projectSelect.selectedIndex].text : 'Projeto não selecionado';
+    const usableWidth = pdfWidth - (margin * 2);
+    const usableHeight = pdfHeight - (margin * 2);
     
-    doc.setFontSize(10);
-    doc.text(`Projeto: ${project}`, margin, currentY);
-    currentY += 6;
-    doc.text(`Período: ${period}`, margin, currentY);
-    currentY += 6;
-    doc.text(`Total de criativos: ${allCreatives.length}`, margin, currentY);
-    currentY += 15;
+    let currentY = margin;
+    let currentPage = 1;
 
-    // Criar tabela de resumo
-    doc.setFontSize(12);
-    doc.text('Resumo dos Top 10 Criativos', margin, currentY);
-    currentY += 8;
-
-    doc.setFontSize(9);
-    doc.setFont(undefined, 'bold');
-    doc.text('Posição', margin, currentY);
-    doc.text('Nome', margin + 20, currentY);
-    doc.text('Impressões', margin + 90, currentY);
-    doc.text('Leads', margin + 120, currentY);
-    doc.text('CPL', margin + 145, currentY);
-    doc.text('Gasto', margin + 165, currentY);
-    currentY += 5;
-
-    doc.setFont(undefined, 'normal');
-    allCreatives.forEach((creative, index) => {
-      if (currentY > pdfHeight - 20) {
-        doc.addPage();
-        currentY = margin;
+    // Identificar as seções principais
+    const sections = [];
+    
+    // 1. Header com título e informações (Top 10 Criativos)
+    const headerSection = contentEl.querySelector('.bg-white.border.border-gray-200.rounded-xl.p-5.mb-6');
+    if (headerSection) {
+      sections.push(headerSection);
+    }
+    
+    // 2. Lista de criativos
+    const creativesList = document.getElementById('creativesList');
+    if (creativesList) {
+      // Encontrar o container pai que contém a lista completa
+      const listParent = creativesList.parentElement;
+      if (listParent) {
+        sections.push(listParent);
       }
-
-      doc.text(`${index + 1}`, margin, currentY);
-      const name = creative.name.length > 30 ? creative.name.substring(0, 27) + '...' : creative.name;
-      doc.text(name, margin + 20, currentY);
-      doc.text(creative.impressions.toLocaleString('pt-BR'), margin + 90, currentY);
-      doc.text(creative.leads.toString(), margin + 120, currentY);
-      doc.text(creative.cpl > 0 ? `R$ ${creative.cpl.toFixed(2)}` : '-', margin + 145, currentY);
-      doc.text(`R$ ${creative.spend.toFixed(2)}`, margin + 165, currentY);
-      currentY += 5;
-    });
-
-    // Adicionar informações de comparação por tipo se disponível
-    currentY += 10;
-    if (currentY > pdfHeight - 40) {
-      doc.addPage();
-      currentY = margin;
+    }
+    
+    // 3. Comparação por tipo (se existir e não estiver oculto)
+    const typeComparison = document.getElementById('typeComparison');
+    if (typeComparison && !typeComparison.classList.contains('hidden')) {
+      const typeContainer = typeComparison.closest('.bg-white');
+      if (typeContainer) {
+        sections.push(typeContainer);
+      } else {
+        sections.push(typeComparison);
+      }
+    }
+    
+    // 4. Insights (se existir e não estiver oculto)
+    const insightsSection = document.getElementById('insightsSection');
+    if (insightsSection && !insightsSection.classList.contains('hidden')) {
+      const insightsContainer = insightsSection.closest('.bg-white');
+      if (insightsContainer) {
+        sections.push(insightsContainer);
+      } else {
+        sections.push(insightsSection);
+      }
     }
 
-    const typeImage = document.getElementById('typeImage');
-    const typeVideo = document.getElementById('typeVideo');
-    const typeCarousel = document.getElementById('typeCarousel');
-
-    if (typeImage && !typeImage.classList.contains('hidden')) {
-      doc.setFontSize(12);
-      doc.text('Comparação por Tipo', margin, currentY);
-      currentY += 8;
-
-      doc.setFontSize(9);
-      const imagePercent = document.getElementById('typeImagePercent')?.textContent || '0%';
-      const videoPercent = document.getElementById('typeVideoPercent')?.textContent || '0%';
-      const carouselPercent = document.getElementById('typeCarouselPercent')?.textContent || '0%';
-
-      doc.text(`Imagem Estática: ${imagePercent}`, margin + 5, currentY);
-      currentY += 5;
-      doc.text(`Vídeo: ${videoPercent}`, margin + 5, currentY);
-      currentY += 5;
-      doc.text(`Carrossel: ${carouselPercent}`, margin + 5, currentY);
-      currentY += 10;
-    }
-
-    // Capturar imagens dos criativos (se houver espaço)
-    currentY += 10;
-    if (currentY > pdfHeight - 80) {
-      doc.addPage();
-      currentY = margin;
-    }
-
-    doc.setFontSize(12);
-    doc.text('Preview dos Criativos', margin, currentY);
-    currentY += 10;
-
-    // Tentar adicionar algumas imagens (máximo 3 por página)
-    let imagesAdded = 0;
-    for (let i = 0; i < Math.min(allCreatives.length, 6); i++) {
-      const creative = allCreatives[i];
+    // Processar cada seção
+    for (let i = 0; i < sections.length; i++) {
+      const section = sections[i];
       
-      if (currentY > pdfHeight - 60) {
+      // Capturar a seção como imagem com alta qualidade
+      const canvas = await html2canvas(section, {
+        scale: 2, // Alta resolução
+        useCORS: true,
+        logging: false,
+        backgroundColor: '#ffffff',
+        allowTaint: false,
+        windowWidth: section.scrollWidth,
+        windowHeight: section.scrollHeight
+      });
+
+      const imgData = canvas.toDataURL('image/png', 1.0);
+      const imgWidth = canvas.width;
+      const imgHeight = canvas.height;
+
+      // Calcular dimensões para o PDF mantendo a proporção
+      const ratio = usableWidth / (imgWidth * 0.264583); // 0.264583 mm per pixel at 96 DPI
+      const scaledWidth = usableWidth;
+      const scaledHeight = (imgHeight * 0.264583) * ratio;
+
+      // Verificar se a seção cabe na página atual
+      if (currentY + scaledHeight > pdfHeight - margin) {
+        // Não cabe, criar nova página
         doc.addPage();
+        currentPage++;
         currentY = margin;
-        imagesAdded = 0;
       }
 
-      if (creative.thumbnailUrl && creative.thumbnailUrl.startsWith('http')) {
-        try {
-          // Criar imagem temporária para converter
-          const img = new Image();
-          img.crossOrigin = 'anonymous';
-          
-          await new Promise((resolve, reject) => {
-            img.onload = () => {
-              try {
-                const imgWidth = 40;
-                const imgHeight = 40;
-                doc.addImage(img, 'JPEG', margin + (imagesAdded % 3) * 65, currentY, imgWidth, imgHeight);
-                imagesAdded++;
-                
-                if (imagesAdded % 3 === 0) {
-                  currentY += 45;
-                }
-                resolve();
-              } catch (error) {
-                console.warn('Erro ao adicionar imagem:', error);
-                resolve(); // Continuar mesmo se falhar
-              }
-            };
-            img.onerror = () => resolve(); // Continuar mesmo se falhar
-            img.src = creative.thumbnailUrl;
-          });
-        } catch (error) {
-          console.warn('Erro ao processar imagem:', error);
-        }
-      }
+      // Adicionar a imagem na posição atual
+      doc.addImage(imgData, 'PNG', margin, currentY, scaledWidth, scaledHeight);
+      
+      // Atualizar a posição Y para a próxima seção
+      currentY += scaledHeight + 5; // 5mm de espaçamento entre seções
     }
+
+    // Restaurar botão
+    if (exportBtn) {
+      exportBtn.style.display = originalDisplay || 'inline-flex';
+    }
+
+    // Gerar nome do arquivo
+    const projectSelect = document.getElementById('projectSelect');
+    const projectName = projectSelect?.options[projectSelect.selectedIndex]?.text || 'Criativos';
+    const dateStr = new Date().toISOString().split('T')[0];
+    const fileName = `Analise_Criativos_${projectName.replace(/\s+/g, '_')}_${dateStr}.pdf`;
 
     // Salvar PDF
-    const dateStr = new Date().toISOString().split('T')[0];
-    doc.save(`Analise_Criativos_${dateStr}.pdf`);
-
-    console.log('✅ PDF exportado com sucesso!');
+    doc.save(fileName);
+    
+    console.log('✅ PDF exportado com sucesso usando html2canvas!');
   } catch (error) {
     console.error('❌ Erro ao exportar PDF:', error);
     alert('Erro ao exportar PDF. Tente novamente.');

@@ -23,6 +23,12 @@ service cloud.firestore {
         allow read, write: if request.auth != null;
       }
       
+      // Subcoleção de pastas
+      match /folders/{folderId} {
+        // Permitir leitura e escrita se o usuário está autenticado
+        allow read, write: if request.auth != null;
+      }
+      
       // Subcoleção de relatórios (se ainda não existir)
       match /reports/{reportId} {
         allow read, write: if request.auth != null;

@@ -1837,11 +1837,16 @@ async function generateCompleteReport() {
         }
         
         // Salvar dados para posterior salvamento no Firebase (quando clicar em "Salvar")
-        // ⭐ Novo formato de nome: "[Unidade] - [Data]"
+        // ⭐ Novo formato de nome: "[Nome da Unidade] - DD/MM a DD/MM"
+        const unitName = selectedUnit?.name || accountName || 'Unidade';
+        const formatDateShort = (dateStr) => {
+            const [year, month, day] = dateStr.split('-');
+            return `${day}/${month}`;
+        };
         window.currentPresentationData = {
-            presentationName: `${accountName} - ${formatDateISOToBR(startDate)} a ${formatDateISOToBR(endDate)}`,
+            presentationName: `${unitName} - ${formatDateShort(startDate)} a ${formatDateShort(endDate)}`,
             unitId: selectedUnit?.id || unitId,
-            unitName: accountName,
+            unitName: unitName,
             unitData: selectedUnit || {},
             startDate,
             endDate,

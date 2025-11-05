@@ -125,6 +125,9 @@
         .drop-overlay {
             transition: all 0.2s ease;
         }
+        .w-55 {
+            width: 13.75rem; /* 220px = 15% maior que 192px (w-48) */
+        }
     </style>
 </head>
 <body class="bg-gray-50 min-h-screen font-sans m-0 p-0">
@@ -262,7 +265,10 @@
                 <div id="presentationsContent" class="hidden space-y-8">
                     <!-- Seção: Recentes -->
                     <div>
-                        <h2 class="text-2xl font-bold text-gray-900 mb-4">Recentes</h2>
+                        <h2 class="text-2xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+                            <i class="fas fa-chevron-down text-gray-400"></i>
+                            Recentes
+                        </h2>
                         <div class="relative">
                             <!-- Setas de Navegação -->
                             <button id="recentesScrollLeft" class="absolute left-0 top-1/2 -translate-y-1/2 z-10 bg-white rounded-full p-2 shadow-lg border border-gray-200 hover:bg-gray-50 transition-all hidden">
@@ -451,19 +457,58 @@
 
         recentesContainer?.addEventListener('scroll', updateScrollButtons);
 
-        // Criar pasta
-        createFolderBtn?.addEventListener('click', async () => {
-            const folderName = prompt('Digite o nome da pasta:');
-            if (!folderName || !folderName.trim()) return;
+        // Criar pasta (input inline)
+        createFolderBtn?.addEventListener('click', () => {
+            // Esconder botão e mostrar input
+            createFolderBtn.style.display = 'none';
+            const inputContainer = document.createElement('div');
+            inputContainer.className = 'flex items-center gap-2';
+            inputContainer.innerHTML = `
+                <input type="text" id="newFolderNameInput" placeholder="Nome da pasta" 
+                       class="px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-600"
+                       onkeypress="if(event.key === 'Enter') window.createFolderInline()">
+                <button onclick="window.createFolderInline()" class="px-4 py-2 bg-purple-600 text-white rounded-lg text-sm hover:bg-purple-700 transition-all">
+                    <i class="fas fa-check"></i>
+                </button>
+                <button onclick="window.cancelCreateFolder()" class="px-4 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50 transition-all">
+                    <i class="fas fa-times"></i>
+                </button>
+            `;
+            createFolderBtn.parentElement.appendChild(inputContainer);
+            document.getElementById('newFolderNameInput').focus();
+        });
+
+        window.createFolderInline = async () => {
+            const input = document.getElementById('newFolderNameInput');
+            const folderName = input?.value?.trim();
+            
+            if (!folderName) {
+                alert('Digite um nome para a pasta');
+                return;
+            }
 
             try {
-                await foldersService.createFolder(currentProjectId, { name: folderName.trim() });
+                await foldersService.createFolder(currentProjectId, { name: folderName });
                 await loadFolders();
+                
+                // Restaurar botão
+                const inputContainer = input.closest('div');
+                if (inputContainer) inputContainer.remove();
+                if (createFolderBtn) createFolderBtn.style.display = 'inline-flex';
             } catch (error) {
                 console.error('❌ Erro ao criar pasta:', error);
-                alert('Erro ao criar pasta');
+                alert('Erro ao criar pasta: ' + error.message);
             }
-        });
+        };
+
+        window.cancelCreateFolder = () => {
+            const input = document.getElementById('newFolderNameInput');
+            if (input) {
+                const inputContainer = input.closest('div');
+                if (inputContainer) inputContainer.remove();
+            }
+            if (createFolderBtn) createFolderBtn.style.display = 'inline-flex';
+        };
 
         // Ver mais apresentações
         loadMoreBtn?.addEventListener('click', () => {
@@ -594,7 +639,7 @@
             platformsStats.innerHTML = platformsHTML;
         }
 
-        // Função auxiliar para formatar "Editado há X tempo"
+        // Função auxiliar para formatar "Criado há" ou "Editado há X tempo"
         function getTimeAgo(date) {
             const now = new Date();
             const then = new Date(date);
@@ -603,30 +648,36 @@
             const diffHours = Math.floor(diffMs / 3600000);
             const diffDays = Math.floor(diffMs / 86400000);
 
+            let timeStr = '';
             if (diffMins < 60) {
-                return `${diffMins}min atrás`;
+                timeStr = `${diffMins}min atrás`;
             } else if (diffHours < 24) {
-                return `${diffHours}h atrás`;
+                timeStr = `${diffHours}h atrás`;
             } else if (diffDays < 30) {
-                return `${diffDays}d atrás`;
+                timeStr = `${diffDays}d atrás`;
             } else {
-                return then.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+                timeStr = then.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
             }
+            return timeStr;
         }
 
         // Renderizar card de apresentação (reutilizável)
-        function renderPresentationCard(presentation, isSmall = false) {
+        function renderPresentationCard(presentation, isSmall = false, enableDrag = false) {
+            // Determinar se foi editado ou apenas criado
+            const wasEdited = presentation.updatedAt && presentation.updatedAt !== presentation.createdAt;
             const timeAgo = getTimeAgo(presentation.updatedAt || presentation.createdAt);
+            const timeLabel = wasEdited ? 'Editado há' : 'Criado há';
+            
             const preview = presentation.coverPreview || null;
-            const cardClass = isSmall ? 'w-48 flex-shrink-0' : 'w-full';
+            // Aumentar cards em 15%: w-48 (192px) -> ~w-55 (220px)
+            const cardClass = isSmall ? 'w-55 flex-shrink-0' : 'w-full';
             const cardStyle = preview ? `background-image: url('${preview}'); background-size: cover; background-position: center;` : '';
+            const draggableAttr = enableDrag ? 'draggable="true" ondragstart="handleDragStart(event, \'' + presentation.id + '\')" ondragend="handleDragEnd(event)"' : '';
 
                 return `
                 <div class="presentation-card ${cardClass} bg-white border border-gray-200 rounded-lg overflow-hidden hover:shadow-lg transition-all cursor-pointer group relative"
                      data-presentation-id="${presentation.id}"
-                     draggable="true"
-                     ondragstart="handleDragStart(event, '${presentation.id}')"
-                     ondragend="handleDragEnd(event)"
+                     ${draggableAttr}
                      onclick="openPresentation('${presentation.id}', event)">
                     
                     <!-- Preview da Capa -->
@@ -645,7 +696,7 @@
                     <!-- Conteúdo do Card -->
                     <div class="p-3">
                         <h4 class="text-sm font-semibold text-gray-900 mb-1 truncate">${presentation.presentationName || 'Sem nome'}</h4>
-                        <p class="text-xs text-gray-500">Editado há ${timeAgo}</p>
+                        <p class="text-xs text-gray-500">${timeLabel} ${timeAgo}</p>
                     </div>
                 </div>
             `;
@@ -659,7 +710,8 @@
                 .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
                 .slice(0, 8);
 
-            recentesContainer.innerHTML = recent.map(p => renderPresentationCard(p, true)).join('');
+            // Cards em Recentes devem ser arrastáveis e do mesmo tamanho que "Todas apresentações"
+            recentesContainer.innerHTML = recent.map(p => renderPresentationCard(p, true, true)).join('');
             
             // Atualizar setas de scroll
             setTimeout(updateScrollButtons, 100);
@@ -719,7 +771,8 @@
                 .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
             const toDisplay = sorted.slice(0, displayedCount);
-            allPresentationsGrid.innerHTML = toDisplay.map(p => renderPresentationCard(p)).join('');
+            // Cards em "Todas apresentações" NÃO são arrastáveis, mas têm o mesmo tamanho
+            allPresentationsGrid.innerHTML = toDisplay.map(p => renderPresentationCard(p, true, false)).join('');
 
             // Mostrar "Ver mais" se houver mais apresentações
             if (sorted.length > displayedCount) {

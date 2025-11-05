@@ -996,6 +996,23 @@ ul.list-disc li br {
                     // Atualizar HTML no objeto antes de salvar
                     window.currentPresentationData.html = htmlToSave;
                     
+                    // ⭐ Gerar preview da capa antes de salvar
+                    console.log('🖼️ Gerando preview da capa...');
+                    let coverPreview = null;
+                    try {
+                        const { generateCoverPreview } = await import('./utils/presentationPreview.js');
+                        coverPreview = await generateCoverPreview(htmlToSave);
+                        if (coverPreview) {
+                            console.log('✅ Preview da capa gerada com sucesso');
+                            dataToSave.coverPreview = coverPreview;
+                        } else {
+                            console.warn('⚠️ Preview não foi gerada, continuando sem preview');
+                        }
+                    } catch (error) {
+                        console.warn('⚠️ Erro ao gerar preview, continuando sem preview:', error);
+                        // Continuar salvando mesmo sem preview
+                    }
+                    
                     const result = await presentationsService.savePresentation(projectId, dataToSave);
                     
                     if (result.success) {

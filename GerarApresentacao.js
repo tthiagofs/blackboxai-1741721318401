@@ -1837,8 +1837,9 @@ async function generateCompleteReport() {
         }
         
         // Salvar dados para posterior salvamento no Firebase (quando clicar em "Salvar")
+        // ⭐ Novo formato de nome: "[Unidade] - [Data]"
         window.currentPresentationData = {
-            presentationName: `Apresentação ${accountName} - ${formatDateISOToBR(startDate)} a ${formatDateISOToBR(endDate)}`,
+            presentationName: `${accountName} - ${formatDateISOToBR(startDate)} a ${formatDateISOToBR(endDate)}`,
             unitId: selectedUnit?.id || unitId,
             unitName: accountName,
             unitData: selectedUnit || {},

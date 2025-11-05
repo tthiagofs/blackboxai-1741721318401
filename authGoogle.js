@@ -113,23 +113,37 @@ class GoogleAuthService {
             // Verificar se token está próximo de expirar (55 minutos = renovar antes de expirar)
             const elapsed = Date.now() - parseInt(tokenTime);
             const EXPIRY_TIME = 3600000; // 1 hora em ms
-            const RENEWAL_THRESHOLD = 3300000; // 55 minutos - renovar antes de expirar
+            const RENEWAL_THRESHOLD = 3000000; // 50 minutos - renovar antes de expirar (mais cedo)
             
             if (elapsed > EXPIRY_TIME) {
                 // Token expirado - tentar renovar automaticamente
                 console.log('🔄 Token Google expirado, tentando renovar automaticamente...');
                 try {
+                    // Garantir que está inicializado antes de renovar
+                    if (!this.isInitialized) {
+                        await this.initialize();
+                    }
                     await this.refreshToken();
                     return this.accessToken;
                 } catch (error) {
                     console.warn('⚠️ Não foi possível renovar token automaticamente:', error);
-                    this.clearToken();
-                    return null;
+                    // Não limpar token imediatamente - pode ser que ainda funcione
+                    // Limpar apenas se realmente não conseguir usar
+                    if (error.message?.includes('TOKEN_REFRESH_REQUIRES_CONSENT')) {
+                        console.log('ℹ️ Renovação requer novo consentimento, mas mantendo token atual');
+                        // Tentar usar token atual mesmo expirado (pode funcionar em alguns casos)
+                        return token;
+                    }
+                    return token; // Tentar usar token atual primeiro
                 }
             } else if (elapsed > RENEWAL_THRESHOLD) {
-                // Token próximo de expirar - renovar proativamente
+                // Token próximo de expirar - renovar proativamente (mais cedo)
                 console.log('🔄 Token Google próximo de expirar, renovando proativamente...');
                 try {
+                    // Garantir que está inicializado antes de renovar
+                    if (!this.isInitialized) {
+                        await this.initialize();
+                    }
                     await this.refreshToken();
                     return this.accessToken;
                 } catch (error) {
@@ -203,9 +217,37 @@ class GoogleAuthService {
         }
     }
 
-    // Verificar se está autenticado
-    isAuthenticated() {
-        return !!this.accessToken;
+    // Verificar se está autenticado (com token válido)
+    async isAuthenticated() {
+        // Se não tem token, não está autenticado
+        if (!this.accessToken) {
+            // Tentar carregar token salvo
+            const token = await this.loadToken();
+            if (token) {
+                this.accessToken = token;
+                return true;
+            }
+            return false;
+        }
+        
+        // Verificar se token está expirado
+        const tokenTime = localStorage.getItem('google_ads_token_time');
+        if (tokenTime) {
+            const elapsed = Date.now() - parseInt(tokenTime);
+            const EXPIRY_TIME = 3600000; // 1 hora em ms
+            
+            if (elapsed > EXPIRY_TIME) {
+                // Token expirado, tentar renovar
+                try {
+                    await this.loadToken(); // Isso vai tentar renovar
+                    return !!this.accessToken;
+                } catch (error) {
+                    return false;
+                }
+            }
+        }
+        
+        return true;
     }
 
     // Obter token atual

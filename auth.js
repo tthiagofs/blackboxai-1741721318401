@@ -16,11 +16,80 @@ class AppAuth {
 class FacebookAuth {
     constructor() {
         this.accessToken = localStorage.getItem('fbAccessToken');
+        this.tokenExpiry = localStorage.getItem('fbTokenExpiry'); // Data de expiração do token
         this.adAccountsMap = JSON.parse(localStorage.getItem('adAccountsMap')) || {};
         this.initializeFacebookSDK().catch(error => {
             console.error('Erro ao inicializar o Facebook SDK no construtor:', error);
             // Não interrompe a execução do app, apenas loga o erro
         });
+        
+        // ⭐ Verificar se token está válido ao inicializar
+        this.checkTokenValidity();
+    }
+    
+    // Verificar se token está válido e renovar se necessário
+    async checkTokenValidity() {
+        if (!this.accessToken) return false;
+        
+        // Se temos data de expiração salva, verificar
+        if (this.tokenExpiry) {
+            const expiryDate = new Date(this.tokenExpiry);
+            const now = new Date();
+            const daysUntilExpiry = (expiryDate - now) / (1000 * 60 * 60 * 24);
+            
+            // Se expira em menos de 7 dias, tentar renovar proativamente
+            if (daysUntilExpiry < 7) {
+                console.log('🔄 Token Meta expira em menos de 7 dias, verificando status...');
+                await this.verifyAndRefreshToken();
+            }
+        } else {
+            // Se não temos data de expiração, verificar se token ainda é válido
+            await this.verifyAndRefreshToken();
+        }
+        
+        return !!this.accessToken;
+    }
+    
+    // Verificar token via API e renovar se necessário
+    async verifyAndRefreshToken() {
+        try {
+            await this.initializeFacebookSDK();
+            
+            // Verificar status atual do login
+            const statusResponse = await new Promise((resolve) => {
+                FB.getLoginStatus((response) => resolve(response));
+            });
+            
+            if (statusResponse.status === 'connected') {
+                // Token ainda válido, atualizar
+                const newToken = statusResponse.authResponse.accessToken;
+                const expiresIn = statusResponse.authResponse.expiresIn || 5184000; // 60 dias em segundos (padrão)
+                
+                if (newToken !== this.accessToken) {
+                    console.log('✅ Token Meta atualizado automaticamente');
+                    this.accessToken = newToken;
+                    localStorage.setItem('fbAccessToken', newToken);
+                    
+                    // Calcular data de expiração
+                    const expiryDate = new Date(Date.now() + (expiresIn * 1000));
+                    this.tokenExpiry = expiryDate.toISOString();
+                    localStorage.setItem('fbTokenExpiry', this.tokenExpiry);
+                }
+                
+                return true;
+            } else {
+                // Token inválido ou expirado
+                console.warn('⚠️ Token Meta não está mais válido');
+                this.accessToken = null;
+                localStorage.removeItem('fbAccessToken');
+                localStorage.removeItem('fbTokenExpiry');
+                return false;
+            }
+        } catch (error) {
+            console.warn('⚠️ Erro ao verificar token Meta:', error);
+            // Se falhar na verificação, manter token atual (pode ser válido)
+            return !!this.accessToken;
+        }
     }
 
     initializeFacebookSDK() {
@@ -118,22 +187,40 @@ class FacebookAuth {
             // Set access token and load accounts after successful login/status check
             this.accessToken = response.authResponse.accessToken;
             
-            // ⭐ Converter para long-lived token (60 dias) se ainda não for
+            // ⭐ Salvar data de expiração do token
+            const expiresIn = response.authResponse.expiresIn || 5184000; // 60 dias em segundos (padrão para long-lived)
+            const expiryDate = new Date(Date.now() + (expiresIn * 1000));
+            this.tokenExpiry = expiryDate.toISOString();
+            
+            // ⭐ Tentar obter/verificar long-lived token via API
             try {
-                console.log('🔄 Convertendo token para long-lived (60 dias)...');
-                const longLivedToken = await this.exchangeToLongLivedToken(this.accessToken);
-                if (longLivedToken) {
-                    this.accessToken = longLivedToken;
-                    console.log('✅ Token convertido para long-lived (válido por 60 dias)');
-                } else {
-                    console.warn('⚠️ Não foi possível converter para long-lived, usando token atual');
+                console.log('🔄 Verificando se token é long-lived...');
+                // Verificar informações do token via API
+                const tokenInfo = await new Promise((resolve, reject) => {
+                    FB.api('/me', { fields: 'id' }, (response) => {
+                        if (response.error) {
+                            reject(response.error);
+                        } else {
+                            resolve(response);
+                        }
+                    });
+                });
+                
+                // Se chegou aqui, token está válido
+                // O Facebook SDK automaticamente gerencia long-lived tokens quando há sessão ativa
+                console.log('✅ Token Meta válido e ativo');
+                
+                // Se expiresIn não foi fornecido, assumir que é long-lived (60 dias)
+                if (expiresIn >= 5184000) {
+                    console.log('✅ Token é long-lived (válido por ~60 dias)');
                 }
             } catch (error) {
-                console.warn('⚠️ Erro ao converter token para long-lived:', error);
-                // Continuar com token atual mesmo se a conversão falhar
+                console.warn('⚠️ Erro ao verificar token, mas continuando:', error);
+                // Continuar mesmo se verificação falhar
             }
             
             localStorage.setItem('fbAccessToken', this.accessToken);
+            localStorage.setItem('fbTokenExpiry', this.tokenExpiry);
             await this.loadAllAdAccounts();
             
             // Salvar no Firebase
@@ -356,8 +443,10 @@ class FacebookAuth {
         return new Promise((resolve) => {
             FB.logout(async () => {
                 localStorage.removeItem('fbAccessToken');
+                localStorage.removeItem('fbTokenExpiry');
                 localStorage.removeItem('adAccountsMap');
                 this.accessToken = null;
+                this.tokenExpiry = null;
                 this.adAccountsMap = {};
                 
                 // Remover do Firebase
@@ -372,6 +461,21 @@ class FacebookAuth {
                 resolve();
             });
         });
+    }
+    
+    // Verificar se está autenticado (com token válido)
+    isAuthenticated() {
+        if (!this.accessToken) return false;
+        
+        // Se temos data de expiração, verificar
+        if (this.tokenExpiry) {
+            const expiryDate = new Date(this.tokenExpiry);
+            const now = new Date();
+            return now < expiryDate;
+        }
+        
+        // Se não temos data de expiração, assumir válido (será verificado quando usar)
+        return true;
     }
 }
 

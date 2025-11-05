@@ -577,7 +577,7 @@ if (!unitSelect) {
 
 // Verificar se Google Ads já está autenticado e carregar contas
 async function initializeGoogleAds() {
-    if (googleAuth.isAuthenticated()) {
+    if (await googleAuth.isAuthenticated()) {
         console.log('✅ Google Ads já autenticado');
         await loadGoogleAdsAccounts();
     } else {
@@ -1326,7 +1326,7 @@ async function generateCompleteReport() {
             metaAccountId: metaAccountId
         });
     
-    const startDate = document.getElementById('startDate').value;
+        const startDate = document.getElementById('startDate').value;
         const endDate = document.getElementById('endDate').value;
         const budgetsCompleted = parseInt(document.getElementById('budgetsCompleted').value) || 0;
         const salesCount = parseInt(document.getElementById('salesCount').value) || 0;
@@ -1411,7 +1411,7 @@ async function generateCompleteReport() {
         // Usar mesma lógica do Meta: se há unitId e não há googleAccountId, processar Google da unidade
         // (googleAccountId já foi buscado acima da unidade se necessário)
         
-        if (googleAccountId && googleAuth.isAuthenticated()) {
+        if (googleAccountId && await googleAuth.isAuthenticated()) {
             const accounts = googleAuth.getStoredAccounts();
             const googleAccount = accounts.find(acc => acc.customerId === googleAccountId);
             const googleAccountName = googleAccount ? googleAccount.name : googleAccountId;
@@ -1421,7 +1421,7 @@ async function generateCompleteReport() {
 
             try {
                 // Usar o accessToken do Google Auth
-                const accessToken = googleAuth.getAccessToken();
+                const accessToken = await googleAuth.getAccessToken();
                 // Pegar managedBy (MCC ID) se a conta for gerenciada
                 // Tentar encontrar a opção no select primeiro
                 let selectedOption = null;

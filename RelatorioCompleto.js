@@ -518,7 +518,7 @@ if (!unitSelect) {
 
 // Verificar se Google Ads já está autenticado e carregar contas
 async function initializeGoogleAds() {
-    if (googleAuth.isAuthenticated()) {
+    if (await googleAuth.isAuthenticated()) {
         console.log('✅ Google Ads já autenticado');
         await loadGoogleAdsAccounts();
     } else {
@@ -1151,9 +1151,9 @@ const onFormInput = debounce(async function(e) {
             return;
         }
 
-    const unitId = document.getElementById('unitId').value;
-    const startDate = document.getElementById('startDate').value;
-    const endDate = document.getElementById('endDate').value;
+        const unitId = document.getElementById('unitId').value;
+        const startDate = document.getElementById('startDate').value;
+        const endDate = document.getElementById('endDate').value;
 
     if (unitId && startDate && endDate) {
         isLoadingData = true;
@@ -1244,7 +1244,7 @@ async function generateCompleteReport() {
                     } else {
                         console.warn('⚠️ SelectedOption não tem dataset.unit:', selectedOption);
                     }
-                } catch (error) {
+    } catch (error) {
                     console.error('❌ Erro ao buscar conta Google vinculada da unidade:', error);
                     console.error('Stack:', error.stack);
                 }
@@ -1269,21 +1269,21 @@ async function generateCompleteReport() {
     
         const startDate = document.getElementById('startDate').value;
         const endDate = document.getElementById('endDate').value;
-        const budgetsCompleted = parseInt(document.getElementById('budgetsCompleted').value) || 0;
-        const salesCount = parseInt(document.getElementById('salesCount').value) || 0;
-        const revenue = parseFloat(document.getElementById('revenue').value) || 0;
+    const budgetsCompleted = parseInt(document.getElementById('budgetsCompleted').value) || 0;
+    const salesCount = parseInt(document.getElementById('salesCount').value) || 0;
+    const revenue = parseFloat(document.getElementById('revenue').value) || 0;
     const performanceAnalysis = document.getElementById('performanceAnalysis')?.value || '';
 
     // Validar se pelo menos uma plataforma foi selecionada
     if (!unitId && !googleAccountId) {
         alert('⚠️ Nenhuma conta de anúncios selecionada!\n\nPor favor:\n1. Selecione uma unidade com contas vinculadas, OU\n2. Selecione manualmente uma conta Meta ou Google Ads');
-            return;
-        }
+        return;
+    }
 
     if (!startDate || !endDate) {
         alert('Preencha as datas de início e fim');
-            return;
-        }
+        return;
+    }
 
     try {
         let metaMetrics = null;
@@ -1303,7 +1303,7 @@ async function generateCompleteReport() {
                     loadCampaigns(unitId, startDate, endDate),
                     loadAdSets(unitId, startDate, endDate)
                 ]);
-        } else {
+    } else {
                 console.log('✓ Usando dados Meta já carregados');
             }
 
@@ -1352,7 +1352,7 @@ async function generateCompleteReport() {
         // Usar mesma lógica do Meta: se há unitId e não há googleAccountId, processar Google da unidade
         // (googleAccountId já foi buscado acima da unidade se necessário)
         
-        if (googleAccountId && googleAuth.isAuthenticated()) {
+        if (googleAccountId && await googleAuth.isAuthenticated()) {
             const accounts = googleAuth.getStoredAccounts();
             const googleAccount = accounts.find(acc => acc.customerId === googleAccountId);
             const googleAccountName = googleAccount ? googleAccount.name : googleAccountId;
@@ -1362,7 +1362,7 @@ async function generateCompleteReport() {
 
             try {
                 // Usar o accessToken do Google Auth
-                const accessToken = googleAuth.getAccessToken();
+                const accessToken = await googleAuth.getAccessToken();
                 // Pegar managedBy (MCC ID) se a conta for gerenciada
                 // Tentar encontrar a opção no select primeiro
                 let selectedOption = null;
@@ -1385,7 +1385,7 @@ async function generateCompleteReport() {
                 console.error('Detalhes do erro:', error.message, error.stack);
                 alert('Erro ao carregar dados do Google Ads. Verifique sua autenticação.');
             }
-        } else if (googleAccountId && !googleAuth.isAuthenticated()) {
+        } else if (googleAccountId && !(await googleAuth.isAuthenticated())) {
             alert('Faça login com Google Ads para gerar o relatório.');
         } else if (actualUnitId && !googleAccountId) {
             // Se há unitId mas não encontrou Google vinculado, não é erro (pode não ter Google)
@@ -1446,7 +1446,8 @@ async function generateCompleteReport() {
                 // Pegar managedBy (MCC ID) se a conta for gerenciada
                 const selectedOption = googleAdsAccountSelect.options[googleAdsAccountSelect.selectedIndex];
                 const managedBy = selectedOption?.dataset?.managedBy || null;
-                const googleService = new GoogleAdsService(googleAccountId, googleAuth.getAccessToken(), managedBy);
+                const googleAccessToken = await googleAuth.getAccessToken();
+                const googleService = new GoogleAdsService(googleAccountId, googleAccessToken, managedBy);
                 const comparison = await googleService.getComparison(startDate, endDate);
                 
                 if (comparison) {

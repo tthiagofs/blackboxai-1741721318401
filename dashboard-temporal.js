@@ -439,7 +439,7 @@ async function getTrafficData(unit, startDate, endDate) {
     if (linkedAccounts.google?.id) {
       try {
         await googleAuth.initialize();
-        const googleAccessToken = googleAuth?.getAccessToken && googleAuth.getAccessToken();
+        const googleAccessToken = googleAuth?.getAccessToken ? await googleAuth.getAccessToken() : null;
         
         if (googleAccessToken) {
           const managedBy = linkedAccounts.google.managedBy || null;

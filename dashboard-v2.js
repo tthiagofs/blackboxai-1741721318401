@@ -307,12 +307,12 @@ async function computeUnitMetricsFromSpreadsheet(unit, startDate, endDate) {
           
           await googleAuth.initialize();
           
-          // Verificar autenticação após inicializar
-          const isAuthenticated = googleAuth.isAuthenticated && googleAuth.isAuthenticated();
+          // Verificar autenticação após inicializar (agora é async)
+          const isAuthenticated = googleAuth.isAuthenticated ? await googleAuth.isAuthenticated() : false;
           console.log(`🔍 Google Auth inicializado para ${unit.name}, autenticado:`, isAuthenticated);
           
           if (isAuthenticated) {
-            const googleAccessToken = googleAuth.getAccessToken();
+            const googleAccessToken = await googleAuth.getAccessToken();
             if (googleAccessToken) {
               let managedBy = linkedAccounts.google.managedBy || null;
               

@@ -364,7 +364,7 @@ async function getTrafficDataForFunnel(unit, startDate, endDate) {
     if (linkedAccounts.google?.id) {
       try {
         await googleAuth.initialize();
-        const googleAccessToken = googleAuth?.getAccessToken && googleAuth.getAccessToken();
+        const googleAccessToken = googleAuth?.getAccessToken ? await googleAuth.getAccessToken() : null;
         
         if (googleAccessToken) {
           const managedBy = linkedAccounts.google.managedBy || null;
@@ -480,7 +480,7 @@ async function aggregateFunnelDataByPlatform(units, startDate, endDate) {
     if (linkedAccounts.google?.id) {
       try {
         await googleAuth.initialize();
-        const googleAccessToken = googleAuth?.getAccessToken && googleAuth.getAccessToken();
+        const googleAccessToken = googleAuth?.getAccessToken ? await googleAuth.getAccessToken() : null;
         
         if (googleAccessToken) {
           const managedBy = linkedAccounts.google.managedBy || null;

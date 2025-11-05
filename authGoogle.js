@@ -250,8 +250,15 @@ class GoogleAuthService {
         return true;
     }
 
-    // Obter token atual
-    getAccessToken() {
+    // Obter token atual (garante que está carregado)
+    async getAccessToken() {
+        // Se não tem token, tentar carregar
+        if (!this.accessToken) {
+            const token = await this.loadToken();
+            if (token) {
+                this.accessToken = token;
+            }
+        }
         return this.accessToken;
     }
 

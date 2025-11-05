@@ -892,7 +892,98 @@ ul.list-disc li br {
                 saveReportBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-3 text-xl"></i><span class="text-lg">Salvando...</span>';
 
                 try {
-                    const result = await presentationsService.savePresentation(projectId, window.currentPresentationData);
+                    // ⭐ Sempre comprimir HTML antes de salvar (mesmo na primeira vez)
+                    console.log('🗜️ Comprimindo HTML antes de salvar...');
+                    const reportContainer = document.getElementById('reportContainer');
+                    let htmlToSave = window.currentPresentationData.html;
+                    
+                    if (reportContainer) {
+                        // Usar HTML do container atual (pode ter customizações)
+                        htmlToSave = await cleanHTMLForSave(reportContainer.innerHTML);
+                    } else if (window.currentPresentationData.html) {
+                        // Usar HTML salvo, mas comprimir
+                        htmlToSave = await cleanHTMLForSave(window.currentPresentationData.html);
+                    }
+                    
+                    // Verificar tamanho do documento completo antes de salvar
+                    const dataToSave = {
+                        ...window.currentPresentationData,
+                        html: htmlToSave
+                    };
+                    
+                    // Remover imagens Base64 de customData se existir (já estão no HTML)
+                    if (dataToSave.customData && dataToSave.customData.adImages) {
+                        const adImagesReference = {};
+                        Object.keys(dataToSave.customData.adImages).forEach(adId => {
+                            adImagesReference[adId] = true; // Apenas marcação, não a imagem
+                        });
+                        dataToSave.customData.adImages = adImagesReference;
+                    }
+                    
+                    // Calcular tamanho aproximado
+                    const jsonString = JSON.stringify(dataToSave);
+                    const sizeInBytes = new Blob([jsonString]).size;
+                    const sizeInMB = sizeInBytes / (1024 * 1024);
+                    
+                    console.log(`📊 Tamanho do documento antes de salvar: ${sizeInMB.toFixed(2)} MB (${(sizeInBytes / 1024).toFixed(2)} KB)`);
+                    
+                    // Se ainda estiver muito grande (>950KB), comprimir mais agressivamente
+                    if (sizeInBytes > 950 * 1024) {
+                        console.warn('⚠️ Documento ainda muito grande, comprimindo mais agressivamente...');
+                        
+                        // Criar elemento temporário para comprimir imagens ainda mais
+                        const tempDiv = document.createElement('div');
+                        tempDiv.innerHTML = htmlToSave;
+                        const images = tempDiv.querySelectorAll('img');
+                        
+                        for (const img of images) {
+                            const src = img.getAttribute('src');
+                            if (src && src.startsWith('data:image')) {
+                                // Comprimir muito mais agressivamente (400px, qualidade 0.5)
+                                const compressed = await compressBase64Image(src, 400, 0.5);
+                                img.setAttribute('src', compressed);
+                            }
+                        }
+                        
+                        htmlToSave = tempDiv.innerHTML;
+                        htmlToSave = htmlToSave.replace(/>\s+</g, '><');
+                        htmlToSave = htmlToSave.replace(/\s+/g, ' ');
+                        
+                        // Recalcular tamanho
+                        const finalDataToSave = {
+                            ...window.currentPresentationData,
+                            html: htmlToSave
+                        };
+                        if (finalDataToSave.customData && finalDataToSave.customData.adImages) {
+                            const adImagesReference = {};
+                            Object.keys(finalDataToSave.customData.adImages).forEach(adId => {
+                                adImagesReference[adId] = true;
+                            });
+                            finalDataToSave.customData.adImages = adImagesReference;
+                        }
+                        
+                        const finalSize = new Blob([JSON.stringify(finalDataToSave)]).size;
+                        const finalSizeMB = finalSize / (1024 * 1024);
+                        console.log(`📊 Tamanho final após compressão agressiva: ${finalSizeMB.toFixed(2)} MB (${(finalSize / 1024).toFixed(2)} KB)`);
+                        
+                        if (finalSize > 1024 * 1024) {
+                            alert('⚠️ ATENÇÃO: O documento ainda está muito grande após compressão.\n\n' +
+                                  'Tamanho: ' + finalSizeMB.toFixed(2) + ' MB\n' +
+                                  'Limite do Firestore: 1 MB\n\n' +
+                                  'Tente remover algumas imagens ou reduzir o número de anúncios antes de salvar.');
+                            saveReportBtn.disabled = false;
+                            saveReportBtn.className = 'flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold py-4 px-6 rounded-xl transition duration-300 transform hover:scale-[1.02] shadow-lg flex items-center justify-center';
+                            saveReportBtn.innerHTML = '<i class="fas fa-save mr-3 text-xl"></i><span class="text-lg">Salvar Apresentação</span>';
+                            return;
+                        }
+                        
+                        dataToSave.html = htmlToSave;
+                    }
+                    
+                    // Atualizar HTML no objeto antes de salvar
+                    window.currentPresentationData.html = htmlToSave;
+                    
+                    const result = await presentationsService.savePresentation(projectId, dataToSave);
                     
                     if (result.success) {
                         // Armazenar IDs para exportação PDF

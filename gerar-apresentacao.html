@@ -940,9 +940,21 @@ ul.list-disc li br {
                         for (const img of images) {
                             const src = img.getAttribute('src');
                             if (src && src.startsWith('data:image')) {
-                                // Comprimir muito mais agressivamente (400px, qualidade 0.5)
-                                const compressed = await compressBase64Image(src, 400, 0.5);
-                                img.setAttribute('src', compressed);
+                                // Verificar se é logo (não comprimir logos agressivamente)
+                                const isLogo = img.classList.contains('capa-logo-horizontal') || 
+                                             img.src.includes('logo') || 
+                                             img.alt?.toLowerCase().includes('logo') ||
+                                             img.closest('.capa-logo-horizontal');
+                                
+                                if (isLogo) {
+                                    // Logo: comprimir levemente mantendo PNG (preserva transparência)
+                                    const compressed = await compressBase64Image(src, 800, 0.85, true);
+                                    img.setAttribute('src', compressed);
+                                } else {
+                                    // Outras imagens: comprimir muito mais agressivamente (400px, qualidade 0.5)
+                                    const compressed = await compressBase64Image(src, 400, 0.5, false);
+                                    img.setAttribute('src', compressed);
+                                }
                             }
                         }
                         
@@ -1881,7 +1893,8 @@ ul.list-disc li br {
         }
         
         // Comprimir imagem Base64 reduzindo qualidade
-        async function compressBase64Image(base64String, maxWidth = 800, quality = 0.7) {
+        // ⭐ Preserva PNG para manter transparência (importante para logos)
+        async function compressBase64Image(base64String, maxWidth = 800, quality = 0.7, isLogo = false) {
             return new Promise((resolve) => {
                 const img = new Image();
                 img.onload = () => {
@@ -1899,11 +1912,29 @@ ul.list-disc li br {
                     canvas.height = height;
                     
                     const ctx = canvas.getContext('2d');
+                    
+                    // Se for logo ou imagem PNG, preservar transparência
+                    const isPNG = base64String.startsWith('data:image/png') || isLogo;
+                    
+                    // Se for PNG, usar fundo branco antes de desenhar (para evitar preto)
+                    if (isPNG) {
+                        ctx.fillStyle = '#FFFFFF';
+                        ctx.fillRect(0, 0, width, height);
+                    }
+                    
                     ctx.drawImage(img, 0, 0, width, height);
                     
-                    // Converter para JPEG com qualidade reduzida
-                    const compressed = canvas.toDataURL('image/jpeg', quality);
-                    resolve(compressed);
+                    // Se for logo ou PNG, manter formato PNG (preserva transparência)
+                    // Caso contrário, converter para JPEG (menor tamanho)
+                    if (isPNG) {
+                        // Manter PNG, mas com qualidade reduzida (compressor PNG)
+                        const compressed = canvas.toDataURL('image/png');
+                        resolve(compressed);
+                    } else {
+                        // Converter para JPEG com qualidade reduzida (menor tamanho)
+                        const compressed = canvas.toDataURL('image/jpeg', quality);
+                        resolve(compressed);
+                    }
                 };
                 img.onerror = () => resolve(base64String); // Se falhar, retorna original
                 img.src = base64String;
@@ -1930,7 +1961,20 @@ ul.list-disc li br {
                 const src = img.getAttribute('src');
                 if (src && src.startsWith('data:image')) {
                     // Comprimir imagem Base64 para reduzir tamanho
-                    const compressed = await compressBase64Image(src, 800, 0.75);
+                    // Não é logo, então pode usar JPEG (menor tamanho)
+                    const compressed = await compressBase64Image(src, 800, 0.75, false);
+                    img.setAttribute('src', compressed);
+                }
+            }
+            
+            // ⭐ Preservar logos - não comprimir ou comprimir muito levemente
+            const logoImages = tempDiv.querySelectorAll('img.capa-logo-horizontal, img[src*="logo"], img[alt*="Logo"], img[alt*="logo"]');
+            for (const img of logoImages) {
+                const src = img.getAttribute('src');
+                if (src && src.startsWith('data:image')) {
+                    // Logo: comprimir levemente mantendo PNG (preserva transparência)
+                    // Usar tamanho maior (1200px) e qualidade alta (0.9) para logos
+                    const compressed = await compressBase64Image(src, 1200, 0.9, true);
                     img.setAttribute('src', compressed);
                 }
             }

@@ -934,6 +934,7 @@ ul.list-disc li br {
                         // Criar elemento temporário para comprimir imagens ainda mais
                         const tempDiv = document.createElement('div');
                         tempDiv.innerHTML = htmlToSave;
+                        // Buscar TODAS as imagens (não apenas ranking-thumbnail)
                         const images = tempDiv.querySelectorAll('img');
                         
                         for (const img of images) {

@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pasta - Insightflow</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .scrollbar-hide {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        .scrollbar-hide::-webkit-scrollbar {
+            display: none;
+        }
+        .presentation-card:hover {
+            transform: translateY(-2px);
+        }
+        .presentation-card-small {
+            width: 13.75rem;
+            min-width: 13.75rem;
+        }
+        .temporary-message {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #3B82F6;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            z-index: 9999;
+            animation: slideIn 0.3s ease-out;
+        }
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen font-sans m-0 p-0">
+    <!-- Proteção de Auth -->
+    <script type="module">
+        import { auth } from './config/firebase.js';
+        import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+        
+        onAuthStateChanged(auth, (user) => {
+            if (!user) {
+                window.location.href = '/login.html';
+                return;
+            }
+        });
+    </script>
+
+    <!-- Container Principal -->
+    <div class="flex min-h-screen w-full bg-gray-50">
+        <!-- Sidebar Unificada -->
+        <div id="app-sidebar"></div>
+
+        <!-- Conteúdo Principal -->
+        <main class="flex-1 p-10">
+            <!-- Header -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
+                <!-- Botão Voltar -->
+                <button onclick="window.history.back()" class="mb-4 text-gray-600 hover:text-gray-900 transition-colors flex items-center text-sm">
+                    <i class="fas fa-arrow-left mr-2"></i>
+                    Voltar
+                </button>
+
+                <!-- Nome da Pasta -->
+                <div class="flex items-center gap-4">
+                    <div class="w-16 h-16 bg-gradient-to-br from-blue-100 to-indigo-100 rounded-xl flex items-center justify-center">
+                        <i class="fas fa-folder text-3xl text-blue-400"></i>
+                    </div>
+                    <div class="flex-1">
+                        <h1 id="folderName" class="text-3xl font-bold text-gray-900">Carregando...</h1>
+                        <p id="folderCount" class="text-sm text-gray-600 mt-1">0 apresentação(ões)</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Grid de Apresentações -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                <!-- Loading State -->
+                <div id="presentationsLoading" class="text-center py-12">
+                    <div class="animate-spin rounded-full h-12 w-12 border-b-4 border-purple-600 mx-auto mb-4"></div>
+                    <p class="text-gray-600">Carregando apresentações...</p>
+                </div>
+
+                <!-- Empty State -->
+                <div id="presentationsEmpty" class="hidden text-center py-12">
+                    <div class="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <i class="fas fa-presentation text-5xl text-gray-300"></i>
+                    </div>
+                    <h4 class="text-xl font-bold text-gray-800 mb-2">Nenhuma apresentação nesta pasta</h4>
+                    <p class="text-gray-600">Arraste apresentações para esta pasta para organizá-las</p>
+                </div>
+
+                <!-- Grid -->
+                <div id="presentationsGrid" class="hidden grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                    <!-- Cards serão inseridos aqui -->
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script type="module">
+        import { auth, db } from './config/firebase.js';
+        import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+        import { doc, getDoc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+        import { presentationsService } from './services/presentationsService.js?v=1.0';
+        import { foldersService } from './services/foldersService.js';
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const currentProjectId = urlParams.get('projectId');
+        const folderId = urlParams.get('folderId');
+
+        if (!currentProjectId || !folderId) {
+            alert('Pasta não encontrada');
+            window.location.href = '/home.html';
+        }
+
+        const folderNameEl = document.getElementById('folderName');
+        const folderCountEl = document.getElementById('folderCount');
+        const presentationsLoading = document.getElementById('presentationsLoading');
+        const presentationsEmpty = document.getElementById('presentationsEmpty');
+        const presentationsGrid = document.getElementById('presentationsGrid');
+
+        let currentFolder = null;
+        let folderPresentations = [];
+
+        // Função auxiliar para formatar "Criado há" ou "Editado há"
+        function getTimeAgo(date) {
+            const now = new Date();
+            const then = new Date(date);
+            const diffMs = now - then;
+            const diffMins = Math.floor(diffMs / 60000);
+            const diffHours = Math.floor(diffMs / 3600000);
+            const diffDays = Math.floor(diffMs / 86400000);
+
+            let timeStr = '';
+            if (diffMins < 60) {
+                timeStr = `${diffMins}min atrás`;
+            } else if (diffHours < 24) {
+                timeStr = `${diffHours}h atrás`;
+            } else if (diffDays < 30) {
+                timeStr = `${diffDays}d atrás`;
+            } else {
+                timeStr = then.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+            }
+            return timeStr;
+        }
+
+        // Renderizar card de apresentação
+        function renderPresentationCard(presentation) {
+            const wasEdited = presentation.updatedAt && presentation.updatedAt !== presentation.createdAt;
+            const timeAgo = getTimeAgo(presentation.updatedAt || presentation.createdAt);
+            const timeLabel = wasEdited ? 'Editado há' : 'Criado há';
+            const preview = presentation.coverPreview || null;
+            const cardStyle = preview ? `background-image: url('${preview}'); background-size: cover; background-position: center;` : '';
+
+            return `
+                <div class="presentation-card presentation-card-small bg-white border border-gray-200 rounded-lg overflow-hidden hover:shadow-lg transition-all cursor-pointer group relative"
+                     data-presentation-id="${presentation.id}"
+                     onclick="openPresentation('${presentation.id}', event)">
+                    
+                    <!-- Preview da Capa -->
+                    <div class="w-full h-32 bg-gradient-to-br from-purple-100 to-pink-100 relative" style="${cardStyle}">
+                        ${!preview ? '<div class="absolute inset-0 flex items-center justify-center"><i class="fas fa-presentation text-4xl text-gray-300"></i></div>' : ''}
+                        
+                        <!-- Menu "..." no hover -->
+                        <div class="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button onclick="event.stopPropagation(); showPresentationMenu(event, '${presentation.id}')" 
+                                    class="bg-white rounded-full p-2 shadow-lg hover:bg-gray-50">
+                                <i class="fas fa-ellipsis-v text-gray-600 text-xs"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Conteúdo do Card -->
+                    <div class="p-3">
+                        <h4 class="text-sm font-semibold text-gray-900 mb-1 truncate">${presentation.presentationName || 'Sem nome'}</h4>
+                        <p class="text-xs text-gray-500">${timeLabel} ${timeAgo}</p>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Renderizar apresentações
+        function renderPresentations() {
+            if (folderPresentations.length === 0) {
+                presentationsGrid.classList.add('hidden');
+                presentationsEmpty.classList.remove('hidden');
+            } else {
+                presentationsEmpty.classList.add('hidden');
+                presentationsGrid.classList.remove('hidden');
+                presentationsGrid.innerHTML = folderPresentations.map(p => renderPresentationCard(p)).join('');
+            }
+        }
+
+        // Carregar dados da pasta
+        async function loadFolderData() {
+            try {
+                presentationsLoading.classList.remove('hidden');
+                presentationsEmpty.classList.add('hidden');
+                presentationsGrid.classList.add('hidden');
+
+                // Buscar pasta
+                const folderDoc = await getDoc(doc(db, 'projects', currentProjectId, 'folders', folderId));
+                if (!folderDoc.exists()) {
+                    throw new Error('Pasta não encontrada');
+                }
+
+                currentFolder = { id: folderDoc.id, ...folderDoc.data() };
+                folderNameEl.textContent = currentFolder.name;
+                
+                // Buscar apresentações da pasta
+                const presentationIds = currentFolder.presentationIds || [];
+                if (presentationIds.length === 0) {
+                    folderPresentations = [];
+                    folderCountEl.textContent = '0 apresentação(ões)';
+                } else {
+                    // Buscar todas as apresentações do projeto
+                    const allPresentations = await presentationsService.listPresentations(currentProjectId);
+                    
+                    // Filtrar apenas as que estão na pasta
+                    folderPresentations = allPresentations.filter(p => presentationIds.includes(p.id));
+                    folderCountEl.textContent = `${folderPresentations.length} apresentação(ões)`;
+                }
+
+                presentationsLoading.classList.add('hidden');
+                renderPresentations();
+            } catch (error) {
+                console.error('Erro ao carregar pasta:', error);
+                presentationsLoading.classList.add('hidden');
+                presentationsEmpty.classList.remove('hidden');
+                alert('Erro ao carregar pasta');
+            }
+        }
+
+        // Abrir apresentação
+        window.openPresentation = (presentationId, event) => {
+            if (event) event.stopPropagation();
+            window.location.href = `visualizar-apresentacao.html?projectId=${currentProjectId}&id=${presentationId}`;
+        };
+
+        // Menu "..." da apresentação
+        window.showPresentationMenu = async (event, presentationId) => {
+            event.stopPropagation();
+            
+            const menu = document.createElement('div');
+            menu.className = 'absolute right-0 top-10 bg-white border border-gray-200 rounded-lg shadow-lg z-50 py-2 min-w-[150px]';
+            menu.innerHTML = `
+                <button onclick="window.renamePresentation('${presentationId}', event)" class="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2">
+                    <i class="fas fa-pencil-alt text-gray-400"></i>
+                    Renomear
+                </button>
+                <button onclick="window.removeFromFolder('${presentationId}', event)" class="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2">
+                    <i class="fas fa-folder-minus text-gray-400"></i>
+                    Remover da pasta
+                </button>
+                <hr class="my-1">
+                <button onclick="window.deletePresentation('${presentationId}', event)" class="w-full px-4 py-2 text-left text-sm hover:bg-red-50 text-red-600 flex items-center gap-2">
+                    <i class="fas fa-trash text-red-600"></i>
+                    Excluir
+                </button>
+            `;
+
+            const button = event.target.closest('button');
+            const rect = button.getBoundingClientRect();
+            menu.style.position = 'fixed';
+            menu.style.top = `${rect.bottom + 5}px`;
+            menu.style.right = `${window.innerWidth - rect.right}px`;
+
+            const closeMenu = (e) => {
+                if (!menu.contains(e.target) && e.target !== button) {
+                    menu.remove();
+                    document.removeEventListener('click', closeMenu);
+                }
+            };
+
+            document.body.appendChild(menu);
+            setTimeout(() => document.addEventListener('click', closeMenu), 100);
+        };
+
+        // Renomear apresentação (input inline)
+        window.renamePresentation = (presentationId, event) => {
+            if (event) event.stopPropagation();
+            
+            const presentation = folderPresentations.find(p => p.id === presentationId);
+            if (!presentation) return;
+
+            const card = document.querySelector(`[data-presentation-id="${presentationId}"]`);
+            if (!card) return;
+
+            const titleEl = card.querySelector('h4');
+            if (!titleEl) return;
+
+            const originalTitle = titleEl.textContent;
+            
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.value = originalTitle;
+            input.className = 'w-full px-2 py-1 border border-purple-600 rounded text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-purple-600';
+            input.style.fontSize = 'inherit';
+            input.style.fontWeight = 'inherit';
+            
+            titleEl.style.display = 'none';
+            titleEl.parentElement.insertBefore(input, titleEl);
+            input.focus();
+            input.select();
+
+            const saveName = async () => {
+                const newName = input.value.trim();
+                if (!newName || newName === originalTitle) {
+                    input.remove();
+                    titleEl.style.display = '';
+                    return;
+                }
+
+                try {
+                    await presentationsService.updatePresentation(currentProjectId, presentationId, {
+                        presentationName: newName
+                    });
+                    titleEl.textContent = newName;
+                    input.remove();
+                    titleEl.style.display = '';
+                    const presentationIndex = folderPresentations.findIndex(p => p.id === presentationId);
+                    if (presentationIndex !== -1) {
+                        folderPresentations[presentationIndex].presentationName = newName;
+                    }
+                } catch (error) {
+                    console.error('Erro ao renomear:', error);
+                    alert('Erro ao renomear apresentação');
+                    input.remove();
+                    titleEl.style.display = '';
+                }
+            };
+
+            input.addEventListener('blur', saveName);
+            input.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    input.blur();
+                } else if (e.key === 'Escape') {
+                    input.remove();
+                    titleEl.style.display = '';
+                }
+            });
+        };
+
+        // Remover da pasta
+        window.removeFromFolder = async (presentationId, event) => {
+            if (event) event.stopPropagation();
+            
+            try {
+                await foldersService.removePresentationFromFolder(currentProjectId, folderId, presentationId);
+                await loadFolderData(); // Recarregar
+            } catch (error) {
+                console.error('Erro ao remover da pasta:', error);
+                alert('Erro ao remover apresentação da pasta');
+            }
+        };
+
+        // Deletar apresentação
+        window.deletePresentation = async (presentationId, event) => {
+            if (event) event.stopPropagation();
+            
+            if (!confirm('Tem certeza que deseja excluir esta apresentação? Ela será removida permanentemente.')) {
+                return;
+            }
+
+            try {
+                await presentationsService.deletePresentation(currentProjectId, presentationId);
+                // Remover também da pasta se estiver lá
+                if (currentFolder.presentationIds && currentFolder.presentationIds.includes(presentationId)) {
+                    await foldersService.removePresentationFromFolder(currentProjectId, folderId, presentationId);
+                }
+                await loadFolderData();
+            } catch (error) {
+                console.error('Erro ao deletar apresentação:', error);
+                alert('Erro ao deletar apresentação');
+            }
+        };
+
+        // Carregar dados
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                await loadFolderData();
+            }
+        });
+    </script>
+    <script type="module">
+        import { initSidebar } from './components/sidebar.js';
+        initSidebar('apresentacoes');
+    </script>
+</body>
+</html>
+

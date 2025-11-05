@@ -1456,7 +1456,7 @@ async function generateCompleteReport() {
                 console.error('Detalhes do erro:', error.message, error.stack);
                 alert('Erro ao carregar dados do Google Ads. Verifique sua autenticação.');
             }
-        } else if (googleAccountId && !googleAuth.isAuthenticated()) {
+        } else if (googleAccountId && !(await googleAuth.isAuthenticated())) {
             alert('Faça login com Google Ads para gerar o relatório.');
         } else if (unitId && !googleAccountId) {
             // Se há unitId mas não encontrou Google vinculado, não é erro (pode não ter Google)
@@ -1517,7 +1517,8 @@ async function generateCompleteReport() {
                 // Pegar managedBy (MCC ID) se a conta for gerenciada
                 const selectedOption = googleAdsAccountSelect.options[googleAdsAccountSelect.selectedIndex];
                 const managedBy = selectedOption?.dataset?.managedBy || null;
-                const googleService = new GoogleAdsService(googleAccountId, googleAuth.getAccessToken(), managedBy);
+                const googleAccessToken = await googleAuth.getAccessToken();
+                const googleService = new GoogleAdsService(googleAccountId, googleAccessToken, managedBy);
                 const comparison = await googleService.getComparison(startDate, endDate);
                 
                 if (comparison) {

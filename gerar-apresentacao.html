@@ -1916,23 +1916,30 @@ ul.list-disc li br {
                     // Se for logo ou imagem PNG, preservar transparência
                     const isPNG = base64String.startsWith('data:image/png') || isLogo;
                     
-                    // Se for PNG, usar fundo branco antes de desenhar (para evitar preto)
-                    if (isPNG) {
-                        ctx.fillStyle = '#FFFFFF';
-                        ctx.fillRect(0, 0, width, height);
-                    }
+                    // ⭐ NÃO desenhar fundo - preservar transparência para PNGs
+                    // Se não for PNG, o canvas já tem fundo transparente por padrão
+                    // Mas ao converter para JPEG, o fundo transparente vira preto
+                    // Então só converter para JPEG se NÃO for PNG/logo
                     
                     ctx.drawImage(img, 0, 0, width, height);
                     
                     // Se for logo ou PNG, manter formato PNG (preserva transparência)
                     // Caso contrário, converter para JPEG (menor tamanho)
                     if (isPNG) {
-                        // Manter PNG, mas com qualidade reduzida (compressor PNG)
+                        // Manter PNG - preserva transparência automaticamente
                         const compressed = canvas.toDataURL('image/png');
                         resolve(compressed);
                     } else {
                         // Converter para JPEG com qualidade reduzida (menor tamanho)
-                        const compressed = canvas.toDataURL('image/jpeg', quality);
+                        // Para JPEG, precisamos de fundo branco para evitar preto
+                        const tempCanvas = document.createElement('canvas');
+                        tempCanvas.width = width;
+                        tempCanvas.height = height;
+                        const tempCtx = tempCanvas.getContext('2d');
+                        tempCtx.fillStyle = '#FFFFFF';
+                        tempCtx.fillRect(0, 0, width, height);
+                        tempCtx.drawImage(img, 0, 0, width, height);
+                        const compressed = tempCanvas.toDataURL('image/jpeg', quality);
                         resolve(compressed);
                     }
                 };

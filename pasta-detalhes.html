@@ -256,19 +256,31 @@
         window.showPresentationMenu = async (event, presentationId) => {
             event.stopPropagation();
             
+            // Remover menu anterior se existir
+            const existingMenu = document.querySelector('.presentation-menu-dropdown');
+            if (existingMenu) existingMenu.remove();
+            
             const menu = document.createElement('div');
-            menu.className = 'absolute right-0 top-10 bg-white border border-gray-200 rounded-lg shadow-lg z-50 py-2 min-w-[150px]';
+            menu.className = 'presentation-menu-dropdown absolute right-0 top-10 bg-white border border-gray-200 rounded-lg shadow-lg z-50 py-2 min-w-[150px]';
+            
+            // Função para fechar menu
+            const closeMenu = () => {
+                if (menu && menu.parentElement) {
+                    menu.remove();
+                }
+            };
+            
             menu.innerHTML = `
-                <button onclick="window.renamePresentation('${presentationId}', event)" class="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2">
+                <button onclick="window.closePresentationMenu(); window.renamePresentation('${presentationId}', event)" class="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2">
                     <i class="fas fa-pencil-alt text-gray-400"></i>
                     Renomear
                 </button>
-                <button onclick="window.removeFromFolder('${presentationId}', event)" class="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2">
+                <button onclick="window.closePresentationMenu(); window.removeFromFolder('${presentationId}', event)" class="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2">
                     <i class="fas fa-folder-minus text-gray-400"></i>
                     Remover da pasta
                 </button>
                 <hr class="my-1">
-                <button onclick="window.deletePresentation('${presentationId}', event)" class="w-full px-4 py-2 text-left text-sm hover:bg-red-50 text-red-600 flex items-center gap-2">
+                <button onclick="window.closePresentationMenu(); window.deletePresentation('${presentationId}', event)" class="w-full px-4 py-2 text-left text-sm hover:bg-red-50 text-red-600 flex items-center gap-2">
                     <i class="fas fa-trash text-red-600"></i>
                     Excluir
                 </button>
@@ -280,20 +292,30 @@
             menu.style.top = `${rect.bottom + 5}px`;
             menu.style.right = `${window.innerWidth - rect.right}px`;
 
-            const closeMenu = (e) => {
+            const closeMenuOnOutsideClick = (e) => {
                 if (!menu.contains(e.target) && e.target !== button) {
-                    menu.remove();
-                    document.removeEventListener('click', closeMenu);
+                    closeMenu();
+                    document.removeEventListener('click', closeMenuOnOutsideClick);
                 }
             };
 
             document.body.appendChild(menu);
-            setTimeout(() => document.addEventListener('click', closeMenu), 100);
+            
+            // Guardar referência global para poder fechar de qualquer lugar
+            window.currentPresentationMenu = menu;
+            window.closePresentationMenu = closeMenu;
+            
+            setTimeout(() => document.addEventListener('click', closeMenuOnOutsideClick), 100);
         };
 
         // Renomear apresentação (input inline)
         window.renamePresentation = (presentationId, event) => {
             if (event) event.stopPropagation();
+            
+            // Fechar menu se estiver aberto
+            if (window.closePresentationMenu) {
+                window.closePresentationMenu();
+            }
             
             const presentation = folderPresentations.find(p => p.id === presentationId);
             if (!presentation) return;
@@ -361,6 +383,11 @@
         window.removeFromFolder = async (presentationId, event) => {
             if (event) event.stopPropagation();
             
+            // Fechar menu se estiver aberto
+            if (window.closePresentationMenu) {
+                window.closePresentationMenu();
+            }
+            
             try {
                 await foldersService.removePresentationFromFolder(currentProjectId, folderId, presentationId);
                 await loadFolderData(); // Recarregar
@@ -373,6 +400,11 @@
         // Deletar apresentação
         window.deletePresentation = async (presentationId, event) => {
             if (event) event.stopPropagation();
+            
+            // Fechar menu se estiver aberto
+            if (window.closePresentationMenu) {
+                window.closePresentationMenu();
+            }
             
             if (!confirm('Tem certeza que deseja excluir esta apresentação? Ela será removida permanentemente.')) {
                 return;

@@ -310,44 +310,44 @@
                 </div>
 
                 <!-- Cards de Estatísticas -->
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-2" style="max-width: 100%; overflow: hidden;">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-2" style="max-width: 100%; overflow: hidden; box-sizing: border-box;">
                     <!-- Total de Apresentações -->
-                    <div class="bg-gradient-to-br from-purple-50 to-pink-50 border border-purple-200 rounded-xl p-3">
+                    <div class="bg-gradient-to-br from-purple-50 to-pink-50 border border-purple-200 rounded-xl p-2" style="box-sizing: border-box; overflow: hidden;">
                         <div class="flex items-center justify-between">
-                            <div class="flex-1 min-w-0">
+                            <div class="flex-1 min-w-0" style="overflow: hidden;">
                                 <p class="text-xs text-gray-600 mb-1 truncate">Total de Apresentações</p>
-                                <h3 id="totalPresentations" class="text-2xl font-bold text-purple-600">0</h3>
+                                <h3 id="totalPresentations" class="text-xl font-bold text-purple-600 truncate">0</h3>
                             </div>
-                            <div class="w-10 h-10 bg-purple-600 rounded-lg flex items-center justify-center flex-shrink-0 ml-2">
-                                <i class="fas fa-presentation text-lg text-white"></i>
+                            <div class="w-8 h-8 bg-purple-600 rounded-lg flex items-center justify-center flex-shrink-0 ml-1">
+                                <i class="fas fa-presentation text-sm text-white"></i>
                             </div>
                         </div>
                     </div>
 
                     <!-- Última Apresentação -->
-                    <div class="bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-xl p-3">
+                    <div class="bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-xl p-2" style="box-sizing: border-box; overflow: hidden;">
                         <div class="flex items-center justify-between">
-                            <div class="flex-1 min-w-0">
+                            <div class="flex-1 min-w-0" style="overflow: hidden;">
                                 <p class="text-xs text-gray-600 mb-1 truncate">Última Apresentação</p>
-                                <h3 id="lastPresentation" class="text-2xl font-bold text-green-600 truncate">-</h3>
+                                <h3 id="lastPresentation" class="text-xl font-bold text-green-600 truncate">-</h3>
                             </div>
-                            <div class="w-10 h-10 bg-green-600 rounded-lg flex items-center justify-center flex-shrink-0 ml-2">
-                                <i class="fas fa-clock text-lg text-white"></i>
+                            <div class="w-8 h-8 bg-green-600 rounded-lg flex items-center justify-center flex-shrink-0 ml-1">
+                                <i class="fas fa-clock text-sm text-white"></i>
                             </div>
                         </div>
                     </div>
 
                     <!-- Plataformas -->
-                    <div class="bg-gradient-to-br from-blue-50 to-cyan-50 border border-blue-200 rounded-xl p-3">
+                    <div class="bg-gradient-to-br from-blue-50 to-cyan-50 border border-blue-200 rounded-xl p-2" style="box-sizing: border-box; overflow: hidden;">
                         <div class="flex items-center justify-between">
-                            <div class="flex-1 min-w-0">
+                            <div class="flex-1 min-w-0" style="overflow: hidden;">
                                 <p class="text-xs text-gray-600 mb-1 truncate">Plataformas</p>
-                                <div id="platformsStats" class="text-lg font-bold text-blue-600 flex items-center gap-1 flex-wrap">
+                                <div id="platformsStats" class="text-sm font-bold text-blue-600 flex items-center gap-1 flex-wrap truncate">
                                     <span class="text-xs text-gray-500">Nenhuma</span>
                                 </div>
                             </div>
-                            <div class="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center flex-shrink-0 ml-2">
-                                <i class="fas fa-chart-line text-lg text-white"></i>
+                            <div class="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center flex-shrink-0 ml-1">
+                                <i class="fas fa-chart-line text-sm text-white"></i>
                             </div>
                         </div>
                     </div>
@@ -384,7 +384,7 @@
                             Recentes
                         </h2>
                         <div id="recentesContent" class="section-content">
-                            <div class="relative">
+                            <div class="relative" style="max-width: 100%; overflow: hidden;">
                                 <!-- Setas de Navegação estilo Canva -->
                                 <button id="recentesScrollLeft" class="absolute left-2 top-1/2 -translate-y-1/2 z-10 bg-white rounded-full w-10 h-10 flex items-center justify-center shadow-lg hover:shadow-xl transition-all hidden" style="box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);">
                                     <i class="fas fa-chevron-left text-gray-900 text-sm"></i>
@@ -394,7 +394,7 @@
                             </button>
 
                                 <!-- Container de Scroll Horizontal -->
-                                <div id="recentesContainer" class="flex gap-4 overflow-x-auto scrollbar-hide pb-4" style="scroll-behavior: smooth;">
+                                <div id="recentesContainer" class="flex gap-4 overflow-x-auto scrollbar-hide pb-4" style="scroll-behavior: smooth; max-width: calc(100vw - 400px);">
                                     <!-- Cards serão inseridos aqui -->
                                 </div>
                         </div>
@@ -427,7 +427,7 @@
                             Todas apresentações
                         </h2>
                         <div id="todasContent" class="section-content">
-                            <div id="allPresentationsGrid" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                            <div id="allPresentationsGrid" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5" style="gap: 1rem;">
                                 <!-- Apresentações serão inseridas aqui -->
                     </div>
                             <div id="loadMoreContainer" class="text-center mt-6 hidden">
@@ -930,8 +930,13 @@
             setTimeout(() => {
                 // Forçar reflow
                 recentesContainer.offsetHeight;
-                console.log('📏 ScrollWidth:', recentesContainer.scrollWidth, 'ClientWidth:', recentesContainer.clientWidth);
+                // Aguardar um frame para garantir que o layout foi calculado
+            requestAnimationFrame(() => {
+                const scrollWidth = recentesContainer.scrollWidth;
+                const clientWidth = recentesContainer.clientWidth;
+                console.log('📏 ScrollWidth:', scrollWidth, 'ClientWidth:', clientWidth, 'Diff:', scrollWidth - clientWidth);
                 updateScrollButtons();
+            });
             }, 0);
             
             setTimeout(() => {
@@ -949,14 +954,23 @@
 
         // Renderizar pastas
         function renderFolders() {
-            if (!foldersGrid) return;
+            if (!foldersGrid) {
+                console.warn('⚠️ foldersGrid não encontrado');
+                return;
+            }
+            
+            console.log('📁 Renderizando pastas...');
             
             // SEMPRE garantir que o botão de criar pasta está visível
             if (createFolderBtn) {
+                console.log('✅ Botão criar pasta encontrado, garantindo visibilidade');
                 createFolderBtn.style.display = 'inline-flex';
                 createFolderBtn.style.visibility = 'visible';
                 createFolderBtn.style.opacity = '1';
                 createFolderBtn.removeAttribute('hidden');
+                createFolderBtn.classList.remove('hidden');
+            } else {
+                console.error('❌ createFolderBtn NÃO encontrado no DOM!');
             }
 
             if (allFolders.length === 0) {

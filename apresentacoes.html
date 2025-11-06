@@ -1279,6 +1279,56 @@
             }
         };
 
+        // Deletar pasta (confirmação inline, sem popup)
+        window.deleteFolder = async (folderId, event) => {
+            if (event) event.stopPropagation();
+            
+            const folder = allFolders.find(f => f.id === folderId);
+            if (!folder) return;
+            
+            // Criar overlay de confirmação inline
+            const card = document.querySelector(`[data-folder-id="${folderId}"]`);
+            if (!card) return;
+            
+            // Verificar se já existe confirmação
+            const existingConfirm = card.querySelector('.delete-confirmation');
+            if (existingConfirm) {
+                existingConfirm.remove();
+                return;
+            }
+            
+            const confirmDiv = document.createElement('div');
+            confirmDiv.className = 'delete-confirmation absolute inset-0 bg-white bg-opacity-95 rounded-lg flex flex-col items-center justify-center gap-3 p-4 z-50 border-2 border-red-200';
+            confirmDiv.innerHTML = `
+                <p class="text-sm font-semibold text-gray-900 text-center">Excluir pasta "${folder.name}"?</p>
+                <p class="text-xs text-gray-600 text-center">Esta ação não pode ser desfeita.</p>
+                <div class="flex gap-2">
+                    <button onclick="event.stopPropagation(); this.closest('.delete-confirmation').remove()" 
+                            class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg text-sm hover:bg-gray-300 transition-all">
+                        Cancelar
+                    </button>
+                    <button onclick="event.stopPropagation(); window.confirmDeleteFolder('${folderId}')" 
+                            class="px-4 py-2 bg-red-500 text-white rounded-lg text-sm hover:bg-red-600 transition-all">
+                        Excluir
+                    </button>
+                </div>
+            `;
+            
+            card.style.position = 'relative';
+            card.appendChild(confirmDiv);
+        };
+
+        // Confirmar exclusão da pasta
+        window.confirmDeleteFolder = async (folderId) => {
+            try {
+                await foldersService.deleteFolder(currentProjectId, folderId);
+                await loadPresentations();
+            } catch (error) {
+                console.error('Erro ao excluir pasta:', error);
+                alert('Erro ao excluir pasta');
+            }
+        };
+
         // Carregar dados do usuário e mostrar link admin
         onAuthStateChanged(auth, async (user) => {
             if (user) {

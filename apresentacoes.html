@@ -293,44 +293,44 @@
                 </div>
 
                 <!-- Cards de Estatísticas -->
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
                     <!-- Total de Apresentações -->
-                    <div class="bg-gradient-to-br from-purple-50 to-pink-50 border border-purple-200 rounded-xl p-4">
+                    <div class="bg-gradient-to-br from-purple-50 to-pink-50 border border-purple-200 rounded-xl p-3">
                         <div class="flex items-center justify-between">
-                            <div>
-                                <p class="text-sm text-gray-600 mb-1">Total de Apresentações</p>
-                                <h3 id="totalPresentations" class="text-3xl font-bold text-purple-600">0</h3>
+                            <div class="flex-1 min-w-0">
+                                <p class="text-xs text-gray-600 mb-1 truncate">Total de Apresentações</p>
+                                <h3 id="totalPresentations" class="text-2xl font-bold text-purple-600">0</h3>
                             </div>
-                            <div class="w-12 h-12 bg-purple-600 rounded-lg flex items-center justify-center">
-                                <i class="fas fa-presentation text-2xl text-white"></i>
+                            <div class="w-10 h-10 bg-purple-600 rounded-lg flex items-center justify-center flex-shrink-0 ml-2">
+                                <i class="fas fa-presentation text-lg text-white"></i>
                             </div>
                         </div>
                     </div>
 
                     <!-- Última Apresentação -->
-                    <div class="bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-xl p-4">
+                    <div class="bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-xl p-3">
                         <div class="flex items-center justify-between">
-                            <div>
-                                <p class="text-sm text-gray-600 mb-1">Última Apresentação</p>
-                                <h3 id="lastPresentation" class="text-lg font-bold text-green-600">-</h3>
+                            <div class="flex-1 min-w-0">
+                                <p class="text-xs text-gray-600 mb-1 truncate">Última Apresentação</p>
+                                <h3 id="lastPresentation" class="text-2xl font-bold text-green-600 truncate">-</h3>
                             </div>
-                            <div class="w-12 h-12 bg-green-600 rounded-lg flex items-center justify-center">
-                                <i class="fas fa-clock text-2xl text-white"></i>
+                            <div class="w-10 h-10 bg-green-600 rounded-lg flex items-center justify-center flex-shrink-0 ml-2">
+                                <i class="fas fa-clock text-lg text-white"></i>
                             </div>
                         </div>
                     </div>
 
                     <!-- Plataformas -->
-                    <div class="bg-gradient-to-br from-purple-50 to-pink-50 border border-purple-200 rounded-xl p-4">
+                    <div class="bg-gradient-to-br from-blue-50 to-cyan-50 border border-blue-200 rounded-xl p-3">
                         <div class="flex items-center justify-between">
-                            <div>
-                                <p class="text-sm text-gray-600 mb-1">Plataformas</p>
-                                <div id="platformsStats" class="flex items-center gap-2 mt-2">
-                                    <span class="text-sm text-gray-500">Carregando...</span>
+                            <div class="flex-1 min-w-0">
+                                <p class="text-xs text-gray-600 mb-1 truncate">Plataformas</p>
+                                <div id="platformsStats" class="text-lg font-bold text-blue-600 flex items-center gap-1 flex-wrap">
+                                    <span class="text-xs text-gray-500">Nenhuma</span>
                                 </div>
                             </div>
-                            <div class="w-12 h-12 bg-purple-600 rounded-lg flex items-center justify-center">
-                                <i class="fas fa-globe text-2xl text-white"></i>
+                            <div class="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center flex-shrink-0 ml-2">
+                                <i class="fas fa-chart-line text-lg text-white"></i>
                             </div>
                         </div>
                     </div>
@@ -410,7 +410,7 @@
                             Todas apresentações
                         </h2>
                         <div id="todasContent" class="section-content">
-                            <div id="allPresentationsGrid" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4" style="gap: 1rem;">
+                            <div id="allPresentationsGrid" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
                                 <!-- Apresentações serão inseridas aqui -->
                     </div>
                             <div id="loadMoreContainer" class="text-center mt-6 hidden">
@@ -551,14 +551,34 @@
         // Atualizar visibilidade das setas
         function updateScrollButtons() {
             if (!recentesContainer) return;
-            const canScrollLeft = recentesContainer.scrollLeft > 0;
-            const canScrollRight = recentesContainer.scrollLeft < recentesContainer.scrollWidth - recentesContainer.clientWidth;
             
-            if (recentesScrollLeft) recentesScrollLeft.classList.toggle('hidden', !canScrollLeft);
-            if (recentesScrollRight) recentesScrollRight.classList.toggle('hidden', !canScrollRight);
+            // Usar requestAnimationFrame para garantir que o DOM está atualizado
+            requestAnimationFrame(() => {
+                const scrollWidth = recentesContainer.scrollWidth;
+                const clientWidth = recentesContainer.clientWidth;
+                const scrollLeft = recentesContainer.scrollLeft;
+                
+                const canScrollLeft = scrollLeft > 10; // Margem de 10px para evitar flickering
+                const canScrollRight = scrollLeft < (scrollWidth - clientWidth - 10);
+                
+                if (recentesScrollLeft) {
+                    recentesScrollLeft.classList.toggle('hidden', !canScrollLeft);
+                }
+                if (recentesScrollRight) {
+                    recentesScrollRight.classList.toggle('hidden', !canScrollRight);
+                }
+            });
         }
 
         recentesContainer?.addEventListener('scroll', updateScrollButtons);
+        
+        // Observar mudanças no tamanho do container
+        if (recentesContainer && window.ResizeObserver) {
+            const resizeObserver = new ResizeObserver(() => {
+                updateScrollButtons();
+            });
+            resizeObserver.observe(recentesContainer);
+        }
 
         // Criar pasta (input inline)
         createFolderBtn?.addEventListener('click', () => {
@@ -816,15 +836,27 @@
             // Cards em Recentes devem ser arrastáveis e do mesmo tamanho que "Todas apresentações"
             recentesContainer.innerHTML = recent.map(p => renderPresentationCard(p, true, true)).join('');
             
-            // Atualizar setas de scroll (chamar imediatamente e depois com delay para garantir)
+            // Atualizar setas de scroll (múltiplas tentativas para garantir)
             updateScrollButtons();
-            setTimeout(updateScrollButtons, 100);
-            setTimeout(updateScrollButtons, 300);
+            setTimeout(() => {
+                updateScrollButtons();
+                // Forçar recálculo do scrollWidth
+                recentesContainer.scrollLeft = recentesContainer.scrollLeft;
+                updateScrollButtons();
+            }, 50);
+            setTimeout(updateScrollButtons, 200);
+            setTimeout(updateScrollButtons, 500);
         }
 
         // Renderizar pastas
         function renderFolders() {
             if (!foldersGrid) return;
+            
+            // Garantir que o botão de criar pasta está visível
+            if (createFolderBtn) {
+                createFolderBtn.style.display = 'inline-flex';
+                createFolderBtn.style.visibility = 'visible';
+            }
 
             if (allFolders.length === 0) {
                 foldersGrid.innerHTML = '<p class="col-span-full text-gray-500 text-sm">Nenhuma pasta criada ainda</p>';

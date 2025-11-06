@@ -296,7 +296,7 @@
                 </div>
 
                 <!-- Cards de Estatísticas -->
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-2" style="max-width: 100%; overflow: hidden;">
                     <!-- Total de Apresentações -->
                     <div class="bg-gradient-to-br from-purple-50 to-pink-50 border border-purple-200 rounded-xl p-3">
                         <div class="flex items-center justify-between">
@@ -553,24 +553,33 @@
 
         // Atualizar visibilidade das setas
         function updateScrollButtons() {
-            if (!recentesContainer) return;
+            if (!recentesContainer || !recentesScrollLeft || !recentesScrollRight) return;
             
-            // Usar requestAnimationFrame para garantir que o DOM está atualizado
-            requestAnimationFrame(() => {
-                const scrollWidth = recentesContainer.scrollWidth;
-                const clientWidth = recentesContainer.clientWidth;
-                const scrollLeft = recentesContainer.scrollLeft;
-                
-                const canScrollLeft = scrollLeft > 10; // Margem de 10px para evitar flickering
-                const canScrollRight = scrollLeft < (scrollWidth - clientWidth - 10);
-                
-                if (recentesScrollLeft) {
-                    recentesScrollLeft.classList.toggle('hidden', !canScrollLeft);
-                }
-                if (recentesScrollRight) {
-                    recentesScrollRight.classList.toggle('hidden', !canScrollRight);
-                }
-            });
+            // Forçar recálculo do layout
+            recentesContainer.offsetHeight;
+            
+            const scrollWidth = recentesContainer.scrollWidth;
+            const clientWidth = recentesContainer.clientWidth;
+            const scrollLeft = recentesContainer.scrollLeft;
+            
+            // Verificar se há conteúdo para rolar
+            const hasOverflow = scrollWidth > clientWidth;
+            const canScrollLeft = scrollLeft > 5;
+            const canScrollRight = scrollLeft < (scrollWidth - clientWidth - 5);
+            
+            // Mostrar seta direita se houver overflow e não estiver no final
+            if (hasOverflow && canScrollRight) {
+                recentesScrollRight.classList.remove('hidden');
+            } else {
+                recentesScrollRight.classList.add('hidden');
+            }
+            
+            // Mostrar seta esquerda se houver scroll para a esquerda
+            if (canScrollLeft) {
+                recentesScrollLeft.classList.remove('hidden');
+            } else {
+                recentesScrollLeft.classList.add('hidden');
+            }
         }
 
         recentesContainer?.addEventListener('scroll', updateScrollButtons);
@@ -690,6 +699,14 @@
                     renderRecentPresentations();
                     renderFolders();
                     renderAllPresentations();
+                    
+                    // Garantir que o botão de criar pasta está visível após carregar
+                    setTimeout(() => {
+                        if (createFolderBtn) {
+                            createFolderBtn.style.display = 'inline-flex';
+                            createFolderBtn.style.visibility = 'visible';
+                        }
+                    }, 100);
                 }
             } catch (error) {
                 console.error('Erro ao carregar apresentações:', error);
@@ -839,26 +856,36 @@
             // Cards em Recentes devem ser arrastáveis e do mesmo tamanho que "Todas apresentações"
             recentesContainer.innerHTML = recent.map(p => renderPresentationCard(p, true, true)).join('');
             
-            // Atualizar setas de scroll (múltiplas tentativas para garantir)
-            updateScrollButtons();
+            // Forçar layout recalculation e atualizar setas
+            setTimeout(() => {
+                // Forçar reflow
+                recentesContainer.offsetHeight;
+                updateScrollButtons();
+            }, 0);
+            
             setTimeout(() => {
                 updateScrollButtons();
-                // Forçar recálculo do scrollWidth
-                recentesContainer.scrollLeft = recentesContainer.scrollLeft;
+            }, 100);
+            
+            setTimeout(() => {
                 updateScrollButtons();
-            }, 50);
-            setTimeout(updateScrollButtons, 200);
-            setTimeout(updateScrollButtons, 500);
+            }, 300);
+            
+            setTimeout(() => {
+                updateScrollButtons();
+            }, 600);
         }
 
         // Renderizar pastas
         function renderFolders() {
             if (!foldersGrid) return;
             
-            // Garantir que o botão de criar pasta está visível
+            // SEMPRE garantir que o botão de criar pasta está visível
             if (createFolderBtn) {
                 createFolderBtn.style.display = 'inline-flex';
                 createFolderBtn.style.visibility = 'visible';
+                createFolderBtn.style.opacity = '1';
+                createFolderBtn.removeAttribute('hidden');
             }
 
             if (allFolders.length === 0) {

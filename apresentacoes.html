@@ -236,11 +236,25 @@
         import { auth } from './config/firebase.js';
         import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
         
+        // Handler global de erros
+        window.addEventListener('error', (event) => {
+            console.error('🚨 ERRO GLOBAL:', event.error);
+            console.error('Arquivo:', event.filename);
+            console.error('Linha:', event.lineno);
+            console.error('Coluna:', event.colno);
+        });
+        
+        window.addEventListener('unhandledrejection', (event) => {
+            console.error('🚨 PROMISE REJEITADA:', event.reason);
+        });
+        
         onAuthStateChanged(auth, (user) => {
             if (!user) {
+                console.log('❌ Usuário não autenticado, redirecionando...');
                 window.location.href = '/login.html';
                 return;
             }
+            console.log('✅ Autenticação verificada no script inicial');
         });
     </script>
 
@@ -429,13 +443,22 @@
     </div>
 
     <script type="module">
-        import { auth, db } from './config/firebase.js';
-        import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
-        import { doc, updateDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
-        import { authService } from './services/authService.js?v=1.5';
-        import { projectsService } from './services/projects.js?v=1.4';
-        import { presentationsService } from './services/presentationsService.js?v=1.1';
-        import { foldersService } from './services/foldersService.js?v=1.1';
+        console.log('🚀 Script principal iniciado - versão 1.2');
+        
+        try {
+            import { auth, db } from './config/firebase.js';
+            import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+            import { doc, updateDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+            import { authService } from './services/authService.js?v=1.5';
+            import { projectsService } from './services/projects.js?v=1.4';
+            import { presentationsService } from './services/presentationsService.js?v=1.1';
+            import { foldersService } from './services/foldersService.js?v=1.1';
+            
+            console.log('✅ Imports carregados com sucesso');
+        } catch (error) {
+            console.error('❌ ERRO ao carregar imports:', error);
+            throw error;
+        }
 
         const projectNameEl = document.getElementById('projectName');
         const projectNameEditable = document.getElementById('projectNameEditable');
@@ -553,7 +576,18 @@
 
         // Atualizar visibilidade das setas
         function updateScrollButtons() {
-            if (!recentesContainer || !recentesScrollLeft || !recentesScrollRight) return;
+            if (!recentesContainer) {
+                console.warn('⚠️ recentesContainer não encontrado em updateScrollButtons');
+                return;
+            }
+            if (!recentesScrollLeft) {
+                console.warn('⚠️ recentesScrollLeft não encontrado');
+                return;
+            }
+            if (!recentesScrollRight) {
+                console.warn('⚠️ recentesScrollRight não encontrado');
+                return;
+            }
             
             // Forçar recálculo do layout
             recentesContainer.offsetHeight;
@@ -567,18 +601,31 @@
             const canScrollLeft = scrollLeft > 5;
             const canScrollRight = scrollLeft < (scrollWidth - clientWidth - 5);
             
+            console.log('🔍 UpdateScrollButtons:', {
+                scrollWidth,
+                clientWidth,
+                scrollLeft,
+                hasOverflow,
+                canScrollLeft,
+                canScrollRight
+            });
+            
             // Mostrar seta direita se houver overflow e não estiver no final
             if (hasOverflow && canScrollRight) {
                 recentesScrollRight.classList.remove('hidden');
+                console.log('✅ Seta direita VISÍVEL');
             } else {
                 recentesScrollRight.classList.add('hidden');
+                console.log('❌ Seta direita OCULTA');
             }
             
             // Mostrar seta esquerda se houver scroll para a esquerda
             if (canScrollLeft) {
                 recentesScrollLeft.classList.remove('hidden');
+                console.log('✅ Seta esquerda VISÍVEL');
             } else {
                 recentesScrollLeft.classList.add('hidden');
+                console.log('❌ Seta esquerda OCULTA');
             }
         }
 
@@ -847,19 +894,28 @@
 
         // Renderizar seção "Recentes" (últimas 8)
         function renderRecentPresentations() {
-            if (!recentesContainer) return;
+            if (!recentesContainer) {
+                console.error('❌ recentesContainer não encontrado!');
+                return;
+            }
             
+            console.log('🔄 Renderizando Recentes...');
             const recent = [...allPresentations]
                 .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
                 .slice(0, 8);
 
+            console.log('📊 Cards recentes:', recent.length);
+            
             // Cards em Recentes devem ser arrastáveis e do mesmo tamanho que "Todas apresentações"
             recentesContainer.innerHTML = recent.map(p => renderPresentationCard(p, true, true)).join('');
+            
+            console.log('✅ Cards renderizados, atualizando setas...');
             
             // Forçar layout recalculation e atualizar setas
             setTimeout(() => {
                 // Forçar reflow
                 recentesContainer.offsetHeight;
+                console.log('📏 ScrollWidth:', recentesContainer.scrollWidth, 'ClientWidth:', recentesContainer.clientWidth);
                 updateScrollButtons();
             }, 0);
             

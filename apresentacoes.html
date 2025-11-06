@@ -3,6 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <title>Projeto - Insightflow</title>
     <link rel="stylesheet" href="style.css">
     <script src="https://cdn.tailwindcss.com"></script>
@@ -429,10 +432,10 @@
         import { auth, db } from './config/firebase.js';
         import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
         import { doc, updateDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
-        import { authService } from './services/authService.js?v=1.4';
-        import { projectsService } from './services/projects.js?v=1.3';
-        import { presentationsService } from './services/presentationsService.js?v=1.0';
-        import { foldersService } from './services/foldersService.js';
+        import { authService } from './services/authService.js?v=1.5';
+        import { projectsService } from './services/projects.js?v=1.4';
+        import { presentationsService } from './services/presentationsService.js?v=1.1';
+        import { foldersService } from './services/foldersService.js?v=1.1';
 
         const projectNameEl = document.getElementById('projectName');
         const projectNameEditable = document.getElementById('projectNameEditable');

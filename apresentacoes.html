@@ -445,20 +445,15 @@
     <script type="module">
         console.log('🚀 Script principal iniciado - versão 1.2');
         
-        try {
-            import { auth, db } from './config/firebase.js';
-            import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
-            import { doc, updateDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
-            import { authService } from './services/authService.js?v=1.5';
-            import { projectsService } from './services/projects.js?v=1.4';
-            import { presentationsService } from './services/presentationsService.js?v=1.1';
-            import { foldersService } from './services/foldersService.js?v=1.1';
-            
-            console.log('✅ Imports carregados com sucesso');
-        } catch (error) {
-            console.error('❌ ERRO ao carregar imports:', error);
-            throw error;
-        }
+        import { auth, db } from './config/firebase.js';
+        import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+        import { doc, updateDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+        import { authService } from './services/authService.js?v=1.5';
+        import { projectsService } from './services/projects.js?v=1.4';
+        import { presentationsService } from './services/presentationsService.js?v=1.1';
+        import { foldersService } from './services/foldersService.js?v=1.1';
+        
+        console.log('✅ Imports carregados com sucesso');
 
         const projectNameEl = document.getElementById('projectName');
         const projectNameEditable = document.getElementById('projectNameEditable');
@@ -492,11 +487,17 @@
         // Pegar ID do projeto da URL
         const urlParams = new URLSearchParams(window.location.search);
         currentProjectId = urlParams.get('id');
+        
+        console.log('📋 Project ID da URL:', currentProjectId);
 
         if (!currentProjectId) {
+            console.error('❌ Project ID não encontrado na URL');
             alert('Projeto não encontrado');
             window.location.href = '/home.html';
+            return;
         }
+        
+        console.log('✅ Project ID válido:', currentProjectId);
 
         // Links do menu agora são gerenciados pela sidebar unificada
 

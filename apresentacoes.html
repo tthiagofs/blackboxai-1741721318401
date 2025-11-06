@@ -494,7 +494,7 @@
             console.error('❌ Project ID não encontrado na URL');
             alert('Projeto não encontrado');
             window.location.href = '/home.html';
-            return;
+            // Não usar return aqui - o redirecionamento já vai acontecer
         }
         
         console.log('✅ Project ID válido:', currentProjectId);

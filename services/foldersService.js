@@ -175,6 +175,31 @@ class FoldersService {
             throw error;
         }
     }
+
+    /**
+     * Atualizar lista de IDs de apresentações da pasta (limpar IDs inválidos)
+     */
+    async updateFolderPresentationIds(projectId, folderId, presentationIds) {
+        try {
+            const user = auth.currentUser;
+            if (!user) {
+                throw new Error('Usuário não autenticado');
+            }
+
+            const folderRef = doc(db, 'projects', projectId, 'folders', folderId);
+            await updateDoc(folderRef, {
+                presentationIds: presentationIds,
+                updatedAt: new Date().toISOString()
+            });
+
+            console.log('✅ IDs da pasta atualizados');
+            return { success: true };
+
+        } catch (error) {
+            console.error('❌ Erro ao atualizar IDs da pasta:', error);
+            throw error;
+        }
+    }
 }
 
 export const foldersService = new FoldersService();

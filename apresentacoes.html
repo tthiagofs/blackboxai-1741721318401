@@ -126,8 +126,51 @@
             transition: all 0.2s ease;
         }
         .presentation-card-small {
-            width: 13.75rem; /* 220px = 15% maior que 192px (w-48) */
-            min-width: 13.75rem;
+            width: 15.125rem; /* 242px = 10% maior que 220px */
+            min-width: 15.125rem;
+        }
+        .folder-card-small {
+            width: 13.625rem; /* ~218px = 10% menor que 242px */
+            min-width: 13.625rem;
+        }
+        .folder-preview-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+        }
+        .folder-preview-bg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(to bottom, #E0E7FF 0%, #C7D2FE 100%);
+        }
+        .folder-preview-image {
+            position: absolute;
+            bottom: 8px;
+            left: 8px;
+            right: 8px;
+            height: 60%;
+            border-radius: 4px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+            background: white;
+        }
+        .folder-preview-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .folder-icon-empty {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 3rem;
+            color: #818CF8;
+            opacity: 0.6;
         }
         .temporary-message {
             position: fixed;
@@ -311,18 +354,18 @@
                                 <!-- Setas de Navegação -->
                                 <button id="recentesScrollLeft" class="absolute left-0 top-1/2 -translate-y-1/2 z-10 bg-white rounded-full p-2 shadow-lg border border-gray-200 hover:bg-gray-50 transition-all hidden">
                                     <i class="fas fa-chevron-left text-gray-600"></i>
-                                </button>
+                            </button>
                                 <button id="recentesScrollRight" class="absolute right-0 top-1/2 -translate-y-1/2 z-10 bg-white rounded-full p-2 shadow-lg border border-gray-200 hover:bg-gray-50 transition-all hidden">
                                     <i class="fas fa-chevron-right text-gray-600"></i>
-                                </button>
+                            </button>
 
                                 <!-- Container de Scroll Horizontal -->
                                 <div id="recentesContainer" class="flex gap-4 overflow-x-auto scrollbar-hide pb-4" style="scroll-behavior: smooth;">
                                     <!-- Cards serão inseridos aqui -->
                                 </div>
-                            </div>
                         </div>
                     </div>
+                </div>
 
                     <!-- Seção: Pastas -->
                     <div>
@@ -341,7 +384,7 @@
                                 <!-- Pastas serão inseridas aqui -->
                             </div>
                         </div>
-                    </div>
+                </div>
 
                     <!-- Seção: Todas Apresentações -->
                     <div>
@@ -352,12 +395,12 @@
                         <div id="todasContent" class="section-content">
                             <div id="allPresentationsGrid" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
                                 <!-- Apresentações serão inseridas aqui -->
-                            </div>
+                    </div>
                             <div id="loadMoreContainer" class="text-center mt-6 hidden">
                                 <button id="loadMoreBtn" class="px-6 py-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-all">
                                     Ver mais
-                                </button>
-                            </div>
+                    </button>
+                </div>
                         </div>
                     </div>
                 </div>
@@ -770,9 +813,24 @@
             }
 
             foldersGrid.innerHTML = allFolders.map(folder => {
-                // Pegar preview da última apresentação na pasta
+                // Filtrar apenas apresentações que realmente existem
+                const presentationIds = folder.presentationIds || [];
+                const validPresentationIds = presentationIds.filter(id => 
+                    allPresentations.some(p => p.id === id)
+                );
+                
+                // Atualizar contagem real
+                const realCount = validPresentationIds.length;
+                
+                // Se a contagem mudou, atualizar no Firestore (assíncrono, não bloqueia renderização)
+                if (realCount !== presentationIds.length) {
+                    foldersService.updateFolderPresentationIds(currentProjectId, folder.id, validPresentationIds)
+                        .catch(err => console.error('Erro ao atualizar IDs da pasta:', err));
+                }
+                
+                // Pegar preview da última apresentação válida na pasta
                 const folderPresentations = allPresentations.filter(p => 
-                    folder.presentationIds && folder.presentationIds.includes(p.id)
+                    validPresentationIds.includes(p.id)
                 );
                 const lastPresentation = folderPresentations.sort((a, b) => 
                     new Date(b.createdAt) - new Date(a.createdAt)
@@ -780,7 +838,7 @@
                 const preview = lastPresentation?.coverPreview || null;
 
                 return `
-                    <div class="folder-card bg-white border border-gray-200 rounded-lg overflow-hidden hover:shadow-lg transition-all cursor-pointer group relative"
+                    <div class="folder-card folder-card-small bg-white border border-gray-200 rounded-lg overflow-hidden hover:shadow-lg transition-all cursor-pointer group relative"
                          data-folder-id="${folder.id}"
                          ondragover="handleDragOver(event)"
                          ondrop="handleDrop(event, '${folder.id}')"
@@ -788,9 +846,20 @@
                          ondragleave="handleDragLeave(event)"
                          onclick="openFolder('${folder.id}', event)">
                         
-                        <!-- Preview ou Ícone de Pasta -->
-                        <div class="w-full h-32 bg-gradient-to-br from-blue-100 to-indigo-100 relative folder-drop-zone" ${preview ? `style="background-image: url('${preview}'); background-size: cover; background-position: center;"` : ''}>
-                            ${!preview ? '<div class="absolute inset-0 flex items-center justify-center"><i class="fas fa-folder text-5xl text-blue-400"></i></div>' : ''}
+                        <!-- Preview estilo Canva (pasta com preview dentro) -->
+                        <div class="w-full h-32 relative folder-drop-zone">
+                            <div class="folder-preview-container">
+                                <div class="folder-preview-bg"></div>
+                                ${preview ? `
+                                    <div class="folder-preview-image">
+                                        <img src="${preview}" alt="Preview">
+                                    </div>
+                                ` : `
+                                    <div class="folder-icon-empty">
+                                        <i class="fas fa-folder"></i>
+                                    </div>
+                                `}
+                            </div>
                             <div class="drop-overlay absolute inset-0 bg-blue-500 bg-opacity-20 border-2 border-blue-500 border-dashed hidden items-center justify-center">
                                 <span class="text-white font-semibold">Solte aqui</span>
                             </div>
@@ -799,7 +868,7 @@
                         <!-- Conteúdo -->
                         <div class="p-3">
                             <h4 class="text-sm font-semibold text-gray-900 mb-1 truncate">${folder.name}</h4>
-                            <p class="text-xs text-gray-500">${folder.presentationIds?.length || 0} apresentação(ões)</p>
+                            <p class="text-xs text-gray-500">${realCount} apresentação(ões)</p>
                         </div>
                     </div>
                 `;
@@ -1070,10 +1139,10 @@
                     // Cancelar
                     input.remove();
                     titleEl.style.display = '';
-                    return;
-                }
+                return;
+            }
 
-                try {
+            try {
                     await presentationsService.updatePresentation(currentProjectId, presentationId, {
                         presentationName: newName
                     });
@@ -1085,7 +1154,7 @@
                     if (presentationIndex !== -1) {
                         allPresentations[presentationIndex].presentationName = newName;
                     }
-                } catch (error) {
+            } catch (error) {
                     console.error('Erro ao renomear:', error);
                     alert('Erro ao renomear apresentação');
                     input.remove();

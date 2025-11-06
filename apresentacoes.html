@@ -368,12 +368,12 @@
                         </h2>
                         <div id="recentesContent" class="section-content">
                             <div class="relative">
-                                <!-- Setas de Navegação -->
-                                <button id="recentesScrollLeft" class="absolute left-0 top-1/2 -translate-y-1/2 z-10 bg-white rounded-full p-2 shadow-lg border border-gray-200 hover:bg-gray-50 transition-all hidden">
-                                    <i class="fas fa-chevron-left text-gray-600"></i>
+                                <!-- Setas de Navegação estilo Canva -->
+                                <button id="recentesScrollLeft" class="absolute left-2 top-1/2 -translate-y-1/2 z-10 bg-white rounded-full w-10 h-10 flex items-center justify-center shadow-lg hover:shadow-xl transition-all hidden" style="box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);">
+                                    <i class="fas fa-chevron-left text-gray-900 text-sm"></i>
                             </button>
-                                <button id="recentesScrollRight" class="absolute right-0 top-1/2 -translate-y-1/2 z-10 bg-white rounded-full p-2 shadow-lg border border-gray-200 hover:bg-gray-50 transition-all hidden">
-                                    <i class="fas fa-chevron-right text-gray-600"></i>
+                                <button id="recentesScrollRight" class="absolute right-2 top-1/2 -translate-y-1/2 z-10 bg-white rounded-full w-10 h-10 flex items-center justify-center shadow-lg hover:shadow-xl transition-all hidden" style="box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);">
+                                    <i class="fas fa-chevron-right text-gray-900 text-sm"></i>
                             </button>
 
                                 <!-- Container de Scroll Horizontal -->
@@ -410,7 +410,7 @@
                             Todas apresentações
                         </h2>
                         <div id="todasContent" class="section-content">
-                            <div id="allPresentationsGrid" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                            <div id="allPresentationsGrid" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4" style="gap: 1rem;">
                                 <!-- Apresentações serão inseridas aqui -->
                     </div>
                             <div id="loadMoreContainer" class="text-center mt-6 hidden">
@@ -816,8 +816,10 @@
             // Cards em Recentes devem ser arrastáveis e do mesmo tamanho que "Todas apresentações"
             recentesContainer.innerHTML = recent.map(p => renderPresentationCard(p, true, true)).join('');
             
-            // Atualizar setas de scroll
+            // Atualizar setas de scroll (chamar imediatamente e depois com delay para garantir)
+            updateScrollButtons();
             setTimeout(updateScrollButtons, 100);
+            setTimeout(updateScrollButtons, 300);
         }
 
         // Renderizar pastas
@@ -882,9 +884,15 @@
                         </div>
 
                         <!-- Conteúdo (nome e contagem) -->
-                        <div class="text-center">
+                        <div class="text-center relative">
                             <h4 class="text-sm font-semibold text-gray-900 mb-1 truncate">${folder.name}</h4>
                             <p class="text-xs text-gray-500">${realCount} apresentação(ões)</p>
+                            
+                            <!-- Botão de lixeira no hover -->
+                            <button onclick="event.stopPropagation(); deleteFolder('${folder.id}', event)" 
+                                    class="absolute top-0 right-0 opacity-0 group-hover:opacity-100 transition-opacity bg-red-500 hover:bg-red-600 text-white rounded-full p-1.5 shadow-lg">
+                                <i class="fas fa-trash text-xs"></i>
+                            </button>
                         </div>
                     </div>
                 `;

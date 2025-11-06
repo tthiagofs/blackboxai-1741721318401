@@ -722,26 +722,35 @@
         // Carregar apresentações salvas
         async function loadPresentations() {
             try {
+                console.log('📥 Carregando apresentações...');
                 presentationsLoading.classList.remove('hidden');
                 presentationsEmpty.classList.add('hidden');
                 presentationsContent.classList.add('hidden');
 
                 const [presentations, folders] = await Promise.all([
                     presentationsService.listPresentations(currentProjectId),
-                    foldersService.listFolders(currentProjectId).catch(() => []) // Fallback se não houver pastas
+                    foldersService.listFolders(currentProjectId).catch((err) => {
+                        console.warn('⚠️ Erro ao carregar pastas:', err);
+                        return [];
+                    })
                 ]);
 
+                console.log('✅ Apresentações carregadas:', presentations.length);
+                console.log('✅ Pastas carregadas:', folders.length);
+                
                 allPresentations = presentations;
                 allFolders = folders;
                 
                 presentationsLoading.classList.add('hidden');
                 
                 if (presentations.length === 0) {
+                    console.log('ℹ️ Nenhuma apresentação encontrada');
                     presentationsEmpty.classList.remove('hidden');
                     totalPresentations.textContent = '0';
                     lastPresentation.textContent = '-';
                     platformsStats.innerHTML = '<span class="text-sm text-gray-500">Nenhuma</span>';
                 } else {
+                    console.log('🎨 Renderizando apresentações...');
                     presentationsContent.classList.remove('hidden');
                     updateStatistics(presentations);
                     renderRecentPresentations();
@@ -751,13 +760,18 @@
                     // Garantir que o botão de criar pasta está visível após carregar
                     setTimeout(() => {
                         if (createFolderBtn) {
+                            console.log('✅ Garantindo visibilidade do botão criar pasta');
                             createFolderBtn.style.display = 'inline-flex';
                             createFolderBtn.style.visibility = 'visible';
+                            createFolderBtn.style.opacity = '1';
                         }
                     }, 100);
+                    
+                    console.log('✅ Renderização completa');
                 }
             } catch (error) {
-                console.error('Erro ao carregar apresentações:', error);
+                console.error('❌ ERRO ao carregar apresentações:', error);
+                console.error('Stack:', error.stack);
                 presentationsLoading.classList.add('hidden');
                 presentationsEmpty.classList.remove('hidden');
             }

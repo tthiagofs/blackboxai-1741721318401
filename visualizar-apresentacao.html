@@ -125,13 +125,17 @@
         
         /* Páginas dentro dos slides - ocupar toda a tela */
         .presentation-mode .slide.page {
-            position: relative;
-            width: 100vw;
-            height: 100vh;
-            margin: 0;
-            padding: 0;
-            /* Manter estilos originais, mas adaptar para tela cheia */
-            box-sizing: border-box;
+            position: relative !important;
+            width: 100vw !important;
+            height: 100vh !important;
+            max-width: 100vw !important;
+            max-height: 100vh !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            box-sizing: border-box !important;
+            /* Sobrescrever qualquer tamanho fixo definido no CSS original */
+            min-width: 0 !important;
+            min-height: 0 !important;
         }
         
         /* Garantir que o conteúdo seja visível e não deslocado */
@@ -140,8 +144,18 @@
         }
         
         /* Remover qualquer transformação que possa causar deslocamento */
+        .presentation-mode .slide,
         .presentation-mode .slide * {
             transform: none !important;
+            left: 0 !important;
+            right: auto !important;
+        }
+        
+        /* Garantir que slides não se movam */
+        .presentation-mode .slide {
+            position: fixed !important;
+            top: 0 !important;
+            left: 0 !important;
         }
         
         .presentation-controls {

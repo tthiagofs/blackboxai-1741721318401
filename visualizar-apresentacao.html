@@ -1173,17 +1173,34 @@
             
             // Adicionar classe 'slide' em cada página (igual ao print)
             const pages = slidesContainer.querySelectorAll('.page');
-            pages.forEach(page => {
+            pages.forEach((page, index) => {
                 page.classList.add('slide');
+                // Garantir que todas as páginas tenham o mesmo tamanho base
+                page.style.width = '1280px';
+                page.style.height = '720px';
+                page.style.margin = '0';
+                page.style.padding = '0';
+                page.style.boxSizing = 'border-box';
             });
             
             // Armazenar slides
             slides = Array.from(pages);
             
             console.log(`✅ ${slides.length} slides renderizados no modo apresentação`);
+            console.log('📋 Slides:', slides);
             
             // Atualizar contador
             document.getElementById('totalSlides').textContent = slides.length;
+            
+            // Aguardar um pouco para garantir que o DOM foi atualizado
+            setTimeout(() => {
+                // Verificar se os slides foram criados corretamente
+                const allSlides = slidesContainer.querySelectorAll('.slide');
+                console.log(`🔍 Total de slides no DOM: ${allSlides.length}`);
+                allSlides.forEach((slide, idx) => {
+                    console.log(`📄 Slide ${idx + 1}:`, slide, 'Classes:', slide.className);
+                });
+            }, 100);
         }
         
         // Função para sair do modo apresentação

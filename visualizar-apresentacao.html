@@ -130,6 +130,8 @@
             left: 50%;
             transform: translate(-50%, -50%);
             transform-origin: center center;
+            /* Permitir que conteúdo seja visível mesmo se ultrapassar um pouco */
+            overflow: visible;
         }
         
         .presentation-mode .slide-wrapper.active {
@@ -143,7 +145,7 @@
             margin: 0;
             padding: 0;
             position: relative;
-            overflow: hidden;
+            overflow: visible; /* Mudado de hidden para visible para não cortar conteúdo */
             background: white;
             box-sizing: border-box;
         }
@@ -1211,10 +1213,10 @@
             const slideW = 1280;
             const slideH = 720;
             
-            // Usar 99.5% do espaço para aproveitar melhor a tela (margem mínima)
+            // Usar 100% do espaço (sem margem) para aproveitar ao máximo a tela
             // Calcular scale baseado na menor dimensão para manter proporção
-            const scaleX = (vw * 0.995) / slideW;
-            const scaleY = (vh * 0.995) / slideH;
+            const scaleX = vw / slideW;
+            const scaleY = vh / slideH;
             const scale = Math.min(scaleX, scaleY);
             
             console.log(`📐 Viewport: ${vw.toFixed(0)}x${vh.toFixed(0)}, Scale calculado: ${scale.toFixed(3)}`);

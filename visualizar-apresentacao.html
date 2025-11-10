@@ -1213,10 +1213,10 @@
             const slideW = 1280;
             const slideH = 720;
             
-            // Usar 98% do espaço para reduzir bordas pretas e aproveitar melhor a tela
+            // Usar 99% do espaço para reduzir bordas pretas ao máximo (sem cortar conteúdo)
             // Calcular scale baseado na menor dimensão para manter proporção
-            const scaleX = (vw * 0.98) / slideW;
-            const scaleY = (vh * 0.98) / slideH;
+            const scaleX = (vw * 0.99) / slideW;
+            const scaleY = (vh * 0.99) / slideH;
             const scale = Math.min(scaleX, scaleY);
             
             console.log(`📐 Viewport: ${vw.toFixed(0)}x${vh.toFixed(0)}, Scale calculado: ${scale.toFixed(3)}`);

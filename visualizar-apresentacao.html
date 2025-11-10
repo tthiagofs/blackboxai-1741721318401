@@ -1257,27 +1257,38 @@
             slidesContainer.innerHTML = '';
             
             // Criar um div temporário para processar o HTML
+            // IMPORTANTE: Usar um div com os mesmos estilos do presentation-container
+            // para garantir que o HTML seja renderizado da mesma forma
             const tempDiv = document.createElement('div');
+            tempDiv.style.position = 'absolute';
+            tempDiv.style.visibility = 'hidden';
+            tempDiv.style.width = '100%';
             tempDiv.innerHTML = html;
+            document.body.appendChild(tempDiv);
             
             // Encontrar todas as páginas (apenas diretas, não aninhadas)
             const pages = tempDiv.querySelectorAll(':scope > .page');
             
             console.log(`📄 Encontradas ${pages.length} páginas no HTML`);
             
-            // Para cada página, criar um wrapper slide e manter o HTML original intacto
+            // Para cada página, clonar mantendo TODOS os estilos e estrutura
             pages.forEach((page, index) => {
-                // Clonar a página para não modificar o original
+                // Clonar a página COM todos os estilos computados (deep clone)
                 const pageClone = page.cloneNode(true);
                 
-                // Adicionar classe slide à página (mantém todos os estilos originais)
+                // IMPORTANTE: Preservar todos os estilos inline e classes
+                // A página já tem a classe .page com todos os estilos do style.css
+                // Adicionar classe slide mantendo a classe page
                 pageClone.classList.add('slide');
                 
                 // Adicionar ao container
                 slidesContainer.appendChild(pageClone);
                 
-                console.log(`  ✅ Slide ${index + 1} criado`);
+                console.log(`  ✅ Slide ${index + 1} criado (classes: ${pageClone.className})`);
             });
+            
+            // Remover div temporário
+            document.body.removeChild(tempDiv);
             
             // Armazenar slides
             slides = Array.from(slidesContainer.querySelectorAll('.slide'));
@@ -1292,7 +1303,7 @@
             await waitForImages('.presentation-mode img');
             
             // Aguardar um pouco mais para garantir que o DOM está totalmente renderizado
-            await new Promise(resolve => setTimeout(resolve, 100));
+            await new Promise(resolve => setTimeout(resolve, 150));
             
             // Aplicar scale para tela cheia (mantém proporções originais)
             // Aplicar apenas uma vez após tudo carregar

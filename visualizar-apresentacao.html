@@ -1182,19 +1182,22 @@
             const pageWidth = 1280;
             const pageHeight = 720;
             
-            // Calcular scale baseado na menor dimensão para ocupar tela cheia
+            // Calcular scale baseado na menor dimensão para manter proporção
+            // Isso vai preencher uma dimensão completamente
             const scaleX = viewportWidth / pageWidth;
             const scaleY = viewportHeight / pageHeight;
-            const scale = Math.max(scaleX, scaleY); // Usar MAX para preencher toda a tela
+            const scale = Math.min(scaleX, scaleY); // Usar MIN para manter proporção
             
             console.log(`📐 Calculando scale:`, {
                 viewportWidth,
                 viewportHeight,
                 pageWidth,
                 pageHeight,
-                scaleX,
-                scaleY,
-                scale
+                scaleX: scaleX.toFixed(3),
+                scaleY: scaleY.toFixed(3),
+                scale: scale.toFixed(3),
+                scaledWidth: (pageWidth * scale).toFixed(0),
+                scaledHeight: (pageHeight * scale).toFixed(0)
             });
             
             return scale;
@@ -1206,8 +1209,12 @@
             slides.forEach((slide, index) => {
                 const page = slide.querySelector('.page');
                 if (page) {
+                    // Aplicar scale e centralizar
                     page.style.transform = `scale(${scale})`;
-                    console.log(`📏 Slide ${index + 1}: scale aplicado = ${scale}`);
+                    page.style.marginLeft = 'auto';
+                    page.style.marginRight = 'auto';
+                    page.style.marginTop = 'auto';
+                    page.style.marginBottom = 'auto';
                 }
             });
         }

@@ -1193,6 +1193,7 @@
         // Armazenar o último scale válido para evitar recalcular com viewports inválidos
         let lastValidScale = 1.0;
         let isInitialLoad = true;
+        let hasAppliedInitialScale = false;
         
         // Calcular scale para tela cheia mantendo proporção (igual ao PDF viewer do Google)
         function calculateScale() {
@@ -1232,7 +1233,13 @@
         }
         
         // Aplicar scale em todos os slides (mantém proporções originais)
-        function applySlideScale() {
+        function applySlideScale(force = false) {
+            // Durante carregamento inicial, aplicar apenas uma vez
+            if (!force && hasAppliedInitialScale && isInitialLoad) {
+                console.log('⏸️ Scale inicial já aplicado, ignorando durante carregamento...');
+                return;
+            }
+            
             if (isApplyingScale) {
                 console.log('⏸️ Scale já está sendo aplicado, ignorando...');
                 return;
@@ -1264,6 +1271,11 @@
                 slide.style.transform = `translateZ(0) scale(${scale})`;
             });
             console.log(`✅ Scale aplicado em ${slides.length} slides`);
+            
+            // Marcar que scale inicial foi aplicado
+            if (isInitialLoad) {
+                hasAppliedInitialScale = true;
+            }
             
             // Liberar flag após um pequeno delay
             setTimeout(() => {
@@ -1325,25 +1337,35 @@
             await waitForImages('.presentation-mode img');
             
             // Aguardar um pouco mais para garantir que o DOM está totalmente renderizado
-            await new Promise(resolve => setTimeout(resolve, 150));
+            await new Promise(resolve => setTimeout(resolve, 200));
             
             // Aplicar scale para tela cheia (mantém proporções originais)
-            // Aplicar apenas uma vez após tudo carregar
-            applySlideScale();
+            // Aplicar apenas uma vez após tudo carregar (force = true para garantir)
+            applySlideScale(true);
+            
+            // Marcar que carregamento inicial terminou após 2 segundos
+            setTimeout(() => {
+                isInitialLoad = false;
+                console.log('✅ Carregamento inicial concluído, resize habilitado');
+            }, 2000);
             
             // Aplicar scale quando redimensionar (com debounce mais longo para evitar múltiplas chamadas)
             // IMPORTANTE: Não adicionar listener de resize durante carregamento inicial
-            // Adicionar apenas após um delay para evitar chamadas durante renderização
+            // Adicionar apenas após 2 segundos para evitar chamadas durante renderização
             setTimeout(() => {
                 let resizeTimeout;
                 const resizeHandler = () => {
+                    // Ignorar resize durante carregamento inicial
+                    if (isInitialLoad) {
+                        console.log('⏸️ Resize ignorado durante carregamento inicial');
+                        return;
+                    }
+                    
                     clearTimeout(resizeTimeout);
                     resizeTimeout = setTimeout(() => {
                         // Verificar se ainda está no modo apresentação
                         const presentationMode = document.getElementById('presentationMode');
                         if (presentationMode && presentationMode.classList.contains('active')) {
-                            // Marcar que não é mais carregamento inicial
-                            isInitialLoad = false;
                             applySlideScale();
                         }
                     }, 500); // Debounce maior para evitar múltiplas chamadas
@@ -1351,7 +1373,8 @@
                 window.addEventListener('resize', resizeHandler);
                 // Armazenar handler para remover depois
                 window.presentationResizeHandler = resizeHandler;
-            }, 1000); // Adicionar listener apenas após 1 segundo
+                console.log('✅ Listener de resize adicionado');
+            }, 2000); // Adicionar listener apenas após 2 segundos
             
             // Atualizar contador
             document.getElementById('totalSlides').textContent = slides.length;

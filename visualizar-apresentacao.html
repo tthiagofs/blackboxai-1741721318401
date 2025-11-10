@@ -121,7 +121,7 @@
         }
         
         /* Páginas dentro dos slides - manter tamanho original e escalar proporcionalmente */
-        .presentation-mode .slide.page {
+        .presentation-mode .slide .page {
             width: 1280px;
             height: 720px;
             max-width: 95vw;
@@ -137,6 +137,7 @@
             /* Garantir que o conteúdo interno seja visível */
             position: relative;
             overflow: hidden;
+            box-sizing: border-box;
         }
         
         /* Garantir que todo conteúdo seja visível */

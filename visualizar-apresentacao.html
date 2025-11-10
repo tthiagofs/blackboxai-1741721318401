@@ -433,15 +433,15 @@
             });
         }
 
-        // Aguardar carregamento de imagens
-        function waitForImages() {
-            const images = Array.from(document.querySelectorAll('img'));
+        // Aguardar carregamento de imagens (usado tanto na renderização normal quanto no modo apresentação)
+        function waitForImages(selector = 'img') {
+            const images = Array.from(document.querySelectorAll(selector));
             return Promise.all(
                 images.map(img => {
                     if (img.complete) return Promise.resolve();
                     return new Promise(resolve => {
                         img.onload = resolve;
-                        img.onerror = resolve;
+                        img.onerror = resolve; // Continuar mesmo se imagem falhar
                     });
                 })
             );

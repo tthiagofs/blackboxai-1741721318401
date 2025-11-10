@@ -110,8 +110,7 @@
             /* Tamanho original: 1280px x 720px (16:9) */
             width: 1280px !important;
             height: 720px !important;
-            /* Escalar proporcionalmente para caber na tela mantendo proporção */
-            transform: translate(-50%, -50%) scale(min(calc(95vw / 1280), calc(95vh / 720))) !important;
+            /* Transform será aplicado via JavaScript para calcular scale dinamicamente */
             margin: 0 !important;
             padding: 0 !important;
             background: #f0f0f0 !important;
@@ -123,6 +122,8 @@
             /* Manter proporção 16:9 */
             aspect-ratio: 16 / 9;
         }
+        
+        /* Função para calcular e aplicar scale será chamada via JavaScript */
         
         .presentation-mode .slide.active {
             opacity: 1;
@@ -1162,6 +1163,29 @@
             document.body.style.overflow = 'hidden';
         }
         
+        // Calcular scale para manter proporção 16:9
+        function calculateSlideScale() {
+            const viewportWidth = window.innerWidth;
+            const viewportHeight = window.innerHeight;
+            const slideWidth = 1280;
+            const slideHeight = 720;
+            
+            // Calcular scale baseado na menor dimensão (largura ou altura)
+            const scaleX = (viewportWidth * 0.95) / slideWidth;
+            const scaleY = (viewportHeight * 0.95) / slideHeight;
+            const scale = Math.min(scaleX, scaleY);
+            
+            return scale;
+        }
+        
+        // Aplicar scale nos slides
+        function applySlideScale() {
+            const scale = calculateSlideScale();
+            slides.forEach(slide => {
+                slide.style.transform = `translate(-50%, -50%) scale(${scale})`;
+            });
+        }
+        
         // Renderizar HTML no modo apresentação (replicando lógica do print)
         function renderPresentationMode(html) {
             const slidesContainer = document.getElementById('presentationSlides');
@@ -1178,27 +1202,21 @@
                 page.style.padding = '0';
                 page.style.boxSizing = 'border-box';
                 page.style.position = 'relative';
-                // Não aplicar transform aqui - será aplicado pelo CSS
             });
             
             // Armazenar slides
             slides = Array.from(pages);
             
             console.log(`✅ ${slides.length} slides renderizados no modo apresentação`);
-            console.log('📋 Slides:', slides);
+            
+            // Aplicar scale inicial
+            applySlideScale();
+            
+            // Aplicar scale quando a janela redimensionar
+            window.addEventListener('resize', applySlideScale);
             
             // Atualizar contador
             document.getElementById('totalSlides').textContent = slides.length;
-            
-            // Aguardar um pouco para garantir que o DOM foi atualizado
-            setTimeout(() => {
-                // Verificar se os slides foram criados corretamente
-                const allSlides = slidesContainer.querySelectorAll('.slide');
-                console.log(`🔍 Total de slides no DOM: ${allSlides.length}`);
-                allSlides.forEach((slide, idx) => {
-                    console.log(`📄 Slide ${idx + 1}:`, slide, 'Classes:', slide.className);
-                });
-            }, 100);
         }
         
         // Função para sair do modo apresentação
@@ -1210,6 +1228,9 @@
             
             // Remover listeners de teclado
             document.removeEventListener('keydown', handlePresentationKeyboard);
+            
+            // Remover listener de resize
+            window.removeEventListener('resize', applySlideScale);
             
             // Restaurar scroll
             document.body.style.overflow = '';

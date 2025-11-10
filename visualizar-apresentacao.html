@@ -126,16 +126,31 @@
         }
         
         .presentation-mode .slide .page {
-            width: 100vw;
-            height: 100vh;
-            max-width: 100vw;
-            max-height: 100vh;
-            margin: 0;
-            padding: 20px;
-            box-sizing: border-box;
-            display: flex;
-            flex-direction: column;
-            overflow: auto;
+            width: 100vw !important;
+            height: 100vh !important;
+            max-width: 100vw !important;
+            max-height: 100vh !important;
+            margin: 0 !important;
+            padding: 20px !important;
+            box-sizing: border-box !important;
+            overflow: auto !important;
+            position: relative !important;
+        }
+        
+        /* Garantir que todos os elementos dentro do slide sejam visíveis */
+        .presentation-mode .slide * {
+            visibility: visible !important;
+            opacity: 1 !important;
+        }
+        
+        /* Preservar estilos das páginas */
+        .presentation-mode .slide .page.capa,
+        .presentation-mode .slide .page.resultados,
+        .presentation-mode .slide .page.ranking,
+        .presentation-mode .slide .page.proximos-passos,
+        .presentation-mode .slide .page.obrigado {
+            display: flex !important;
+            flex-direction: column !important;
         }
         
         .presentation-controls {
@@ -1178,7 +1193,14 @@
                     // Clonar a página profundamente para preservar todo o conteúdo
                     const clonedPage = page.cloneNode(true);
                     
-                    // Ajustar estilos para tela cheia
+                    // Preservar todas as classes e atributos
+                    clonedPage.className = page.className;
+                    
+                    // Ajustar estilos para tela cheia, mas preservar estilos originais
+                    const originalStyles = window.getComputedStyle(page);
+                    clonedPage.style.cssText = originalStyles.cssText;
+                    
+                    // Sobrescrever apenas dimensões para tela cheia
                     clonedPage.style.width = '100vw';
                     clonedPage.style.height = '100vh';
                     clonedPage.style.maxWidth = '100vw';
@@ -1187,16 +1209,45 @@
                     clonedPage.style.padding = '20px';
                     clonedPage.style.boxSizing = 'border-box';
                     clonedPage.style.overflow = 'auto';
+                    clonedPage.style.position = 'relative';
                     
-                    // Garantir que a página tenha background branco
-                    if (!clonedPage.style.backgroundColor) {
+                    // Garantir que a página tenha background
+                    if (!clonedPage.style.backgroundColor || clonedPage.style.backgroundColor === 'rgba(0, 0, 0, 0)') {
                         clonedPage.style.backgroundColor = 'white';
                     }
+                    
+                    // Preservar estilos inline de todos os elementos filhos
+                    const allElements = clonedPage.querySelectorAll('*');
+                    allElements.forEach(el => {
+                        const originalEl = page.querySelector(`[data-original-index="${index}"]`) || el;
+                        if (originalEl && originalEl !== page) {
+                            const computedStyle = window.getComputedStyle(originalEl);
+                            // Preservar estilos importantes
+                            el.style.color = computedStyle.color;
+                            el.style.fontSize = computedStyle.fontSize;
+                            el.style.fontFamily = computedStyle.fontFamily;
+                            el.style.fontWeight = computedStyle.fontWeight;
+                            el.style.backgroundColor = computedStyle.backgroundColor;
+                            el.style.backgroundImage = computedStyle.backgroundImage;
+                            el.style.backgroundSize = computedStyle.backgroundSize;
+                            el.style.backgroundPosition = computedStyle.backgroundPosition;
+                            el.style.display = computedStyle.display;
+                            el.style.flexDirection = computedStyle.flexDirection;
+                            el.style.alignItems = computedStyle.alignItems;
+                            el.style.justifyContent = computedStyle.justifyContent;
+                            el.style.gap = computedStyle.gap;
+                            el.style.padding = computedStyle.padding;
+                            el.style.margin = computedStyle.margin;
+                            el.style.border = computedStyle.border;
+                            el.style.borderRadius = computedStyle.borderRadius;
+                            el.style.boxShadow = computedStyle.boxShadow;
+                        }
+                    });
                     
                     slide.appendChild(clonedPage);
                     slidesContainer.appendChild(slide);
                     slides.push(slide);
-                    console.log(`✅ Slide ${index + 1} criado com sucesso`);
+                    console.log(`✅ Slide ${index + 1} criado com sucesso`, clonedPage);
                 });
             } else {
                 // Se não tem páginas, tentar dividir por seções principais

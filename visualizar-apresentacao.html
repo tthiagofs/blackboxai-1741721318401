@@ -1224,6 +1224,24 @@
             console.log(`✅ ${slides.length} slides renderizados no modo apresentação`);
             console.log('📋 Slides:', slides);
             
+            // Verificar conteúdo dos slides
+            slides.forEach((slide, idx) => {
+                const page = slide.querySelector('.page');
+                if (page) {
+                    console.log(`📄 Slide ${idx + 1}:`, {
+                        hasContent: page.innerHTML.length > 0,
+                        contentLength: page.innerHTML.length,
+                        computedDisplay: window.getComputedStyle(page).display,
+                        computedVisibility: window.getComputedStyle(page).visibility,
+                        computedOpacity: window.getComputedStyle(page).opacity,
+                        computedWidth: window.getComputedStyle(page).width,
+                        computedHeight: window.getComputedStyle(page).height
+                    });
+                } else {
+                    console.error(`❌ Slide ${idx + 1}: página não encontrada!`);
+                }
+            });
+            
             // Atualizar contador
             document.getElementById('totalSlides').textContent = slides.length;
             

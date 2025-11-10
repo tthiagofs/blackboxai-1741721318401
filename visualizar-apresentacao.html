@@ -129,10 +129,10 @@
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            /* Escalar proporcionalmente para caber na tela */
-            max-width: 100vw;
-            max-height: 100vh;
-            /* Manter proporção 16:9 */
+            /* Escalar proporcionalmente para caber na tela mantendo proporção */
+            max-width: min(100vw, calc(100vh * 16 / 9));
+            max-height: min(100vh, calc(100vw * 9 / 16));
+            /* Manter proporção 16:9 usando aspect-ratio */
             aspect-ratio: 16 / 9;
             overflow: hidden;
             background: white;
@@ -1140,7 +1140,7 @@
         });
         
         // Função para entrar em modo apresentação
-        function enterPresentationMode() {
+        async function enterPresentationMode() {
             if (isEditMode) {
                 alert('Saia do modo edição antes de apresentar');
                 return;
@@ -1154,7 +1154,7 @@
             // Obter HTML limpo (igual ao exportar PDF)
             const cleanHTML = presentationContainer.innerHTML;
             
-            // Remover elementos de edição
+            // Remover elementos de edição (igual ao print)
             const tempDiv = document.createElement('div');
             tempDiv.innerHTML = cleanHTML;
             tempDiv.querySelectorAll('.ranking-card-delete, .ranking-image-input').forEach(el => el.remove());

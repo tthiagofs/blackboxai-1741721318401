@@ -126,13 +126,9 @@
         
         /* Páginas dentro dos slides - tela cheia mantendo proporção 16:9 */
         .presentation-mode .slide .page {
-            /* Tamanho base: 1280x720 (16:9) */
-            /* Escalar para ocupar tela cheia mantendo proporção */
-            width: 100vw;
-            height: 100vh;
-            /* Manter proporção 16:9 - usar a menor dimensão */
-            width: min(100vw, calc(100vh * 16 / 9));
-            height: min(100vh, calc(100vw * 9 / 16));
+            /* Manter tamanho original (1280x720) */
+            width: 1280px;
+            height: 720px;
             margin: 0;
             padding: 0;
             background: white !important;
@@ -145,8 +141,8 @@
             opacity: 1 !important;
             visibility: visible !important;
             display: block !important;
-            /* Manter proporção */
-            aspect-ratio: 16 / 9;
+            /* Transform será aplicado via JavaScript para escalar proporcionalmente */
+            transform-origin: center center;
         }
         
         /* Garantir que todo conteúdo dentro das páginas seja visível */
@@ -1175,6 +1171,32 @@
             document.body.style.overflow = 'hidden';
         }
         
+        // Calcular scale para tela cheia mantendo proporção
+        function calculateFullScreenScale() {
+            const viewportWidth = window.innerWidth;
+            const viewportHeight = window.innerHeight;
+            const pageWidth = 1280;
+            const pageHeight = 720;
+            
+            // Calcular scale baseado na menor dimensão para ocupar tela cheia
+            const scaleX = viewportWidth / pageWidth;
+            const scaleY = viewportHeight / pageHeight;
+            const scale = Math.min(scaleX, scaleY);
+            
+            return scale;
+        }
+        
+        // Aplicar scale em todas as páginas
+        function applyFullScreenScale() {
+            const scale = calculateFullScreenScale();
+            slides.forEach(slide => {
+                const page = slide.querySelector('.page');
+                if (page) {
+                    page.style.transform = `scale(${scale})`;
+                }
+            });
+        }
+        
         // Renderizar HTML no modo apresentação (abordagem simples)
         function renderPresentationMode(html) {
             const slidesContainer = document.getElementById('presentationSlides');
@@ -1210,8 +1232,9 @@
                 page.parentNode.replaceChild(slideWrapper, page);
                 slideWrapper.appendChild(page);
                 
-                // Não aplicar tamanho fixo - deixar CSS fazer o trabalho
-                // Apenas garantir visibilidade
+                // Manter tamanho original e garantir visibilidade
+                page.style.width = '1280px';
+                page.style.height = '720px';
                 page.style.margin = '0';
                 page.style.padding = '0';
                 page.style.boxSizing = 'border-box';
@@ -1219,36 +1242,19 @@
                 page.style.visibility = 'visible';
                 page.style.opacity = '1';
                 page.style.background = 'white';
-                // Remover qualquer tamanho fixo que possa estar no HTML original
-                page.style.width = '';
-                page.style.height = '';
-                page.style.maxWidth = '';
-                page.style.maxHeight = '';
+                page.style.transformOrigin = 'center center';
                 
                 // Adicionar ao array de slides
                 slides.push(slideWrapper);
             });
             
             console.log(`✅ ${slides.length} slides renderizados no modo apresentação`);
-            console.log('📋 Slides:', slides);
             
-            // Verificar conteúdo dos slides
-            slides.forEach((slide, idx) => {
-                const page = slide.querySelector('.page');
-                if (page) {
-                    console.log(`📄 Slide ${idx + 1}:`, {
-                        hasContent: page.innerHTML.length > 0,
-                        contentLength: page.innerHTML.length,
-                        computedDisplay: window.getComputedStyle(page).display,
-                        computedVisibility: window.getComputedStyle(page).visibility,
-                        computedOpacity: window.getComputedStyle(page).opacity,
-                        computedWidth: window.getComputedStyle(page).width,
-                        computedHeight: window.getComputedStyle(page).height
-                    });
-                } else {
-                    console.error(`❌ Slide ${idx + 1}: página não encontrada!`);
-                }
-            });
+            // Aplicar scale para tela cheia
+            applyFullScreenScale();
+            
+            // Aplicar scale quando redimensionar
+            window.addEventListener('resize', applyFullScreenScale);
             
             // Atualizar contador
             document.getElementById('totalSlides').textContent = slides.length;
@@ -1270,6 +1276,9 @@
             
             // Remover listeners de teclado
             document.removeEventListener('keydown', handlePresentationKeyboard);
+            
+            // Remover listener de resize
+            window.removeEventListener('resize', applyFullScreenScale);
             
             // Restaurar scroll
             document.body.style.overflow = '';

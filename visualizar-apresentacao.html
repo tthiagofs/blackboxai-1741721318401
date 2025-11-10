@@ -1410,6 +1410,11 @@
             // Limpar slides
             slides = [];
             currentSlideIndex = 0;
+            
+            // Resetar flags
+            isInitialLoad = true;
+            hasAppliedInitialScale = false;
+            lastValidScale = 1.0;
         }
         
         

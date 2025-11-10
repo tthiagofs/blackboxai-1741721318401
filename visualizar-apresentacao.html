@@ -1193,14 +1193,11 @@
                     // Clonar a página profundamente para preservar todo o conteúdo
                     const clonedPage = page.cloneNode(true);
                     
-                    // Preservar todas as classes e atributos
+                    // Preservar todas as classes e atributos (importante para CSS)
                     clonedPage.className = page.className;
+                    clonedPage.setAttribute('style', page.getAttribute('style') || '');
                     
-                    // Ajustar estilos para tela cheia, mas preservar estilos originais
-                    const originalStyles = window.getComputedStyle(page);
-                    clonedPage.style.cssText = originalStyles.cssText;
-                    
-                    // Sobrescrever apenas dimensões para tela cheia
+                    // Ajustar apenas dimensões para tela cheia
                     clonedPage.style.width = '100vw';
                     clonedPage.style.height = '100vh';
                     clonedPage.style.maxWidth = '100vw';
@@ -1212,35 +1209,19 @@
                     clonedPage.style.position = 'relative';
                     
                     // Garantir que a página tenha background
-                    if (!clonedPage.style.backgroundColor || clonedPage.style.backgroundColor === 'rgba(0, 0, 0, 0)') {
+                    const bgColor = window.getComputedStyle(page).backgroundColor;
+                    if (bgColor && bgColor !== 'rgba(0, 0, 0, 0)' && bgColor !== 'transparent') {
+                        clonedPage.style.backgroundColor = bgColor;
+                    } else {
                         clonedPage.style.backgroundColor = 'white';
                     }
                     
-                    // Preservar estilos inline de todos os elementos filhos
-                    const allElements = clonedPage.querySelectorAll('*');
-                    allElements.forEach(el => {
-                        const originalEl = page.querySelector(`[data-original-index="${index}"]`) || el;
-                        if (originalEl && originalEl !== page) {
-                            const computedStyle = window.getComputedStyle(originalEl);
-                            // Preservar estilos importantes
-                            el.style.color = computedStyle.color;
-                            el.style.fontSize = computedStyle.fontSize;
-                            el.style.fontFamily = computedStyle.fontFamily;
-                            el.style.fontWeight = computedStyle.fontWeight;
-                            el.style.backgroundColor = computedStyle.backgroundColor;
-                            el.style.backgroundImage = computedStyle.backgroundImage;
-                            el.style.backgroundSize = computedStyle.backgroundSize;
-                            el.style.backgroundPosition = computedStyle.backgroundPosition;
-                            el.style.display = computedStyle.display;
-                            el.style.flexDirection = computedStyle.flexDirection;
-                            el.style.alignItems = computedStyle.alignItems;
-                            el.style.justifyContent = computedStyle.justifyContent;
-                            el.style.gap = computedStyle.gap;
-                            el.style.padding = computedStyle.padding;
-                            el.style.margin = computedStyle.margin;
-                            el.style.border = computedStyle.border;
-                            el.style.borderRadius = computedStyle.borderRadius;
-                            el.style.boxShadow = computedStyle.boxShadow;
+                    // Remover elementos de edição que podem interferir
+                    clonedPage.querySelectorAll('.ranking-card-delete, .ranking-image-input, .editable[contenteditable="true"]').forEach(el => {
+                        if (el.classList.contains('ranking-card-delete') || el.classList.contains('ranking-image-input')) {
+                            el.remove();
+                        } else {
+                            el.removeAttribute('contenteditable');
                         }
                     });
                     

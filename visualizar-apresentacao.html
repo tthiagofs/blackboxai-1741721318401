@@ -94,23 +94,48 @@
         
         .presentation-mode .slide {
             background: white;
-            max-width: 90vw;
-            max-height: 90vh;
-            margin: auto;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+            width: 100vw;
+            height: 100vh;
+            margin: 0;
+            padding: 0;
+            box-shadow: none;
             overflow: auto;
             transform: scale(0.95);
             opacity: 0;
             transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
         
         .presentation-mode .slide.active {
             transform: scale(1);
             opacity: 1;
+            display: flex;
         }
         
         .presentation-mode .slide.hidden {
             display: none;
+        }
+        
+        .presentation-mode .slide > * {
+            width: 100%;
+            height: 100%;
+            max-width: 100vw;
+            max-height: 100vh;
+        }
+        
+        .presentation-mode .slide .page {
+            width: 100vw;
+            height: 100vh;
+            max-width: 100vw;
+            max-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            overflow: auto;
         }
         
         .presentation-controls {
@@ -1136,72 +1161,116 @@
             slidesContainer.innerHTML = '';
             slides = [];
             
+            console.log('🔍 Dividindo apresentação em slides...');
+            console.log('📦 Container:', container);
+            
             // Procurar por elementos .page (páginas da apresentação)
-            // As apresentações geralmente têm divs com classe "page" que representam cada página
             const pages = container.querySelectorAll('.page');
+            console.log(`📄 Páginas encontradas: ${pages.length}`);
             
             if (pages.length > 0) {
                 // Se tem páginas, usar elas como slides
                 pages.forEach((page, index) => {
+                    console.log(`📄 Processando página ${index + 1}:`, page);
                     const slide = document.createElement('div');
                     slide.className = 'slide';
-                    // Clonar a página para não afetar o original
+                    
+                    // Clonar a página profundamente para preservar todo o conteúdo
                     const clonedPage = page.cloneNode(true);
-                    // Ajustar estilos para apresentação
-                    clonedPage.style.width = '100%';
-                    clonedPage.style.height = 'auto';
-                    clonedPage.style.maxWidth = '90vw';
-                    clonedPage.style.maxHeight = '90vh';
-                    clonedPage.style.margin = '0 auto';
+                    
+                    // Ajustar estilos para tela cheia
+                    clonedPage.style.width = '100vw';
+                    clonedPage.style.height = '100vh';
+                    clonedPage.style.maxWidth = '100vw';
+                    clonedPage.style.maxHeight = '100vh';
+                    clonedPage.style.margin = '0';
+                    clonedPage.style.padding = '20px';
+                    clonedPage.style.boxSizing = 'border-box';
+                    clonedPage.style.overflow = 'auto';
+                    
+                    // Garantir que a página tenha background branco
+                    if (!clonedPage.style.backgroundColor) {
+                        clonedPage.style.backgroundColor = 'white';
+                    }
+                    
                     slide.appendChild(clonedPage);
                     slidesContainer.appendChild(slide);
                     slides.push(slide);
+                    console.log(`✅ Slide ${index + 1} criado com sucesso`);
                 });
             } else {
                 // Se não tem páginas, tentar dividir por seções principais
-                // Procurar por elementos que podem representar seções
+                console.log('⚠️ Nenhuma página encontrada, procurando seções...');
                 const possibleSections = container.querySelectorAll('[class*="capa"], [class*="resultados"], [class*="ranking"], [class*="proximos"], [class*="obrigado"]');
+                console.log(`📑 Seções encontradas: ${possibleSections.length}`);
                 
                 if (possibleSections.length > 0) {
                     possibleSections.forEach((section, index) => {
                         const slide = document.createElement('div');
                         slide.className = 'slide';
                         const clonedSection = section.cloneNode(true);
-                        clonedSection.style.width = '100%';
-                        clonedSection.style.height = 'auto';
-                        clonedSection.style.maxWidth = '90vw';
-                        clonedSection.style.maxHeight = '90vh';
-                        clonedSection.style.margin = '0 auto';
+                        clonedSection.style.width = '100vw';
+                        clonedSection.style.height = '100vh';
+                        clonedSection.style.maxWidth = '100vw';
+                        clonedSection.style.maxHeight = '100vh';
+                        clonedSection.style.margin = '0';
+                        clonedSection.style.padding = '20px';
+                        clonedSection.style.boxSizing = 'border-box';
+                        clonedSection.style.overflow = 'auto';
+                        if (!clonedSection.style.backgroundColor) {
+                            clonedSection.style.backgroundColor = 'white';
+                        }
                         slide.appendChild(clonedSection);
                         slidesContainer.appendChild(slide);
                         slides.push(slide);
                     });
                 } else {
                     // Se não tem seções, criar um slide único com todo o conteúdo
+                    console.log('⚠️ Nenhuma seção encontrada, criando slide único...');
                     const slide = document.createElement('div');
                     slide.className = 'slide active';
                     const clonedContent = container.cloneNode(true);
+                    
                     // Remover elementos de edição
-                    clonedContent.querySelectorAll('.editable, .ranking-card-delete, .ranking-image-input').forEach(el => {
-                        if (el.classList.contains('ranking-card-delete') || el.classList.contains('ranking-image-input')) {
-                            el.remove();
-                        }
-                    });
+                    clonedContent.querySelectorAll('.ranking-card-delete, .ranking-image-input').forEach(el => el.remove());
+                    
+                    // Ajustar estilos
+                    clonedContent.style.width = '100vw';
+                    clonedContent.style.height = '100vh';
+                    clonedContent.style.maxWidth = '100vw';
+                    clonedContent.style.maxHeight = '100vh';
+                    clonedContent.style.margin = '0';
+                    clonedContent.style.padding = '20px';
+                    clonedContent.style.boxSizing = 'border-box';
+                    clonedContent.style.overflow = 'auto';
+                    clonedContent.style.backgroundColor = 'white';
+                    
                     slide.appendChild(clonedContent);
                     slidesContainer.appendChild(slide);
                     slides.push(slide);
+                    console.log('✅ Slide único criado');
                 }
             }
             
             // Se não encontrou nenhum slide, criar um com todo o conteúdo
             if (slides.length === 0) {
+                console.log('⚠️ Nenhum slide criado, criando fallback...');
                 const slide = document.createElement('div');
                 slide.className = 'slide active';
                 const clonedContent = container.cloneNode(true);
+                clonedContent.style.width = '100vw';
+                clonedContent.style.height = '100vh';
+                clonedContent.style.margin = '0';
+                clonedContent.style.padding = '20px';
+                clonedContent.style.boxSizing = 'border-box';
+                clonedContent.style.overflow = 'auto';
+                clonedContent.style.backgroundColor = 'white';
                 slide.appendChild(clonedContent);
                 slidesContainer.appendChild(slide);
                 slides.push(slide);
             }
+            
+            console.log(`✅ Total de slides criados: ${slides.length}`);
             
             // Atualizar contador
             document.getElementById('totalSlides').textContent = slides.length;

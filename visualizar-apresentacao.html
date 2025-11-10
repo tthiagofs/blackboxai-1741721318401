@@ -1324,35 +1324,40 @@
         }
         
         
-        // Ir para slide específico
+        // Ir para slide específico (SIMPLIFICADO - usa slideWrappers)
         function goToSlide(index) {
-            if (index < 0 || index >= slides.length) {
-                console.warn(`⚠️ Índice inválido: ${index} (total: ${slides.length})`);
+            if (index < 0 || index >= slideWrappers.length) {
+                console.warn(`⚠️ Índice inválido: ${index} (total: ${slideWrappers.length})`);
                 return;
             }
             
-            // Esconder todos os slides
-            slides.forEach(slide => {
-                slide.classList.remove('active');
+            // Esconder todos os wrappers
+            slideWrappers.forEach(wrapper => {
+                wrapper.classList.remove('active');
             });
             
-            // Mostrar slide atual
+            // Mostrar wrapper atual
             currentSlideIndex = index;
-            if (slides[index]) {
-                slides[index].classList.add('active');
+            if (slideWrappers[index]) {
+                slideWrappers[index].classList.add('active');
             }
             
             // Atualizar contador
-            document.getElementById('currentSlideNumber').textContent = index + 1;
+            const currentSlideEl = document.getElementById('currentSlide');
+            if (currentSlideEl) {
+                currentSlideEl.textContent = index + 1;
+            }
             
             // Atualizar botões
-            document.getElementById('prevSlideBtn').disabled = index === 0;
-            document.getElementById('nextSlideBtn').disabled = index === slides.length - 1;
+            const prevBtn = document.getElementById('prevSlide');
+            const nextBtn = document.getElementById('nextSlide');
+            if (prevBtn) prevBtn.disabled = index === 0;
+            if (nextBtn) nextBtn.disabled = index === slideWrappers.length - 1;
         }
         
         // Próximo slide
         function nextSlide() {
-            if (currentSlideIndex < slides.length - 1) {
+            if (currentSlideIndex < slideWrappers.length - 1) {
                 goToSlide(currentSlideIndex + 1);
             }
         }

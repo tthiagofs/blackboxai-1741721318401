@@ -105,10 +105,8 @@
             left: 50%;
             transform: translate(-50%, -50%);
             transform-origin: center center;
-            /* IMPORTANTE: Permitir overflow para mostrar conteúdo que ultrapassa (foguete com bottom: -80px, right: -120px) */
-            overflow: visible;
-            /* Garantir que elementos posicionados fora dos limites sejam visíveis */
-            clip-path: none;
+            /* IMPORTANTE: hidden para não mostrar conteúdo fora dos limites do wrapper */
+            overflow: hidden;
         }
         
         .presentation-mode .slide-wrapper.active {
@@ -122,12 +120,10 @@
             margin: 0;
             padding: 0;
             position: relative;
-            /* IMPORTANTE: visible para mostrar conteúdo que ultrapassa (foguete, sombras, etc) */
-            overflow: visible;
+            /* IMPORTANTE: hidden para CORTAR conteúdo que ultrapassa os limites (foguete fora do fundo branco) */
+            overflow: hidden;
             background: white;
             box-sizing: border-box;
-            /* Garantir que elementos absolutos fora dos limites sejam visíveis */
-            clip-path: none;
         }
         
         /* IMPORTANTE: NÃO sobrescrever estilos da classe .page */
@@ -136,6 +132,11 @@
         .presentation-mode .slide.page {
             /* NÃO forçar width/height 100% - deixar os estilos originais */
             /* Os estilos originais já definem o tamanho correto */
+        }
+        
+        /* Garantir que padding da capa seja respeitado */
+        .presentation-mode .slide.capa {
+            padding: 50px 65px !important;
         }
         
         /* Garantir que elementos internos mantenham proporções */

@@ -1232,6 +1232,10 @@
             // Esconder todos os slides
             slides.forEach((slide, idx) => {
                 slide.classList.remove('active');
+                // Forçar esconder
+                slide.style.opacity = '0';
+                slide.style.visibility = 'hidden';
+                slide.style.zIndex = '0';
                 console.log(`  📄 Slide ${idx + 1}: removido 'active'`);
             });
             
@@ -1241,11 +1245,17 @@
             
             if (targetSlide) {
                 targetSlide.classList.add('active');
+                // Forçar mostrar
+                targetSlide.style.opacity = '1';
+                targetSlide.style.visibility = 'visible';
+                targetSlide.style.zIndex = '1';
                 console.log(`  ✅ Slide ${index + 1}: adicionado 'active'`, targetSlide);
                 console.log(`  📏 Tamanho do slide:`, {
                     width: targetSlide.offsetWidth,
                     height: targetSlide.offsetHeight,
-                    computed: window.getComputedStyle(targetSlide).display
+                    opacity: window.getComputedStyle(targetSlide).opacity,
+                    visibility: window.getComputedStyle(targetSlide).visibility,
+                    zIndex: window.getComputedStyle(targetSlide).zIndex
                 });
             } else {
                 console.error(`❌ Slide ${index + 1} não encontrado!`);

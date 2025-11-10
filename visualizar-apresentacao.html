@@ -122,36 +122,41 @@
         
         /* Páginas dentro dos slides - manter tamanho original e escalar proporcionalmente */
         .presentation-mode .slide .page {
-            /* Tamanho base */
+            /* Tamanho base fixo */
             width: 1280px;
             height: 720px;
-            /* Escalar proporcionalmente para caber na tela mantendo proporção 16:9 */
+            /* Escalar proporcionalmente para caber na tela */
             max-width: 95vw;
             max-height: 95vh;
-            /* Calcular tamanho baseado na menor dimensão */
-            width: auto;
-            height: auto;
-            /* Usar aspect-ratio para manter proporção */
-            aspect-ratio: 16 / 9;
-            /* Escalar baseado na menor dimensão */
+            /* Calcular tamanho baseado na menor dimensão mantendo proporção 16:9 */
             width: min(1280px, 95vw, calc(95vh * 16 / 9));
             height: min(720px, 95vh, calc(95vw * 9 / 16));
             margin: 0;
             padding: 0;
-            background: white;
+            background: white !important;
             box-shadow: 0 4px 20px rgba(0,0,0,0.3);
             /* Garantir que o conteúdo interno seja visível */
             position: relative;
-            overflow: hidden;
+            overflow: visible !important;
             box-sizing: border-box;
             /* Garantir visibilidade */
             opacity: 1 !important;
             visibility: visible !important;
+            display: block !important;
         }
         
-        /* Garantir que todo conteúdo seja visível */
-        .presentation-mode .slide * {
+        /* Garantir que todo conteúdo dentro das páginas seja visível */
+        .presentation-mode .slide .page,
+        .presentation-mode .slide .page * {
             visibility: visible !important;
+            opacity: 1 !important;
+        }
+        
+        /* Garantir que imagens apareçam */
+        .presentation-mode .slide .page img {
+            display: block !important;
+            visibility: visible !important;
+            opacity: 1 !important;
         }
         
         .presentation-controls {
@@ -1201,12 +1206,16 @@
                 page.parentNode.replaceChild(slideWrapper, page);
                 slideWrapper.appendChild(page);
                 
-                // Manter estilos originais da página, mas garantir tamanho
+                // Manter estilos originais da página, mas garantir tamanho e visibilidade
                 page.style.width = '1280px';
                 page.style.height = '720px';
                 page.style.margin = '0';
                 page.style.padding = '0';
                 page.style.boxSizing = 'border-box';
+                page.style.display = 'block';
+                page.style.visibility = 'visible';
+                page.style.opacity = '1';
+                page.style.background = 'white';
                 
                 // Adicionar ao array de slides
                 slides.push(slideWrapper);

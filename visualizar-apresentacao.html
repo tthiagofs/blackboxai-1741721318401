@@ -105,7 +105,9 @@
             background: #000 !important;
             position: relative !important;
             overflow: hidden !important;
-            display: block !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
         }
         
         /* Cada slide ocupa o container completo, mas só o ativo é visível */
@@ -130,7 +132,7 @@
         
         /* Páginas dentro dos slides - tela cheia mantendo proporção 16:9 */
         .presentation-mode .slide .page {
-            /* Manter tamanho original (1280x720) */
+            /* Manter tamanho original (1280x720) - será escalado via transform */
             width: 1280px !important;
             height: 720px !important;
             margin: 0 !important;
@@ -147,6 +149,8 @@
             display: block !important;
             /* Transform será aplicado via JavaScript para escalar proporcionalmente */
             transform-origin: center center !important;
+            /* Garantir que o transform funcione */
+            will-change: transform !important;
         }
         
         /* Garantir que todo conteúdo dentro das páginas seja visível */

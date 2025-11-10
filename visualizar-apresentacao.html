@@ -1216,7 +1216,7 @@
             
             // Aguardar fontes e imagens carregarem (igual ao print)
             await document.fonts.ready;
-            await waitForImages();
+            await waitForImages('.presentation-mode img');
             
             // Aplicar scale para tela cheia
             applyScaleToSlides();
@@ -1238,19 +1238,6 @@
             }
         }
         
-        // Aguardar imagens carregarem (igual ao print)
-        function waitForImages() {
-            const images = Array.from(document.querySelectorAll('.presentation-mode img'));
-            return Promise.all(
-                images.map(img => {
-                    if (img.complete) return Promise.resolve();
-                    return new Promise(resolve => {
-                        img.onload = resolve;
-                        img.onerror = resolve; // Continuar mesmo se imagem falhar
-                    });
-                })
-            );
-        }
         
         // Função para sair do modo apresentação
         function exitPresentationMode() {

@@ -122,14 +122,15 @@
         
         /* Páginas dentro dos slides - manter tamanho original e escalar proporcionalmente */
         .presentation-mode .slide .page {
+            /* Tamanho base */
             width: 1280px;
             height: 720px;
-            max-width: 95vw;
-            max-height: 95vh;
-            /* Manter proporção 16:9 */
-            aspect-ratio: 16 / 9;
-            /* Escalar mantendo proporção */
-            object-fit: contain;
+            /* Escalar proporcionalmente para caber na tela */
+            max-width: min(1280px, 95vw);
+            max-height: min(720px, 95vh);
+            /* Se a altura for o limitador, calcular largura baseada na proporção */
+            width: min(1280px, calc(95vh * 16 / 9), 95vw);
+            height: min(720px, calc(95vw * 9 / 16), 95vh);
             margin: 0;
             padding: 0;
             background: white;

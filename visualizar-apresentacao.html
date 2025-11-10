@@ -120,29 +120,22 @@
             position: relative;
         }
         
-        /* Cada slide - replicar lógica do print, mas em tela cheia */
+        /* Cada slide - replicar exatamente a lógica do print */
         .presentation-mode .slide {
             display: none;
-            /* Manter tamanho original das páginas */
+            /* Tamanho original (igual ao print) */
             width: 1280px;
             height: 720px;
-            /* Centralizar */
+            /* Centralizar na tela */
             position: absolute;
             top: 50%;
             left: 50%;
             margin: 0;
             padding: 0;
-            /* Escalar para caber na tela mantendo proporção 16:9 */
-            /* Usar a menor dimensão para manter proporção */
-            max-width: min(100vw, calc(100vh * 16 / 9));
-            max-height: min(100vh, calc(100vw * 9 / 16));
-            /* Garantir proporção */
-            aspect-ratio: 16 / 9;
-            /* Centralizar usando transform */
-            transform: translate(-50%, -50%);
             overflow: hidden;
             background: white;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+            /* Scale será aplicado via JavaScript */
+            transform-origin: center center;
         }
         
         /* Slide ativo é visível */
@@ -150,18 +143,14 @@
             display: block;
         }
         
-        /* Páginas dentro dos slides - ocupar 100% do slide */
+        /* Páginas dentro dos slides - ocupar 100% do slide (igual ao print) */
         .presentation-mode .slide.page {
             width: 100%;
             height: 100%;
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-        }
-        
-        /* Garantir que conteúdo interno não seja afetado */
-        .presentation-mode .slide.page * {
-            box-sizing: border-box;
+            position: relative;
         }
         
         /* Remover bordas de imagens (igual ao print) */
@@ -1188,6 +1177,29 @@
             document.body.style.overflow = 'hidden';
         }
         
+        // Calcular scale para tela cheia (igual ao PDF viewer)
+        function calculateScale() {
+            const viewportWidth = window.innerWidth;
+            const viewportHeight = window.innerHeight;
+            const slideWidth = 1280;
+            const slideHeight = 720;
+            
+            // Calcular scale baseado na menor dimensão para manter proporção
+            const scaleX = viewportWidth / slideWidth;
+            const scaleY = viewportHeight / slideHeight;
+            const scale = Math.min(scaleX, scaleY);
+            
+            return scale;
+        }
+        
+        // Aplicar scale em todos os slides
+        function applyScaleToSlides() {
+            const scale = calculateScale();
+            slides.forEach(slide => {
+                slide.style.transform = `translate(-50%, -50%) scale(${scale})`;
+            });
+        }
+        
         // Renderizar HTML no modo apresentação (replicar lógica do print)
         async function renderPresentationMode(html) {
             const slidesContainer = document.getElementById('presentationSlides');
@@ -1205,6 +1217,15 @@
             // Aguardar fontes e imagens carregarem (igual ao print)
             await document.fonts.ready;
             await waitForImages();
+            
+            // Aplicar scale para tela cheia
+            applyScaleToSlides();
+            
+            // Aplicar scale quando redimensionar
+            const resizeHandler = () => applyScaleToSlides();
+            window.addEventListener('resize', resizeHandler);
+            // Armazenar handler para remover depois
+            window.presentationResizeHandler = resizeHandler;
             
             // Atualizar contador
             document.getElementById('totalSlides').textContent = slides.length;
@@ -1240,6 +1261,12 @@
             
             // Remover listeners de teclado
             document.removeEventListener('keydown', handlePresentationKeyboard);
+            
+            // Remover listener de resize
+            if (window.presentationResizeHandler) {
+                window.removeEventListener('resize', window.presentationResizeHandler);
+                window.presentationResizeHandler = null;
+            }
             
             // Restaurar scroll
             document.body.style.overflow = '';

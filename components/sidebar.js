@@ -117,17 +117,15 @@ function renderSidebar(currentPage) {
           <span class="text-sm">Minha Conta</span>
         </a>
         
+        <a href="/analises-predefinidas.html" class="flex items-center px-3 py-2.5 mb-1 border-l-4 ${currentPage === 'analises' ? 'border-blue-600 bg-blue-50 text-blue-600' : 'border-transparent text-gray-700 hover:bg-gray-50'} transition-all">
+          <i class="fas fa-comments mr-3 text-sm"></i>
+          <span class="text-sm">Análises Pré-Definidas</span>
+        </a>
+        
         ${isAdmin ? `
         <a href="/usuarios.html" class="flex items-center px-3 py-2.5 mb-1 border-l-4 ${currentPage === 'usuarios' ? 'border-blue-600 bg-blue-50 text-blue-600' : 'border-transparent text-gray-700 hover:bg-gray-50'} transition-all">
           <i class="fas fa-users-cog mr-3 text-sm"></i>
           <span class="text-sm">Usuários</span>
-        </a>
-        ` : ''}
-        
-        ${isAdmin ? `
-        <a href="/analises-predefinidas.html" class="flex items-center px-3 py-2.5 mb-1 border-l-4 ${currentPage === 'analises' ? 'border-blue-600 bg-blue-50 text-blue-600' : 'border-transparent text-gray-700 hover:bg-gray-50'} transition-all">
-          <i class="fas fa-comments mr-3 text-sm"></i>
-          <span class="text-sm">Análises Pré-Definidas</span>
         </a>
         ` : ''}
       </nav>

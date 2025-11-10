@@ -1207,17 +1207,33 @@
         
         // Ir para slide específico
         function goToSlide(index) {
-            if (index < 0 || index >= slides.length) return;
+            if (index < 0 || index >= slides.length) {
+                console.warn(`⚠️ Índice inválido: ${index} (total: ${slides.length})`);
+                return;
+            }
+            
+            console.log(`🎯 Indo para slide ${index + 1} de ${slides.length}`);
             
             // Esconder todos os slides
-            slides.forEach(slide => {
+            slides.forEach((slide, idx) => {
                 slide.classList.remove('active');
+                console.log(`  📄 Slide ${idx + 1}: removido 'active'`);
             });
             
             // Mostrar slide atual
             currentSlideIndex = index;
-            if (slides[index]) {
-                slides[index].classList.add('active');
+            const targetSlide = slides[index];
+            
+            if (targetSlide) {
+                targetSlide.classList.add('active');
+                console.log(`  ✅ Slide ${index + 1}: adicionado 'active'`, targetSlide);
+                console.log(`  📏 Tamanho do slide:`, {
+                    width: targetSlide.offsetWidth,
+                    height: targetSlide.offsetHeight,
+                    computed: window.getComputedStyle(targetSlide).display
+                });
+            } else {
+                console.error(`❌ Slide ${index + 1} não encontrado!`);
             }
             
             // Atualizar contador

@@ -63,6 +63,122 @@
         .presentation-container .page {
             margin: 20px auto;
         }
+        
+        /* Modo Apresentação */
+        .presentation-mode {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: #000;
+            z-index: 9999;
+            overflow: hidden;
+            display: none;
+        }
+        
+        .presentation-mode.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .presentation-mode .slide-container {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+        
+        .presentation-mode .slide {
+            background: white;
+            max-width: 90vw;
+            max-height: 90vh;
+            margin: auto;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+            overflow: auto;
+            transform: scale(0.95);
+            opacity: 0;
+            transition: all 0.3s ease;
+        }
+        
+        .presentation-mode .slide.active {
+            transform: scale(1);
+            opacity: 1;
+        }
+        
+        .presentation-mode .slide.hidden {
+            display: none;
+        }
+        
+        .presentation-controls {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.7);
+            padding: 10px 20px;
+            border-radius: 50px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            z-index: 10000;
+            color: white;
+            font-size: 14px;
+        }
+        
+        .presentation-controls button {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.2s;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .presentation-controls button:hover {
+            background: rgba(255,255,255,0.3);
+        }
+        
+        .presentation-controls button:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+        
+        .presentation-exit {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(0,0,0,0.7);
+            border: none;
+            color: white;
+            padding: 10px 15px;
+            border-radius: 8px;
+            cursor: pointer;
+            z-index: 10001;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .presentation-exit:hover {
+            background: rgba(0,0,0,0.9);
+        }
+        
+        .presentation-slide-indicator {
+            font-weight: 600;
+            min-width: 80px;
+            text-align: center;
+        }
     </style>
 </head>
 <body class="bg-gray-50 font-sans">
@@ -89,6 +205,10 @@
                             <i class="fas fa-save"></i>
                             Salvar
                         </button>
+                        <button id="presentBtn" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-all flex items-center gap-2">
+                            <i class="fas fa-presentation"></i>
+                            Apresentar
+                        </button>
                         <button id="exportPDFBtn" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all flex items-center gap-2">
                             <i class="fas fa-download"></i>
                             Exportar PDF
@@ -113,6 +233,28 @@
                 Salvar Alterações
             </button>
         </div>
+        
+        <!-- Modo Apresentação -->
+        <div id="presentationMode" class="presentation-mode">
+            <button id="exitPresentationBtn" class="presentation-exit">
+                <i class="fas fa-times"></i>
+                Sair (ESC)
+            </button>
+            <div class="slide-container">
+                <div id="presentationSlides"></div>
+            </div>
+            <div class="presentation-controls">
+                <button id="prevSlideBtn" title="Anterior (↑ ou ←)">
+                    <i class="fas fa-chevron-left"></i>
+                </button>
+                <span class="presentation-slide-indicator">
+                    <span id="currentSlideNumber">1</span> / <span id="totalSlides">1</span>
+                </span>
+                <button id="nextSlideBtn" title="Próximo (↓ ou →)">
+                    <i class="fas fa-chevron-right"></i>
+                </button>
+            </div>
+        </div>
     </div>
 
     <script type="module">
@@ -136,8 +278,14 @@
         const saveChangesBtn = document.getElementById('saveChangesBtn');
         const toggleEditBtn = document.getElementById('toggleEditBtn');
         const exportPDFBtn = document.getElementById('exportPDFBtn');
+        const presentBtn = document.getElementById('presentBtn');
         const saveBtn = document.getElementById('saveBtn');
         const presentationName = document.getElementById('presentationName');
+        
+        // Variáveis do modo apresentação
+        let isPresentationMode = false;
+        let currentSlideIndex = 0;
+        let slides = [];
 
         // Carregar apresentação
         async function loadPresentation() {
@@ -932,6 +1080,218 @@
         saveChangesBtn.addEventListener('click', saveChanges);
         saveBtn.addEventListener('click', saveChanges);
 
+        // Modo Apresentação
+        presentBtn.addEventListener('click', () => {
+            enterPresentationMode();
+        });
+        
+        // Função para entrar em modo apresentação
+        function enterPresentationMode() {
+            if (isEditMode) {
+                alert('Saia do modo edição antes de apresentar');
+                return;
+            }
+            
+            isPresentationMode = true;
+            
+            // Dividir apresentação em slides (páginas)
+            divideIntoSlides();
+            
+            // Mostrar modo apresentação
+            const presentationMode = document.getElementById('presentationMode');
+            presentationMode.classList.add('active');
+            
+            // Ir para primeiro slide
+            goToSlide(0);
+            
+            // Adicionar listeners de teclado
+            document.addEventListener('keydown', handlePresentationKeyboard);
+            
+            // Prevenir scroll da página
+            document.body.style.overflow = 'hidden';
+        }
+        
+        // Função para sair do modo apresentação
+        function exitPresentationMode() {
+            isPresentationMode = false;
+            
+            const presentationMode = document.getElementById('presentationMode');
+            presentationMode.classList.remove('active');
+            
+            // Remover listeners de teclado
+            document.removeEventListener('keydown', handlePresentationKeyboard);
+            
+            // Restaurar scroll
+            document.body.style.overflow = '';
+            
+            // Limpar slides
+            slides = [];
+            currentSlideIndex = 0;
+        }
+        
+        // Dividir apresentação em slides
+        function divideIntoSlides() {
+            const container = presentationContainer;
+            const slidesContainer = document.getElementById('presentationSlides');
+            slidesContainer.innerHTML = '';
+            slides = [];
+            
+            // Procurar por elementos .page (páginas da apresentação)
+            // As apresentações geralmente têm divs com classe "page" que representam cada página
+            const pages = container.querySelectorAll('.page');
+            
+            if (pages.length > 0) {
+                // Se tem páginas, usar elas como slides
+                pages.forEach((page, index) => {
+                    const slide = document.createElement('div');
+                    slide.className = 'slide';
+                    // Clonar a página para não afetar o original
+                    const clonedPage = page.cloneNode(true);
+                    // Ajustar estilos para apresentação
+                    clonedPage.style.width = '100%';
+                    clonedPage.style.height = 'auto';
+                    clonedPage.style.maxWidth = '90vw';
+                    clonedPage.style.maxHeight = '90vh';
+                    clonedPage.style.margin = '0 auto';
+                    slide.appendChild(clonedPage);
+                    slidesContainer.appendChild(slide);
+                    slides.push(slide);
+                });
+            } else {
+                // Se não tem páginas, tentar dividir por seções principais
+                // Procurar por elementos que podem representar seções
+                const possibleSections = container.querySelectorAll('[class*="capa"], [class*="resultados"], [class*="ranking"], [class*="proximos"], [class*="obrigado"]');
+                
+                if (possibleSections.length > 0) {
+                    possibleSections.forEach((section, index) => {
+                        const slide = document.createElement('div');
+                        slide.className = 'slide';
+                        const clonedSection = section.cloneNode(true);
+                        clonedSection.style.width = '100%';
+                        clonedSection.style.height = 'auto';
+                        clonedSection.style.maxWidth = '90vw';
+                        clonedSection.style.maxHeight = '90vh';
+                        clonedSection.style.margin = '0 auto';
+                        slide.appendChild(clonedSection);
+                        slidesContainer.appendChild(slide);
+                        slides.push(slide);
+                    });
+                } else {
+                    // Se não tem seções, criar um slide único com todo o conteúdo
+                    const slide = document.createElement('div');
+                    slide.className = 'slide active';
+                    const clonedContent = container.cloneNode(true);
+                    // Remover elementos de edição
+                    clonedContent.querySelectorAll('.editable, .ranking-card-delete, .ranking-image-input').forEach(el => {
+                        if (el.classList.contains('ranking-card-delete') || el.classList.contains('ranking-image-input')) {
+                            el.remove();
+                        }
+                    });
+                    slide.appendChild(clonedContent);
+                    slidesContainer.appendChild(slide);
+                    slides.push(slide);
+                }
+            }
+            
+            // Se não encontrou nenhum slide, criar um com todo o conteúdo
+            if (slides.length === 0) {
+                const slide = document.createElement('div');
+                slide.className = 'slide active';
+                const clonedContent = container.cloneNode(true);
+                slide.appendChild(clonedContent);
+                slidesContainer.appendChild(slide);
+                slides.push(slide);
+            }
+            
+            // Atualizar contador
+            document.getElementById('totalSlides').textContent = slides.length;
+        }
+        
+        // Ir para slide específico
+        function goToSlide(index) {
+            if (index < 0 || index >= slides.length) return;
+            
+            // Esconder slide atual
+            slides.forEach(slide => {
+                slide.classList.remove('active');
+                slide.classList.add('hidden');
+            });
+            
+            // Mostrar slide novo
+            currentSlideIndex = index;
+            slides[index].classList.remove('hidden');
+            slides[index].classList.add('active');
+            
+            // Atualizar contador
+            document.getElementById('currentSlideNumber').textContent = index + 1;
+            
+            // Atualizar botões
+            document.getElementById('prevSlideBtn').disabled = index === 0;
+            document.getElementById('nextSlideBtn').disabled = index === slides.length - 1;
+        }
+        
+        // Próximo slide
+        function nextSlide() {
+            if (currentSlideIndex < slides.length - 1) {
+                goToSlide(currentSlideIndex + 1);
+            }
+        }
+        
+        // Slide anterior
+        function prevSlide() {
+            if (currentSlideIndex > 0) {
+                goToSlide(currentSlideIndex - 1);
+            }
+        }
+        
+        // Handler de teclado para modo apresentação
+        function handlePresentationKeyboard(e) {
+            if (!isPresentationMode) return;
+            
+            switch(e.key) {
+                case 'ArrowRight':
+                case 'ArrowDown':
+                case 'PageDown':
+                    e.preventDefault();
+                    nextSlide();
+                    break;
+                case 'ArrowLeft':
+                case 'ArrowUp':
+                case 'PageUp':
+                    e.preventDefault();
+                    prevSlide();
+                    break;
+                case 'Escape':
+                    e.preventDefault();
+                    exitPresentationMode();
+                    break;
+            }
+        }
+        
+        // Botões de navegação (adicionar listeners quando necessário)
+        function setupPresentationButtons() {
+            const exitBtn = document.getElementById('exitPresentationBtn');
+            const prevBtn = document.getElementById('prevSlideBtn');
+            const nextBtn = document.getElementById('nextSlideBtn');
+            
+            if (exitBtn) {
+                exitBtn.addEventListener('click', exitPresentationMode);
+            }
+            if (prevBtn) {
+                prevBtn.addEventListener('click', prevSlide);
+            }
+            if (nextBtn) {
+                nextBtn.addEventListener('click', nextSlide);
+            }
+        }
+        
+        // Configurar botões quando o DOM estiver pronto
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', setupPresentationButtons);
+        } else {
+            setupPresentationButtons();
+        }
+        
         // Exportar PDF
         exportPDFBtn.addEventListener('click', () => {
             // Aplicar customizações de imagens antes de exportar

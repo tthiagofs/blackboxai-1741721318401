@@ -121,25 +121,24 @@
             position: relative;
         }
         
-        /* Cada slide - manter tamanho original (igual à visualização normal) */
+        /* Cada slide - usar CSS puro para redimensionamento automático */
         .presentation-mode .slide {
             display: none;
-            /* Tamanho FIXO original - NÃO alterar (igual à tela de visualização) */
-            width: 1280px;
-            height: 720px;
+            /* Tamanho será calculado dinamicamente via JavaScript */
+            /* Proporção 16:9 será mantida automaticamente */
+            max-width: 100vw;
+            max-height: 100vh;
+            width: auto;
+            height: auto;
+            aspect-ratio: 16 / 9;
             /* Centralizar usando flexbox do container */
-            margin: 0;
+            margin: 0 auto;
             position: relative;
-            overflow: hidden; /* hidden para não mostrar conteúdo que ultrapasse */
+            overflow: hidden;
             background: white;
             padding: 0;
-            /* Scale será aplicado via JavaScript, mantendo proporções */
-            transform-origin: center center;
             /* Garantir que o conteúdo interno seja renderizado corretamente */
             box-sizing: border-box;
-            /* Prevenir distorção */
-            will-change: transform;
-            backface-visibility: hidden;
         }
         
         /* Slide ativo é visível */
@@ -1195,84 +1194,80 @@
         let isInitialLoad = true;
         let hasAppliedInitialScale = false;
         
-        // Calcular scale para tela cheia mantendo proporção (igual ao PDF viewer do Google)
-        function calculateScale() {
-            // Usar sempre window.innerWidth/Height (mais confiável que container)
+        // Calcular tamanho do slide para tela cheia mantendo proporção 16:9
+        function calculateSlideSize() {
             const viewportWidth = window.innerWidth;
             const viewportHeight = window.innerHeight;
             
-            // Ignorar viewports muito pequenos (provavelmente DevTools ou outros elementos)
-            if (viewportWidth < 800 || viewportHeight < 600) {
-                console.warn(`⚠️ Viewport muito pequeno ignorado: ${viewportWidth}x${viewportHeight}, usando scale anterior: ${lastValidScale.toFixed(3)}`);
-                return lastValidScale; // Retornar último scale válido
+            // Ignorar viewports muito pequenos ou em modo retrato
+            if (viewportWidth < 800 || viewportHeight < 600 || viewportHeight > viewportWidth) {
+                if (isInitialLoad) {
+                    console.warn(`⚠️ Viewport inválido ignorado: ${viewportWidth}x${viewportHeight}`);
+                    return null;
+                }
             }
             
-            // Ignorar viewports em modo retrato (altura > largura) durante apresentação
-            // Apenas durante o carregamento inicial, depois aceitar qualquer orientação
-            if (isInitialLoad && viewportHeight > viewportWidth) {
-                console.warn(`⚠️ Viewport em modo retrato ignorado durante carregamento: ${viewportWidth}x${viewportHeight}, usando scale anterior: ${lastValidScale.toFixed(3)}`);
-                return lastValidScale;
+            const aspectRatio = 16 / 9;
+            const viewportAspectRatio = viewportWidth / viewportHeight;
+            
+            let width, height;
+            
+            // Calcular baseado na menor dimensão para manter proporção
+            if (viewportAspectRatio > aspectRatio) {
+                // Viewport é mais largo - altura é o limitador
+                height = viewportHeight * 0.98; // 98% para margem
+                width = height * aspectRatio;
+            } else {
+                // Viewport é mais alto - largura é o limitador
+                width = viewportWidth * 0.98; // 98% para margem
+                height = width / aspectRatio;
             }
             
-            const slideWidth = 1280; // Tamanho original fixo
-            const slideHeight = 720; // Tamanho original fixo
+            console.log(`📐 Viewport: ${viewportWidth.toFixed(0)}x${viewportHeight.toFixed(0)}, Slide: ${width.toFixed(0)}x${height.toFixed(0)}`);
             
-            // Calcular scale baseado na menor dimensão para manter proporção
-            const scaleX = viewportWidth / slideWidth;
-            const scaleY = viewportHeight / slideHeight;
-            // Usar 98% para preencher melhor a tela, deixando apenas uma pequena margem
-            const scale = Math.min(scaleX, scaleY) * 0.98;
-            
-            // Armazenar scale válido
-            lastValidScale = scale;
-            isInitialLoad = false; // Após primeiro cálculo válido, não ignorar mais modo retrato
-            
-            console.log(`📐 Viewport: ${viewportWidth.toFixed(0)}x${viewportHeight.toFixed(0)}, Scale: ${scale.toFixed(3)}`);
-            
-            return Math.max(0.5, Math.min(scale, 2)); // Limitar entre 50% e 200%
+            return { width, height };
         }
         
-        // Aplicar scale em todos os slides (mantém proporções originais)
-        function applySlideScale(force = false) {
+        // Aplicar tamanho em todos os slides usando CSS puro (mantém proporções automaticamente)
+        function applySlideSize(force = false) {
             // Durante carregamento inicial, aplicar apenas uma vez
             if (!force && hasAppliedInitialScale && isInitialLoad) {
-                console.log('⏸️ Scale inicial já aplicado, ignorando durante carregamento...');
+                console.log('⏸️ Tamanho inicial já aplicado, ignorando durante carregamento...');
                 return;
             }
             
             if (isApplyingScale) {
-                console.log('⏸️ Scale já está sendo aplicado, ignorando...');
+                console.log('⏸️ Tamanho já está sendo aplicado, ignorando...');
                 return;
             }
             
             if (!slides || slides.length === 0) {
-                console.warn('⚠️ Nenhum slide para aplicar scale');
+                console.warn('⚠️ Nenhum slide para aplicar tamanho');
                 return;
             }
             
             isApplyingScale = true;
             
-            const scale = calculateScale();
-            // Scale sempre retorna um valor válido (nunca null)
+            const size = calculateSlideSize();
+            if (!size) {
+                isApplyingScale = false;
+                return; // Ignorar se viewport inválido
+            }
             
-            console.log(`📐 Aplicando scale: ${scale.toFixed(3)} (slide original: 1280x720)`);
+            console.log(`📐 Aplicando tamanho: ${size.width.toFixed(0)}x${size.height.toFixed(0)} (proporção 16:9 mantida)`);
             slides.forEach((slide) => {
-                // IMPORTANTE: Remover qualquer transform anterior antes de aplicar novo
+                // Usar CSS puro - remover qualquer estilo inline anterior
                 slide.style.removeProperty('transform');
                 slide.style.removeProperty('width');
                 slide.style.removeProperty('height');
                 
-                // Definir tamanho original primeiro
-                slide.style.width = '1280px';
-                slide.style.height = '720px';
-                
-                // Aplicar scale após definir tamanho (mantém proporções)
-                // Usar translateZ(0) para forçar aceleração de hardware
-                slide.style.transform = `translateZ(0) scale(${scale})`;
+                // Aplicar tamanho calculado - CSS manterá proporção automaticamente
+                slide.style.width = `${size.width}px`;
+                slide.style.height = `${size.height}px`;
             });
-            console.log(`✅ Scale aplicado em ${slides.length} slides`);
+            console.log(`✅ Tamanho aplicado em ${slides.length} slides`);
             
-            // Marcar que scale inicial foi aplicado
+            // Marcar que tamanho inicial foi aplicado
             if (isInitialLoad) {
                 hasAppliedInitialScale = true;
             }
@@ -1339,9 +1334,9 @@
             // Aguardar um pouco mais para garantir que o DOM está totalmente renderizado
             await new Promise(resolve => setTimeout(resolve, 200));
             
-            // Aplicar scale para tela cheia (mantém proporções originais)
+            // Aplicar tamanho para tela cheia (mantém proporções automaticamente via CSS)
             // Aplicar apenas uma vez após tudo carregar (force = true para garantir)
-            applySlideScale(true);
+            applySlideSize(true);
             
             // Marcar que carregamento inicial terminou após 2 segundos
             setTimeout(() => {
@@ -1366,7 +1361,7 @@
                         // Verificar se ainda está no modo apresentação
                         const presentationMode = document.getElementById('presentationMode');
                         if (presentationMode && presentationMode.classList.contains('active')) {
-                            applySlideScale();
+                            applySlideSize();
                         }
                     }, 500); // Debounce maior para evitar múltiplas chamadas
                 };

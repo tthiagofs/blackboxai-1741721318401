@@ -92,7 +92,7 @@
             position: relative;
         }
         
-        /* Modo apresentação - replicar EXATAMENTE a lógica do apresentacao-print.html */
+        /* Modo apresentação - SIMPLIFICADO: replicar apresentacao-print.html */
         .presentation-mode {
             background: #000;
             position: fixed;
@@ -103,7 +103,6 @@
             z-index: 9999;
             overflow: hidden;
             display: none;
-            /* Centralizar conteúdo */
             align-items: center;
             justify-content: center;
         }
@@ -121,29 +120,32 @@
             position: relative;
         }
         
-        /* Cada slide - usar CSS puro para redimensionamento automático */
-        .presentation-mode .slide {
+        /* Cada slide - TAMANHO FIXO 1280x720, scale aplicado no wrapper */
+        .presentation-mode .slide-wrapper {
             display: none;
-            /* Tamanho será calculado dinamicamente via JavaScript */
-            /* Proporção 16:9 será mantida automaticamente */
-            max-width: 100vw;
-            max-height: 100vh;
-            width: auto;
-            height: auto;
-            aspect-ratio: 16 / 9;
-            /* Centralizar usando flexbox do container */
-            margin: 0 auto;
+            width: 1280px;
+            height: 720px;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            transform-origin: center center;
+        }
+        
+        .presentation-mode .slide-wrapper.active {
+            display: block;
+        }
+        
+        /* Slide dentro do wrapper mantém tamanho original */
+        .presentation-mode .slide {
+            width: 1280px;
+            height: 720px;
+            margin: 0;
+            padding: 0;
             position: relative;
             overflow: hidden;
             background: white;
-            padding: 0;
-            /* Garantir que o conteúdo interno seja renderizado corretamente */
             box-sizing: border-box;
-        }
-        
-        /* Slide ativo é visível */
-        .presentation-mode .slide.active {
-            display: block;
         }
         
         /* IMPORTANTE: NÃO sobrescrever estilos da classe .page */
@@ -1189,196 +1191,103 @@
         // Flag para prevenir múltiplas aplicações do scale durante carregamento
         let isApplyingScale = false;
         
-        // Armazenar o último scale válido para evitar recalcular com viewports inválidos
-        let lastValidScale = 1.0;
-        let isInitialLoad = true;
-        let hasAppliedInitialScale = false;
+        // Variáveis globais
+        let slideWrappers = [];
+        let currentSlideIndex = 0;
+        let resizeTimeout = null;
         
-        // Calcular tamanho do slide para tela cheia mantendo proporção 16:9
-        function calculateSlideSize() {
-            const viewportWidth = window.innerWidth;
-            const viewportHeight = window.innerHeight;
+        // Calcular scale para tela cheia (SIMPLES e DIRETO)
+        function calculateScale() {
+            const vw = window.innerWidth;
+            const vh = window.innerHeight;
             
-            // Ignorar viewports muito pequenos ou em modo retrato
-            if (viewportWidth < 800 || viewportHeight < 600 || viewportHeight > viewportWidth) {
-                if (isInitialLoad) {
-                    console.warn(`⚠️ Viewport inválido ignorado: ${viewportWidth}x${viewportHeight}`);
-                    return null;
-                }
+            // Ignorar viewports inválidos apenas durante os primeiros 3 segundos
+            const now = Date.now();
+            const isInitial = (now - window.presentationStartTime) < 3000;
+            
+            if (isInitial && (vw < 800 || vh < 600 || vh > vw)) {
+                return null; // Ignorar durante inicialização
             }
             
-            const aspectRatio = 16 / 9;
-            const viewportAspectRatio = viewportWidth / viewportHeight;
+            const slideW = 1280;
+            const slideH = 720;
+            const scale = Math.min((vw * 0.98) / slideW, (vh * 0.98) / slideH);
             
-            let width, height;
-            
-            // Calcular baseado na menor dimensão para manter proporção
-            if (viewportAspectRatio > aspectRatio) {
-                // Viewport é mais largo - altura é o limitador
-                height = viewportHeight * 0.98; // 98% para margem
-                width = height * aspectRatio;
-            } else {
-                // Viewport é mais alto - largura é o limitador
-                width = viewportWidth * 0.98; // 98% para margem
-                height = width / aspectRatio;
-            }
-            
-            console.log(`📐 Viewport: ${viewportWidth.toFixed(0)}x${viewportHeight.toFixed(0)}, Slide: ${width.toFixed(0)}x${height.toFixed(0)}`);
-            
-            return { width, height };
+            return Math.max(0.3, Math.min(scale, 2)); // Limitar entre 30% e 200%
         }
         
-        // Aplicar tamanho em todos os slides usando CSS puro (mantém proporções automaticamente)
-        function applySlideSize(force = false) {
-            // Durante carregamento inicial, aplicar apenas uma vez
-            if (!force && hasAppliedInitialScale && isInitialLoad) {
-                console.log('⏸️ Tamanho inicial já aplicado, ignorando durante carregamento...');
-                return;
-            }
-            
-            if (isApplyingScale) {
-                console.log('⏸️ Tamanho já está sendo aplicado, ignorando...');
-                return;
-            }
-            
-            if (!slides || slides.length === 0) {
-                console.warn('⚠️ Nenhum slide para aplicar tamanho');
-                return;
-            }
-            
+        // Aplicar scale nos wrappers (SIMPLES)
+        function applyScale() {
+            if (isApplyingScale) return;
             isApplyingScale = true;
             
-            const size = calculateSlideSize();
-            if (!size) {
+            const scale = calculateScale();
+            if (!scale) {
                 isApplyingScale = false;
-                return; // Ignorar se viewport inválido
+                return;
             }
             
-            console.log(`📐 Aplicando tamanho: ${size.width.toFixed(0)}x${size.height.toFixed(0)} (proporção 16:9 mantida)`);
-            slides.forEach((slide) => {
-                // Usar CSS puro - remover qualquer estilo inline anterior
-                slide.style.removeProperty('transform');
-                slide.style.removeProperty('width');
-                slide.style.removeProperty('height');
-                
-                // Aplicar tamanho calculado - CSS manterá proporção automaticamente
-                slide.style.width = `${size.width}px`;
-                slide.style.height = `${size.height}px`;
+            console.log(`📐 Aplicando scale: ${scale.toFixed(3)}`);
+            slideWrappers.forEach(wrapper => {
+                wrapper.style.transform = `translate(-50%, -50%) scale(${scale})`;
             });
-            console.log(`✅ Tamanho aplicado em ${slides.length} slides`);
             
-            // Marcar que tamanho inicial foi aplicado
-            if (isInitialLoad) {
-                hasAppliedInitialScale = true;
-            }
-            
-            // Liberar flag após um pequeno delay
-            setTimeout(() => {
-                isApplyingScale = false;
-            }, 100);
+            setTimeout(() => { isApplyingScale = false; }, 50);
         }
         
-        // Renderizar HTML no modo apresentação (replicar EXATAMENTE a visualização normal)
+        // Renderizar HTML no modo apresentação (SIMPLIFICADO - igual ao print)
         async function renderPresentationMode(html) {
             const slidesContainer = document.getElementById('presentationSlides');
-            
-            // Limpar container
             slidesContainer.innerHTML = '';
             
-            // Criar um div temporário para processar o HTML
-            // IMPORTANTE: Usar um div com os mesmos estilos do presentation-container
-            // para garantir que o HTML seja renderizado da mesma forma
+            // Processar HTML
             const tempDiv = document.createElement('div');
-            tempDiv.style.position = 'absolute';
-            tempDiv.style.visibility = 'hidden';
-            tempDiv.style.width = '100%';
             tempDiv.innerHTML = html;
-            document.body.appendChild(tempDiv);
-            
-            // Encontrar todas as páginas (apenas diretas, não aninhadas)
             const pages = tempDiv.querySelectorAll(':scope > .page');
             
-            console.log(`📄 Encontradas ${pages.length} páginas no HTML`);
+            console.log(`📄 Encontradas ${pages.length} páginas`);
             
-            // Para cada página, clonar mantendo TODOS os estilos e estrutura
+            // Criar wrapper + slide para cada página
+            slideWrappers = [];
             pages.forEach((page, index) => {
-                // Clonar a página COM todos os estilos computados (deep clone)
-                const pageClone = page.cloneNode(true);
+                // Criar wrapper
+                const wrapper = document.createElement('div');
+                wrapper.className = 'slide-wrapper';
                 
-                // IMPORTANTE: Preservar todos os estilos inline e classes
-                // A página já tem a classe .page com todos os estilos do style.css
-                // Adicionar classe slide mantendo a classe page
-                pageClone.classList.add('slide');
+                // Clonar página e adicionar classe slide
+                const slide = page.cloneNode(true);
+                slide.classList.add('slide');
                 
-                // Adicionar ao container
-                slidesContainer.appendChild(pageClone);
+                // Adicionar slide ao wrapper
+                wrapper.appendChild(slide);
+                slidesContainer.appendChild(wrapper);
                 
-                console.log(`  ✅ Slide ${index + 1} criado (classes: ${pageClone.className})`);
+                slideWrappers.push(wrapper);
+                console.log(`  ✅ Slide ${index + 1} criado`);
             });
             
-            // Remover div temporário
-            document.body.removeChild(tempDiv);
-            
-            // Armazenar slides
-            slides = Array.from(slidesContainer.querySelectorAll('.slide'));
-            
-            console.log(`✅ ${slides.length} slides renderizados no modo apresentação`);
-            
-            // IMPORTANTE: Aguardar um frame para garantir que o DOM foi atualizado
+            // Aguardar renderização
             await new Promise(resolve => requestAnimationFrame(resolve));
-            
-            // Aguardar fontes e imagens carregarem
             await document.fonts.ready;
             await waitForImages('.presentation-mode img');
+            await new Promise(resolve => setTimeout(resolve, 100));
             
-            // Aguardar um pouco mais para garantir que o DOM está totalmente renderizado
-            await new Promise(resolve => setTimeout(resolve, 200));
+            // Aplicar scale inicial
+            window.presentationStartTime = Date.now();
+            applyScale();
             
-            // Aplicar tamanho para tela cheia (mantém proporções automaticamente via CSS)
-            // Aplicar apenas uma vez após tudo carregar (force = true para garantir)
-            applySlideSize(true);
+            // Resize handler (simples)
+            const resizeHandler = () => {
+                clearTimeout(resizeTimeout);
+                resizeTimeout = setTimeout(applyScale, 300);
+            };
+            window.addEventListener('resize', resizeHandler);
+            window.presentationResizeHandler = resizeHandler;
             
-            // Marcar que carregamento inicial terminou após 2 segundos
-            setTimeout(() => {
-                isInitialLoad = false;
-                console.log('✅ Carregamento inicial concluído, resize habilitado');
-            }, 2000);
-            
-            // Aplicar scale quando redimensionar (com debounce mais longo para evitar múltiplas chamadas)
-            // IMPORTANTE: Não adicionar listener de resize durante carregamento inicial
-            // Adicionar apenas após 2 segundos para evitar chamadas durante renderização
-            setTimeout(() => {
-                let resizeTimeout;
-                const resizeHandler = () => {
-                    // Ignorar resize durante carregamento inicial
-                    if (isInitialLoad) {
-                        console.log('⏸️ Resize ignorado durante carregamento inicial');
-                        return;
-                    }
-                    
-                    clearTimeout(resizeTimeout);
-                    resizeTimeout = setTimeout(() => {
-                        // Verificar se ainda está no modo apresentação
-                        const presentationMode = document.getElementById('presentationMode');
-                        if (presentationMode && presentationMode.classList.contains('active')) {
-                            applySlideSize();
-                        }
-                    }, 500); // Debounce maior para evitar múltiplas chamadas
-                };
-                window.addEventListener('resize', resizeHandler);
-                // Armazenar handler para remover depois
-                window.presentationResizeHandler = resizeHandler;
-                console.log('✅ Listener de resize adicionado');
-            }, 2000); // Adicionar listener apenas após 2 segundos
-            
-            // Atualizar contador
-            document.getElementById('totalSlides').textContent = slides.length;
-            
-            // Ir para o primeiro slide
-            if (slides.length > 0) {
+            // Atualizar contador e ir para primeiro slide
+            document.getElementById('totalSlides').textContent = slideWrappers.length;
+            if (slideWrappers.length > 0) {
                 goToSlide(0);
-            } else {
-                console.error('❌ Nenhum slide foi criado!');
             }
         }
         
@@ -1403,13 +1312,15 @@
             document.body.style.overflow = '';
             
             // Limpar slides
+            slideWrappers = [];
             slides = [];
             currentSlideIndex = 0;
             
-            // Resetar flags
-            isInitialLoad = true;
-            hasAppliedInitialScale = false;
-            lastValidScale = 1.0;
+            // Limpar timeout
+            if (resizeTimeout) {
+                clearTimeout(resizeTimeout);
+                resizeTimeout = null;
+            }
         }
         
         

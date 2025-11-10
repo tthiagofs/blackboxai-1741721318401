@@ -1246,10 +1246,7 @@
             isApplyingScale = true;
             
             const scale = calculateScale();
-            if (scale === null) {
-                isApplyingScale = false;
-                return; // Ignorar se viewport muito pequeno
-            }
+            // Scale sempre retorna um valor válido (nunca null)
             
             console.log(`📐 Aplicando scale: ${scale.toFixed(3)} (slide original: 1280x720)`);
             slides.forEach((slide) => {

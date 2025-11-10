@@ -127,14 +127,20 @@
             /* Tamanho FIXO original - NÃO alterar (igual à tela de visualização) */
             width: 1280px !important;
             height: 720px !important;
+            min-width: 1280px !important;
+            min-height: 720px !important;
+            max-width: 1280px !important;
+            max-height: 720px !important;
             /* Centralizar usando flexbox do container */
-            margin: 0 auto;
+            margin: 0;
             position: relative;
-            overflow: hidden;
+            overflow: visible; /* Mudado de hidden para visible para não cortar conteúdo */
             background: white;
             padding: 0;
             /* Scale será aplicado via JavaScript, mantendo proporções */
             transform-origin: center center;
+            /* Garantir que o conteúdo interno seja renderizado corretamente */
+            box-sizing: border-box;
         }
         
         /* Slide ativo é visível */
@@ -142,10 +148,13 @@
             display: block;
         }
         
-        /* IMPORTANTE: Manter TODOS os estilos originais do HTML gerado */
-        /* Não sobrescrever nenhum estilo interno - deixar exatamente como na visualização normal */
-        .presentation-mode .slide * {
-            /* Não alterar nada - manter proporções originais */
+        /* IMPORTANTE: Garantir que TODOS os estilos do HTML gerado sejam aplicados */
+        /* Os estilos já vêm do style.css e do gerar-html-apresentacao.js */
+        /* Não sobrescrever estilos internos - apenas garantir que sejam aplicados */
+        .presentation-mode .slide.page {
+            /* Manter todos os estilos originais da classe .page */
+            width: 100% !important;
+            height: 100% !important;
         }
         
         /* Remover bordas de imagens (igual ao print) */
@@ -1174,28 +1183,53 @@
         
         // Calcular scale para tela cheia mantendo proporção (igual ao PDF viewer do Google)
         function calculateScale() {
-            const viewportWidth = window.innerWidth;
-            const viewportHeight = window.innerHeight;
+            // Usar o tamanho real do container, não a window (pode incluir controles)
+            const container = document.getElementById('presentationMode');
+            if (!container || !container.classList.contains('active')) {
+                // Se não estiver ativo, usar window como fallback
+                const viewportWidth = window.innerWidth;
+                const viewportHeight = window.innerHeight;
+                const slideWidth = 1280;
+                const slideHeight = 720;
+                const scaleX = viewportWidth / slideWidth;
+                const scaleY = viewportHeight / slideHeight;
+                return Math.min(scaleX, scaleY) * 0.98; // 98% para preencher melhor a tela
+            }
+            
+            const containerRect = container.getBoundingClientRect();
+            const viewportWidth = containerRect.width;
+            const viewportHeight = containerRect.height;
             const slideWidth = 1280; // Tamanho original fixo
             const slideHeight = 720; // Tamanho original fixo
             
             // Calcular scale baseado na menor dimensão para manter proporção
             const scaleX = viewportWidth / slideWidth;
             const scaleY = viewportHeight / slideHeight;
-            const scale = Math.min(scaleX, scaleY) * 0.95; // 95% para deixar uma pequena margem
+            // Usar 98% para preencher melhor a tela, deixando apenas uma pequena margem
+            const scale = Math.min(scaleX, scaleY) * 0.98;
             
-            return Math.max(0.1, Math.min(scale, 2)); // Limitar entre 10% e 200%
+            console.log(`📐 Viewport: ${viewportWidth.toFixed(0)}x${viewportHeight.toFixed(0)}, Scale calculado: ${scale.toFixed(3)}`);
+            
+            return Math.max(0.1, Math.min(scale, 3)); // Limitar entre 10% e 300%
         }
         
         // Aplicar scale em todos os slides (mantém proporções originais)
         function applySlideScale() {
+            if (!slides || slides.length === 0) {
+                console.warn('⚠️ Nenhum slide para aplicar scale');
+                return;
+            }
+            
             const scale = calculateScale();
             console.log(`📐 Aplicando scale: ${scale.toFixed(3)} (slide original: 1280x720)`);
             slides.forEach((slide, index) => {
                 // Aplicar apenas scale - o flexbox do container já centraliza
                 slide.style.transform = `scale(${scale})`;
-                console.log(`  ✅ Slide ${index + 1}: scale aplicado`);
+                // Garantir que o slide mantenha o tamanho original (1280x720)
+                slide.style.width = '1280px';
+                slide.style.height = '720px';
             });
+            console.log(`✅ Scale aplicado em ${slides.length} slides`);
         }
         
         // Renderizar HTML no modo apresentação (replicar EXATAMENTE a visualização normal)
@@ -1240,7 +1274,14 @@
             await document.fonts.ready;
             await waitForImages('.presentation-mode img');
             
+            // Aguardar um pouco mais para garantir que o DOM está totalmente renderizado
+            await new Promise(resolve => setTimeout(resolve, 50));
+            
             // Aplicar scale para tela cheia (mantém proporções originais)
+            applySlideScale();
+            
+            // Aplicar scale novamente após as imagens carregarem (pode alterar layout)
+            await new Promise(resolve => setTimeout(resolve, 200));
             applySlideScale();
             
             // Aplicar scale quando redimensionar (com debounce para performance)
@@ -1249,7 +1290,7 @@
                 clearTimeout(resizeTimeout);
                 resizeTimeout = setTimeout(() => {
                     applySlideScale();
-                }, 100);
+                }, 150);
             };
             window.addEventListener('resize', resizeHandler);
             // Armazenar handler para remover depois

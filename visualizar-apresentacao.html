@@ -92,79 +92,79 @@
             position: relative;
         }
         
-        /* Modo apresentação - tela cheia mantendo proporção */
+        /* Modo apresentação - replicar lógica do apresentacao-print.html */
         .presentation-mode {
-            background: #000 !important;
+            background: #000;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 9999;
+            overflow: hidden;
+            display: none;
+        }
+        
+        .presentation-mode.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
         
         .presentation-mode #presentationSlides {
-            width: 100vw !important;
-            height: 100vh !important;
-            margin: 0 !important;
-            padding: 0 !important;
-            background: #000 !important;
-            position: relative !important;
-            overflow: hidden !important;
-            display: flex !important;
-            align-items: center !important;
-            justify-content: center !important;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
         }
         
-        /* Cada slide ocupa o container completo, mas só o ativo é visível */
+        /* Cada slide - replicar lógica do print */
         .presentation-mode .slide {
-            display: none !important;
-            width: 100vw !important;
-            height: 100vh !important;
-            margin: 0 !important;
-            padding: 0 !important;
-            position: absolute !important;
-            top: 0 !important;
-            left: 0 !important;
-            /* Centralizar conteúdo */
-            align-items: center !important;
-            justify-content: center !important;
+            display: none;
+            width: 1280px;
+            height: 720px;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            /* Escalar proporcionalmente para caber na tela */
+            max-width: 100vw;
+            max-height: 100vh;
+            /* Manter proporção 16:9 */
+            aspect-ratio: 16 / 9;
+            overflow: hidden;
+            background: white;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
         }
         
         /* Slide ativo é visível */
         .presentation-mode .slide.active {
-            display: flex !important;
+            display: block;
         }
         
-        /* Páginas dentro dos slides - tela cheia mantendo proporção 16:9 */
-        .presentation-mode .slide .page {
-            /* Manter tamanho original (1280x720) - será escalado via transform */
-            width: 1280px !important;
-            height: 720px !important;
-            margin: 0 !important;
-            padding: 0 !important;
-            background: white !important;
+        /* Páginas dentro dos slides - manter estilos originais */
+        .presentation-mode .slide.page {
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            padding: 0;
+        }
+        
+        /* Remover bordas de imagens (igual ao print) */
+        .presentation-mode .ranking-thumbnail,
+        .presentation-mode .ranking-thumbnail img,
+        .presentation-mode .ranking-thumbnail * {
+            border: none !important;
+            outline: none !important;
             box-shadow: none !important;
-            /* Garantir que o conteúdo interno seja visível */
-            position: relative !important;
-            overflow: visible !important;
-            box-sizing: border-box !important;
-            /* Garantir visibilidade */
-            opacity: 1 !important;
-            visibility: visible !important;
-            display: block !important;
-            /* Transform será aplicado via JavaScript para escalar proporcionalmente */
-            transform-origin: center center !important;
-            /* Garantir que o transform funcione */
-            will-change: transform !important;
+            border-radius: 0 !important;
         }
         
-        /* Garantir que todo conteúdo dentro das páginas seja visível */
-        .presentation-mode .slide .page,
-        .presentation-mode .slide .page * {
-            visibility: visible !important;
-            opacity: 1 !important;
-        }
-        
-        /* Garantir que imagens apareçam */
-        .presentation-mode .slide .page img {
-            display: block !important;
-            visibility: visible !important;
-            opacity: 1 !important;
+        .presentation-mode .ranking-card {
+            border: none !important;
+            outline: none !important;
         }
         
         .presentation-controls {
@@ -1179,119 +1179,23 @@
             document.body.style.overflow = 'hidden';
         }
         
-        // Calcular scale para tela cheia mantendo proporção
-        function calculateFullScreenScale() {
-            const viewportWidth = window.innerWidth;
-            const viewportHeight = window.innerHeight;
-            const pageWidth = 1280;
-            const pageHeight = 720;
-            
-            // Calcular scale baseado na menor dimensão para manter proporção
-            // Isso vai preencher uma dimensão completamente
-            const scaleX = viewportWidth / pageWidth;
-            const scaleY = viewportHeight / pageHeight;
-            const scale = Math.min(scaleX, scaleY); // Usar MIN para manter proporção
-            
-            const scaledWidth = pageWidth * scale;
-            const scaledHeight = pageHeight * scale;
-            
-            console.log(`📐 Calculando scale:`, {
-                viewportWidth,
-                viewportHeight,
-                pageWidth,
-                pageHeight,
-                scaleX: scaleX.toFixed(3),
-                scaleY: scaleY.toFixed(3),
-                scale: scale.toFixed(3),
-                scaledWidth: scaledWidth.toFixed(0),
-                scaledHeight: scaledHeight.toFixed(0),
-                widthDiff: (viewportWidth - scaledWidth).toFixed(0),
-                heightDiff: (viewportHeight - scaledHeight).toFixed(0)
-            });
-            
-            return scale;
-        }
-        
-        // Aplicar scale em todas as páginas
-        function applyFullScreenScale() {
-            const scale = calculateFullScreenScale();
-            slides.forEach((slide, index) => {
-                const page = slide.querySelector('.page');
-                if (page) {
-                    // Aplicar scale
-                    page.style.transform = `scale(${scale})`;
-                    // Remover qualquer margin que possa estar interferindo
-                    page.style.margin = '0';
-                    // Garantir que o transform funcione
-                    page.style.transformOrigin = 'center center';
-                    
-                    console.log(`📏 Slide ${index + 1}:`, {
-                        scale: scale.toFixed(3),
-                        transform: page.style.transform,
-                        computedTransform: window.getComputedStyle(page).transform
-                    });
-                }
-            });
-        }
-        
-        // Renderizar HTML no modo apresentação (abordagem simples)
-        function renderPresentationMode(html) {
+        // Renderizar HTML no modo apresentação (replicar lógica do print)
+        async function renderPresentationMode(html) {
             const slidesContainer = document.getElementById('presentationSlides');
             slidesContainer.innerHTML = html;
             
-            // Encontrar todas as páginas - usar método mais confiável
-            // Primeiro, pegar todos os elementos com classe .page
-            const allPages = slidesContainer.querySelectorAll('.page');
+            // Encontrar todas as páginas e adicionar classe slide (igual ao print)
+            const pages = slidesContainer.querySelectorAll('.page');
+            pages.forEach(p => p.classList.add('slide'));
             
-            // Filtrar apenas páginas que são filhos diretos do container ou são elementos principais
-            const pages = Array.from(allPages).filter(page => {
-                // Verificar se é filho direto ou se não tem outra .page como pai
-                const parent = page.parentElement;
-                return parent === slidesContainer || !parent.closest('.page');
-            });
-            
-            console.log(`🔍 Total de elementos .page encontrados: ${allPages.length}`);
-            console.log(`🔍 Páginas filtradas (filhos diretos): ${pages.length}`);
-            
-            // Limpar slides anteriores
-            slides = [];
-            
-            // Criar wrapper para cada página
-            pages.forEach((page, index) => {
-                // Criar div wrapper para o slide
-                const slideWrapper = document.createElement('div');
-                slideWrapper.className = 'slide';
-                if (index === 0) {
-                    slideWrapper.classList.add('active');
-                }
-                
-                // Substituir a página pelo wrapper e mover a página para dentro
-                page.parentNode.replaceChild(slideWrapper, page);
-                slideWrapper.appendChild(page);
-                
-                // Manter tamanho original e garantir visibilidade
-                page.style.width = '1280px';
-                page.style.height = '720px';
-                page.style.margin = '0';
-                page.style.padding = '0';
-                page.style.boxSizing = 'border-box';
-                page.style.display = 'block';
-                page.style.visibility = 'visible';
-                page.style.opacity = '1';
-                page.style.background = 'white';
-                page.style.transformOrigin = 'center center';
-                
-                // Adicionar ao array de slides
-                slides.push(slideWrapper);
-            });
+            // Armazenar slides
+            slides = Array.from(pages);
             
             console.log(`✅ ${slides.length} slides renderizados no modo apresentação`);
             
-            // Aplicar scale para tela cheia
-            applyFullScreenScale();
-            
-            // Aplicar scale quando redimensionar
-            window.addEventListener('resize', applyFullScreenScale);
+            // Aguardar fontes e imagens carregarem (igual ao print)
+            await document.fonts.ready;
+            await waitForImages();
             
             // Atualizar contador
             document.getElementById('totalSlides').textContent = slides.length;
@@ -1304,6 +1208,20 @@
             }
         }
         
+        // Aguardar imagens carregarem (igual ao print)
+        function waitForImages() {
+            const images = Array.from(document.querySelectorAll('.presentation-mode img'));
+            return Promise.all(
+                images.map(img => {
+                    if (img.complete) return Promise.resolve();
+                    return new Promise(resolve => {
+                        img.onload = resolve;
+                        img.onerror = resolve; // Continuar mesmo se imagem falhar
+                    });
+                })
+            );
+        }
+        
         // Função para sair do modo apresentação
         function exitPresentationMode() {
             isPresentationMode = false;
@@ -1313,9 +1231,6 @@
             
             // Remover listeners de teclado
             document.removeEventListener('keydown', handlePresentationKeyboard);
-            
-            // Remover listener de resize
-            window.removeEventListener('resize', applyFullScreenScale);
             
             // Restaurar scroll
             document.body.style.overflow = '';
@@ -1340,10 +1255,8 @@
             
             // Mostrar slide atual
             currentSlideIndex = index;
-            const targetSlide = slides[index];
-            
-            if (targetSlide) {
-                targetSlide.classList.add('active');
+            if (slides[index]) {
+                slides[index].classList.add('active');
             }
             
             // Atualizar contador

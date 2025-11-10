@@ -120,20 +120,26 @@
             position: relative;
         }
         
-        /* Cada slide - replicar lógica do print */
+        /* Cada slide - replicar lógica do print, mas em tela cheia */
         .presentation-mode .slide {
             display: none;
+            /* Manter tamanho original das páginas */
             width: 1280px;
             height: 720px;
+            /* Centralizar */
             position: absolute;
             top: 50%;
             left: 50%;
-            transform: translate(-50%, -50%);
-            /* Escalar proporcionalmente para caber na tela mantendo proporção */
+            margin: 0;
+            padding: 0;
+            /* Escalar para caber na tela mantendo proporção 16:9 */
+            /* Usar a menor dimensão para manter proporção */
             max-width: min(100vw, calc(100vh * 16 / 9));
             max-height: min(100vh, calc(100vw * 9 / 16));
-            /* Manter proporção 16:9 usando aspect-ratio */
+            /* Garantir proporção */
             aspect-ratio: 16 / 9;
+            /* Centralizar usando transform */
+            transform: translate(-50%, -50%);
             overflow: hidden;
             background: white;
             box-shadow: 0 4px 20px rgba(0,0,0,0.5);
@@ -144,12 +150,18 @@
             display: block;
         }
         
-        /* Páginas dentro dos slides - manter estilos originais */
+        /* Páginas dentro dos slides - ocupar 100% do slide */
         .presentation-mode .slide.page {
             width: 100%;
             height: 100%;
             margin: 0;
             padding: 0;
+            box-sizing: border-box;
+        }
+        
+        /* Garantir que conteúdo interno não seja afetado */
+        .presentation-mode .slide.page * {
+            box-sizing: border-box;
         }
         
         /* Remover bordas de imagens (igual ao print) */

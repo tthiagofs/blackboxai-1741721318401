@@ -1163,14 +1163,11 @@
             });
             
             // Renderizar no modo apresentação (igual ao print)
-            renderPresentationMode(tempDiv.innerHTML);
+            await renderPresentationMode(tempDiv.innerHTML);
             
             // Mostrar modo apresentação
             const presentationMode = document.getElementById('presentationMode');
             presentationMode.classList.add('active');
-            
-            // Ir para primeiro slide
-            goToSlide(0);
             
             // Adicionar listeners de teclado
             document.addEventListener('keydown', handlePresentationKeyboard);

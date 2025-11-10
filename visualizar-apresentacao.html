@@ -104,18 +104,20 @@
         
         .presentation-mode .slide {
             position: absolute;
+            top: 0;
+            left: 0;
+            /* Tamanho original das páginas: 1280px x 720px (16:9) */
+            /* Escalar proporcionalmente para caber na tela mantendo proporção */
+            width: min(1280px, 95vw);
+            height: min(720px, calc(95vw * 9 / 16), 95vh);
+            /* Se altura calculada for maior que 95vh, usar altura e calcular largura */
+            max-width: min(1280px, calc(95vh * 16 / 9), 95vw);
+            max-height: min(720px, 95vh, calc(95vw * 9 / 16));
+            /* Centralizar */
+            margin: auto;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            /* Tamanho original das páginas: 1280px x 720px (16:9) */
-            width: 1280px;
-            height: 720px;
-            /* Escalar proporcionalmente para caber na tela */
-            max-width: 95vw;
-            max-height: 95vh;
-            /* Manter proporção 16:9 */
-            aspect-ratio: 16 / 9;
-            margin: 0;
             padding: 0;
             background: white;
             opacity: 0;

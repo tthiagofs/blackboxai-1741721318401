@@ -122,7 +122,7 @@
             position: relative;
             /* IMPORTANTE: hidden para CORTAR conteúdo que ultrapassa os limites (foguete fora do fundo branco) */
             overflow: hidden;
-            background: white;
+            /* NÃO definir background aqui - cada página tem seu próprio background */
             box-sizing: border-box;
         }
         
@@ -146,6 +146,8 @@
         
         .presentation-mode .slide.ranking {
             padding: 50px 65px !important;
+            /* IMPORTANTE: Garantir que o fundo roxo seja preservado */
+            background: #672E7B !important;
         }
         
         .presentation-mode .slide.proximos-passos {

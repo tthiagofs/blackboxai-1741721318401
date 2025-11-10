@@ -134,9 +134,25 @@
             /* Os estilos originais já definem o tamanho correto */
         }
         
-        /* Garantir que padding da capa seja respeitado */
+        /* Garantir que padding de todas as páginas seja respeitado */
         .presentation-mode .slide.capa {
             padding: 50px 65px !important;
+        }
+        
+        .presentation-mode .slide.resultados {
+            padding: 50px 65px !important;
+        }
+        
+        .presentation-mode .slide.ranking {
+            padding: 50px 65px !important;
+        }
+        
+        .presentation-mode .slide.proximos-passos {
+            /* Esta página usa grid, não precisa de padding extra */
+        }
+        
+        .presentation-mode .slide.obrigado {
+            /* Esta página já tem padding interno, não precisa de padding extra */
         }
         
         /* Garantir que elementos internos mantenham proporções */

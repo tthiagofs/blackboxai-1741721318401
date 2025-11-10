@@ -1171,10 +1171,19 @@
             const slidesContainer = document.getElementById('presentationSlides');
             slidesContainer.innerHTML = html;
             
-            // Encontrar todas as páginas (apenas elementos diretos com classe .page)
-            const pages = slidesContainer.querySelectorAll(':scope > .page');
+            // Encontrar todas as páginas - usar método mais confiável
+            // Primeiro, pegar todos os elementos com classe .page
+            const allPages = slidesContainer.querySelectorAll('.page');
             
-            console.log(`🔍 Encontradas ${pages.length} páginas diretas`);
+            // Filtrar apenas páginas que são filhos diretos do container ou são elementos principais
+            const pages = Array.from(allPages).filter(page => {
+                // Verificar se é filho direto ou se não tem outra .page como pai
+                const parent = page.parentElement;
+                return parent === slidesContainer || !parent.closest('.page');
+            });
+            
+            console.log(`🔍 Total de elementos .page encontrados: ${allPages.length}`);
+            console.log(`🔍 Páginas filtradas (filhos diretos): ${pages.length}`);
             
             // Limpar slides anteriores
             slides = [];
@@ -1212,6 +1221,8 @@
             // Ir para o primeiro slide
             if (slides.length > 0) {
                 goToSlide(0);
+            } else {
+                console.error('❌ Nenhum slide foi criado!');
             }
         }
         

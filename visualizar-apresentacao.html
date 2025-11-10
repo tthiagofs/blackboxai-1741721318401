@@ -101,20 +101,21 @@
         }
         
         .presentation-mode .slide {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
-            margin: 0;
-            padding: 0;
-            background: #f0f0f0;
+            position: fixed !important;
+            top: 0 !important;
+            left: 0 !important;
+            width: 100vw !important;
+            height: 100vh !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            background: #f0f0f0 !important;
             opacity: 0;
             visibility: hidden;
             transition: opacity 0.3s ease;
             overflow: auto;
+            z-index: 0;
             /* Remover qualquer transformação que possa causar deslocamento */
-            transform: none;
+            transform: none !important;
         }
         
         .presentation-mode .slide.active {
@@ -136,6 +137,8 @@
             /* Sobrescrever qualquer tamanho fixo definido no CSS original */
             min-width: 0 !important;
             min-height: 0 !important;
+            /* Remover transformações */
+            transform: none !important;
         }
         
         /* Garantir que o conteúdo seja visível e não deslocado */
@@ -143,19 +146,9 @@
             visibility: visible;
         }
         
-        /* Remover qualquer transformação que possa causar deslocamento */
-        .presentation-mode .slide,
+        /* Remover qualquer transformação que possa causar deslocamento nos elementos filhos */
         .presentation-mode .slide * {
             transform: none !important;
-            left: 0 !important;
-            right: auto !important;
-        }
-        
-        /* Garantir que slides não se movam */
-        .presentation-mode .slide {
-            position: fixed !important;
-            top: 0 !important;
-            left: 0 !important;
         }
         
         .presentation-controls {

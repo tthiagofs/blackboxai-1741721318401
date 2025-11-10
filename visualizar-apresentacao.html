@@ -125,12 +125,17 @@
             /* Tamanho base */
             width: 1280px;
             height: 720px;
-            /* Escalar proporcionalmente para caber na tela */
-            max-width: min(1280px, 95vw);
-            max-height: min(720px, 95vh);
-            /* Se a altura for o limitador, calcular largura baseada na proporção */
-            width: min(1280px, calc(95vh * 16 / 9), 95vw);
-            height: min(720px, calc(95vw * 9 / 16), 95vh);
+            /* Escalar proporcionalmente para caber na tela mantendo proporção 16:9 */
+            max-width: 95vw;
+            max-height: 95vh;
+            /* Calcular tamanho baseado na menor dimensão */
+            width: auto;
+            height: auto;
+            /* Usar aspect-ratio para manter proporção */
+            aspect-ratio: 16 / 9;
+            /* Escalar baseado na menor dimensão */
+            width: min(1280px, 95vw, calc(95vh * 16 / 9));
+            height: min(720px, 95vh, calc(95vw * 9 / 16));
             margin: 0;
             padding: 0;
             background: white;
@@ -139,6 +144,9 @@
             position: relative;
             overflow: hidden;
             box-sizing: border-box;
+            /* Garantir visibilidade */
+            opacity: 1 !important;
+            visibility: visible !important;
         }
         
         /* Garantir que todo conteúdo seja visível */
@@ -1163,10 +1171,15 @@
             const slidesContainer = document.getElementById('presentationSlides');
             slidesContainer.innerHTML = html;
             
-            // Encontrar todas as páginas e criar slides
-            const pages = slidesContainer.querySelectorAll('.page');
+            // Encontrar todas as páginas (apenas elementos diretos com classe .page)
+            const pages = slidesContainer.querySelectorAll(':scope > .page');
             
-            // Criar wrapper para cada slide
+            console.log(`🔍 Encontradas ${pages.length} páginas diretas`);
+            
+            // Limpar slides anteriores
+            slides = [];
+            
+            // Criar wrapper para cada página
             pages.forEach((page, index) => {
                 // Criar div wrapper para o slide
                 const slideWrapper = document.createElement('div');
@@ -1175,8 +1188,8 @@
                     slideWrapper.classList.add('active');
                 }
                 
-                // Mover a página para dentro do wrapper
-                page.parentNode.insertBefore(slideWrapper, page);
+                // Substituir a página pelo wrapper e mover a página para dentro
+                page.parentNode.replaceChild(slideWrapper, page);
                 slideWrapper.appendChild(page);
                 
                 // Manter estilos originais da página, mas garantir tamanho
@@ -1185,18 +1198,21 @@
                 page.style.margin = '0';
                 page.style.padding = '0';
                 page.style.boxSizing = 'border-box';
+                
+                // Adicionar ao array de slides
+                slides.push(slideWrapper);
             });
             
-            // Armazenar slides (os wrappers, não as páginas)
-            slides = Array.from(slidesContainer.querySelectorAll('.slide'));
-            
             console.log(`✅ ${slides.length} slides renderizados no modo apresentação`);
+            console.log('📋 Slides:', slides);
             
             // Atualizar contador
             document.getElementById('totalSlides').textContent = slides.length;
             
             // Ir para o primeiro slide
-            goToSlide(0);
+            if (slides.length > 0) {
+                goToSlide(0);
+            }
         }
         
         // Função para sair do modo apresentação

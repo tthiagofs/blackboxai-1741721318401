@@ -93,56 +93,60 @@
         }
         
         /* Modo apresentação - tela cheia mantendo proporção */
+        .presentation-mode {
+            background: #000 !important;
+        }
+        
         .presentation-mode #presentationSlides {
-            width: 100vw;
-            height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: #000;
-            position: relative;
-            overflow: hidden;
+            width: 100vw !important;
+            height: 100vh !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            background: #000 !important;
+            position: relative !important;
+            overflow: hidden !important;
+            display: block !important;
         }
         
         /* Cada slide ocupa o container completo, mas só o ativo é visível */
         .presentation-mode .slide {
-            display: none;
-            width: 100vw;
-            height: 100vh;
-            margin: 0;
-            padding: 0;
+            display: none !important;
+            width: 100vw !important;
+            height: 100vh !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            position: absolute !important;
+            top: 0 !important;
+            left: 0 !important;
             /* Centralizar conteúdo */
-            align-items: center;
-            justify-content: center;
-            position: absolute;
-            top: 0;
-            left: 0;
+            align-items: center !important;
+            justify-content: center !important;
         }
         
         /* Slide ativo é visível */
         .presentation-mode .slide.active {
-            display: flex;
+            display: flex !important;
         }
         
         /* Páginas dentro dos slides - tela cheia mantendo proporção 16:9 */
         .presentation-mode .slide .page {
             /* Manter tamanho original (1280x720) */
-            width: 1280px;
-            height: 720px;
-            margin: 0;
-            padding: 0;
+            width: 1280px !important;
+            height: 720px !important;
+            margin: 0 !important;
+            padding: 0 !important;
             background: white !important;
-            box-shadow: none;
+            box-shadow: none !important;
             /* Garantir que o conteúdo interno seja visível */
-            position: relative;
+            position: relative !important;
             overflow: visible !important;
-            box-sizing: border-box;
+            box-sizing: border-box !important;
             /* Garantir visibilidade */
             opacity: 1 !important;
             visibility: visible !important;
             display: block !important;
             /* Transform será aplicado via JavaScript para escalar proporcionalmente */
-            transform-origin: center center;
+            transform-origin: center center !important;
         }
         
         /* Garantir que todo conteúdo dentro das páginas seja visível */
@@ -1181,7 +1185,17 @@
             // Calcular scale baseado na menor dimensão para ocupar tela cheia
             const scaleX = viewportWidth / pageWidth;
             const scaleY = viewportHeight / pageHeight;
-            const scale = Math.min(scaleX, scaleY);
+            const scale = Math.max(scaleX, scaleY); // Usar MAX para preencher toda a tela
+            
+            console.log(`📐 Calculando scale:`, {
+                viewportWidth,
+                viewportHeight,
+                pageWidth,
+                pageHeight,
+                scaleX,
+                scaleY,
+                scale
+            });
             
             return scale;
         }
@@ -1189,10 +1203,11 @@
         // Aplicar scale em todas as páginas
         function applyFullScreenScale() {
             const scale = calculateFullScreenScale();
-            slides.forEach(slide => {
+            slides.forEach((slide, index) => {
                 const page = slide.querySelector('.page');
                 if (page) {
                     page.style.transform = `scale(${scale})`;
+                    console.log(`📏 Slide ${index + 1}: scale aplicado = ${scale}`);
                 }
             });
         }

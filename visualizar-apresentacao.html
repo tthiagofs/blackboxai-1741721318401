@@ -126,11 +126,8 @@
             /* Tamanho original (igual ao print) */
             width: 1280px;
             height: 720px;
-            /* Centralizar na tela */
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            margin: 0;
+            /* Centralizar na tela usando flexbox do container */
+            margin: auto;
             padding: 0;
             overflow: hidden;
             background: white;
@@ -1196,7 +1193,10 @@
         function applyScaleToSlides() {
             const scale = calculateScale();
             slides.forEach(slide => {
-                slide.style.transform = `translate(-50%, -50%) scale(${scale})`;
+                // Aplicar apenas scale, o flexbox do container centraliza
+                slide.style.transform = `scale(${scale})`;
+                slide.style.marginLeft = 'auto';
+                slide.style.marginRight = 'auto';
             });
         }
         

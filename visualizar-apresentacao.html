@@ -118,6 +118,8 @@
             align-items: center;
             justify-content: center;
             position: relative;
+            /* IMPORTANTE: Permitir overflow para mostrar conteúdo que ultrapassa (como foguete) */
+            overflow: visible;
         }
         
         /* Cada slide - TAMANHO FIXO 1280x720, scale aplicado no wrapper */
@@ -130,8 +132,10 @@
             left: 50%;
             transform: translate(-50%, -50%);
             transform-origin: center center;
-            /* Permitir que conteúdo seja visível mesmo se ultrapassar um pouco */
+            /* IMPORTANTE: Permitir overflow para mostrar conteúdo que ultrapassa (foguete com bottom: -80px, right: -120px) */
             overflow: visible;
+            /* Garantir que elementos posicionados fora dos limites sejam visíveis */
+            clip-path: none;
         }
         
         .presentation-mode .slide-wrapper.active {
@@ -145,9 +149,12 @@
             margin: 0;
             padding: 0;
             position: relative;
-            overflow: visible; /* Mudado de hidden para visible para não cortar conteúdo */
+            /* IMPORTANTE: visible para mostrar conteúdo que ultrapassa (foguete, sombras, etc) */
+            overflow: visible;
             background: white;
             box-sizing: border-box;
+            /* Garantir que elementos absolutos fora dos limites sejam visíveis */
+            clip-path: none;
         }
         
         /* IMPORTANTE: NÃO sobrescrever estilos da classe .page */

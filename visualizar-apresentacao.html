@@ -125,22 +125,21 @@
         .presentation-mode .slide {
             display: none;
             /* Tamanho FIXO original - NÃO alterar (igual à tela de visualização) */
-            width: 1280px !important;
-            height: 720px !important;
-            min-width: 1280px !important;
-            min-height: 720px !important;
-            max-width: 1280px !important;
-            max-height: 720px !important;
+            width: 1280px;
+            height: 720px;
             /* Centralizar usando flexbox do container */
             margin: 0;
             position: relative;
-            overflow: visible; /* Mudado de hidden para visible para não cortar conteúdo */
+            overflow: hidden; /* hidden para não mostrar conteúdo que ultrapasse */
             background: white;
             padding: 0;
             /* Scale será aplicado via JavaScript, mantendo proporções */
             transform-origin: center center;
             /* Garantir que o conteúdo interno seja renderizado corretamente */
             box-sizing: border-box;
+            /* Prevenir distorção */
+            will-change: transform;
+            backface-visibility: hidden;
         }
         
         /* Slide ativo é visível */
@@ -148,13 +147,17 @@
             display: block;
         }
         
-        /* IMPORTANTE: Garantir que TODOS os estilos do HTML gerado sejam aplicados */
+        /* IMPORTANTE: NÃO sobrescrever estilos da classe .page */
         /* Os estilos já vêm do style.css e do gerar-html-apresentacao.js */
-        /* Não sobrescrever estilos internos - apenas garantir que sejam aplicados */
+        /* A classe .page já tem width: 1280px e height: 720px definidos */
         .presentation-mode .slide.page {
-            /* Manter todos os estilos originais da classe .page */
-            width: 100% !important;
-            height: 100% !important;
+            /* NÃO forçar width/height 100% - deixar os estilos originais */
+            /* Os estilos originais já definem o tamanho correto */
+        }
+        
+        /* Garantir que elementos internos mantenham proporções */
+        .presentation-mode .slide * {
+            box-sizing: border-box;
         }
         
         /* Remover bordas de imagens (igual ao print) */
@@ -1187,6 +1190,10 @@
         // Flag para prevenir múltiplas aplicações do scale durante carregamento
         let isApplyingScale = false;
         
+        // Armazenar o último scale válido para evitar recalcular com viewports inválidos
+        let lastValidScale = 1.0;
+        let isInitialLoad = true;
+        
         // Calcular scale para tela cheia mantendo proporção (igual ao PDF viewer do Google)
         function calculateScale() {
             // Usar sempre window.innerWidth/Height (mais confiável que container)
@@ -1194,9 +1201,16 @@
             const viewportHeight = window.innerHeight;
             
             // Ignorar viewports muito pequenos (provavelmente DevTools ou outros elementos)
-            if (viewportWidth < 500 || viewportHeight < 500) {
-                console.warn(`⚠️ Viewport muito pequeno ignorado: ${viewportWidth}x${viewportHeight}`);
-                return null; // Retornar null para ignorar
+            if (viewportWidth < 800 || viewportHeight < 600) {
+                console.warn(`⚠️ Viewport muito pequeno ignorado: ${viewportWidth}x${viewportHeight}, usando scale anterior: ${lastValidScale.toFixed(3)}`);
+                return lastValidScale; // Retornar último scale válido
+            }
+            
+            // Ignorar viewports em modo retrato (altura > largura) durante apresentação
+            // Apenas durante o carregamento inicial, depois aceitar qualquer orientação
+            if (isInitialLoad && viewportHeight > viewportWidth) {
+                console.warn(`⚠️ Viewport em modo retrato ignorado durante carregamento: ${viewportWidth}x${viewportHeight}, usando scale anterior: ${lastValidScale.toFixed(3)}`);
+                return lastValidScale;
             }
             
             const slideWidth = 1280; // Tamanho original fixo
@@ -1208,9 +1222,13 @@
             // Usar 98% para preencher melhor a tela, deixando apenas uma pequena margem
             const scale = Math.min(scaleX, scaleY) * 0.98;
             
+            // Armazenar scale válido
+            lastValidScale = scale;
+            isInitialLoad = false; // Após primeiro cálculo válido, não ignorar mais modo retrato
+            
             console.log(`📐 Viewport: ${viewportWidth.toFixed(0)}x${viewportHeight.toFixed(0)}, Scale: ${scale.toFixed(3)}`);
             
-            return Math.max(0.1, Math.min(scale, 3)); // Limitar entre 10% e 300%
+            return Math.max(0.5, Math.min(scale, 2)); // Limitar entre 50% e 200%
         }
         
         // Aplicar scale em todos os slides (mantém proporções originais)
@@ -1235,11 +1253,18 @@
             
             console.log(`📐 Aplicando scale: ${scale.toFixed(3)} (slide original: 1280x720)`);
             slides.forEach((slide) => {
-                // Aplicar apenas scale - o flexbox do container já centraliza
-                slide.style.transform = `scale(${scale})`;
-                // Garantir que o slide mantenha o tamanho original (1280x720)
+                // IMPORTANTE: Remover qualquer transform anterior antes de aplicar novo
+                slide.style.removeProperty('transform');
+                slide.style.removeProperty('width');
+                slide.style.removeProperty('height');
+                
+                // Definir tamanho original primeiro
                 slide.style.width = '1280px';
                 slide.style.height = '720px';
+                
+                // Aplicar scale após definir tamanho (mantém proporções)
+                // Usar translateZ(0) para forçar aceleração de hardware
+                slide.style.transform = `translateZ(0) scale(${scale})`;
             });
             console.log(`✅ Scale aplicado em ${slides.length} slides`);
             
@@ -1310,20 +1335,26 @@
             applySlideScale();
             
             // Aplicar scale quando redimensionar (com debounce mais longo para evitar múltiplas chamadas)
-            let resizeTimeout;
-            const resizeHandler = () => {
-                clearTimeout(resizeTimeout);
-                resizeTimeout = setTimeout(() => {
-                    // Verificar se ainda está no modo apresentação
-                    const presentationMode = document.getElementById('presentationMode');
-                    if (presentationMode && presentationMode.classList.contains('active')) {
-                        applySlideScale();
-                    }
-                }, 300); // Debounce maior para evitar múltiplas chamadas
-            };
-            window.addEventListener('resize', resizeHandler);
-            // Armazenar handler para remover depois
-            window.presentationResizeHandler = resizeHandler;
+            // IMPORTANTE: Não adicionar listener de resize durante carregamento inicial
+            // Adicionar apenas após um delay para evitar chamadas durante renderização
+            setTimeout(() => {
+                let resizeTimeout;
+                const resizeHandler = () => {
+                    clearTimeout(resizeTimeout);
+                    resizeTimeout = setTimeout(() => {
+                        // Verificar se ainda está no modo apresentação
+                        const presentationMode = document.getElementById('presentationMode');
+                        if (presentationMode && presentationMode.classList.contains('active')) {
+                            // Marcar que não é mais carregamento inicial
+                            isInitialLoad = false;
+                            applySlideScale();
+                        }
+                    }, 500); // Debounce maior para evitar múltiplas chamadas
+                };
+                window.addEventListener('resize', resizeHandler);
+                // Armazenar handler para remover depois
+                window.presentationResizeHandler = resizeHandler;
+            }, 1000); // Adicionar listener apenas após 1 segundo
             
             // Atualizar contador
             document.getElementById('totalSlides').textContent = slides.length;

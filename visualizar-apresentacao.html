@@ -118,7 +118,7 @@
             width: 1280px;
             height: 720px;
             margin: 0;
-            padding: 0;
+            /* NÃO definir padding aqui - será definido por cada página específica */
             position: relative;
             /* IMPORTANTE: hidden para CORTAR conteúdo que ultrapassa os limites (foguete fora do fundo branco) */
             overflow: hidden;
@@ -135,6 +135,7 @@
         }
         
         /* Garantir que padding de todas as páginas seja respeitado */
+        /* IMPORTANTE: Usar !important para garantir que sobrescreva qualquer estilo anterior */
         .presentation-mode .slide.capa {
             padding: 50px 65px !important;
         }

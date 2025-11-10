@@ -1167,12 +1167,15 @@
                 el.removeAttribute('contenteditable');
             });
             
-            // Renderizar no modo apresentação (igual ao print)
-            await renderPresentationMode(tempDiv.innerHTML);
-            
-            // Mostrar modo apresentação
+            // IMPORTANTE: Mostrar modo apresentação ANTES de renderizar para ter o tamanho correto
             const presentationMode = document.getElementById('presentationMode');
             presentationMode.classList.add('active');
+            
+            // Aguardar um frame para o DOM atualizar e ter o tamanho correto do container
+            await new Promise(resolve => requestAnimationFrame(resolve));
+            
+            // Renderizar no modo apresentação (igual ao print)
+            await renderPresentationMode(tempDiv.innerHTML);
             
             // Adicionar listeners de teclado
             document.addEventListener('keydown', handlePresentationKeyboard);

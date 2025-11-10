@@ -92,7 +92,7 @@
             position: relative;
         }
         
-        /* Modo apresentação - abordagem simples tipo PDF viewer */
+        /* Modo apresentação - tela cheia mantendo proporção */
         .presentation-mode #presentationSlides {
             width: 100vw;
             height: 100vh;
@@ -101,18 +101,22 @@
             justify-content: center;
             background: #000;
             position: relative;
+            overflow: hidden;
         }
         
         /* Cada slide ocupa o container completo, mas só o ativo é visível */
         .presentation-mode .slide {
             display: none;
-            width: 100%;
-            height: 100%;
+            width: 100vw;
+            height: 100vh;
             margin: 0;
             padding: 0;
             /* Centralizar conteúdo */
             align-items: center;
             justify-content: center;
+            position: absolute;
+            top: 0;
+            left: 0;
         }
         
         /* Slide ativo é visível */
@@ -120,21 +124,19 @@
             display: flex;
         }
         
-        /* Páginas dentro dos slides - manter tamanho original e escalar proporcionalmente */
+        /* Páginas dentro dos slides - tela cheia mantendo proporção 16:9 */
         .presentation-mode .slide .page {
-            /* Tamanho base fixo */
-            width: 1280px;
-            height: 720px;
-            /* Escalar proporcionalmente para caber na tela */
-            max-width: 95vw;
-            max-height: 95vh;
-            /* Calcular tamanho baseado na menor dimensão mantendo proporção 16:9 */
-            width: min(1280px, 95vw, calc(95vh * 16 / 9));
-            height: min(720px, 95vh, calc(95vw * 9 / 16));
+            /* Tamanho base: 1280x720 (16:9) */
+            /* Escalar para ocupar tela cheia mantendo proporção */
+            width: 100vw;
+            height: 100vh;
+            /* Manter proporção 16:9 - usar a menor dimensão */
+            width: min(100vw, calc(100vh * 16 / 9));
+            height: min(100vh, calc(100vw * 9 / 16));
             margin: 0;
             padding: 0;
             background: white !important;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            box-shadow: none;
             /* Garantir que o conteúdo interno seja visível */
             position: relative;
             overflow: visible !important;
@@ -143,6 +145,8 @@
             opacity: 1 !important;
             visibility: visible !important;
             display: block !important;
+            /* Manter proporção */
+            aspect-ratio: 16 / 9;
         }
         
         /* Garantir que todo conteúdo dentro das páginas seja visível */
@@ -1206,9 +1210,8 @@
                 page.parentNode.replaceChild(slideWrapper, page);
                 slideWrapper.appendChild(page);
                 
-                // Manter estilos originais da página, mas garantir tamanho e visibilidade
-                page.style.width = '1280px';
-                page.style.height = '720px';
+                // Não aplicar tamanho fixo - deixar CSS fazer o trabalho
+                // Apenas garantir visibilidade
                 page.style.margin = '0';
                 page.style.padding = '0';
                 page.style.boxSizing = 'border-box';
@@ -1216,6 +1219,11 @@
                 page.style.visibility = 'visible';
                 page.style.opacity = '1';
                 page.style.background = 'white';
+                // Remover qualquer tamanho fixo que possa estar no HTML original
+                page.style.width = '';
+                page.style.height = '';
+                page.style.maxWidth = '';
+                page.style.maxHeight = '';
                 
                 // Adicionar ao array de slides
                 slides.push(slideWrapper);

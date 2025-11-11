@@ -91,11 +91,9 @@
             overflow: visible;
         }
         
-        /* Slide Wrapper: 16:9 e corta o que extrapola */
+        /* Slide Wrapper: contém o slide e aplica scale */
         .presentation-mode .slide-wrapper {
             display: none;
-            width: 1280px;
-            height: 720px;
             position: absolute;
             top: 50%;
             left: 50%;
@@ -109,13 +107,12 @@
             display: block;
         }
         
-        /* Slide interno - manter estilos originais, apenas garantir overflow visible */
+        /* Slide interno - manter TODOS os estilos originais do gerar-html-apresentacao.js */
+        /* NÃO sobrescrever nada - apenas garantir que overflow seja visible */
         .presentation-mode .slide {
-            /* NÃO forçar width/height - os estilos originais já definem 1280x720 */
-            position: relative;
+            /* Os estilos originais já definem width: 1280px, height: 720px, padding, etc */
             overflow: visible;
             margin: 0;
-            /* NÃO definir padding - cada página tem seu próprio padding do gerar-html-apresentacao.js */
             box-sizing: border-box;
         }
         

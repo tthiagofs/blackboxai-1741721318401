@@ -1198,7 +1198,7 @@
         let resizeTimeout = null;
         
         // Calcular scale para tela cheia (ESTRATÉGIA DO PDF VIEWER)
-        // O PDF viewer preenche a dimensão que causa menos bordas, não sempre a menor
+        // Usa as dimensões reais do slide renderizado, não valores fixos
         function calculateScale() {
             const vw = window.innerWidth;
             const vh = window.innerHeight;
@@ -1211,28 +1211,44 @@
                 return null; // Ignorar durante inicialização
             }
             
-            const slideW = 1280;
-            const slideH = 720;
-            const slideAspect = slideW / slideH; // 16:9 = 1.777...
+            // Obter proporção real do primeiro slide renderizado
+            if (!slideWrappers || slideWrappers.length === 0) {
+                return null; // Ainda não há slides renderizados
+            }
+            
+            const firstSlide = slideWrappers[0];
+            if (!firstSlide) {
+                return null;
+            }
+            
+            // Obter dimensões reais do slide
+            const slideW = firstSlide.offsetWidth;
+            const slideH = firstSlide.offsetHeight;
+            
+            // Calcular aspect ratios
             const viewportAspect = vw / vh;
+            const slideAspect = slideW / slideH;
             
             // ESTRATÉGIA DO PDF VIEWER:
-            // Se a tela é mais larga que a proporção do slide (widescreen), preencher altura
+            // Se a tela é mais larga que a proporção do slide, preencher altura
             // Se a tela é mais alta que a proporção do slide, preencher largura
             // Isso minimiza as bordas na dimensão que causa mais problema
             
             let scale;
             if (viewportAspect > slideAspect) {
-                // Tela mais larga que 16:9 (widescreen) - preencher altura para minimizar bordas laterais
+                // Tela mais larga - preencher altura para minimizar bordas laterais
                 scale = vh / slideH;
                 console.log(`📐 Viewport widescreen: preenchendo altura (${vh.toFixed(0)}px)`);
             } else {
-                // Tela mais alta que 16:9 ou igual - preencher largura para minimizar bordas verticais
+                // Tela mais alta ou igual - preencher largura para minimizar bordas verticais
                 scale = vw / slideW;
                 console.log(`📐 Viewport normal: preenchendo largura (${vw.toFixed(0)}px)`);
             }
             
-            console.log(`📐 Viewport: ${vw.toFixed(0)}x${vh.toFixed(0)}, Aspect: ${viewportAspect.toFixed(2)}, Scale: ${scale.toFixed(3)}`);
+            // Aplicar leve zoom como o PDF Viewer faz (1.02 = 2% de zoom)
+            scale *= 1.02;
+            
+            console.log(`📐 Viewport: ${vw.toFixed(0)}x${vh.toFixed(0)}, Slide: ${slideW.toFixed(0)}x${slideH.toFixed(0)}, Aspect: ${viewportAspect.toFixed(2)} vs ${slideAspect.toFixed(2)}, Scale: ${scale.toFixed(3)}`);
             
             return Math.max(0.3, Math.min(scale, 2)); // Limitar entre 30% e 200%
         }

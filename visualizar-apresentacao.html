@@ -1197,8 +1197,8 @@
         let slideWrappers = [];
         let resizeTimeout = null;
         
-        // Calcular scale para tela cheia (ESTRATÉGIA DO PDF VIEWER)
-        // Usa as dimensões reais do slide renderizado, não valores fixos
+        // Calcular scale para tela cheia (ESTRATÉGIA DO PDF VIEWER DO CHROME)
+        // Usa getBoundingClientRect() para obter dimensões reais após renderização
         function calculateScale() {
             const vw = window.innerWidth;
             const vh = window.innerHeight;
@@ -1221,15 +1221,16 @@
                 return null;
             }
             
-            // Obter dimensões reais do slide
-            const slideW = firstSlide.offsetWidth;
-            const slideH = firstSlide.offsetHeight;
+            // Obter dimensões reais usando getBoundingClientRect() (mais preciso)
+            const rect = firstSlide.getBoundingClientRect();
+            const slideW = rect.width;
+            const slideH = rect.height;
             
             // Calcular aspect ratios
             const viewportAspect = vw / vh;
             const slideAspect = slideW / slideH;
             
-            // ESTRATÉGIA DO PDF VIEWER:
+            // ESTRATÉGIA DO PDF VIEWER DO CHROME:
             // Se a tela é mais larga que a proporção do slide, preencher altura
             // Se a tela é mais alta que a proporção do slide, preencher largura
             // Isso minimiza as bordas na dimensão que causa mais problema
@@ -1245,8 +1246,8 @@
                 console.log(`📐 Viewport normal: preenchendo largura (${vw.toFixed(0)}px)`);
             }
             
-            // Aplicar leve zoom como o PDF Viewer faz (1.02 = 2% de zoom)
-            scale *= 1.02;
+            // Aplicar zoom sutil como o Chrome PDF Viewer faz (1.01 = 1% de zoom)
+            scale *= 1.01;
             
             console.log(`📐 Viewport: ${vw.toFixed(0)}x${vh.toFixed(0)}, Slide: ${slideW.toFixed(0)}x${slideH.toFixed(0)}, Aspect: ${viewportAspect.toFixed(2)} vs ${slideAspect.toFixed(2)}, Scale: ${scale.toFixed(3)}`);
             

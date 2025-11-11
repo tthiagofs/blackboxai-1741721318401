@@ -119,16 +119,16 @@
             box-sizing: border-box;
         }
         
-        /* Safe area (apenas no modo apresentação) */
+        /* Safe area via scale interno (não altera layout) */
         .presentation-mode .fit-safe {
             width: 100%;
             height: 100%;
-            box-sizing: border-box;
-            padding: var(--safe-padding, 20px); /* pode ajustar depois aqui */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transform: scale(0.97);          /* ~20px de respiro */
+            transform-origin: center center; /* mantém centralizado */
         }
-        
-        /* Se alguma página específica ficar apertada, é só reduzir o padding global:
-           :root { --safe-padding: 16px; } ou até 12px */
         
         /* IMPORTANTE: NÃO sobrescrever estilos da classe .page */
         /* Os estilos já vêm do style.css e do gerar-html-apresentacao.js */

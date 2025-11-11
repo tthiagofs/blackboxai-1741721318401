@@ -1197,25 +1197,49 @@
         let slideWrappers = [];
         let resizeTimeout = null;
         
-        // Calcular scale para tela cheia (PROPORÇÃO A4 - 1.414:1)
-        // Comportamento idêntico ao Chrome PDF Viewer
+        // Calcular scale para tela cheia (16:9)
+        // Usa dimensões reais do slide renderizado
         function calculateScale() {
             const vw = window.innerWidth;
             const vh = window.innerHeight;
-            const slideW = 1280;
-            const slideH = 905; // proporção A4 real
+            
+            // Pegue as dimensões REAIS do slide (antes do scale)
+            const firstWrapper = slideWrappers[0];
+            const slide = firstWrapper ? firstWrapper.querySelector('.slide') : null;
+            
+            // Fallback seguro
+            const baseW = 1280;
+            const baseH = 720;
+            
+            let slideW = baseW;
+            let slideH = baseH;
+            
+            if (slide) {
+                // getBoundingClientRect antes do scale ainda retorna o tamanho base CSS
+                const rect = slide.getBoundingClientRect();
+                // Se por algum motivo retornar 0 (ainda sem layout), caia no fallback
+                if (rect.width > 0 && rect.height > 0) {
+                    slideW = rect.width;
+                    slideH = rect.height;
+                }
+            }
             
             const viewportAspect = vw / vh;
             const slideAspect = slideW / slideH;
             
             let scale;
             if (viewportAspect > slideAspect) {
-                scale = vh / slideH; // preencher altura
+                // Tela mais larga → encaixa pela altura
+                scale = vh / slideH;
             } else {
-                scale = vw / slideW; // preencher largura
+                // Tela mais alta/estreita → encaixa pela largura
+                scale = vw / slideW;
             }
             
-            return Math.max(0.3, Math.min(scale * 1.02, 2));
+            // Zoom sutil para reduzir bordas (ajuste fino depois se quiser)
+            scale *= 1.015;
+            
+            return Math.max(0.3, Math.min(scale, 3));
         }
         
         // Aplicar scale nos wrappers (SIMPLES)

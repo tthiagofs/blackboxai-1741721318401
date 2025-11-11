@@ -64,17 +64,13 @@
             margin: 20px auto;
         }
         
-        /* Modo Apresentação - SIMPLIFICADO: replicar apresentacao-print.html */
+        /* Container em full screen, sem cortar */
         .presentation-mode {
             background: #000;
             position: fixed;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
+            inset: 0;
             z-index: 9999;
-            /* IMPORTANTE: visible para mostrar conteúdo que ultrapassa (foguete com bottom: -80px, right: -120px) */
-            overflow: visible;
+            overflow: visible; /* não cortar aqui */
             display: none;
             align-items: center;
             justify-content: center;
@@ -84,6 +80,7 @@
             display: flex;
         }
         
+        /* Garantir que a área de páginas não corte os slides */
         .presentation-mode #presentationSlides {
             width: 100%;
             height: 100%;
@@ -91,38 +88,34 @@
             align-items: center;
             justify-content: center;
             position: relative;
-            /* IMPORTANTE: Permitir overflow para mostrar conteúdo que ultrapassa (como foguete) */
             overflow: visible;
         }
         
-        /* Slide Wrapper - mantém proporção A4 e corta o que extrapola */
+        /* Slide Wrapper: 16:9 e corta o que extrapola */
         .presentation-mode .slide-wrapper {
             display: none;
-            width: 1280px !important;
-            height: 905px !important;
+            width: 1280px !important; /* voltar para 16:9 */
+            height: 720px !important; /* voltar para 16:9 */
             position: absolute;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
             transform-origin: center center;
-            overflow: hidden !important; /* cortar elementos que passam do limite */
-            border-radius: 0 !important;
-            background: #fff; /* garantir fundo branco */
+            overflow: hidden !important; /* corta foguete/elementos que passam */
+            background: #fff; /* fundo sólido para evitar "PNG bug" */
         }
         
         .presentation-mode .slide-wrapper.active {
             display: block;
         }
         
-        /* Slide interno pode extrapolar (foguete etc.) */
+        /* Slide interno pode extrapolar, mas será cortado pelo wrapper */
         .presentation-mode .slide {
-            width: 1280px !important;
-            height: 905px !important;
+            width: 1280px !important; /* 16:9 */
+            height: 720px !important; /* 16:9 */
             position: relative;
             overflow: visible !important;
             margin: 0;
-            /* NÃO definir padding aqui - será definido por cada página específica */
-            /* NÃO definir background aqui - cada página tem seu próprio background */
             box-sizing: border-box;
         }
         

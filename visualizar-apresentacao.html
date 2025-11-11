@@ -1206,17 +1206,10 @@
         function calculateScale() {
             const vw = window.innerWidth;
             const vh = window.innerHeight;
-            
-            // Base do slide (16:9)
-            const baseW = 1280;
-            const baseH = 720;
-            
+            const baseW = 1280, baseH = 720;
             const scaleW = vw / baseW;
             const scaleH = vh / baseH;
-            
-            // COVER: preenche a tela inteira (pode cortar um pouco das bordas)
-            const scale = Math.max(scaleW, scaleH);
-            return Math.max(0.3, Math.min(scale, 3));
+            return Math.max(scaleW, scaleH); // cover
         }
         
         // Aplicar scale nos wrappers (SIMPLES)

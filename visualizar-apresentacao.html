@@ -94,14 +94,14 @@
         /* Slide Wrapper: 16:9 e corta o que extrapola */
         .presentation-mode .slide-wrapper {
             display: none;
-            width: 1280px !important; /* voltar para 16:9 */
-            height: 720px !important; /* voltar para 16:9 */
+            width: 1280px;
+            height: 720px;
             position: absolute;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
             transform-origin: center center;
-            overflow: hidden !important; /* corta foguete/elementos que passam */
+            overflow: hidden; /* corta foguete/elementos que passam */
             background: #fff; /* fundo sólido para evitar "PNG bug" */
         }
         
@@ -109,32 +109,19 @@
             display: block;
         }
         
-        /* Slide interno pode extrapolar, mas será cortado pelo wrapper */
+        /* Slide interno - manter estilos originais, apenas garantir overflow visible */
         .presentation-mode .slide {
-            width: 1280px !important; /* 16:9 */
-            height: 720px !important; /* 16:9 */
+            /* NÃO forçar width/height - os estilos originais já definem 1280x720 */
             position: relative;
-            overflow: visible !important;
+            overflow: visible;
             margin: 0;
-            /* NÃO definir padding aqui - cada página tem seu próprio padding */
+            /* NÃO definir padding - cada página tem seu próprio padding do gerar-html-apresentacao.js */
             box-sizing: border-box;
         }
         
-        
-        /* IMPORTANTE: NÃO sobrescrever estilos da classe .page */
-        /* Os estilos já vêm do style.css e do gerar-html-apresentacao.js */
-        /* A classe .page já tem width: 1280px e height: 720px definidos */
-        .presentation-mode .slide.page {
-            /* NÃO forçar width/height 100% - deixar os estilos originais */
-            /* Os estilos originais já definem o tamanho correto */
-        }
-        
-        /* NÃO forçar padding - os estilos já vêm do gerar-html-apresentacao.js */
-        /* Os estilos originais já definem padding correto para cada página */
-        /* Apenas garantir fundo roxo para ranking */
+        /* Garantir fundo roxo para ranking */
         .presentation-mode .slide.ranking {
-            /* IMPORTANTE: Garantir que o fundo roxo seja preservado */
-            background: #672E7B !important;
+            background: #672E7B;
         }
         
         /* Garantir que elementos internos mantenham proporções */

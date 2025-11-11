@@ -1165,10 +1165,30 @@
         function calculateScale() {
             const vw = window.innerWidth;
             const vh = window.innerHeight;
-            const baseW = 1280, baseH = 720;
-            const scaleW = vw / baseW;
-            const scaleH = vh / baseH;
-            return Math.max(scaleW, scaleH); // cover
+            
+            // Obter dimensões reais do primeiro slide
+            const firstWrapper = slideWrappers[0];
+            if (!firstWrapper) {
+                // Fallback para dimensões padrão
+                return Math.max(vw / 1280, vh / 720);
+            }
+            
+            const slide = firstWrapper.querySelector('.slide');
+            if (!slide) {
+                // Fallback para dimensões padrão
+                return Math.max(vw / 1280, vh / 720);
+            }
+            
+            // Obter dimensões reais do slide (já renderizado com estilos originais)
+            const rect = slide.getBoundingClientRect();
+            const slideW = rect.width || 1280;
+            const slideH = rect.height || 720;
+            
+            const scaleW = vw / slideW;
+            const scaleH = vh / slideH;
+            
+            // COVER: preenche a tela inteira (pode cortar um pouco das bordas)
+            return Math.max(scaleW, scaleH);
         }
         
         // Aplicar scale nos wrappers (SIMPLES)

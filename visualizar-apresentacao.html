@@ -66,7 +66,7 @@
         
         /* Container em full screen, sem cortar */
         .presentation-mode {
-            background: #000;
+            background: #fff; /* fundo branco uniforme - mesmo que o Meet capture margens, não verá bordas pretas */
             position: fixed;
             inset: 0;
             z-index: 9999;
@@ -119,15 +119,15 @@
             box-sizing: border-box;
         }
         
-        /* Safe area via scale interno (não altera layout) */
+        /* Safe area com padding interno — não mexe no layout absoluto */
         .presentation-mode .fit-safe {
             width: 100%;
             height: 100%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transform: scale(0.97);          /* ~20px de respiro */
-            transform-origin: center center; /* mantém centralizado */
+            padding: 20px; /* cria o respiro interno */
+            box-sizing: border-box;
+            background-clip: content-box; /* garante que o fundo do slide respeite o padding */
+            overflow: hidden;
+            position: relative;
         }
         
         /* IMPORTANTE: NÃO sobrescrever estilos da classe .page */

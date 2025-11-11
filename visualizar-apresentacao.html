@@ -116,6 +116,7 @@
             position: relative;
             overflow: visible !important;
             margin: 0;
+            /* NÃO definir padding aqui - cada página tem seu próprio padding */
             box-sizing: border-box;
         }
         
@@ -128,28 +129,12 @@
             /* Os estilos originais já definem o tamanho correto */
         }
         
-        /* Garantir que padding de todas as páginas seja respeitado */
-        /* IMPORTANTE: Usar !important para garantir que sobrescreva qualquer estilo anterior */
-        .presentation-mode .slide.capa {
-            padding: 50px 65px !important;
-        }
-        
-        .presentation-mode .slide.resultados {
-            padding: 50px 65px !important;
-        }
-        
+        /* NÃO forçar padding - os estilos já vêm do gerar-html-apresentacao.js */
+        /* Os estilos originais já definem padding correto para cada página */
+        /* Apenas garantir fundo roxo para ranking */
         .presentation-mode .slide.ranking {
-            padding: 50px 65px !important;
             /* IMPORTANTE: Garantir que o fundo roxo seja preservado */
             background: #672E7B !important;
-        }
-        
-        .presentation-mode .slide.proximos-passos {
-            /* Esta página usa grid, não precisa de padding extra */
-        }
-        
-        .presentation-mode .slide.obrigado {
-            /* Esta página já tem padding interno, não precisa de padding extra */
         }
         
         /* Garantir que elementos internos mantenham proporções */

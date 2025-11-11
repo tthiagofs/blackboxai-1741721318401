@@ -1191,47 +1191,41 @@
         let resizeTimeout = null;
         
         // Calcular scale para tela cheia (16:9)
-        // Usa dimensões reais do slide renderizado
+        // Comportamento idêntico ao Chrome PDF Viewer: encaixa pela altura e reduz bordas laterais
         function calculateScale() {
             const vw = window.innerWidth;
             const vh = window.innerHeight;
             
-            // Pegue as dimensões REAIS do slide (antes do scale)
             const firstWrapper = slideWrappers[0];
             const slide = firstWrapper ? firstWrapper.querySelector('.slide') : null;
             
-            // Fallback seguro
+            // Base 16:9 do slide
             const baseW = 1280;
             const baseH = 720;
             
+            // Pega dimensões reais do slide antes do scale
             let slideW = baseW;
             let slideH = baseH;
-            
             if (slide) {
-                // getBoundingClientRect antes do scale ainda retorna o tamanho base CSS
                 const rect = slide.getBoundingClientRect();
-                // Se por algum motivo retornar 0 (ainda sem layout), caia no fallback
                 if (rect.width > 0 && rect.height > 0) {
                     slideW = rect.width;
                     slideH = rect.height;
                 }
             }
             
-            const viewportAspect = vw / vh;
-            const slideAspect = slideW / slideH;
+            // 1) Encaixa sempre pela ALTURA (fit-height), como o Chrome costuma fazer
+            let scale = vh / slideH;
             
-            let scale;
-            if (viewportAspect > slideAspect) {
-                // Tela mais larga → encaixa pela altura
-                scale = vh / slideH;
-            } else {
-                // Tela mais alta/estreita → encaixa pela largura
-                scale = vw / slideW;
+            // 2) Se sobrar muita borda lateral, aplica um leve zoom extra (até 5%) sem cortar
+            const scaledWidth = slideW * scale;
+            const widthDiff = vw - scaledWidth;         // quanto espaço ainda sobra nas laterais
+            if (widthDiff > vw * 0.05) {                // só expande se sobrar >5% da largura
+                const expandRatio = 1 + Math.min(widthDiff / vw, 0.05); // zoom adicional máx. 5%
+                scale *= expandRatio;
             }
             
-            // Zoom sutil para reduzir bordas (ajuste fino depois se quiser)
-            scale *= 1.015;
-            
+            // 3) Limites de segurança
             return Math.max(0.3, Math.min(scale, 3));
         }
         

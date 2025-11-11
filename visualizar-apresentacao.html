@@ -119,6 +119,17 @@
             box-sizing: border-box;
         }
         
+        /* Safe area (apenas no modo apresentação) */
+        .presentation-mode .fit-safe {
+            width: 100%;
+            height: 100%;
+            box-sizing: border-box;
+            padding: var(--safe-padding, 20px); /* pode ajustar depois aqui */
+        }
+        
+        /* Se alguma página específica ficar apertada, é só reduzir o padding global:
+           :root { --safe-padding: 16px; } ou até 12px */
+        
         /* IMPORTANTE: NÃO sobrescrever estilos da classe .page */
         /* Os estilos já vêm do style.css e do gerar-html-apresentacao.js */
         /* A classe .page já tem width: 1280px e height: 720px definidos */
@@ -1190,42 +1201,21 @@
         let slideWrappers = [];
         let resizeTimeout = null;
         
-        // Calcular scale para tela cheia (16:9)
-        // Comportamento idêntico ao Chrome PDF Viewer: encaixa pela altura e reduz bordas laterais
+        // Calcular scale para tela cheia (FIT COVER)
+        // Preenche toda a tela sem bordas pretas (pode cortar um pouco das bordas)
         function calculateScale() {
             const vw = window.innerWidth;
             const vh = window.innerHeight;
             
-            const firstWrapper = slideWrappers[0];
-            const slide = firstWrapper ? firstWrapper.querySelector('.slide') : null;
-            
-            // Base 16:9 do slide
+            // Base do slide (16:9)
             const baseW = 1280;
             const baseH = 720;
             
-            // Pega dimensões reais do slide antes do scale
-            let slideW = baseW;
-            let slideH = baseH;
-            if (slide) {
-                const rect = slide.getBoundingClientRect();
-                if (rect.width > 0 && rect.height > 0) {
-                    slideW = rect.width;
-                    slideH = rect.height;
-                }
-            }
+            const scaleW = vw / baseW;
+            const scaleH = vh / baseH;
             
-            // 1) Encaixa sempre pela ALTURA (fit-height), como o Chrome costuma fazer
-            let scale = vh / slideH;
-            
-            // 2) Se sobrar muita borda lateral, aplica um leve zoom extra (até 5%) sem cortar
-            const scaledWidth = slideW * scale;
-            const widthDiff = vw - scaledWidth;         // quanto espaço ainda sobra nas laterais
-            if (widthDiff > vw * 0.05) {                // só expande se sobrar >5% da largura
-                const expandRatio = 1 + Math.min(widthDiff / vw, 0.05); // zoom adicional máx. 5%
-                scale *= expandRatio;
-            }
-            
-            // 3) Limites de segurança
+            // COVER: preenche a tela inteira (pode cortar um pouco das bordas)
+            const scale = Math.max(scaleW, scaleH);
             return Math.max(0.3, Math.min(scale, 3));
         }
         
@@ -1270,6 +1260,15 @@
                 // Clonar página e adicionar classe slide
                 const slide = page.cloneNode(true);
                 slide.classList.add('slide');
+                
+                // Envolver TODO o conteúdo do slide com um container de safe area
+                const safe = document.createElement('div');
+                safe.className = 'fit-safe';
+                // move os filhos atuais do slide para dentro do 'safe'
+                while (slide.firstChild) {
+                    safe.appendChild(slide.firstChild);
+                }
+                slide.appendChild(safe);
                 
                 // Adicionar slide ao wrapper
                 wrapper.appendChild(slide);

@@ -107,22 +107,13 @@
             display: block;
         }
         
-        /* Slide interno - manter estilos originais, mas adicionar padding para margem interna */
+        /* Slide interno - manter estilos originais */
         .presentation-mode .slide {
             /* Os estilos originais já definem width: 1280px, height: 720px */
             overflow: visible;
             margin: 0;
-            padding: 20px; /* margem interna para evitar cortes */
+            /* NÃO adicionar padding aqui - quebra o layout */
             box-sizing: border-box;
-            position: relative;
-        }
-        
-        /* Container interno com scale para criar respiro sem perder proporções */
-        .presentation-mode .slide-content {
-            width: 100%;
-            height: 100%;
-            transform: scale(0.97); /* reduz 3% para criar respiro */
-            transform-origin: center center;
             position: relative;
         }
         
@@ -1170,23 +1161,26 @@
         let slideWrappers = [];
         let resizeTimeout = null;
         
-        // Calcular scale para tela cheia (FIT COVER)
-        // Preenche toda a tela sem bordas pretas (pode cortar um pouco das bordas)
+        // Calcular scale para tela cheia (FIT COVER) com margem interna
+        // Preenche a tela mas deixa uma margem interna para evitar cortes
         function calculateScale() {
             const vw = window.innerWidth;
             const vh = window.innerHeight;
             
+            // Margem interna desejada (em pixels)
+            const margin = 20;
+            
             // Obter dimensões reais do primeiro slide
             const firstWrapper = slideWrappers[0];
             if (!firstWrapper) {
-                // Fallback para dimensões padrão
-                return Math.max(vw / 1280, vh / 720);
+                // Fallback: calcular com margem
+                return Math.max((vw - margin * 2) / 1280, (vh - margin * 2) / 720);
             }
             
             const slide = firstWrapper.querySelector('.slide');
             if (!slide) {
-                // Fallback para dimensões padrão
-                return Math.max(vw / 1280, vh / 720);
+                // Fallback: calcular com margem
+                return Math.max((vw - margin * 2) / 1280, (vh - margin * 2) / 720);
             }
             
             // Obter dimensões reais do slide (já renderizado com estilos originais)
@@ -1194,10 +1188,12 @@
             const slideW = rect.width || 1280;
             const slideH = rect.height || 720;
             
-            const scaleW = vw / slideW;
-            const scaleH = vh / slideH;
+            // Calcular scale considerando margem interna
+            // Subtrai a margem do viewport para criar espaço interno
+            const scaleW = (vw - margin * 2) / slideW;
+            const scaleH = (vh - margin * 2) / slideH;
             
-            // COVER: preenche a tela inteira (pode cortar um pouco das bordas)
+            // COVER: preenche a tela mas com margem interna
             return Math.max(scaleW, scaleH);
         }
         
@@ -1243,19 +1239,7 @@
                 const slide = page.cloneNode(true);
                 slide.classList.add('slide');
                 
-                // Criar container interno com scale para criar respiro sem perder proporções
-                const slideContent = document.createElement('div');
-                slideContent.className = 'slide-content';
-                
-                // Mover todos os filhos do slide para dentro do slideContent
-                while (slide.firstChild) {
-                    slideContent.appendChild(slide.firstChild);
-                }
-                
-                // Adicionar slideContent ao slide
-                slide.appendChild(slideContent);
-                
-                // Adicionar slide ao wrapper
+                // Adicionar slide ao wrapper (mantém layout original)
                 wrapper.appendChild(slide);
                 slidesContainer.appendChild(wrapper);
                 

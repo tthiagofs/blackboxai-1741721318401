@@ -87,21 +87,21 @@
         
         /* Container de slides - SIMPLIFICADO */
         .presentation-mode #presentationSlides {
-            position: relative;
+            position: fixed !important;
+            top: 0 !important;
+            left: 0 !important;
             width: 100vw !important;
             height: 100vh !important;
             margin: 0 !important;
             padding: 0 !important;
-            display: flex;
-            align-items: center;
-            justify-content: center;
             overflow: hidden;
+            pointer-events: none;
         }
         
         /* Slide Wrapper - SIMPLIFICADO e centralizado */
         .presentation-mode .slide-wrapper {
             display: none;
-            position: absolute;
+            position: fixed !important;
             top: 50% !important;
             left: 50% !important;
             margin: 0 !important;
@@ -109,6 +109,7 @@
             transform-origin: center center;
             overflow: hidden !important;
             background: #fff;
+            pointer-events: auto;
             /* Dimensões serão definidas via JavaScript */
         }
         
@@ -1205,14 +1206,15 @@
             }
             
             slideWrappers.forEach(wrapper => {
-                // Garantir posicionamento e centralização
-                wrapper.style.position = 'absolute';
+                // Garantir posicionamento FIXED e centralização
+                wrapper.style.position = 'fixed';
                 wrapper.style.top = '50%';
                 wrapper.style.left = '50%';
                 wrapper.style.margin = '0';
                 wrapper.style.padding = '0';
                 wrapper.style.transform = `translate(-50%, -50%) scale(${scale})`;
                 wrapper.style.transformOrigin = 'center center';
+                wrapper.style.zIndex = '10000';
             });
             
             setTimeout(() => { isApplyingScale = false; }, 50);

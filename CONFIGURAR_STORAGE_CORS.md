@@ -20,7 +20,11 @@ A logo não está salvando devido a erro de CORS (Cross-Origin Resource Sharing)
 ```json
 [
   {
-    "origin": ["https://insightflowapp.vercel.app", "http://localhost:*"],
+    "origin": [
+      "https://insightflowv2.vercel.app",
+      "https://insightflowapp.vercel.app",
+      "http://localhost:*"
+    ],
     "method": ["GET", "HEAD", "PUT", "POST", "DELETE"],
     "maxAgeSeconds": 3600,
     "responseHeader": ["Content-Type", "Authorization"]

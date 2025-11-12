@@ -495,8 +495,8 @@ function getStyles() {
     }
 
     .page {
-      width: 1280px;
-      height: 720px;
+      width: 1920px;
+      height: 1080px;
       background: white;
       margin: 20px auto;
       position: relative;
@@ -889,7 +889,7 @@ function getStyles() {
     .proximos-passos {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      height: 720px;
+      height: 1080px;
       overflow: hidden;
     }
 

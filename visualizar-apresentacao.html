@@ -1225,15 +1225,12 @@
             }
             
             // Usar dimensões medidas (não getBoundingClientRect)
+            const slideW = measuredSlideWidth;
             const slideH = measuredSlideHeight;
             
             // Calcular proporções
             const viewportAspect = vw / vh;
-            const slideAspect = measuredSlideWidth / measuredSlideHeight; // Usar dimensões reais
-            
-            // Ajuste vertical apenas quando necessário
-            // Com fit contain, não precisa de offset pois não corta
-            let verticalOffset = 0;
+            const slideAspect = slideW / slideH;
             
             console.log(`📐 Aplicando scale: ${scale.toFixed(3)}, aspect viewport: ${viewportAspect.toFixed(2)}, slide: ${slideAspect.toFixed(2)}, vw: ${vw}, vh: ${vh}, slideW: ${slideW}, slideH: ${slideH}`);
             slideWrappers.forEach(wrapper => {

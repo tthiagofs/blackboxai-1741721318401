@@ -1293,19 +1293,49 @@
                     firstWrapper.style.position = 'absolute';
                     firstWrapper.style.top = '-9999px';
                     
-                    // Aguardar layout
+                    // Aguardar layout completo
                     await new Promise(resolve => requestAnimationFrame(resolve));
-                    await new Promise(resolve => setTimeout(resolve, 50));
+                    await new Promise(resolve => setTimeout(resolve, 100));
                     
-                    const rect = firstSlide.getBoundingClientRect();
-                    const slideWidth = rect.width || 1920;
-                    const slideHeight = rect.height || 1080;
+                    // Tentar obter dimensões do CSS primeiro (mais confiável)
+                    const computedStyle = window.getComputedStyle(firstSlide);
+                    let slideWidth = parseFloat(computedStyle.width) || 1920;
+                    let slideHeight = parseFloat(computedStyle.height) || 1080;
+                    
+                    // Se não conseguir do CSS, usar getBoundingClientRect
+                    if (slideWidth === 0 || slideHeight === 0) {
+                        const rect = firstSlide.getBoundingClientRect();
+                        slideWidth = rect.width || 1920;
+                        slideHeight = rect.height || 1080;
+                    }
+                    
+                    // Verificar se há estilos inline que possam estar sobrescrevendo
+                    const inlineWidth = firstSlide.style.width;
+                    const inlineHeight = firstSlide.style.height;
+                    if (inlineWidth) {
+                        slideWidth = parseFloat(inlineWidth) || slideWidth;
+                    }
+                    if (inlineHeight) {
+                        slideHeight = parseFloat(inlineHeight) || slideHeight;
+                    }
+                    
+                    // Fallback: se ainda for 0, usar valores padrão baseados no HTML
+                    // Verificar se o HTML tem width/height definidos
+                    const htmlContent = firstSlide.outerHTML;
+                    const widthMatch = htmlContent.match(/width[:\s]*(\d+)px/i);
+                    const heightMatch = htmlContent.match(/height[:\s]*(\d+)px/i);
+                    if (widthMatch && slideWidth < 1000) {
+                        slideWidth = parseInt(widthMatch[1]) || 1920;
+                    }
+                    if (heightMatch && slideHeight < 600) {
+                        slideHeight = parseInt(heightMatch[1]) || 1080;
+                    }
                     
                     // Salvar dimensões medidas para usar no calculateScale
                     measuredSlideWidth = slideWidth;
                     measuredSlideHeight = slideHeight;
                     
-                    console.log(`📐 Dimensões medidas do slide: ${slideWidth.toFixed(0)}x${slideHeight.toFixed(0)}`);
+                    console.log(`📐 Dimensões medidas do slide: ${slideWidth.toFixed(0)}x${slideHeight.toFixed(0)} (CSS: ${computedStyle.width}x${computedStyle.height})`);
                     
                     // Aplicar dimensões a todos os wrappers
                     slideWrappers.forEach(wrapper => {

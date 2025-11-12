@@ -186,7 +186,7 @@ function generateCoverPage(unitName, startDate, endDate, branding) {
     return `
     <div class="page slide capa">
         <!-- Logo Horizontal -->
-        ${logoUrl ? `<img class="capa-logo-horizontal" src="${logoUrl}" alt="Logo" style="height:48px;object-fit:contain;"/>` : `<div class="capa-logo-horizontal" style="height:48px;opacity:0.5;">${getLogoPlaceholderSVG('horizontal', 'normal')}</div>`}
+        ${logoUrl ? `<img class="capa-logo-horizontal" src="${logoUrl}" alt="Logo" style="height:72px;object-fit:contain;"/>` : `<div class="capa-logo-horizontal" style="height:72px;opacity:0.5;">${getLogoPlaceholderSVG('horizontal', 'normal')}</div>`}
 
         <div class="capa-content">
             <h1 class="capa-title">
@@ -511,30 +511,30 @@ function getStyles() {
       flex-direction: column;
       justify-content: center;
       align-items: flex-start;
-      padding: 50px 65px;
+      padding: 75px 98px;
       position: relative;
     }
 
     .capa-logo-horizontal {
       position: absolute;
-      top: 40px;
-      left: 65px;
-      height: 50px;
+      top: 60px;
+      left: 98px;
+      height: 75px;
     }
 
     .capa-content {
-      max-width: 600px;
+      max-width: 900px;
       z-index: 2;
       margin-left: 0;
     }
 
     .capa-title {
-      font-size: 62px;
+      font-size: 93px;
       font-weight: 700;
       color: #1e5091;
       line-height: 1.05;
-      margin-bottom: 50px;
-      letter-spacing: -1px;
+      margin-bottom: 75px;
+      letter-spacing: -1.5px;
     }
 
     .capa-title .destaque {
@@ -545,25 +545,25 @@ function getStyles() {
     .capa-unidade {
       display: flex;
       align-items: center;
-      gap: 12px;
-      font-size: 32px;
+      gap: 18px;
+      font-size: 48px;
       font-weight: 700;
       color: #2563A8;
-      margin-bottom: 25px;
+      margin-bottom: 38px;
     }
 
     .capa-unidade-icon {
-      width: 35px;
-      height: 35px;
+      width: 53px;
+      height: 53px;
       fill: #2563A8;
     }
 
     .capa-periodo {
       display: inline-block;
-      border: 3px solid #2563A8;
-      border-radius: 8px;
-      padding: 14px 35px;
-      font-size: 24px;
+      border: 4.5px solid #2563A8;
+      border-radius: 12px;
+      padding: 21px 53px;
+      font-size: 36px;
       color: #2563A8;
       font-weight: 400;
       background: white;
@@ -571,10 +571,10 @@ function getStyles() {
 
     .capa-rocket {
       position: absolute;
-      bottom: -80px;
-      right: -120px;
-      width: 700px;
-      height: 700px;
+      bottom: -120px;
+      right: -180px;
+      width: 1050px;
+      height: 1050px;
       z-index: 1;
     }
 
@@ -583,68 +583,68 @@ function getStyles() {
       bottom: 0;
       left: 0;
       width: 100%;
-      height: 15px;
+      height: 23px;
       background: #2563A8;
     }
 
     /* === PÁGINA 2 - RESULTADOS === */
     .resultados {
       background: linear-gradient(180deg, #ffffff 0%, #f5f5f5 100%);
-      padding: 50px 65px;
+      padding: 75px 98px;
     }
 
     .resultados-logo {
       position: absolute;
-      top: 40px;
-      right: 65px;
-      height: 42px;
+      top: 60px;
+      right: 98px;
+      height: 63px;
     }
 
     .resultados-title {
-      font-size: 42px;
+      font-size: 63px;
       font-weight: 700;
       color: #1e5091;
-      margin-bottom: 8px;
+      margin-bottom: 12px;
     }
 
     .resultados-subtitle {
-      font-size: 20px;
+      font-size: 30px;
       color: #7B4397;
       font-weight: 600;
-      margin-bottom: 35px;
+      margin-bottom: 53px;
     }
 
     .resultados-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 20px;
+      gap: 30px;
     }
 
     .resultados-column {
       display: flex;
       flex-direction: column;
-      gap: 15px;
+      gap: 23px;
     }
 
     .card-white {
       background: white;
-      border-radius: 12px;
-      padding: 16px 20px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+      border-radius: 18px;
+      padding: 24px 30px;
+      box-shadow: 0 6px 18px rgba(0,0,0,0.08);
     }
 
     .card-purple {
       background: linear-gradient(135deg, #7B4397 0%, #6B3387 100%);
-      border-radius: 12px;
-      padding: 16px 20px;
-      box-shadow: 0 4px 12px rgba(123,67,151,0.3);
+      border-radius: 18px;
+      padding: 24px 30px;
+      box-shadow: 0 6px 18px rgba(123,67,151,0.3);
     }
 
     .card-label {
-      font-size: 14px;
+      font-size: 21px;
       color: #666;
       font-weight: 500;
-      margin-bottom: 6px;
+      margin-bottom: 9px;
     }
 
     .card-purple .card-label {
@@ -652,7 +652,7 @@ function getStyles() {
     }
 
     .card-value {
-      font-size: 24px;
+      font-size: 36px;
       font-weight: 700;
       color: #2563A8;
       line-height: 1.1;
@@ -662,7 +662,7 @@ function getStyles() {
 
     .card-purple .card-value {
       color: white;
-      font-size: 18px;
+      font-size: 27px;
     }
 
     .card-split {
@@ -701,31 +701,31 @@ function getStyles() {
       bottom: 0;
       left: 0;
       width: 100%;
-      height: 15px;
+      height: 23px;
       background: #7B4397;
     }
 
     /* === PÁGINA 3 - RANKING === */
     .ranking {
       background: #672E7B;
-      padding: 50px 65px;
+      padding: 75px 98px;
       position: relative;
     }
 
     .ranking-logo {
       position: absolute;
-      top: 45px;
-      right: 65px;
-      width: 80px;
-      height: 80px;
+      top: 68px;
+      right: 98px;
+      width: 120px;
+      height: 120px;
       z-index: 2;
     }
 
     .ranking-title {
-      font-size: 54px;
+      font-size: 81px;
       font-weight: 400;
       color: white;
-      margin-bottom: 20px;
+      margin-bottom: 30px;
       margin-left: 0;
       line-height: 0.5;
       text-align: left;
@@ -744,11 +744,11 @@ function getStyles() {
     .ranking-grid {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
-      gap: 25px;
+      gap: 38px;
       position: relative;
       z-index: 2;
-      margin-top: 80px;
-      max-width: 1400px;
+      margin-top: 120px;
+      max-width: 2100px;
       margin-left: auto;
       margin-right: auto;
       justify-items: stretch;
@@ -825,7 +825,7 @@ function getStyles() {
 
     .ranking-thumbnail {
       width: 100%;
-      height: 300px;
+      height: 450px;
       background: #f0f0f0;
       overflow: hidden;
       display: flex;
@@ -866,21 +866,21 @@ function getStyles() {
 
     .ranking-metrics-bar {
       background: white;
-      padding: 12px 16px;
+      padding: 18px 24px;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      border-top: 1px solid #e5e7eb;
+      border-top: 1.5px solid #e5e7eb;
     }
 
     .ranking-metrics-leads {
-      font-size: 16px;
+      font-size: 24px;
       font-weight: 600;
       color: #1f2937;
     }
 
     .ranking-metrics-cost {
-      font-size: 16px;
+      font-size: 24px;
       font-weight: 600;
       color: #1f2937;
     }
@@ -895,7 +895,7 @@ function getStyles() {
 
     .proximos-left {
       background: #2563A8;
-      padding: 60px 50px;
+      padding: 90px 75px;
       display: flex;
       flex-direction: column;
       justify-content: center;
@@ -903,48 +903,48 @@ function getStyles() {
     }
 
     .proximos-title {
-      font-size: 52px;
+      font-size: 78px;
       font-weight: 700;
       color: white;
       line-height: 1.1;
-      margin-bottom: 50px;
+      margin-bottom: 75px;
     }
 
     .proximos-stepper {
       display: flex;
       flex-direction: column;
-      gap: 30px;
+      gap: 45px;
     }
 
     .proximos-step {
       display: flex;
       align-items: center;
-      gap: 20px;
+      gap: 30px;
     }
 
     .proximos-step-number {
-      width: 50px;
-      height: 50px;
+      width: 75px;
+      height: 75px;
       background: white;
       border-radius: 50%;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 26px;
+      font-size: 39px;
       font-weight: 700;
       color: #2563A8;
       flex-shrink: 0;
     }
 
     .proximos-step-text {
-      font-size: 20px;
+      font-size: 30px;
       color: white;
       font-weight: 500;
     }
 
     .proximos-right {
       background: white;
-      padding: 60px 50px;
+      padding: 90px 75px;
       display: flex;
       flex-direction: column;
       justify-content: center;
@@ -952,24 +952,24 @@ function getStyles() {
     }
 
     .proximos-subtitle {
-      font-size: 36px;
+      font-size: 54px;
       font-weight: 700;
       color: #2563A8;
-      margin-bottom: 25px;
+      margin-bottom: 38px;
     }
 
     .proximos-list {
       list-style: none;
       display: flex;
       flex-direction: column;
-      gap: 18px;
-      margin-bottom: 40px;
+      gap: 27px;
+      margin-bottom: 60px;
     }
 
     .proximos-list li {
-      font-size: 18px;
+      font-size: 27px;
       color: #333;
-      padding-left: 30px;
+      padding-left: 45px;
       position: relative;
     }
 
@@ -978,14 +978,14 @@ function getStyles() {
       position: absolute;
       left: 0;
       color: #7B4397;
-      font-size: 20px;
+      font-size: 30px;
     }
 
     .proximos-logo {
       position: absolute;
-      bottom: 40px;
-      right: 55px;
-      height: 40px;
+      bottom: 60px;
+      right: 83px;
+      height: 60px;
       z-index: 2;
     }
 
@@ -996,19 +996,19 @@ function getStyles() {
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      gap: 60px;
+      gap: 90px;
     }
 
     .obrigado-logo {
-      width: 150px;
-      height: 150px;
+      width: 225px;
+      height: 225px;
     }
 
     .obrigado-text {
-      font-size: 96px;
+      font-size: 144px;
       font-weight: 700;
       color: #0067D4;
-      letter-spacing: 4px;
+      letter-spacing: 6px;
       margin: 0;
       text-align: center;
     }

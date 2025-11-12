@@ -107,13 +107,23 @@
             display: block;
         }
         
-        /* Slide interno - manter TODOS os estilos originais do gerar-html-apresentacao.js */
-        /* NÃO sobrescrever nada - apenas garantir que overflow seja visible */
+        /* Slide interno - manter estilos originais, mas adicionar padding para margem interna */
         .presentation-mode .slide {
-            /* Os estilos originais já definem width: 1280px, height: 720px, padding, etc */
+            /* Os estilos originais já definem width: 1280px, height: 720px */
             overflow: visible;
             margin: 0;
+            padding: 20px; /* margem interna para evitar cortes */
             box-sizing: border-box;
+            position: relative;
+        }
+        
+        /* Container interno com scale para criar respiro sem perder proporções */
+        .presentation-mode .slide-content {
+            width: 100%;
+            height: 100%;
+            transform: scale(0.97); /* reduz 3% para criar respiro */
+            transform-origin: center center;
+            position: relative;
         }
         
         /* Garantir fundo roxo para ranking */

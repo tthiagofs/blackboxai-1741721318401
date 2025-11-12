@@ -1293,17 +1293,40 @@
             await new Promise(resolve => setTimeout(resolve, 200));
             
             // Definir dimensões do wrapper com base no slide renderizado
-            // Isso garante que o wrapper tenha o tamanho correto (1920x1080 ou o que vier do HTML)
-            slideWrappers.forEach(wrapper => {
-                const slide = wrapper.querySelector('.slide');
-                if (slide) {
-                    const rect = slide.getBoundingClientRect();
-                    // Definir dimensões do wrapper igual ao slide
-                    wrapper.style.width = `${rect.width}px`;
-                    wrapper.style.height = `${rect.height}px`;
-                    console.log(`📐 Wrapper ${slideWrappers.indexOf(wrapper) + 1}: ${rect.width.toFixed(0)}x${rect.height.toFixed(0)}`);
+            // Primeiro, tornar o primeiro slide temporariamente visível para medir
+            if (slideWrappers.length > 0) {
+                const firstWrapper = slideWrappers[0];
+                const firstSlide = firstWrapper.querySelector('.slide');
+                if (firstSlide) {
+                    // Tornar temporariamente visível para medir
+                    firstWrapper.style.display = 'block';
+                    firstWrapper.style.visibility = 'hidden';
+                    firstWrapper.style.position = 'absolute';
+                    firstWrapper.style.top = '-9999px';
+                    
+                    // Aguardar layout
+                    await new Promise(resolve => requestAnimationFrame(resolve));
+                    await new Promise(resolve => setTimeout(resolve, 50));
+                    
+                    const rect = firstSlide.getBoundingClientRect();
+                    const slideWidth = rect.width || 1920;
+                    const slideHeight = rect.height || 1080;
+                    
+                    console.log(`📐 Dimensões medidas do slide: ${slideWidth.toFixed(0)}x${slideHeight.toFixed(0)}`);
+                    
+                    // Aplicar dimensões a todos os wrappers
+                    slideWrappers.forEach(wrapper => {
+                        wrapper.style.width = `${slideWidth}px`;
+                        wrapper.style.height = `${slideHeight}px`;
+                    });
+                    
+                    // Restaurar estado do primeiro wrapper
+                    firstWrapper.style.display = 'none';
+                    firstWrapper.style.visibility = '';
+                    firstWrapper.style.position = '';
+                    firstWrapper.style.top = '';
                 }
-            });
+            }
             
             // Aguardar mais um frame para garantir que as dimensões foram aplicadas
             await new Promise(resolve => requestAnimationFrame(resolve));

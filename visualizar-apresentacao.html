@@ -1332,10 +1332,14 @@
             
             // Aguardar mais um frame para garantir que as dimensões foram aplicadas
             await new Promise(resolve => requestAnimationFrame(resolve));
+            await new Promise(resolve => setTimeout(resolve, 100));
             
             // Aplicar scale inicial
             window.presentationStartTime = Date.now();
             applyScale();
+            
+            // Aguardar mais um pouco para garantir que o scale foi aplicado
+            await new Promise(resolve => setTimeout(resolve, 100));
             
             // Resize handler (simples)
             const resizeHandler = () => {
@@ -1395,12 +1399,15 @@
             // Esconder todos os wrappers
             slideWrappers.forEach(wrapper => {
                 wrapper.classList.remove('active');
+                wrapper.style.display = 'none';
             });
             
             // Mostrar wrapper atual
             currentSlideIndex = index;
             if (slideWrappers[index]) {
                 slideWrappers[index].classList.add('active');
+                slideWrappers[index].style.display = 'block';
+                console.log(`📺 Mostrando slide ${index + 1}, dimensões: ${slideWrappers[index].style.width}x${slideWrappers[index].style.height}`);
             }
             
             // Atualizar contador

@@ -101,6 +101,7 @@
             transform-origin: center center;
             overflow: hidden; /* corta foguete/elementos que passam */
             background: #fff; /* fundo sólido para evitar "PNG bug" */
+            /* Forçar dimensões baseadas no slide dentro (será definido dinamicamente) */
         }
         
         .presentation-mode .slide-wrapper.active {
@@ -1184,10 +1185,13 @@
                 return Math.max(vw / 1920, (vh - marginVTop - marginVBottom) / 1080);
             }
             
-            // Obter dimensões reais do slide (já renderizado com estilos originais - 1920x1080)
+            // Obter dimensões reais do slide (já renderizado com estilos originais)
             const rect = slide.getBoundingClientRect();
             const slideW = rect.width || 1920;
             const slideH = rect.height || 1080;
+            
+            // Log para debug
+            console.log(`📏 Dimensões do slide: ${slideW.toFixed(0)}x${slideH.toFixed(0)} (esperado: 1920x1080)`);
             
             // Calcular proporções
             const viewportAspect = vw / vh;
@@ -1282,11 +1286,27 @@
                 console.log(`  ✅ Slide ${index + 1} criado`);
             });
             
-            // Aguardar renderização
+            // Aguardar renderização completa
             await new Promise(resolve => requestAnimationFrame(resolve));
             await document.fonts.ready;
             await waitForImages('.presentation-mode img');
-            await new Promise(resolve => setTimeout(resolve, 100));
+            await new Promise(resolve => setTimeout(resolve, 200));
+            
+            // Definir dimensões do wrapper com base no slide renderizado
+            // Isso garante que o wrapper tenha o tamanho correto (1920x1080 ou o que vier do HTML)
+            slideWrappers.forEach(wrapper => {
+                const slide = wrapper.querySelector('.slide');
+                if (slide) {
+                    const rect = slide.getBoundingClientRect();
+                    // Definir dimensões do wrapper igual ao slide
+                    wrapper.style.width = `${rect.width}px`;
+                    wrapper.style.height = `${rect.height}px`;
+                    console.log(`📐 Wrapper ${slideWrappers.indexOf(wrapper) + 1}: ${rect.width.toFixed(0)}x${rect.height.toFixed(0)}`);
+                }
+            });
+            
+            // Aguardar mais um frame para garantir que as dimensões foram aplicadas
+            await new Promise(resolve => requestAnimationFrame(resolve));
             
             // Aplicar scale inicial
             window.presentationStartTime = Date.now();

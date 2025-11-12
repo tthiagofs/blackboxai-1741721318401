@@ -1199,13 +1199,13 @@
             const slideAspect = slideW / slideH;
             
             // Calcular scale considerando margem vertical apenas
-            // Usar fit CONTAIN para não cortar conteúdo (garante que tudo apareça)
+            // Usar fit COVER para preencher tela cheia (pode cortar um pouco, mas preenche tudo)
             const scaleW = vw / slideW; // preenche toda largura (sem margem horizontal)
             const scaleH = (vh - marginVTop - marginVBottom) / slideH; // preenche altura com margem
             
-            // FIT CONTAIN: usar o MENOR scale para garantir que tudo apareça sem cortes
-            // Isso pode deixar bordas, mas não corta conteúdo
-            return Math.min(scaleW, scaleH);
+            // FIT COVER: usar o MAIOR scale para preencher toda a tela
+            // Isso preenche a tela, mas pode cortar um pouco do conteúdo
+            return Math.max(scaleW, scaleH);
         }
         
         // Aplicar scale nos wrappers adaptado à proporção da tela
@@ -1319,16 +1319,25 @@
                         slideHeight = parseFloat(inlineHeight) || slideHeight;
                     }
                     
-                    // Fallback: se ainda for 0, usar valores padrão baseados no HTML
-                    // Verificar se o HTML tem width/height definidos
+                    // Fallback: se ainda for 0 ou muito pequeno, verificar HTML e usar padrão 1920x1080
+                    // Verificar se o HTML tem width/height definidos no CSS inline ou no style tag
                     const htmlContent = firstSlide.outerHTML;
-                    const widthMatch = htmlContent.match(/width[:\s]*(\d+)px/i);
-                    const heightMatch = htmlContent.match(/height[:\s]*(\d+)px/i);
-                    if (widthMatch && slideWidth < 1000) {
-                        slideWidth = parseInt(widthMatch[1]) || 1920;
+                    const styleMatch = htmlContent.match(/\.page\s*\{[^}]*width[:\s]*(\d+)px[^}]*height[:\s]*(\d+)px/i);
+                    if (styleMatch) {
+                        const htmlWidth = parseInt(styleMatch[1]);
+                        const htmlHeight = parseInt(styleMatch[2]);
+                        if (htmlWidth > 1000 && htmlHeight > 600) {
+                            slideWidth = htmlWidth;
+                            slideHeight = htmlHeight;
+                            console.log(`📐 Dimensões encontradas no HTML: ${slideWidth}x${slideHeight}`);
+                        }
                     }
-                    if (heightMatch && slideHeight < 600) {
-                        slideHeight = parseInt(heightMatch[1]) || 1080;
+                    
+                    // Se ainda estiver em 1280x720, forçar 1920x1080 (nova apresentação deve ser Full HD)
+                    if (slideWidth === 1280 && slideHeight === 720) {
+                        console.warn('⚠️ Slide detectado como 1280x720, mas deveria ser 1920x1080. Forçando 1920x1080...');
+                        slideWidth = 1920;
+                        slideHeight = 1080;
                     }
                     
                     // Salvar dimensões medidas para usar no calculateScale

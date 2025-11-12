@@ -109,7 +109,7 @@
         
         /* Slide interno - manter estilos originais */
         .presentation-mode .slide {
-            /* Os estilos originais já definem width: 1280px, height: 720px */
+            /* Os estilos originais já definem width: 1920px, height: 1080px */
             overflow: visible;
             margin: 0;
             /* NÃO adicionar padding aqui - quebra o layout */
@@ -1174,20 +1174,20 @@
             // Obter dimensões reais do primeiro slide
             const firstWrapper = slideWrappers[0];
             if (!firstWrapper) {
-                // Fallback: calcular sem margem horizontal para preencher toda largura
-                return Math.max(vw / 1280, (vh - marginVTop - marginVBottom) / 720);
+                // Fallback: calcular sem margem horizontal para preencher toda largura (1920x1080)
+                return Math.max(vw / 1920, (vh - marginVTop - marginVBottom) / 1080);
             }
             
             const slide = firstWrapper.querySelector('.slide');
             if (!slide) {
-                // Fallback: calcular sem margem horizontal para preencher toda largura
-                return Math.max(vw / 1280, (vh - marginVTop - marginVBottom) / 720);
+                // Fallback: calcular sem margem horizontal para preencher toda largura (1920x1080)
+                return Math.max(vw / 1920, (vh - marginVTop - marginVBottom) / 1080);
             }
             
-            // Obter dimensões reais do slide (já renderizado com estilos originais)
+            // Obter dimensões reais do slide (já renderizado com estilos originais - 1920x1080)
             const rect = slide.getBoundingClientRect();
-            const slideW = rect.width || 1280;
-            const slideH = rect.height || 720;
+            const slideW = rect.width || 1920;
+            const slideH = rect.height || 1080;
             
             // Calcular proporções
             const viewportAspect = vw / vh;
@@ -1229,7 +1229,7 @@
             
             // Calcular proporções
             const viewportAspect = vw / vh;
-            const slideAspect = 1280 / 720; // 16:9
+            const slideAspect = 1920 / 1080; // 16:9 (Full HD)
             
             // Ajuste vertical apenas quando preenchendo verticalmente
             // Quando preenche horizontalmente, centraliza normalmente

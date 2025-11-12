@@ -186,7 +186,7 @@ function generateCoverPage(unitName, startDate, endDate, branding) {
     return `
     <div class="page slide capa">
         <!-- Logo Horizontal -->
-        ${logoUrl ? `<img class="capa-logo-horizontal" src="${logoUrl}" alt="Logo" style="height:72px;object-fit:contain;"/>` : `<div class="capa-logo-horizontal" style="height:72px;opacity:0.5;">${getLogoPlaceholderSVG('horizontal', 'normal')}</div>`}
+        ${logoUrl ? `<img class="capa-logo-horizontal" src="${logoUrl}" alt="Logo" style="height:65px;object-fit:contain;"/>` : `<div class="capa-logo-horizontal" style="height:65px;opacity:0.5;">${getLogoPlaceholderSVG('horizontal', 'normal')}</div>`}
 
         <div class="capa-content">
             <h1 class="capa-title">
@@ -511,19 +511,19 @@ function getStyles() {
       flex-direction: column;
       justify-content: center;
       align-items: flex-start;
-      padding: 75px 98px;
+      padding: 65px 85px;
       position: relative;
     }
 
     .capa-logo-horizontal {
       position: absolute;
-      top: 60px;
-      left: 98px;
-      height: 75px;
+      top: 50px;
+      left: 85px;
+      height: 65px;
     }
 
     .capa-content {
-      max-width: 900px;
+      max-width: 780px;
       z-index: 2;
       margin-left: 0;
     }
@@ -583,68 +583,68 @@ function getStyles() {
       bottom: 0;
       left: 0;
       width: 100%;
-      height: 23px;
+      height: 20px;
       background: #2563A8;
     }
 
     /* === PÁGINA 2 - RESULTADOS === */
     .resultados {
       background: linear-gradient(180deg, #ffffff 0%, #f5f5f5 100%);
-      padding: 75px 98px;
+      padding: 65px 85px;
     }
 
     .resultados-logo {
       position: absolute;
-      top: 60px;
-      right: 98px;
-      height: 63px;
+      top: 50px;
+      right: 85px;
+      height: 55px;
     }
 
     .resultados-title {
-      font-size: 63px;
+      font-size: 54px;
       font-weight: 700;
       color: #1e5091;
-      margin-bottom: 12px;
+      margin-bottom: 10px;
     }
 
     .resultados-subtitle {
-      font-size: 30px;
+      font-size: 26px;
       color: #7B4397;
       font-weight: 600;
-      margin-bottom: 53px;
+      margin-bottom: 45px;
     }
 
     .resultados-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 30px;
+      gap: 26px;
     }
 
     .resultados-column {
       display: flex;
       flex-direction: column;
-      gap: 23px;
+      gap: 20px;
     }
 
     .card-white {
       background: white;
-      border-radius: 18px;
-      padding: 24px 30px;
-      box-shadow: 0 6px 18px rgba(0,0,0,0.08);
+      border-radius: 15px;
+      padding: 20px 26px;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.08);
     }
 
     .card-purple {
       background: linear-gradient(135deg, #7B4397 0%, #6B3387 100%);
-      border-radius: 18px;
-      padding: 24px 30px;
-      box-shadow: 0 6px 18px rgba(123,67,151,0.3);
+      border-radius: 15px;
+      padding: 20px 26px;
+      box-shadow: 0 5px 15px rgba(123,67,151,0.3);
     }
 
     .card-label {
-      font-size: 21px;
+      font-size: 18px;
       color: #666;
       font-weight: 500;
-      margin-bottom: 9px;
+      margin-bottom: 8px;
     }
 
     .card-purple .card-label {
@@ -652,7 +652,7 @@ function getStyles() {
     }
 
     .card-value {
-      font-size: 36px;
+      font-size: 30px;
       font-weight: 700;
       color: #2563A8;
       line-height: 1.1;
@@ -662,7 +662,7 @@ function getStyles() {
 
     .card-purple .card-value {
       color: white;
-      font-size: 27px;
+      font-size: 23px;
     }
 
     .card-split {
@@ -701,31 +701,31 @@ function getStyles() {
       bottom: 0;
       left: 0;
       width: 100%;
-      height: 23px;
+      height: 20px;
       background: #7B4397;
     }
 
     /* === PÁGINA 3 - RANKING === */
     .ranking {
       background: #672E7B;
-      padding: 75px 98px;
+      padding: 65px 85px;
       position: relative;
     }
 
     .ranking-logo {
       position: absolute;
-      top: 68px;
-      right: 98px;
-      width: 120px;
-      height: 120px;
+      top: 58px;
+      right: 85px;
+      width: 100px;
+      height: 100px;
       z-index: 2;
     }
 
     .ranking-title {
-      font-size: 81px;
+      font-size: 70px;
       font-weight: 400;
       color: white;
-      margin-bottom: 30px;
+      margin-bottom: 26px;
       margin-left: 0;
       line-height: 0.5;
       text-align: left;
@@ -744,11 +744,11 @@ function getStyles() {
     .ranking-grid {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
-      gap: 38px;
+      gap: 32px;
       position: relative;
       z-index: 2;
-      margin-top: 120px;
-      max-width: 2100px;
+      margin-top: 100px;
+      max-width: 1800px;
       margin-left: auto;
       margin-right: auto;
       justify-items: stretch;
@@ -825,7 +825,7 @@ function getStyles() {
 
     .ranking-thumbnail {
       width: 100%;
-      height: 450px;
+      height: 380px;
       background: #f0f0f0;
       overflow: hidden;
       display: flex;
@@ -866,21 +866,21 @@ function getStyles() {
 
     .ranking-metrics-bar {
       background: white;
-      padding: 18px 24px;
+      padding: 15px 20px;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      border-top: 1.5px solid #e5e7eb;
+      border-top: 1.3px solid #e5e7eb;
     }
 
     .ranking-metrics-leads {
-      font-size: 24px;
+      font-size: 20px;
       font-weight: 600;
       color: #1f2937;
     }
 
     .ranking-metrics-cost {
-      font-size: 24px;
+      font-size: 20px;
       font-weight: 600;
       color: #1f2937;
     }
@@ -895,7 +895,7 @@ function getStyles() {
 
     .proximos-left {
       background: #2563A8;
-      padding: 90px 75px;
+      padding: 78px 65px;
       display: flex;
       flex-direction: column;
       justify-content: center;
@@ -903,48 +903,48 @@ function getStyles() {
     }
 
     .proximos-title {
-      font-size: 78px;
+      font-size: 68px;
       font-weight: 700;
       color: white;
       line-height: 1.1;
-      margin-bottom: 75px;
+      margin-bottom: 65px;
     }
 
     .proximos-stepper {
       display: flex;
       flex-direction: column;
-      gap: 45px;
+      gap: 39px;
     }
 
     .proximos-step {
       display: flex;
       align-items: center;
-      gap: 30px;
+      gap: 26px;
     }
 
     .proximos-step-number {
-      width: 75px;
-      height: 75px;
+      width: 65px;
+      height: 65px;
       background: white;
       border-radius: 50%;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 39px;
+      font-size: 34px;
       font-weight: 700;
       color: #2563A8;
       flex-shrink: 0;
     }
 
     .proximos-step-text {
-      font-size: 30px;
+      font-size: 26px;
       color: white;
       font-weight: 500;
     }
 
     .proximos-right {
       background: white;
-      padding: 90px 75px;
+      padding: 78px 65px;
       display: flex;
       flex-direction: column;
       justify-content: center;
@@ -952,24 +952,24 @@ function getStyles() {
     }
 
     .proximos-subtitle {
-      font-size: 54px;
+      font-size: 47px;
       font-weight: 700;
       color: #2563A8;
-      margin-bottom: 38px;
+      margin-bottom: 32px;
     }
 
     .proximos-list {
       list-style: none;
       display: flex;
       flex-direction: column;
-      gap: 27px;
-      margin-bottom: 60px;
+      gap: 23px;
+      margin-bottom: 52px;
     }
 
     .proximos-list li {
-      font-size: 27px;
+      font-size: 23px;
       color: #333;
-      padding-left: 45px;
+      padding-left: 39px;
       position: relative;
     }
 
@@ -978,14 +978,14 @@ function getStyles() {
       position: absolute;
       left: 0;
       color: #7B4397;
-      font-size: 30px;
+      font-size: 26px;
     }
 
     .proximos-logo {
       position: absolute;
-      bottom: 60px;
-      right: 83px;
-      height: 60px;
+      bottom: 52px;
+      right: 72px;
+      height: 52px;
       z-index: 2;
     }
 
@@ -996,19 +996,19 @@ function getStyles() {
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      gap: 90px;
+      gap: 78px;
     }
 
     .obrigado-logo {
-      width: 225px;
-      height: 225px;
+      width: 195px;
+      height: 195px;
     }
 
     .obrigado-text {
-      font-size: 144px;
+      font-size: 125px;
       font-weight: 700;
       color: #0067D4;
-      letter-spacing: 6px;
+      letter-spacing: 5px;
       margin: 0;
       text-align: center;
     }

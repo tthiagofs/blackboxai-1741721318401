@@ -53,8 +53,11 @@
             }
         }
         
-        /* Preview container */
+        /* Preview container - reduzir zoom para visualização */
         .presentation-container {
+            transform: scale(0.65);
+            transform-origin: top left;
+            margin-bottom: calc(1080px * 0.35); /* Espaço para o conteúdo reduzido */
             background: #f0f0f0;
             padding: 40px 20px;
             min-height: 100vh;

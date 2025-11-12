@@ -36,6 +36,17 @@
         max-width: 100vw !important;
     }
     
+    /* Reduzir zoom da apresentação na tela de geração */
+    #reportContainer {
+        transform: scale(0.6);
+        transform-origin: top left;
+        margin-bottom: calc(1080px * 0.4);
+    }
+    
+    #reportContainer .page {
+        margin: 20px auto;
+    }
+    
     /* REMOVIDO: CSS do modo PDF - Agora usando página dedicada print */
     
      /* Estilo do Modal */

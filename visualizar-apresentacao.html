@@ -1161,6 +1161,8 @@
         // Variáveis globais
         let slideWrappers = [];
         let resizeTimeout = null;
+        let measuredSlideWidth = 1920; // Dimensões padrão
+        let measuredSlideHeight = 1080; // Dimensões padrão
         
         // Calcular scale adaptado à proporção da tela
         // Preenche horizontalmente quando a tela for mais larga, verticalmente quando mais alta
@@ -1185,13 +1187,12 @@
                 return Math.max(vw / 1920, (vh - marginVTop - marginVBottom) / 1080);
             }
             
-            // Obter dimensões reais do slide (já renderizado com estilos originais)
-            const rect = slide.getBoundingClientRect();
-            const slideW = rect.width || 1920;
-            const slideH = rect.height || 1080;
+            // Usar as dimensões medidas (não getBoundingClientRect que pode estar errado)
+            const slideW = measuredSlideWidth;
+            const slideH = measuredSlideHeight;
             
             // Log para debug
-            console.log(`📏 Dimensões do slide: ${slideW.toFixed(0)}x${slideH.toFixed(0)} (esperado: 1920x1080)`);
+            console.log(`📏 Usando dimensões: ${slideW.toFixed(0)}x${slideH.toFixed(0)}`);
             
             // Calcular proporções
             const viewportAspect = vw / vh;
@@ -1225,15 +1226,12 @@
                 return;
             }
             
-            // Obter dimensões do slide para calcular offset
-            const firstWrapper = slideWrappers[0];
-            const slide = firstWrapper?.querySelector('.slide');
-            const rect = slide?.getBoundingClientRect();
-            const slideH = rect?.height || 1080;
+            // Usar dimensões medidas (não getBoundingClientRect)
+            const slideH = measuredSlideHeight;
             
             // Calcular proporções
             const viewportAspect = vw / vh;
-            const slideAspect = 1920 / 1080; // 16:9 (Full HD)
+            const slideAspect = measuredSlideWidth / measuredSlideHeight; // Usar dimensões reais
             
             // Ajuste vertical apenas quando preenchendo verticalmente
             // Quando preenche horizontalmente, centraliza normalmente
@@ -1311,6 +1309,10 @@
                     const rect = firstSlide.getBoundingClientRect();
                     const slideWidth = rect.width || 1920;
                     const slideHeight = rect.height || 1080;
+                    
+                    // Salvar dimensões medidas para usar no calculateScale
+                    measuredSlideWidth = slideWidth;
+                    measuredSlideHeight = slideHeight;
                     
                     console.log(`📐 Dimensões medidas do slide: ${slideWidth.toFixed(0)}x${slideHeight.toFixed(0)}`);
                     

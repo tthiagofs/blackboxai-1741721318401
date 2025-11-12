@@ -1161,29 +1161,27 @@
         let slideWrappers = [];
         let resizeTimeout = null;
         
-        // Calcular scale para tela cheia (FIT COVER) com margem interna maior
-        // Preenche a tela mas deixa uma margem interna generosa para evitar cortes
+        // Calcular scale adaptado à proporção da tela
+        // Preenche horizontalmente quando a tela for mais larga, verticalmente quando mais alta
         function calculateScale() {
             const vw = window.innerWidth;
             const vh = window.innerHeight;
             
-            // Margem interna maior (horizontal e vertical)
-            // Mais espaço no topo para evitar cortar logos e títulos
-            const marginH = 30; // margem horizontal
+            // Margem interna (apenas vertical para evitar cortar logo/títulos)
             const marginVTop = 40; // margem superior (maior para evitar cortar logo)
             const marginVBottom = 30; // margem inferior
             
             // Obter dimensões reais do primeiro slide
             const firstWrapper = slideWrappers[0];
             if (!firstWrapper) {
-                // Fallback: calcular com margem
-                return Math.max((vw - marginH * 2) / 1280, (vh - marginVTop - marginVBottom) / 720);
+                // Fallback: calcular sem margem horizontal para preencher toda largura
+                return Math.max(vw / 1280, (vh - marginVTop - marginVBottom) / 720);
             }
             
             const slide = firstWrapper.querySelector('.slide');
             if (!slide) {
-                // Fallback: calcular com margem
-                return Math.max((vw - marginH * 2) / 1280, (vh - marginVTop - marginVBottom) / 720);
+                // Fallback: calcular sem margem horizontal para preencher toda largura
+                return Math.max(vw / 1280, (vh - marginVTop - marginVBottom) / 720);
             }
             
             // Obter dimensões reais do slide (já renderizado com estilos originais)
@@ -1191,34 +1189,63 @@
             const slideW = rect.width || 1280;
             const slideH = rect.height || 720;
             
-            // Calcular scale considerando margem interna
-            // Subtrai as margens do viewport para criar espaço interno
-            const scaleW = (vw - marginH * 2) / slideW;
-            const scaleH = (vh - marginVTop - marginVBottom) / slideH;
+            // Calcular proporções
+            const viewportAspect = vw / vh;
+            const slideAspect = slideW / slideH;
             
-            // COVER: preenche a tela mas com margem interna generosa
-            // Usa o menor scale para garantir que tudo caiba
-            return Math.min(scaleW, scaleH);
+            // Calcular scale considerando margem vertical apenas
+            const scaleW = vw / slideW; // preenche toda largura (sem margem horizontal)
+            const scaleH = (vh - marginVTop - marginVBottom) / slideH; // preenche altura com margem
+            
+            // Se a tela for mais larga que a apresentação, priorizar preencher horizontalmente
+            // Se a tela for mais alta, priorizar preencher verticalmente
+            if (viewportAspect > slideAspect) {
+                // Tela mais larga: preencher horizontalmente (pode ter bordas verticais)
+                return scaleW;
+            } else {
+                // Tela mais alta/estreita: preencher verticalmente (pode ter bordas horizontais)
+                return scaleH;
+            }
         }
         
-        // Aplicar scale nos wrappers com ajuste vertical para "puxar para baixo"
+        // Aplicar scale nos wrappers adaptado à proporção da tela
         function applyScale() {
             if (isApplyingScale) return;
             isApplyingScale = true;
             
+            const vw = window.innerWidth;
+            const vh = window.innerHeight;
             const scale = calculateScale();
             if (!scale) {
                 isApplyingScale = false;
                 return;
             }
             
-            // Ajuste vertical para "puxar para baixo" e evitar cortar no topo
-            // Move ligeiramente para baixo (5-10px) para dar mais espaço no topo
-            const verticalOffset = 10;
+            // Obter dimensões do slide para calcular offset
+            const firstWrapper = slideWrappers[0];
+            const slide = firstWrapper?.querySelector('.slide');
+            const rect = slide?.getBoundingClientRect();
+            const slideH = rect?.height || 720;
             
-            console.log(`📐 Aplicando scale: ${scale.toFixed(3)} com offset vertical: ${verticalOffset}px`);
+            // Calcular proporções
+            const viewportAspect = vw / vh;
+            const slideAspect = 1280 / 720; // 16:9
+            
+            // Ajuste vertical apenas quando preenchendo verticalmente
+            // Quando preenche horizontalmente, centraliza normalmente
+            let verticalOffset = 0;
+            if (viewportAspect <= slideAspect) {
+                // Tela mais alta: aplicar offset para evitar cortar no topo
+                verticalOffset = 10;
+            }
+            
+            console.log(`📐 Aplicando scale: ${scale.toFixed(3)}, aspect viewport: ${viewportAspect.toFixed(2)}, slide: ${slideAspect.toFixed(2)}, offset: ${verticalOffset}px`);
             slideWrappers.forEach(wrapper => {
-                wrapper.style.transform = `translate(-50%, calc(-50% + ${verticalOffset}px)) scale(${scale})`;
+                if (verticalOffset > 0) {
+                    wrapper.style.transform = `translate(-50%, calc(-50% + ${verticalOffset}px)) scale(${scale})`;
+                } else {
+                    wrapper.style.transform = `translate(-50%, -50%) scale(${scale})`;
+                }
             });
             
             setTimeout(() => { isApplyingScale = false; }, 50);

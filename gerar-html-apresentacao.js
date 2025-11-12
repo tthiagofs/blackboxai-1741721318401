@@ -186,7 +186,7 @@ function generateCoverPage(unitName, startDate, endDate, branding) {
     return `
     <div class="page slide capa">
         <!-- Logo Horizontal -->
-        ${logoUrl ? `<img class="capa-logo-horizontal" src="${logoUrl}" alt="Logo" style="height:65px;object-fit:contain;"/>` : `<div class="capa-logo-horizontal" style="height:65px;opacity:0.5;">${getLogoPlaceholderSVG('horizontal', 'normal')}</div>`}
+        ${logoUrl ? `<img class="capa-logo-horizontal" src="${logoUrl}" alt="Logo" style="height:50px;object-fit:contain;"/>` : `<div class="capa-logo-horizontal" style="height:50px;opacity:0.5;">${getLogoPlaceholderSVG('horizontal', 'normal')}</div>`}
 
         <div class="capa-content">
             <h1 class="capa-title">
@@ -495,8 +495,8 @@ function getStyles() {
     }
 
     .page {
-      width: 1920px;
-      height: 1080px;
+      width: 1280px;
+      height: 720px;
       background: white;
       margin: 20px auto;
       position: relative;
@@ -511,29 +511,29 @@ function getStyles() {
       flex-direction: column;
       justify-content: center;
       align-items: flex-start;
-      padding: 65px 85px;
+      padding: 50px 65px;
       position: relative;
     }
 
     .capa-logo-horizontal {
       position: absolute;
-      top: 50px;
-      left: 85px;
-      height: 65px;
+      top: 40px;
+      left: 65px;
+      height: 50px;
     }
 
     .capa-content {
-      max-width: 780px;
+      max-width: 600px;
       z-index: 2;
       margin-left: 0;
     }
 
     .capa-title {
-      font-size: 93px;
+      font-size: 72px;
       font-weight: 700;
       color: #1e5091;
       line-height: 1.05;
-      margin-bottom: 75px;
+      margin-bottom: 58px;
       letter-spacing: -1.5px;
     }
 
@@ -545,25 +545,25 @@ function getStyles() {
     .capa-unidade {
       display: flex;
       align-items: center;
-      gap: 18px;
-      font-size: 48px;
+      gap: 14px;
+      font-size: 37px;
       font-weight: 700;
       color: #2563A8;
-      margin-bottom: 38px;
+      margin-bottom: 29px;
     }
 
     .capa-unidade-icon {
-      width: 53px;
-      height: 53px;
+      width: 41px;
+      height: 41px;
       fill: #2563A8;
     }
 
     .capa-periodo {
       display: inline-block;
-      border: 4.5px solid #2563A8;
-      border-radius: 12px;
-      padding: 21px 53px;
-      font-size: 36px;
+      border: 3.5px solid #2563A8;
+      border-radius: 9px;
+      padding: 16px 41px;
+      font-size: 28px;
       color: #2563A8;
       font-weight: 400;
       background: white;
@@ -571,10 +571,10 @@ function getStyles() {
 
     .capa-rocket {
       position: absolute;
-      bottom: -120px;
-      right: -180px;
-      width: 1050px;
-      height: 1050px;
+      bottom: -92px;
+      right: -138px;
+      width: 808px;
+      height: 808px;
       z-index: 1;
     }
 
@@ -590,28 +590,28 @@ function getStyles() {
     /* === PÁGINA 2 - RESULTADOS === */
     .resultados {
       background: linear-gradient(180deg, #ffffff 0%, #f5f5f5 100%);
-      padding: 65px 85px;
+      padding: 50px 65px;
     }
 
     .resultados-logo {
       position: absolute;
-      top: 50px;
-      right: 85px;
-      height: 55px;
+      top: 40px;
+      right: 65px;
+      height: 42px;
     }
 
     .resultados-title {
-      font-size: 54px;
+      font-size: 42px;
       font-weight: 700;
       color: #1e5091;
-      margin-bottom: 10px;
+      margin-bottom: 8px;
     }
 
     .resultados-subtitle {
-      font-size: 26px;
+      font-size: 20px;
       color: #7B4397;
       font-weight: 600;
-      margin-bottom: 45px;
+      margin-bottom: 35px;
     }
 
     .resultados-grid {

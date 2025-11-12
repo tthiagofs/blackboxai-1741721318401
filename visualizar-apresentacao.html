@@ -1199,18 +1199,13 @@
             const slideAspect = slideW / slideH;
             
             // Calcular scale considerando margem vertical apenas
+            // Usar fit CONTAIN para não cortar conteúdo (garante que tudo apareça)
             const scaleW = vw / slideW; // preenche toda largura (sem margem horizontal)
             const scaleH = (vh - marginVTop - marginVBottom) / slideH; // preenche altura com margem
             
-            // Se a tela for mais larga que a apresentação, priorizar preencher horizontalmente
-            // Se a tela for mais alta, priorizar preencher verticalmente
-            if (viewportAspect > slideAspect) {
-                // Tela mais larga: preencher horizontalmente (pode ter bordas verticais)
-                return scaleW;
-            } else {
-                // Tela mais alta/estreita: preencher verticalmente (pode ter bordas horizontais)
-                return scaleH;
-            }
+            // FIT CONTAIN: usar o MENOR scale para garantir que tudo apareça sem cortes
+            // Isso pode deixar bordas, mas não corta conteúdo
+            return Math.min(scaleW, scaleH);
         }
         
         // Aplicar scale nos wrappers adaptado à proporção da tela
@@ -1233,13 +1228,9 @@
             const viewportAspect = vw / vh;
             const slideAspect = measuredSlideWidth / measuredSlideHeight; // Usar dimensões reais
             
-            // Ajuste vertical apenas quando preenchendo verticalmente
-            // Quando preenche horizontalmente, centraliza normalmente
+            // Ajuste vertical apenas quando necessário
+            // Com fit contain, não precisa de offset pois não corta
             let verticalOffset = 0;
-            if (viewportAspect <= slideAspect) {
-                // Tela mais alta: aplicar offset para evitar cortar no topo
-                verticalOffset = 10;
-            }
             
             console.log(`📐 Aplicando scale: ${scale.toFixed(3)}, aspect viewport: ${viewportAspect.toFixed(2)}, slide: ${slideAspect.toFixed(2)}, offset: ${verticalOffset}px`);
             slideWrappers.forEach(wrapper => {

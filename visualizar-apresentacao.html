@@ -99,13 +99,15 @@
             left: 50%;
             transform: translate(-50%, -50%);
             transform-origin: center center;
-            overflow: hidden; /* corta foguete/elementos que passam */
+            overflow: hidden !important; /* corta foguete/elementos que passam */
             background: #fff; /* fundo sólido para evitar "PNG bug" */
+            margin: 0;
+            padding: 0;
             /* Forçar dimensões baseadas no slide dentro (será definido dinamicamente) */
         }
         
         .presentation-mode .slide-wrapper.active {
-            display: block;
+            display: block !important;
         }
         
         /* Slide interno - manter estilos originais */
@@ -1228,13 +1230,17 @@
             // Com fit contain, não precisa de offset pois não corta
             let verticalOffset = 0;
             
-            console.log(`📐 Aplicando scale: ${scale.toFixed(3)}, aspect viewport: ${viewportAspect.toFixed(2)}, slide: ${slideAspect.toFixed(2)}, offset: ${verticalOffset}px`);
+            console.log(`📐 Aplicando scale: ${scale.toFixed(3)}, aspect viewport: ${viewportAspect.toFixed(2)}, slide: ${slideAspect.toFixed(2)}, vw: ${vw}, vh: ${vh}, slideW: ${slideW}, slideH: ${slideH}`);
             slideWrappers.forEach(wrapper => {
-                if (verticalOffset > 0) {
-                    wrapper.style.transform = `translate(-50%, calc(-50% + ${verticalOffset}px)) scale(${scale})`;
-                } else {
-                    wrapper.style.transform = `translate(-50%, -50%) scale(${scale})`;
-                }
+                // Garantir posicionamento absoluto e centralização
+                wrapper.style.position = 'absolute';
+                wrapper.style.top = '50%';
+                wrapper.style.left = '50%';
+                wrapper.style.margin = '0';
+                wrapper.style.padding = '0';
+                // Aplicar transform com scale
+                wrapper.style.transform = `translate(-50%, -50%) scale(${scale})`;
+                wrapper.style.transformOrigin = 'center center';
             });
             
             setTimeout(() => { isApplyingScale = false; }, 50);

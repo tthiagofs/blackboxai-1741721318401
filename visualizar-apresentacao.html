@@ -1243,7 +1243,19 @@
                 const slide = page.cloneNode(true);
                 slide.classList.add('slide');
                 
-                // Adicionar slide ao wrapper (SEM safe area - mantém layout original)
+                // Criar container interno com scale para criar respiro sem perder proporções
+                const slideContent = document.createElement('div');
+                slideContent.className = 'slide-content';
+                
+                // Mover todos os filhos do slide para dentro do slideContent
+                while (slide.firstChild) {
+                    slideContent.appendChild(slide.firstChild);
+                }
+                
+                // Adicionar slideContent ao slide
+                slide.appendChild(slideContent);
+                
+                // Adicionar slide ao wrapper
                 wrapper.appendChild(slide);
                 slidesContainer.appendChild(wrapper);
                 

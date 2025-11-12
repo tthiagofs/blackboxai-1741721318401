@@ -64,51 +64,52 @@
             margin: 20px auto;
         }
         
-        /* Container em full screen, sem cortar */
+        /* Container em full screen - SIMPLIFICADO */
         .presentation-mode {
             background: #000;
             position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            width: 100vw;
-            height: 100vh;
+            top: 0 !important;
+            left: 0 !important;
+            width: 100vw !important;
+            height: 100vh !important;
+            margin: 0 !important;
+            padding: 0 !important;
             z-index: 9999;
             overflow: hidden;
             display: none;
-            align-items: center;
-            justify-content: center;
         }
         
         .presentation-mode.active {
             display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
         }
         
-        /* Garantir que a área de páginas não corte os slides */
+        /* Container de slides - SIMPLIFICADO */
         .presentation-mode #presentationSlides {
-            width: 100vw;
-            height: 100vh;
+            position: relative;
+            width: 100vw !important;
+            height: 100vh !important;
+            margin: 0 !important;
+            padding: 0 !important;
             display: flex;
             align-items: center;
             justify-content: center;
-            position: relative;
-            overflow: visible;
+            overflow: hidden;
         }
         
-        /* Slide Wrapper: contém o slide e aplica scale */
+        /* Slide Wrapper - SIMPLIFICADO e centralizado */
         .presentation-mode .slide-wrapper {
             display: none;
             position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
+            top: 50% !important;
+            left: 50% !important;
+            margin: 0 !important;
+            padding: 0 !important;
             transform-origin: center center;
-            overflow: hidden !important; /* corta foguete/elementos que passam */
-            background: #fff; /* fundo sólido para evitar "PNG bug" */
-            margin: 0;
-            padding: 0;
-            /* Forçar dimensões baseadas no slide dentro (será definido dinamicamente) */
+            overflow: hidden !important;
+            background: #fff;
+            /* Dimensões serão definidas via JavaScript */
         }
         
         .presentation-mode .slide-wrapper.active {
@@ -1171,76 +1172,45 @@
         let measuredSlideWidth = 1920; // Dimensões padrão
         let measuredSlideHeight = 1080; // Dimensões padrão
         
-        // Calcular scale para preencher tela cheia (FIT COVER)
-        // Preenche toda a tela sem margens para tela cheia real
+        // Calcular scale para preencher tela cheia (FIT COVER) - SIMPLIFICADO
         function calculateScale() {
             const vw = window.innerWidth;
             const vh = window.innerHeight;
             
-            // Obter dimensões reais do primeiro slide
-            const firstWrapper = slideWrappers[0];
-            if (!firstWrapper) {
-                // Fallback: calcular para preencher tela cheia (1920x1080)
-                return Math.max(vw / 1920, vh / 1080);
-            }
+            // Usar dimensões medidas (1920x1080 ou o que foi detectado)
+            const slideW = measuredSlideWidth || 1920;
+            const slideH = measuredSlideHeight || 1080;
             
-            const slide = firstWrapper.querySelector('.slide');
-            if (!slide) {
-                // Fallback: calcular para preencher tela cheia (1920x1080)
-                return Math.max(vw / 1920, vh / 1080);
-            }
+            // Calcular scale para FIT COVER (preenche toda tela)
+            const scaleW = vw / slideW;
+            const scaleH = vh / slideH;
             
-            // Usar as dimensões medidas (não getBoundingClientRect que pode estar errado)
-            const slideW = measuredSlideWidth;
-            const slideH = measuredSlideHeight;
+            // Usar o MAIOR scale para preencher toda a tela
+            const scale = Math.max(scaleW, scaleH);
             
-            // Log para debug
-            console.log(`📏 Usando dimensões: ${slideW.toFixed(0)}x${slideH.toFixed(0)}`);
+            console.log(`📏 Scale calculado: ${scale.toFixed(3)} (vw: ${vw}, vh: ${vh}, slide: ${slideW}x${slideH})`);
             
-            // Calcular proporções
-            const viewportAspect = vw / vh;
-            const slideAspect = slideW / slideH;
-            
-            // Calcular scale para preencher tela cheia (FIT COVER)
-            // Sem margem horizontal para preencher toda largura
-            const scaleW = vw / slideW; // preenche toda largura
-            const scaleH = vh / slideH; // preenche toda altura (sem margem para tela cheia real)
-            
-            // FIT COVER: usar o MAIOR scale para preencher toda a tela
-            // Isso preenche a tela completamente, pode cortar um pouco do conteúdo
-            return Math.max(scaleW, scaleH);
+            return scale;
         }
         
-        // Aplicar scale nos wrappers adaptado à proporção da tela
+        // Aplicar scale nos wrappers - SIMPLIFICADO
         function applyScale() {
             if (isApplyingScale) return;
             isApplyingScale = true;
             
-            const vw = window.innerWidth;
-            const vh = window.innerHeight;
             const scale = calculateScale();
-            if (!scale) {
+            if (!scale || scale <= 0) {
                 isApplyingScale = false;
                 return;
             }
             
-            // Usar dimensões medidas (não getBoundingClientRect)
-            const slideW = measuredSlideWidth;
-            const slideH = measuredSlideHeight;
-            
-            // Calcular proporções
-            const viewportAspect = vw / vh;
-            const slideAspect = slideW / slideH;
-            
-            console.log(`📐 Aplicando scale: ${scale.toFixed(3)}, aspect viewport: ${viewportAspect.toFixed(2)}, slide: ${slideAspect.toFixed(2)}, vw: ${vw}, vh: ${vh}, slideW: ${slideW}, slideH: ${slideH}`);
             slideWrappers.forEach(wrapper => {
-                // Garantir posicionamento absoluto e centralização
+                // Garantir posicionamento e centralização
                 wrapper.style.position = 'absolute';
                 wrapper.style.top = '50%';
                 wrapper.style.left = '50%';
                 wrapper.style.margin = '0';
                 wrapper.style.padding = '0';
-                // Aplicar transform com scale
                 wrapper.style.transform = `translate(-50%, -50%) scale(${scale})`;
                 wrapper.style.transformOrigin = 'center center';
             });

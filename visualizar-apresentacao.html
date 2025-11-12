@@ -1164,27 +1164,23 @@
         let measuredSlideWidth = 1920; // Dimensões padrão
         let measuredSlideHeight = 1080; // Dimensões padrão
         
-        // Calcular scale adaptado à proporção da tela
-        // Preenche horizontalmente quando a tela for mais larga, verticalmente quando mais alta
+        // Calcular scale para preencher tela cheia (FIT COVER)
+        // Preenche toda a tela sem margens para tela cheia real
         function calculateScale() {
             const vw = window.innerWidth;
             const vh = window.innerHeight;
             
-            // Margem interna (apenas vertical para evitar cortar logo/títulos)
-            const marginVTop = 40; // margem superior (maior para evitar cortar logo)
-            const marginVBottom = 30; // margem inferior
-            
             // Obter dimensões reais do primeiro slide
             const firstWrapper = slideWrappers[0];
             if (!firstWrapper) {
-                // Fallback: calcular sem margem horizontal para preencher toda largura (1920x1080)
-                return Math.max(vw / 1920, (vh - marginVTop - marginVBottom) / 1080);
+                // Fallback: calcular para preencher tela cheia (1920x1080)
+                return Math.max(vw / 1920, vh / 1080);
             }
             
             const slide = firstWrapper.querySelector('.slide');
             if (!slide) {
-                // Fallback: calcular sem margem horizontal para preencher toda largura (1920x1080)
-                return Math.max(vw / 1920, (vh - marginVTop - marginVBottom) / 1080);
+                // Fallback: calcular para preencher tela cheia (1920x1080)
+                return Math.max(vw / 1920, vh / 1080);
             }
             
             // Usar as dimensões medidas (não getBoundingClientRect que pode estar errado)
@@ -1198,13 +1194,13 @@
             const viewportAspect = vw / vh;
             const slideAspect = slideW / slideH;
             
-            // Calcular scale considerando margem vertical apenas
-            // Usar fit COVER para preencher tela cheia (pode cortar um pouco, mas preenche tudo)
-            const scaleW = vw / slideW; // preenche toda largura (sem margem horizontal)
-            const scaleH = (vh - marginVTop - marginVBottom) / slideH; // preenche altura com margem
+            // Calcular scale para preencher tela cheia (FIT COVER)
+            // Sem margem horizontal para preencher toda largura
+            const scaleW = vw / slideW; // preenche toda largura
+            const scaleH = vh / slideH; // preenche toda altura (sem margem para tela cheia real)
             
             // FIT COVER: usar o MAIOR scale para preencher toda a tela
-            // Isso preenche a tela, mas pode cortar um pouco do conteúdo
+            // Isso preenche a tela completamente, pode cortar um pouco do conteúdo
             return Math.max(scaleW, scaleH);
         }
         
@@ -1350,6 +1346,12 @@
                     slideWrappers.forEach(wrapper => {
                         wrapper.style.width = `${slideWidth}px`;
                         wrapper.style.height = `${slideHeight}px`;
+                        // Garantir que o wrapper esteja centralizado
+                        wrapper.style.position = 'absolute';
+                        wrapper.style.top = '50%';
+                        wrapper.style.left = '50%';
+                        wrapper.style.transform = 'translate(-50%, -50%)';
+                        wrapper.style.transformOrigin = 'center center';
                     });
                     
                     // Restaurar estado do primeiro wrapper

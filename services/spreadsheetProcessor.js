@@ -367,3 +367,53 @@ export function validateSpreadsheet(file) {
     return true;
 }
 
+/**
+ * Conta linhas da primeira aba (excl. cabeçalho índice 0) com pelo menos uma célula preenchida.
+ */
+export function countLikelyDataRowsFromSpreadsheetBuffer(arrayBuffer) {
+    try {
+        const wb = XLSX.read(new Uint8Array(arrayBuffer), { type: 'array' });
+        const sheet = wb.Sheets[wb.SheetNames[0]];
+        const rows = XLSX.utils.sheet_to_json(sheet, { header: 'A' });
+        let n = 0;
+        for (let i = 1; i < rows.length; i++) {
+            const row = rows[i];
+            if (!row) continue;
+            const vals = Object.values(row);
+            if (vals.some((v) => v !== undefined && v !== null && String(v).trim() !== '')) n++;
+        }
+        return n;
+    } catch (e) {
+        console.warn('[countLikelyDataRowsFromSpreadsheetBuffer]', e);
+        return 0;
+    }
+}
+
+/**
+ * Evita importação “silenciosa” quando a planilha não bate com o layout (ex.: outro CRM após já ter Clinicorp).
+ * @param {File} file
+ * @param {{ rawData?: unknown[], allData?: unknown[] }} newBudgetData resultado de processSpreadsheet
+ * @param {boolean} hasExistingTrafficRows se já existe rawData na unidade
+ */
+export async function assertSpreadsheetImportIsCompatible(file, newBudgetData, hasExistingTrafficRows) {
+    const buf = await file.arrayBuffer();
+    const approxFilled = countLikelyDataRowsFromSpreadsheetBuffer(buf);
+    const nAll = (newBudgetData.allData || []).length;
+    const nRaw = (newBudgetData.rawData || []).length;
+
+    if (hasExistingTrafficRows && nRaw === 0 && nAll === 0) {
+        throw new Error(
+            'Este arquivo não trouxe nenhuma linha reconhecível no layout Clinicorp (colunas A–L: data em B, status em C, valor em J, fonte em L), ou ficou inteiro fora dos filtros de tráfego.\n\n' +
+                'A importação foi cancelada e os dados atuais foram mantidos.\n\n' +
+                'Se é exportação de outro CRM (ex.: Sistema OC com colunas diferentes), use a planilha no formato Clinicorp nesta unidade.'
+        );
+    }
+
+    if (approxFilled > 15 && nAll === 0) {
+        throw new Error(
+            'Não foi possível ler orçamentos desta planilha (nenhuma data válida na coluna B no formato esperado).\n\n' +
+                'Confirme se é a exportação Clinicorp (layout A–L) ou se o arquivo não está vazio/corrompido.'
+        );
+    }
+}
+

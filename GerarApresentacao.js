@@ -1629,7 +1629,7 @@ async function generateCompleteReport() {
         console.log('🎨 Renderizando apresentação na tela...');
         
         // Importar função de geração de HTML
-        const { generatePresentationHTML } = await import('./gerar-html-apresentacao.js?v=1.2');
+        const { generatePresentationHTML } = await import('./gerar-html-apresentacao.js?v=1.4');
         
         // Carregar branding do projeto (logos e uso)
         let branding = {};

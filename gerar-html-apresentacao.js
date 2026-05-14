@@ -886,10 +886,13 @@ function getStyles() {
     }
 
     /* === PÁGINA 4 - PRÓXIMOS PASSOS === */
+    /* Mesma altura que .page (1280×720 = 16:9). 1080px quebrava impressão/PDF. */
     .proximos-passos {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      height: 1080px;
+      height: 720px;
+      min-height: 720px;
+      max-height: 720px;
       overflow: hidden;
     }
 
@@ -997,6 +1000,10 @@ function getStyles() {
       align-items: center;
       justify-content: center;
       gap: 78px;
+      height: 720px;
+      min-height: 720px;
+      max-height: 720px;
+      overflow: hidden;
     }
 
     .obrigado-logo {

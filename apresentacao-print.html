@@ -35,6 +35,19 @@
             background: white;
         }
 
+        /*
+         * HTML salvo embute <style> com .page / .proximos-passos em px (ex.: 1080px).
+         * Esse bloco vem depois no head mas antes do fragmento; usamos !important para
+         * garantir que impressão/Puppeteer use sempre o quadro 16:9 da @page.
+         */
+        #printContainer .page.slide {
+            width: 297mm !important;
+            height: 167mm !important;
+            min-height: 167mm !important;
+            max-height: 167mm !important;
+            box-sizing: border-box !important;
+        }
+
 
         /* Último slide não precisa de quebra */
         .slide:last-child {

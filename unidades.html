@@ -202,7 +202,7 @@
         import { onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
         import { doc, getDoc, deleteDoc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
         import { listUnits, createUnit, getUnit, updateBudgetData } from './services/unitsService.js';
-        import { processSpreadsheet, validateSpreadsheet, mergeSpreadsheetData, assertSpreadsheetMatchesUnitCrm } from './services/spreadsheetProcessor.js';
+        import { processSpreadsheet, validateSpreadsheet, mergeSpreadsheetData } from './services/spreadsheetProcessor.js';
         import { fbAuth } from './auth.js?v=3.0';
         import { googleAuth } from './authGoogle.js?v=3.0';
 
@@ -310,33 +310,11 @@
 
         let loadUnitsSeq = 0;
 
-        async function listUnitsWithRetry(projectId, maxAttempts = 4) {
-            let lastError;
-            for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-                try {
-                    const units = await Promise.race([
-                        listUnits(projectId),
-                        new Promise((_, reject) =>
-                            setTimeout(() => reject(new Error('Tempo esgotado ao buscar unidades.')), 38000)
-                        )
-                    ]);
-                    return units;
-                } catch (e) {
-                    lastError = e;
-                    console.warn(`[listUnitsWithRetry] tentativa ${attempt}/${maxAttempts} falhou:`, e?.message || e);
-                    if (attempt < maxAttempts) {
-                        await new Promise((r) => setTimeout(r, 800 * attempt));
-                    }
-                }
-            }
-            throw lastError;
-        }
-
         // Carregar unidades
         async function loadUnits() {
             const mySeq = ++loadUnitsSeq;
             try {
-                const units = await listUnitsWithRetry(currentProjectId);
+                const units = await listUnits(currentProjectId);
                 if (mySeq !== loadUnitsSeq) return;
 
                 allUnits = units;
@@ -816,8 +794,12 @@
                 const unit = await getUnit(currentProjectId, unitId);
                 console.log('✅ [handleFileUpload] Unidade carregada:', unit.name);
 
-                const crmForFile = unit.crmSource || 'clinicorp';
-                await assertSpreadsheetMatchesUnitCrm(file, crmForFile);
+                if ((unit.crmSource || 'clinicorp') === 'sistema_oc') {
+                    throw new Error(
+                        'Importação no formato Sistema OC ainda não está disponível nesta versão.\n\n' +
+                        'Use o CRM Clinicorp nesta unidade (salve nas configurações) e envie a planilha Clinicorp (colunas A–L).'
+                    );
+                }
 
                 const processingOverlay = document.getElementById(`processing-${unitId}`);
                 console.log('🎨 [handleFileUpload] Overlay encontrado:', !!processingOverlay);
@@ -856,12 +838,8 @@
                     dots: trafficSourcesMeta.dots || trafficSourcesGoogle.dots
                 };
                 
-                // Para customKeywords, usar Meta como padrão
-                const crm = crmForFile;
+                // Palavras-chave (Meta como base; importação neste fluxo só com CRM Clinicorp)
                 let customKeywords = unit.customKeywords?.meta || unit.customKeywords || { enabled: false, terms: [] };
-                if (crm === 'sistema_oc') {
-                    customKeywords = { enabled: false, terms: [] };
-                }
                 
                 console.log('🔍 [handleFileUpload] Filtros combinados:', combinedTrafficSources);
                 

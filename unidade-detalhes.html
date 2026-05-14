@@ -219,6 +219,7 @@
                         </div>
                         <p id="crmOcKeywordsHint" class="hidden text-xs text-amber-800 mt-2 max-w-2xl">
                             Com <strong>Sistema OC</strong>, o filtro <strong>“Outros + Observações”</strong> fica oculto e desativado (essa exportação não traz observações para esse canal).
+                            <span class="block mt-1 font-medium">Importação de planilha nesta versão só está disponível no formato Clinicorp (colunas A–L). Para enviar arquivo, volte a Clinicorp, salve, importe e depois pode alternar o CRM se precisar para relatórios.</span>
                         </p>
                     </div>
                     
@@ -427,7 +428,7 @@ trafego pago</textarea>
         import { auth, db } from './config/firebase.js';
         import { onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
         import { getUnit, updateUnit, updateBudgetData, removeBudgetData } from './services/unitsService.js';
-        import { processSpreadsheet, validateSpreadsheet, mergeSpreadsheetData, assertSpreadsheetMatchesUnitCrm } from './services/spreadsheetProcessor.js';
+        import { processSpreadsheet, validateSpreadsheet, mergeSpreadsheetData } from './services/spreadsheetProcessor.js';
         import { fbAuth } from './auth.js?v=3.0';
         import { googleAuth } from './authGoogle.js?v=3.0';
 
@@ -446,13 +447,15 @@ trafego pago</textarea>
             const hasBudget = !!(currentUnit && currentUnit.budgetData);
             if (fromCrm === 'clinicorp' && toCrm === 'sistema_oc') {
                 return hasBudget
-                    ? 'Ao mudar para Sistema OC e salvar, os dados da planilha importada no formato Clinicorp serão apagados. Será necessário importar de novo uma planilha compatível com o Sistema OC.\n\nDeseja continuar?'
-                    : 'O Sistema OC usa colunas diferentes do Clinicorp. Depois de salvar, use apenas planilhas no formato do Sistema OC.\n\nDeseja continuar?';
+                    ? 'Ao mudar para Sistema OC e salvar, os dados da planilha atual serão removidos.\n\n' +
+                      'A importação de arquivo continua usando apenas o layout Clinicorp (até haver suporte nativo ao OC). Você poderá reimportar depois com o CRM em Clinicorp e salvar.\n\n' +
+                      'Deseja continuar?'
+                    : 'Com Sistema OC, os filtros de relatório mudam (sem «Outros + Observações»). A importação de planilha nesta versão ainda é só no layout Clinicorp.\n\nDeseja continuar?';
             }
             if (fromCrm === 'sistema_oc' && toCrm === 'clinicorp') {
                 return hasBudget
-                    ? 'Ao mudar para Clinicorp e salvar, os dados da planilha importada no formato Sistema OC serão apagados. Será necessário importar de novo uma planilha compatível com o Clinicorp.\n\nDeseja continuar?'
-                    : 'O Clinicorp usa colunas diferentes do Sistema OC. Depois de salvar, use planilhas no formato Clinicorp.\n\nDeseja continuar?';
+                    ? 'Ao mudar para Clinicorp e salvar, os dados da planilha atual serão removidos. Depois você pode importar de novo a exportação Clinicorp (colunas A–L).\n\nDeseja continuar?'
+                    : 'Voltar para Clinicorp permite importar de novo no layout Clinicorp (colunas A–L).\n\nDeseja continuar?';
             }
             return 'Trocar o CRM altera o formato esperado da planilha.\n\nDeseja continuar?';
         }
@@ -1274,23 +1277,24 @@ trafego pago</textarea>
         // Processar arquivo
         async function handleFile(file) {
             try {
-                // Validar
                 validateSpreadsheet(file);
-                
+
+                currentUnit = await getUnit(currentProjectId, currentUnitId);
+
+                if ((currentUnit.crmSource || 'clinicorp') === 'sistema_oc') {
+                    throw new Error(
+                        'Importação no formato Sistema OC ainda não está disponível nesta versão.\n\n' +
+                        'O sistema só processa planilhas no layout Clinicorp (colunas A–L: data em B, status em C, valor em J, fonte em L).\n\n' +
+                        'Para importar orçamentos, escolha Clinicorp em «Escolha o CRM», salve a configuração e envie a exportação Clinicorp.'
+                    );
+                }
+
                 console.log('📊 Processando arquivo:', file.name);
-                
-                // Mostrar progress
+
                 document.getElementById('uploadProgress').classList.remove('hidden');
                 updateProgress(0);
-                
-                // Atualizar unidade para pegar configurações mais recentes
-                currentUnit = await getUnit(currentProjectId, currentUnitId);
-                
-                updateProgress(30);
+                updateProgress(20);
 
-                const crmForFile = currentUnit.crmSource || 'clinicorp';
-                await assertSpreadsheetMatchesUnitCrm(file, crmForFile);
-                
                 // ⭐ Combinar filtros Meta e Google em um objeto plano para processamento inicial
                 // O processSpreadsheet espera um objeto plano, não aninhado
                 const trafficSourcesMeta = currentUnit.trafficSources?.meta || {
@@ -1320,12 +1324,8 @@ trafego pago</textarea>
                     dots: trafficSourcesMeta.dots || trafficSourcesGoogle.dots
                 };
                 
-                // Para customKeywords, usar Meta como padrão (ou combinar se necessário)
-                const crm = crmForFile;
+                // Palavras-chave customizadas (Meta como base para o processador)
                 let customKeywords = currentUnit.customKeywords?.meta || currentUnit.customKeywords || { enabled: false, terms: [] };
-                if (crm === 'sistema_oc') {
-                    customKeywords = { enabled: false, terms: [] };
-                }
                 
                 console.log('🔍 Filtros combinados para processamento:', {
                     combinedTrafficSources,

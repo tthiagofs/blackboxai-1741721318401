@@ -36,15 +36,14 @@
         }
 
         /*
-         * HTML salvo embute <style> com .page / .proximos-passos em px (ex.: 1080px).
-         * Esse bloco vem depois no head mas antes do fragmento; usamos !important para
-         * garantir que impressão/Puppeteer use sempre o quadro 16:9 da @page.
+         * Apenas Próximos Passos: HTML antigo podia vir com height:1080px (quebrava PDF).
+         * NÃO forçar 167mm em todas as .page.slide — o template usa 1280×720px e 167mm
+         * fica mais baixo que o layout em px, cortando ROI, ranking etc.
          */
-        #printContainer .page.slide {
-            width: 297mm !important;
-            height: 167mm !important;
-            min-height: 167mm !important;
-            max-height: 167mm !important;
+        #printContainer .page.slide.proximos-passos {
+            height: 720px !important;
+            min-height: 720px !important;
+            max-height: 720px !important;
             box-sizing: border-box !important;
         }
 

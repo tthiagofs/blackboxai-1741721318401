@@ -202,7 +202,7 @@
         import { onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
         import { doc, getDoc, deleteDoc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
         import { listUnits, createUnit, getUnit, updateBudgetData } from './services/unitsService.js';
-        import { processSpreadsheet, validateSpreadsheet, mergeSpreadsheetData } from './services/spreadsheetProcessor.js';
+        import { processSpreadsheet, validateSpreadsheet, mergeSpreadsheetData, assertSpreadsheetMatchesUnitCrm } from './services/spreadsheetProcessor.js';
         import { fbAuth } from './auth.js?v=3.0';
         import { googleAuth } from './authGoogle.js?v=3.0';
 
@@ -308,25 +308,68 @@
             return result;
         }
 
+        let loadUnitsSeq = 0;
+
+        async function listUnitsWithRetry(projectId, maxAttempts = 4) {
+            let lastError;
+            for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+                try {
+                    const units = await Promise.race([
+                        listUnits(projectId),
+                        new Promise((_, reject) =>
+                            setTimeout(() => reject(new Error('Tempo esgotado ao buscar unidades.')), 38000)
+                        )
+                    ]);
+                    return units;
+                } catch (e) {
+                    lastError = e;
+                    console.warn(`[listUnitsWithRetry] tentativa ${attempt}/${maxAttempts} falhou:`, e?.message || e);
+                    if (attempt < maxAttempts) {
+                        await new Promise((r) => setTimeout(r, 800 * attempt));
+                    }
+                }
+            }
+            throw lastError;
+        }
+
         // Carregar unidades
         async function loadUnits() {
+            const mySeq = ++loadUnitsSeq;
             try {
-                const units = await listUnits(currentProjectId);
-                allUnits = units; // Salvar cache
-                
-                document.getElementById('loadingSection').classList.add('hidden');
-                
+                const units = await listUnitsWithRetry(currentProjectId);
+                if (mySeq !== loadUnitsSeq) return;
+
+                allUnits = units;
+
+                document.getElementById('emptyState').classList.add('hidden');
+                document.getElementById('unitsGrid').classList.add('hidden');
+
                 if (units.length === 0) {
                     document.getElementById('emptyState').classList.remove('hidden');
                 } else {
                     renderUnits(units);
                 }
             } catch (error) {
+                if (mySeq !== loadUnitsSeq) return;
                 console.error('Erro ao carregar unidades:', error);
-                document.getElementById('loadingSection').classList.add('hidden');
+                document.getElementById('unitsGrid').classList.add('hidden');
                 document.getElementById('emptyState').classList.remove('hidden');
+                alert(
+                    'Não foi possível carregar as unidades. Verifique a conexão e tente novamente.\n\n' +
+                        (error?.message ? `Detalhe: ${error.message}` : '')
+                );
+            } finally {
+                if (mySeq === loadUnitsSeq) {
+                    document.getElementById('loadingSection')?.classList.add('hidden');
+                }
             }
         }
+
+        window.addEventListener('pageshow', (ev) => {
+            if (ev.persisted && currentProjectId) {
+                loadUnits().catch((e) => console.error('[pageshow] loadUnits:', e));
+            }
+        });
 
         // Renderizar unidades
         function renderUnits(units) {
@@ -765,12 +808,17 @@
                 console.log('📊 [handleFileUpload] Unidade:', unitId);
                 console.log('📄 [handleFileUpload] Arquivo:', file.name, '| Tamanho:', file.size, 'bytes');
                 
-                // Validar arquivo
                 console.log('🔍 [handleFileUpload] Validando arquivo...');
                 validateSpreadsheet(file);
                 console.log('✅ [handleFileUpload] Arquivo válido!');
-                
-                // Mostrar overlay de processamento
+
+                console.log('🔍 [handleFileUpload] Buscando configurações da unidade...');
+                const unit = await getUnit(currentProjectId, unitId);
+                console.log('✅ [handleFileUpload] Unidade carregada:', unit.name);
+
+                const crmForFile = unit.crmSource || 'clinicorp';
+                await assertSpreadsheetMatchesUnitCrm(file, crmForFile);
+
                 const processingOverlay = document.getElementById(`processing-${unitId}`);
                 console.log('🎨 [handleFileUpload] Overlay encontrado:', !!processingOverlay);
                 if (processingOverlay) {
@@ -778,10 +826,6 @@
                     console.log('🎨 [handleFileUpload] Overlay exibido');
                 }
                 
-                // Buscar configurações da unidade
-                console.log('🔍 [handleFileUpload] Buscando configurações da unidade...');
-                const unit = await getUnit(currentProjectId, unitId);
-                console.log('✅ [handleFileUpload] Unidade carregada:', unit.name);
                 console.log('⚙️ [handleFileUpload] Fontes de tráfego:', unit.trafficSources);
                 
                 // ⭐ Combinar filtros Meta e Google em um objeto plano para processamento inicial
@@ -813,7 +857,7 @@
                 };
                 
                 // Para customKeywords, usar Meta como padrão
-                const crm = unit.crmSource || 'clinicorp';
+                const crm = crmForFile;
                 let customKeywords = unit.customKeywords?.meta || unit.customKeywords || { enabled: false, terms: [] };
                 if (crm === 'sistema_oc') {
                     customKeywords = { enabled: false, terms: [] };

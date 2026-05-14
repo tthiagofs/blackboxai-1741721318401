@@ -426,8 +426,8 @@ trafego pago</textarea>
     <script type="module">
         import { auth, db } from './config/firebase.js';
         import { onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
-        import { getUnit, updateUnit, updateBudgetData } from './services/unitsService.js';
-        import { processSpreadsheet, validateSpreadsheet, mergeSpreadsheetData } from './services/spreadsheetProcessor.js';
+        import { getUnit, updateUnit, updateBudgetData, removeBudgetData } from './services/unitsService.js';
+        import { processSpreadsheet, validateSpreadsheet, mergeSpreadsheetData, assertSpreadsheetMatchesUnitCrm } from './services/spreadsheetProcessor.js';
         import { fbAuth } from './auth.js?v=3.0';
         import { googleAuth } from './authGoogle.js?v=3.0';
 
@@ -439,8 +439,29 @@ trafego pago</textarea>
         let suppressUnsavedHints = false;
         /** Valores dos selects de vinculação considerados “já salvos” */
         let linkedAccountsSnapshot = { meta: '', google: '' };
-        /** CRM refletido na UI antes do último clique (para detectar troca Clinicorp → Sistema OC) */
+        /** CRM refletido na UI antes do último clique (para confirmar qualquer troca de opção) */
         let uiCrmSourceSnapshot = 'clinicorp';
+
+        function crmSwitchConfirmMessage(fromCrm, toCrm) {
+            const hasBudget = !!(currentUnit && currentUnit.budgetData);
+            if (fromCrm === 'clinicorp' && toCrm === 'sistema_oc') {
+                return hasBudget
+                    ? 'Ao mudar para Sistema OC e salvar, os dados da planilha importada no formato Clinicorp serão apagados. Será necessário importar de novo uma planilha compatível com o Sistema OC.\n\nDeseja continuar?'
+                    : 'O Sistema OC usa colunas diferentes do Clinicorp. Depois de salvar, use apenas planilhas no formato do Sistema OC.\n\nDeseja continuar?';
+            }
+            if (fromCrm === 'sistema_oc' && toCrm === 'clinicorp') {
+                return hasBudget
+                    ? 'Ao mudar para Clinicorp e salvar, os dados da planilha importada no formato Sistema OC serão apagados. Será necessário importar de novo uma planilha compatível com o Clinicorp.\n\nDeseja continuar?'
+                    : 'O Clinicorp usa colunas diferentes do Sistema OC. Depois de salvar, use planilhas no formato Clinicorp.\n\nDeseja continuar?';
+            }
+            return 'Trocar o CRM altera o formato esperado da planilha.\n\nDeseja continuar?';
+        }
+
+        function revertCrmRadios(toCrm) {
+            document.getElementById('crmClinicorp').checked = toCrm === 'clinicorp';
+            document.getElementById('crmSistemaOc').checked = toCrm === 'sistema_oc';
+            applyCrmSourceKeywordsVisibility();
+        }
 
         function markConfigDirty() {
             if (suppressUnsavedHints) return;
@@ -796,15 +817,10 @@ trafego pago</textarea>
             el.addEventListener('change', () => {
                 const prev = uiCrmSourceSnapshot;
                 const now = getSelectedCrmSource();
-                if (prev === 'clinicorp' && now === 'sistema_oc') {
-                    const hasBudget = !!(currentUnit && currentUnit.budgetData);
-                    const msg = hasBudget
-                        ? 'Ao mudar para Sistema OC e salvar, os dados da planilha importada no formato Clinicorp serão apagados. Será necessário importar de novo uma planilha compatível com o Sistema OC.\n\nDeseja continuar?'
-                        : 'O Sistema OC usa colunas diferentes do Clinicorp. Depois de salvar, use apenas planilhas no formato do Sistema OC.\n\nDeseja continuar?';
+                if (prev !== now) {
+                    const msg = crmSwitchConfirmMessage(prev, now);
                     if (!window.confirm(msg)) {
-                        document.getElementById('crmClinicorp').checked = true;
-                        document.getElementById('crmSistemaOc').checked = false;
-                        applyCrmSourceKeywordsVisibility();
+                        revertCrmRadios(prev);
                         return;
                     }
                 }
@@ -879,9 +895,21 @@ trafego pago</textarea>
                     terms: googleTerms
                 };
                 
-                // ⭐ REPROCESSAR PLANILHA SE EXISTIR allData (planilhas antigas)
+                const previousCrm = currentUnit.crmSource || 'clinicorp';
+                const crmChanged = previousCrm !== crmSource;
+                let clearedBudgetForCrmChange = false;
+
+                if (crmChanged && currentUnit.budgetData) {
+                    await removeBudgetData(currentProjectId, currentUnitId);
+                    currentUnit.budgetData = null;
+                    hideBudgetDataUi();
+                    clearedBudgetForCrmChange = true;
+                }
+
+                // ⭐ REPROCESSAR PLANILHA SE EXISTIR allData (somente se o CRM não mudou — senão os dados já foram removidos)
                 let updatedBudgetData = currentUnit.budgetData;
-                if (currentUnit.budgetData?.allData && currentUnit.budgetData.allData.length > 0) {
+                let reprocessedForFilters = false;
+                if (!crmChanged && currentUnit.budgetData?.allData && currentUnit.budgetData.allData.length > 0) {
                     console.log('🔄 Reprocessando planilha com novos filtros...');
                     try {
                         const { processSpreadsheet } = await import('./services/spreadsheetProcessor.js');
@@ -1016,6 +1044,7 @@ trafego pago</textarea>
                     
                     // ⭐ Atualizar currentUnit com os novos dados para atualizar a tela
                     currentUnit.budgetData = updatedBudgetData;
+                    reprocessedForFilters = true;
                     
                     // ⭐ Atualizar os cards na tela com os novos dados
                     showBudgetData();
@@ -1028,7 +1057,13 @@ trafego pago</textarea>
                 
                 clearConfigDirty();
                 uiCrmSourceSnapshot = getSelectedCrmSource();
-                alert('✅ Configurações salvas com sucesso!' + (updatedBudgetData && updatedBudgetData !== currentUnit.budgetData ? '\n\n📊 Planilha reprocessada automaticamente com os novos filtros.' : ''));
+                let extraMsg = '';
+                if (clearedBudgetForCrmChange) {
+                    extraMsg = '\n\n📋 Dados da planilha foram removidos por causa da troca de CRM. Importe uma planilha no formato do CRM selecionado.';
+                } else if (reprocessedForFilters) {
+                    extraMsg = '\n\n📊 Planilha reprocessada automaticamente com os novos filtros.';
+                }
+                alert('✅ Configurações salvas com sucesso!' + extraMsg);
             } catch (error) {
                 console.error('Erro ao salvar configurações:', error);
                 alert('Erro ao salvar configurações');
@@ -1252,6 +1287,9 @@ trafego pago</textarea>
                 currentUnit = await getUnit(currentProjectId, currentUnitId);
                 
                 updateProgress(30);
+
+                const crmForFile = currentUnit.crmSource || 'clinicorp';
+                await assertSpreadsheetMatchesUnitCrm(file, crmForFile);
                 
                 // ⭐ Combinar filtros Meta e Google em um objeto plano para processamento inicial
                 // O processSpreadsheet espera um objeto plano, não aninhado
@@ -1283,7 +1321,7 @@ trafego pago</textarea>
                 };
                 
                 // Para customKeywords, usar Meta como padrão (ou combinar se necessário)
-                const crm = currentUnit.crmSource || 'clinicorp';
+                const crm = crmForFile;
                 let customKeywords = currentUnit.customKeywords?.meta || currentUnit.customKeywords || { enabled: false, terms: [] };
                 if (crm === 'sistema_oc') {
                     customKeywords = { enabled: false, terms: [] };
@@ -1357,6 +1395,13 @@ trafego pago</textarea>
         function updateProgress(percent) {
             document.getElementById('progressBar').style.width = `${percent}%`;
             document.getElementById('progressPercent').textContent = `${percent}%`;
+        }
+
+        function hideBudgetDataUi() {
+            document.getElementById('dataCards')?.classList.add('hidden');
+            document.getElementById('fileInfo')?.classList.add('hidden');
+            document.getElementById('missingPeriodsContainer')?.classList.add('hidden');
+            document.getElementById('noDuplicatesContainer')?.classList.add('hidden');
         }
 
         // Mostrar dados da planilha

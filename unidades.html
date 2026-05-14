@@ -813,7 +813,11 @@
                 };
                 
                 // Para customKeywords, usar Meta como padrão
-                const customKeywords = unit.customKeywords?.meta || unit.customKeywords || { enabled: false, terms: [] };
+                const crm = unit.crmSource || 'clinicorp';
+                let customKeywords = unit.customKeywords?.meta || unit.customKeywords || { enabled: false, terms: [] };
+                if (crm === 'sistema_oc') {
+                    customKeywords = { enabled: false, terms: [] };
+                }
                 
                 console.log('🔍 [handleFileUpload] Filtros combinados:', combinedTrafficSources);
                 

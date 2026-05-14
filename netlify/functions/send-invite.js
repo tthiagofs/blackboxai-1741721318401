@@ -37,10 +37,23 @@ exports.handler = async (event, context) => {
 
     sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
+    const fromEmail = process.env.SENDGRID_FROM_EMAIL;
+    if (!fromEmail) {
+      console.error('❌ SENDGRID_FROM_EMAIL não configurado');
+      return {
+        statusCode: 500,
+        headers,
+        body: JSON.stringify({
+          error: 'Remetente de email não configurado',
+          details: 'Defina SENDGRID_FROM_EMAIL com um remetente verificado no SendGrid.',
+        }),
+      };
+    }
+
     // Template do email
     const msg = {
       to: email,
-      from: process.env.SENDGRID_FROM_EMAIL || 'noreply@insightflow.app',
+      from: fromEmail,
       subject: 'Você foi convidado para o Insightflow!',
       html: `
         <!DOCTYPE html>
@@ -158,14 +171,23 @@ Se você não esperava receber este email, pode ignorá-lo com segurança.
     };
 
   } catch (error) {
-    console.error('❌ Erro ao enviar email:', error);
+    const sendGridErrorBody = error?.response?.body;
+    const sendGridError = sendGridErrorBody?.errors?.[0];
+    const statusCode = error?.code || error?.response?.statusCode || 500;
+
+    console.error('❌ Erro ao enviar email:', {
+      message: error.message,
+      statusCode,
+      sendGridErrorBody,
+    });
     
     return {
       statusCode: 500,
       headers,
       body: JSON.stringify({ 
         error: 'Erro ao enviar email de convite',
-        details: error.message 
+        details: sendGridError?.message || error.message,
+        statusCode,
       }),
     };
   }

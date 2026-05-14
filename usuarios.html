@@ -254,6 +254,30 @@
 
         let allUsers = [];
 
+        async function sendInviteEmail(email, inviteLink) {
+            const response = await fetch('/api/send-invite', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ email, inviteLink }),
+            });
+
+            let responseData = null;
+            try {
+                responseData = await response.json();
+            } catch (_) {
+                responseData = null;
+            }
+
+            if (!response.ok) {
+                const errorMessage = responseData?.details || responseData?.error || `HTTP ${response.status}`;
+                throw new Error(errorMessage);
+            }
+
+            return responseData;
+        }
+
         // Tabs
         usersTab.addEventListener('click', () => {
             switchTab('users');
@@ -519,27 +543,13 @@
                 const inviteLink = `${window.location.origin}/cadastro.html?email=${encodeURIComponent(email)}`;
                 
                 try {
-                    const response = await fetch('/api/send-invite', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({
-                            email: email,
-                            inviteLink: inviteLink
-                        }),
-                    });
-
-                    if (response.ok) {
-                        console.log('✅ Email de convite reenviado');
-                    } else {
-                        console.warn('⚠️ Erro ao enviar email, mas convite foi criado');
-                    }
+                    await sendInviteEmail(email, inviteLink);
+                    console.log('✅ Email de convite reenviado');
+                    alert(`✅ Convite reenviado com sucesso para ${email}!`);
                 } catch (emailError) {
                     console.warn('⚠️ Erro ao enviar email:', emailError);
+                    alert(`⚠️ Convite recriado, mas o e-mail não foi enviado.\n\nMotivo: ${emailError.message}\n\nVerifique SENDGRID_FROM_EMAIL (remetente verificado) e SENDGRID_API_KEY no Vercel.`);
                 }
-
-                alert(`✅ Convite reenviado com sucesso para ${email}!`);
                 loadInvites();
                 
             } catch (error) {
@@ -611,28 +621,13 @@
                 const inviteLink = `${window.location.origin}/cadastro.html?email=${encodeURIComponent(email)}`;
                 
                 try {
-                    const response = await fetch('/api/send-invite', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({
-                            email: email,
-                            inviteLink: inviteLink
-                        }),
-                    });
-
-                    if (response.ok) {
-                        console.log('✅ Email de convite enviado');
-                    } else {
-                        console.warn('⚠️ Erro ao enviar email, mas convite foi criado');
-                    }
+                    await sendInviteEmail(email, inviteLink);
+                    console.log('✅ Email de convite enviado');
+                    alert('Convite criado com sucesso! Um email foi enviado para ' + email);
                 } catch (emailError) {
                     console.warn('⚠️ Erro ao enviar email:', emailError);
-                    // Não interrompe o fluxo, convite já foi criado
+                    alert(`⚠️ Convite criado, mas o e-mail não foi enviado.\n\nMotivo: ${emailError.message}\n\nVerifique SENDGRID_FROM_EMAIL (remetente verificado) e SENDGRID_API_KEY no Vercel.`);
                 }
-
-                alert('Convite criado com sucesso! Um email foi enviado para ' + email);
                 inviteModal.classList.add('hidden');
                 inviteForm.reset();
                 

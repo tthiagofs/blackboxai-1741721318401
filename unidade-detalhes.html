@@ -6,6 +6,15 @@
     <title>Unidade - Insightflow</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+      @keyframes insightflow-save-pulse {
+        0%, 100% { box-shadow: 0 0 0 0 rgba(251, 191, 36, 0.55); }
+        50% { box-shadow: 0 0 0 10px rgba(251, 191, 36, 0); }
+      }
+      .btn-needs-save-pulse {
+        animation: insightflow-save-pulse 1.35s ease-in-out infinite;
+      }
+    </style>
     <!-- XLSX.js -->
     <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
 </head>
@@ -168,6 +177,23 @@
                         <i class="fas fa-filter text-blue-600"></i>
                         Configurações de Filtro
                     </h2>
+
+                    <div class="mb-6 pb-6 border-b border-gray-200">
+                        <p class="text-sm font-semibold text-gray-800 mb-3">Escolha o CRM:</p>
+                        <div class="flex flex-wrap items-center gap-6">
+                            <label class="inline-flex items-center gap-2 cursor-pointer select-none">
+                                <input type="radio" name="crmSource" id="crmClinicorp" value="clinicorp" class="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500" checked>
+                                <span class="text-gray-800">Clinicorp</span>
+                            </label>
+                            <label class="inline-flex items-center gap-2 cursor-pointer select-none">
+                                <input type="radio" name="crmSource" id="crmSistemaOc" value="sistema_oc" class="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500">
+                                <span class="text-gray-800">Sistema OC</span>
+                            </label>
+                        </div>
+                        <p id="crmOcKeywordsHint" class="hidden text-xs text-amber-800 mt-2 max-w-2xl">
+                            Com <strong>Sistema OC</strong>, o filtro <strong>“Outros + Observações”</strong> fica oculto e desativado (essa exportação não traz observações para esse canal).
+                        </p>
+                    </div>
                     
                     <!-- Duas seções lado a lado: Meta e Google -->
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
@@ -210,7 +236,7 @@
                                 </label>
                             </div>
                             
-                            <div>
+                            <div id="keywordsBlockMeta">
                                 <label class="flex items-center gap-3 p-3 border-2 border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer mb-3">
                                     <input type="checkbox" id="cbCustomKeywordsMeta" class="w-5 h-5 text-blue-600">
                                     <i class="fas fa-search text-blue-600"></i>
@@ -273,7 +299,7 @@ trafego pago</textarea>
                                 </label>
                             </div>
                             
-                            <div>
+                            <div id="keywordsBlockGoogle">
                                 <label class="flex items-center gap-3 p-3 border-2 border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer mb-3">
                                     <input type="checkbox" id="cbCustomKeywordsGoogle" class="w-5 h-5 text-blue-600">
                                     <i class="fas fa-search text-blue-600"></i>
@@ -315,10 +341,13 @@ trafego pago</textarea>
                         </label>
                     </div>
 
-                    <button id="saveConfigBtn" class="w-full px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold">
+                    <button id="saveConfigBtn" type="button" class="w-full px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold">
                         <i class="fas fa-save mr-2"></i>
                         Salvar Configurações
                     </button>
+                    <p id="saveConfigHint" class="hidden mt-2 text-center text-sm text-amber-800">
+                        Há alterações não salvas. Clique em <strong>Salvar Configurações</strong> para persistir.
+                    </p>
                 </div>
 
                 <!-- Vincular Contas de Anúncios -->
@@ -353,10 +382,13 @@ trafego pago</textarea>
                             <div id="googleAccountStatus" class="mt-2 text-sm"></div>
                         </div>
 
-                        <button id="saveLinkBtn" class="w-full px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-semibold">
+                        <button id="saveLinkBtn" type="button" class="w-full px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-semibold">
                             <i class="fas fa-save mr-2"></i>
                             Salvar Vinculações
                         </button>
+                        <p id="saveLinkHint" class="hidden mt-2 text-center text-sm text-amber-800">
+                            Há alterações não salvas nas contas. Clique em <strong>Salvar Vinculações</strong> para persistir.
+                        </p>
                     </div>
                 </div>
             </div>
@@ -375,6 +407,124 @@ trafego pago</textarea>
         let currentProjectId = null;
         let currentUnitId = null;
         let currentUnit = null;
+
+        /** Evita marcar “não salvo” enquanto a tela preenche a partir do Firestore */
+        let suppressUnsavedHints = false;
+        /** Valores dos selects de vinculação considerados “já salvos” */
+        let linkedAccountsSnapshot = { meta: '', google: '' };
+
+        function markConfigDirty() {
+            if (suppressUnsavedHints) return;
+            const btn = document.getElementById('saveConfigBtn');
+            const hint = document.getElementById('saveConfigHint');
+            if (btn) btn.classList.add('btn-needs-save-pulse');
+            if (hint) hint.classList.remove('hidden');
+        }
+
+        function clearConfigDirty() {
+            const btn = document.getElementById('saveConfigBtn');
+            const hint = document.getElementById('saveConfigHint');
+            if (btn) btn.classList.remove('btn-needs-save-pulse');
+            if (hint) hint.classList.add('hidden');
+        }
+
+        function markLinksDirty() {
+            if (suppressUnsavedHints) return;
+            const btn = document.getElementById('saveLinkBtn');
+            const hint = document.getElementById('saveLinkHint');
+            if (btn) btn.classList.add('btn-needs-save-pulse');
+            if (hint) hint.classList.remove('hidden');
+        }
+
+        function clearLinksDirty() {
+            const btn = document.getElementById('saveLinkBtn');
+            const hint = document.getElementById('saveLinkHint');
+            if (btn) btn.classList.remove('btn-needs-save-pulse');
+            if (hint) hint.classList.add('hidden');
+        }
+
+        function captureLinksSnapshot() {
+            linkedAccountsSnapshot = {
+                meta: document.getElementById('metaAccountSelect')?.value ?? '',
+                google: document.getElementById('googleAccountSelect')?.value ?? ''
+            };
+        }
+
+        function linksSelectionChangedFromSnapshot() {
+            const m = document.getElementById('metaAccountSelect')?.value ?? '';
+            const g = document.getElementById('googleAccountSelect')?.value ?? '';
+            return m !== (linkedAccountsSnapshot.meta ?? '') || g !== (linkedAccountsSnapshot.google ?? '');
+        }
+
+        function onLinkSelectionMaybeDirty() {
+            if (suppressUnsavedHints) return;
+            if (linksSelectionChangedFromSnapshot()) markLinksDirty();
+            else clearLinksDirty();
+        }
+
+        function attachConfigDirtyListeners() {
+            const configIds = [
+                'cbFacebookMeta', 'cbInstagramMeta', 'cbGoogleMeta', 'cbRevistaMeta', 'cbEmptyMeta', 'cbDotsMeta',
+                'cbFacebookGoogle', 'cbInstagramGoogle', 'cbGoogleGoogle', 'cbRevistaGoogle', 'cbEmptyGoogle', 'cbDotsGoogle',
+                'cbCustomKeywordsMeta', 'cbCustomKeywordsGoogle', 'cbExcludeMaintenance'
+            ];
+            configIds.forEach((id) => {
+                const el = document.getElementById(id);
+                if (el) el.addEventListener('change', () => markConfigDirty());
+            });
+            ['customKeywordsMeta', 'customKeywordsGoogle'].forEach((id) => {
+                const el = document.getElementById(id);
+                if (el) el.addEventListener('input', () => markConfigDirty());
+            });
+        }
+
+        function attachLinkDirtyListeners() {
+            ['metaAccountSelect', 'googleAccountSelect'].forEach((id) => {
+                const el = document.getElementById(id);
+                if (el) el.addEventListener('change', () => onLinkSelectionMaybeDirty());
+            });
+        }
+
+        function getSelectedCrmSource() {
+            const oc = document.getElementById('crmSistemaOc');
+            return oc && oc.checked ? 'sistema_oc' : 'clinicorp';
+        }
+
+        function isSistemaOcCrm() {
+            return getSelectedCrmSource() === 'sistema_oc';
+        }
+
+        function applyCrmSourceKeywordsVisibility() {
+            const hint = document.getElementById('crmOcKeywordsHint');
+            const bm = document.getElementById('keywordsBlockMeta');
+            const bg = document.getElementById('keywordsBlockGoogle');
+            if (!bm || !bg) return;
+
+            if (isSistemaOcCrm()) {
+                bm.classList.add('hidden');
+                bg.classList.add('hidden');
+                if (hint) hint.classList.remove('hidden');
+                const cbm = document.getElementById('cbCustomKeywordsMeta');
+                const cbg = document.getElementById('cbCustomKeywordsGoogle');
+                if (cbm) cbm.checked = false;
+                if (cbg) cbg.checked = false;
+                document.getElementById('keywordsSectionMeta')?.classList.add('hidden');
+                document.getElementById('keywordsSectionGoogle')?.classList.add('hidden');
+            } else {
+                bm.classList.remove('hidden');
+                bg.classList.remove('hidden');
+                if (hint) hint.classList.add('hidden');
+                if (currentUnit) {
+                    const ckm = currentUnit.customKeywords?.meta || currentUnit.customKeywords || { enabled: false, terms: [] };
+                    const ckg = currentUnit.customKeywords?.google || { enabled: false, terms: [] };
+                    document.getElementById('cbCustomKeywordsMeta').checked = ckm.enabled === true;
+                    document.getElementById('customKeywordsMeta').value = (ckm.terms || []).join('\n');
+                    document.getElementById('cbCustomKeywordsGoogle').checked = ckg.enabled === true;
+                    document.getElementById('customKeywordsGoogle').value = (ckg.terms || []).join('\n');
+                }
+                toggleKeywordsSection();
+            }
+        }
 
         // Auth check
         onAuthStateChanged(auth, async (user) => {
@@ -408,6 +558,7 @@ trafego pago</textarea>
             document.getElementById('backLink').href = `unidades.html?projectId=${currentProjectId}`;
             
             // Carregar dados da unidade
+            ensureDirtyListenersOnce();
             await loadUnit();
         });
 
@@ -421,8 +572,19 @@ trafego pago</textarea>
             }
         });
 
+        let _dirtyListenersAttached = false;
+        function ensureDirtyListenersOnce() {
+            if (_dirtyListenersAttached) return;
+            _dirtyListenersAttached = true;
+            attachConfigDirtyListeners();
+            attachLinkDirtyListeners();
+        }
+
         // Carregar unidade
         async function loadUnit() {
+            suppressUnsavedHints = true;
+            clearConfigDirty();
+            clearLinksDirty();
             try {
                 currentUnit = await getUnit(currentProjectId, currentUnitId);
                 
@@ -531,6 +693,11 @@ trafego pago</textarea>
                 document.getElementById('cbCustomKeywordsGoogle').checked = customKeywordsGoogle.enabled === true;
                 document.getElementById('customKeywordsGoogle').value = (customKeywordsGoogle.terms || []).join('\n');
                 
+                const crm = currentUnit.crmSource || 'clinicorp';
+                document.getElementById('crmClinicorp').checked = crm !== 'sistema_oc';
+                document.getElementById('crmSistemaOc').checked = crm === 'sistema_oc';
+                applyCrmSourceKeywordsVisibility();
+                
                 document.getElementById('cbExcludeMaintenance').checked = currentUnit.excludeMaintenance === true;
                 
                 // Atualizar estrutura no Firestore se foi migrada
@@ -548,8 +715,6 @@ trafego pago</textarea>
                     console.log('✅ [MIGRAÇÃO] Estrutura atualizada no Firestore');
                 }
                 
-                toggleKeywordsSection();
-                
                 // Mostrar dados da planilha se existir
                 if (currentUnit.budgetData) {
                     showBudgetData();
@@ -561,6 +726,11 @@ trafego pago</textarea>
             } catch (error) {
                 console.error('Erro ao carregar unidade:', error);
                 alert('Erro ao carregar dados da unidade');
+            } finally {
+                captureLinksSnapshot();
+                suppressUnsavedHints = false;
+                clearConfigDirty();
+                clearLinksDirty();
             }
         }
 
@@ -582,6 +752,13 @@ trafego pago</textarea>
             } else {
                 section.classList.add('hidden');
             }
+        });
+
+        document.querySelectorAll('input[name="crmSource"]').forEach((el) => {
+            el.addEventListener('change', () => {
+                applyCrmSourceKeywordsVisibility();
+                markConfigDirty();
+            });
         });
         
         function toggleKeywordsSection() {
@@ -626,23 +803,27 @@ trafego pago</textarea>
                 };
                 
                 const excludeMaintenance = document.getElementById('cbExcludeMaintenance').checked;
+                const crmSource = getSelectedCrmSource();
+                const ocCrm = crmSource === 'sistema_oc';
                 
-                // Custom Keywords Meta
+                const metaTerms = document.getElementById('customKeywordsMeta').value
+                    .split('\n')
+                    .map(t => t.trim())
+                    .filter(t => t.length > 0);
+                const googleTerms = document.getElementById('customKeywordsGoogle').value
+                    .split('\n')
+                    .map(t => t.trim())
+                    .filter(t => t.length > 0);
+                
+                // Custom Keywords Meta / Google (Sistema OC: sempre desativado — sem coluna de observações)
                 const customKeywordsMeta = {
-                    enabled: document.getElementById('cbCustomKeywordsMeta').checked,
-                    terms: document.getElementById('customKeywordsMeta').value
-                        .split('\n')
-                        .map(t => t.trim())
-                        .filter(t => t.length > 0)
+                    enabled: ocCrm ? false : document.getElementById('cbCustomKeywordsMeta').checked,
+                    terms: metaTerms
                 };
                 
-                // Custom Keywords Google
                 const customKeywordsGoogle = {
-                    enabled: document.getElementById('cbCustomKeywordsGoogle').checked,
-                    terms: document.getElementById('customKeywordsGoogle').value
-                        .split('\n')
-                        .map(t => t.trim())
-                        .filter(t => t.length > 0)
+                    enabled: ocCrm ? false : document.getElementById('cbCustomKeywordsGoogle').checked,
+                    terms: googleTerms
                 };
                 
                 // ⭐ REPROCESSAR PLANILHA SE EXISTIR allData (planilhas antigas)
@@ -736,7 +917,7 @@ trafego pago</textarea>
                             }
                             
                             // Verificar se atende regras de tráfego (usando filtros combinados para compatibilidade)
-                            return checkTrafficRules(row, trafficSourcesForRelatorio, customKeywordsMeta);
+                            return checkTrafficRules(row, trafficSourcesForRelatorio, ocCrm ? { enabled: false, terms: [] } : customKeywordsMeta);
                         });
                         
                         // Recalcular métricas
@@ -763,6 +944,7 @@ trafego pago</textarea>
                 
                 // Atualizar unidade com novos filtros e dados reprocessados
                 const updateData = {
+                    crmSource,
                     trafficSources: {
                         meta: trafficSourcesMeta,
                         google: trafficSourcesGoogle
@@ -788,6 +970,10 @@ trafego pago</textarea>
                 
                 await updateUnit(currentProjectId, currentUnitId, updateData);
                 
+                currentUnit.crmSource = crmSource;
+                currentUnit.customKeywords = updateData.customKeywords;
+                
+                clearConfigDirty();
                 alert('✅ Configurações salvas com sucesso!' + (updatedBudgetData && updatedBudgetData !== currentUnit.budgetData ? '\n\n📊 Planilha reprocessada automaticamente com os novos filtros.' : ''));
             } catch (error) {
                 console.error('Erro ao salvar configurações:', error);
@@ -934,6 +1120,10 @@ trafego pago</textarea>
                 
                 await updateUnit(currentProjectId, currentUnitId, { linkedAccounts });
                 
+                currentUnit.linkedAccounts = linkedAccounts;
+                captureLinksSnapshot();
+                clearLinksDirty();
+                
                 console.log('✅ Contas vinculadas com sucesso:', linkedAccounts);
                 
                 // Atualizar status
@@ -1039,7 +1229,11 @@ trafego pago</textarea>
                 };
                 
                 // Para customKeywords, usar Meta como padrão (ou combinar se necessário)
-                const customKeywords = currentUnit.customKeywords?.meta || currentUnit.customKeywords || { enabled: false, terms: [] };
+                const crm = currentUnit.crmSource || 'clinicorp';
+                let customKeywords = currentUnit.customKeywords?.meta || currentUnit.customKeywords || { enabled: false, terms: [] };
+                if (crm === 'sistema_oc') {
+                    customKeywords = { enabled: false, terms: [] };
+                }
                 
                 console.log('🔍 Filtros combinados para processamento:', {
                     combinedTrafficSources,

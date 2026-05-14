@@ -1681,8 +1681,12 @@ async function generateCompleteReport() {
                 empty: false,
                 dots: false
             };
-            const customKeywordsMeta = selectedUnit.customKeywords?.meta || { enabled: false, terms: [] };
-            const customKeywordsGoogle = selectedUnit.customKeywords?.google || { enabled: false, terms: [] };
+            const customKeywordsMeta = (selectedUnit.crmSource || 'clinicorp') === 'sistema_oc'
+                ? { enabled: false, terms: [] }
+                : (selectedUnit.customKeywords?.meta || { enabled: false, terms: [] });
+            const customKeywordsGoogle = (selectedUnit.crmSource || 'clinicorp') === 'sistema_oc'
+                ? { enabled: false, terms: [] }
+                : (selectedUnit.customKeywords?.google || { enabled: false, terms: [] });
             const excludeMaintenance = selectedUnit.excludeMaintenance ?? true;
             
             console.log('📊 Dados da planilha para filtrar:', {

@@ -55,6 +55,8 @@ export async function createUnit(projectId, unitData) {
         
         const unitRef = await addDoc(collection(db, `projects/${projectId}/units`), {
             name: unitData.name,
+            /** CRM da planilha: 'clinicorp' | 'sistema_oc' (padrão Clinicorp) */
+            crmSource: unitData.crmSource === 'sistema_oc' ? 'sistema_oc' : 'clinicorp',
             trafficSources: defaultTrafficSources,
             customKeywords: defaultCustomKeywords,
             excludeMaintenance: true, // ✅ Excluir manutenções ativado por padrão

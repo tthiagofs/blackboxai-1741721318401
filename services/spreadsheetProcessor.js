@@ -18,21 +18,142 @@ export function formatLocalDateYmd(date) {
 }
 
 function parseDate(dateStr) {
-    if (!dateStr) return null;
+    if (dateStr === undefined || dateStr === null || dateStr === '') return null;
+
+    if (dateStr instanceof Date) {
+        return isNaN(dateStr.getTime()) ? null : dateStr;
+    }
 
     if (typeof dateStr === 'number') {
+        // Serial Excel plausível (~2010–2035); evita tratar IDs/números pequenos como data
+        if (dateStr < 38000 || dateStr > 55000) return null;
         return excelDateToJSDate(dateStr);
     }
 
     if (typeof dateStr === 'string') {
-        const parts = dateStr.split('/');
+        const cleaned = dateStr.trim().split(/\s+/)[0];
+        const parts = cleaned.split(/[\/\-\.]/);
         if (parts.length === 3) {
-            const [day, month, year] = parts;
-            return new Date(year, month - 1, day);
+            let [day, month, year] = parts;
+            if (year.length === 2) year = `20${year}`;
+            const d = parseInt(day, 10);
+            const m = parseInt(month, 10);
+            const y = parseInt(year, 10);
+            if (d >= 1 && d <= 31 && m >= 1 && m <= 12 && y >= 2000 && y <= 2100) {
+                return new Date(y, m - 1, d);
+            }
         }
     }
 
     return null;
+}
+
+function daysBetweenYmd(ymd1, ymd2) {
+    const a = new Date(`${ymd1}T12:00:00`);
+    const b = new Date(`${ymd2}T12:00:00`);
+    return Math.round(Math.abs(b - a) / 86400000);
+}
+
+/** Se a planilha importada concentra-se em um único mês civil (upload típico mensal). */
+function getUniformImportMonth(budgetData) {
+    const items = budgetData?.allData || budgetData?.rawData || [];
+    const dates = items.map((r) => r.date).filter(Boolean);
+    if (!dates.length) return null;
+
+    const months = new Set(dates.map((d) => d.slice(0, 7)));
+    if (months.size !== 1) return null;
+
+    const min = dates.reduce((a, b) => (a < b ? a : b));
+    const max = dates.reduce((a, b) => (a > b ? a : b));
+    if (daysBetweenYmd(min, max) > 40) return null;
+
+    return [...months][0];
+}
+
+function removeBudgetMonth(data, yyyyMm) {
+    const drop = (items) => (items || []).filter((r) => (r.date || '').slice(0, 7) !== yyyyMm);
+    return {
+        ...data,
+        rawData: drop(data.rawData),
+        allData: drop(data.allData)
+    };
+}
+
+/** Remove meses com pouquíssimos registros (datas espúrias de import antigo). */
+function pruneSparseMonths(data, minRows, keepMonth) {
+    const all = data.allData || data.rawData || [];
+    const counts = {};
+    for (const r of all) {
+        const m = (r.date || '').slice(0, 7);
+        if (!m) continue;
+        counts[m] = (counts[m] || 0) + 1;
+    }
+
+    const monthsToRemove = Object.keys(counts).filter((m) => m !== keepMonth && counts[m] < minRows);
+    if (!monthsToRemove.length) return data;
+
+    const dropSet = new Set(monthsToRemove);
+    const filt = (items) => (items || []).filter((r) => !dropSet.has((r.date || '').slice(0, 7)));
+
+    console.log('🧹 Removendo meses esparsos (provável lixo de data):', monthsToRemove);
+
+    return {
+        ...data,
+        rawData: filt(data.rawData),
+        allData: filt(data.allData)
+    };
+}
+
+function prepareExistingForMerge(existingData, newData) {
+    const uniformMonth = getUniformImportMonth(newData);
+    if (!uniformMonth) return existingData;
+
+    let base = removeBudgetMonth(existingData, uniformMonth);
+    base = pruneSparseMonths(base, 5, uniformMonth);
+
+    const hasRaw = base.rawData && base.rawData.length > 0;
+    const hasAll = base.allData && base.allData.length > 0;
+    if (!hasRaw && !hasAll) return null;
+
+    return base;
+}
+
+/**
+ * Lacunas entre dias com orçamento (não preenche calendário dia a dia).
+ * Só alerta quando há intervalo real sem dados entre dois blocos de datas.
+ */
+export function findSignificantMissingPeriods(dataToCheck, minGapDays = 5) {
+    const dates = [...new Set((dataToCheck || []).map((i) => i.date).filter(Boolean))].sort();
+    if (dates.length < 2) return [];
+
+    const periods = [];
+
+    for (let i = 1; i < dates.length; i++) {
+        const prev = new Date(`${dates[i - 1]}T12:00:00`);
+        const curr = new Date(`${dates[i]}T12:00:00`);
+        const gap = Math.round((curr - prev) / 86400000);
+
+        if (gap <= minGapDays) continue;
+
+        const gapStart = new Date(prev);
+        gapStart.setDate(gapStart.getDate() + 1);
+        const gapEnd = new Date(curr);
+        gapEnd.setDate(gapEnd.getDate() - 1);
+
+        if (gapStart > gapEnd) continue;
+
+        periods.push({
+            start: formatLocalDateYmd(gapStart),
+            end: formatLocalDateYmd(gapEnd)
+        });
+    }
+
+    return periods.filter((period) => {
+        const start = new Date(`${period.start}T12:00:00`);
+        const end = new Date(`${period.end}T12:00:00`);
+        const days = Math.round((end - start) / 86400000) + 1;
+        return days >= minGapDays;
+    });
 }
 
 /** Normaliza texto de cabeçalho (trim, minúsculas, espaços). */
@@ -55,7 +176,7 @@ function readRowsFromArrayBuffer(arrayBuffer) {
     const data = new Uint8Array(arrayBuffer);
     const workbook = XLSX.read(data, { type: 'array' });
     const sheet = workbook.Sheets[workbook.SheetNames[0]];
-    return XLSX.utils.sheet_to_json(sheet, { header: 'A' });
+    return XLSX.utils.sheet_to_json(sheet, { header: 'A', raw: false });
 }
 
 /**
@@ -363,6 +484,18 @@ export function mergeSpreadsheetData(existingData, newData) {
     if (!newData || !newData.rawData || newData.rawData.length === 0) {
         console.log('⚠️ Sem dados novos de tráfego, mantendo existentes');
         return existingData;
+    }
+
+    const prepared = prepareExistingForMerge(existingData, newData);
+    if (prepared === null) {
+        console.log('✅ Importação mensal — substituindo dados anteriores');
+        return newData;
+    }
+    existingData = prepared;
+
+    if (!existingData.rawData || existingData.rawData.length === 0) {
+        console.log('✅ Base vazia após preparar mês — usando dados novos');
+        return newData;
     }
 
     const existingMap = new Map();

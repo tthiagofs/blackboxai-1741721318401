@@ -126,6 +126,9 @@ export function findSignificantMissingPeriods(dataToCheck, minGapDays = 5) {
     const dates = [...new Set((dataToCheck || []).map((i) => i.date).filter(Boolean))].sort();
     if (dates.length < 2) return [];
 
+    const span = daysBetweenYmd(dates[0], dates[dates.length - 1]);
+    if (span <= 45) return [];
+
     const periods = [];
 
     for (let i = 1; i < dates.length; i++) {
@@ -168,15 +171,61 @@ function normalizeHeaderLabel(text) {
 function parseMoney(cell) {
     if (cell === undefined || cell === null || cell === '') return 0;
     if (typeof cell === 'number') return cell;
-    const valueStr = cell.toString().replace(/\./g, '').replace(',', '.');
-    return parseFloat(valueStr) || 0;
+    const s = cell.toString().trim();
+    if (!s) return 0;
+    // Formato BR: 1.234,56
+    if (s.includes(',')) {
+        return parseFloat(s.replace(/\./g, '').replace(',', '.')) || 0;
+    }
+    // Número simples (ex.: 1500 ou 1500.50)
+    return parseFloat(s) || 0;
+}
+
+/** Ex.: orcamentos_2026-05-01_2026-05-31.xlsx → "2026-05" */
+export function extractImportMonthFromFileName(fileName) {
+    const m = (fileName || '').match(/orcamentos?_(\d{4})-(\d{2})-\d{2}_(\d{4})-(\d{2})/i);
+    if (!m) return null;
+    const startYm = `${m[1]}-${m[2]}`;
+    const endYm = `${m[3]}-${m[4]}`;
+    return startYm === endYm ? startYm : null;
+}
+
+function filterRowsByMonth(items, yyyyMm) {
+    if (!yyyyMm || !items?.length) return items || [];
+    return items.filter((r) => (r.date || '').slice(0, 7) === yyyyMm);
+}
+
+function getDominantMonth(items) {
+    const counts = {};
+    for (const r of items || []) {
+        const m = (r.date || '').slice(0, 7);
+        if (!m) continue;
+        counts[m] = (counts[m] || 0) + 1;
+    }
+    let best = null;
+    let bestN = 0;
+    for (const [m, n] of Object.entries(counts)) {
+        if (n > bestN) {
+            bestN = n;
+            best = m;
+        }
+    }
+    if (!best || bestN < (items?.length || 0) * 0.7) return null;
+    return best;
+}
+
+function resolveImportMonth(fileName, items) {
+    return extractImportMonthFromFileName(fileName) || getDominantMonth(items);
 }
 
 function readRowsFromArrayBuffer(arrayBuffer) {
     const data = new Uint8Array(arrayBuffer);
-    const workbook = XLSX.read(data, { type: 'array' });
-    const sheet = workbook.Sheets[workbook.SheetNames[0]];
-    return XLSX.utils.sheet_to_json(sheet, { header: 'A', raw: false });
+    const workbook = XLSX.read(data, { type: 'array', cellDates: true });
+    const sheetName =
+        workbook.SheetNames.find((n) => normalizeHeaderLabel(n) === 'orcamentos') ||
+        workbook.SheetNames[0];
+    const sheet = workbook.Sheets[sheetName];
+    return XLSX.utils.sheet_to_json(sheet, { header: 'A', raw: true, defval: '' });
 }
 
 /**
@@ -255,37 +304,54 @@ function matchesTrafficRules(row, trafficSources, customKeywords) {
     return matchesPlatform || matchesCustom;
 }
 
-function isMaintenanceProcedure(row) {
-    const colH = (row.H || '').toString().trim();
+const MAINTENANCE_TERMS = [
+    'manutenção aparelho móvel',
+    'manutenção aparelho ortodôntico autoligado',
+    'manutenção aparelho ortodôntico safira',
+    'manutenção ortodôntica mensal',
+    'manutenção ortodôntica'
+];
+
+function isMaintenanceProcedureText(text) {
+    const colH = (text || '').toString().trim();
     const colHLower = colH.toLowerCase();
 
-    const maintenanceTerms = [
-        'manutenção aparelho móvel',
-        'manutenção aparelho ortodôntico autoligado',
-        'manutenção aparelho ortodôntico safira',
-        'manutenção ortodôntica mensal',
-        'manutenção ortodôntica'
-    ];
+    const hasMaintenance = MAINTENANCE_TERMS.some((term) => colHLower.includes(term));
+    if (!hasMaintenance) return false;
+    if (colH.includes(',')) return false;
 
-    const hasMaintenance = maintenanceTerms.some((term) => colHLower.includes(term));
-
-    if (!hasMaintenance) {
-        return false;
-    }
-
-    if (colH.includes(',')) {
-        return false;
-    }
-
-    return maintenanceTerms.some((term) => {
+    return MAINTENANCE_TERMS.some((term) => {
         const cleanedH = colHLower.replace(/\s+/g, ' ').trim();
         const cleanedTerm = term.replace(/\s+/g, ' ').trim();
         return cleanedH === cleanedTerm;
     });
 }
 
+function isMaintenanceProcedure(row) {
+    return isMaintenanceProcedureText((row.H || '').toString());
+}
+
+function isMaintenanceProcedureOc(row) {
+    return (
+        isMaintenanceProcedureText((row.J || '').toString()) ||
+        isMaintenanceProcedureText((row.K || '').toString())
+    );
+}
+
 function buildBudgetResult(fileName, rawData, allData) {
-    const dates = allData.map((r) => r.date).filter(Boolean);
+    const importMonth = resolveImportMonth(fileName, allData);
+    if (importMonth) {
+        const before = allData.length;
+        allData = filterRowsByMonth(allData, importMonth);
+        rawData = filterRowsByMonth(rawData, importMonth);
+        if (before !== allData.length) {
+            console.log(
+                `📅 Filtrado ao mês ${importMonth}: ${before} → ${allData.length} linhas (datas fora do período do arquivo)`
+            );
+        }
+    }
+
+    const dates = rawData.map((r) => r.date).filter(Boolean);
     const minDate = dates.length ? dates.reduce((a, b) => (a < b ? a : b)) : null;
     const maxDate = dates.length ? dates.reduce((a, b) => (a > b ? a : b)) : null;
 
@@ -356,12 +422,9 @@ function processClinicorpRows(rows, fileName, trafficSources, customKeywords, ex
     return buildBudgetResult(fileName, rawData, allData);
 }
 
-/** Sistema OC: data orçamento A, aprovação B, valor aprovado E, fonte I, procedimento J */
+/** Sistema OC: coluna B = data de aprovação; só é venda se B for uma data válida */
 function ocRowIsSold(row) {
-    const b = row.B;
-    if (b === undefined || b === null) return false;
-    if (typeof b === 'string' && b.trim() === '') return false;
-    return true;
+    return !!parseDate(row.B);
 }
 
 function processSistemaOcRows(rows, fileName, trafficSources, customKeywords, excludeMaintenance) {
@@ -394,7 +457,7 @@ function processSistemaOcRows(rows, fileName, trafficSources, customKeywords, ex
 
         const filterShape = { L: source, K: '', H: procedure };
         if (matchesTrafficRules(filterShape, trafficSources, customKeywords)) {
-            if (excludeMaintenance && isMaintenanceProcedure(filterShape)) {
+            if (excludeMaintenance && isMaintenanceProcedureOc(row)) {
                 return;
             }
             rawData.push(rowData);

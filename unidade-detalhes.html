@@ -1436,7 +1436,7 @@ trafego pago</textarea>
         function checkMissingPeriods(data) {
             console.log('🔍 [checkMissingPeriods] Verificando lacunas entre datas com orçamento...');
 
-            const dataToCheck = data?.allData || data?.rawData || [];
+            const dataToCheck = data?.rawData || [];
 
             if (!dataToCheck.length) {
                 document.getElementById('missingPeriodsContainer').classList.add('hidden');
@@ -1480,7 +1480,7 @@ trafego pago</textarea>
 
         function formatDate(dateStr) {
             if (!dateStr) return '-';
-            const date = new Date(dateStr);
+            const date = new Date(`${dateStr}T12:00:00`);
             return date.toLocaleDateString('pt-BR');
         }
 

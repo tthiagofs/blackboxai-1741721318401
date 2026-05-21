@@ -219,7 +219,7 @@
                         </div>
                         <p id="crmOcKeywordsHint" class="hidden text-xs text-amber-800 mt-2 max-w-2xl">
                             Com <strong>Sistema OC</strong>, o filtro <strong>“Outros + Observações”</strong> fica oculto e desativado (essa exportação não traz observações para esse canal).
-                            <span class="block mt-1 font-medium">O importador usa o layout em colunas A–L (data em B, status em C, valor em J, fonte em L), o mesmo padrão da exportação Clinicorp. Se a planilha do OC usar outras colunas, a importação pode falhar ou vir vazia.</span>
+                            <span class="block mt-1 font-medium">Use a exportação padrão do Sistema OC (Data Orçamento em A, aprovação em B, valor aprovado em E, fonte em I). A coluna C do arquivo deve ser «Paciente».</span>
                         </p>
                     </div>
                     
@@ -428,7 +428,7 @@ trafego pago</textarea>
         import { auth, db } from './config/firebase.js';
         import { onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
         import { getUnit, updateUnit, updateBudgetData, removeBudgetData } from './services/unitsService.js';
-        import { processSpreadsheet, validateSpreadsheet, mergeSpreadsheetData, assertSpreadsheetImportIsCompatible } from './services/spreadsheetProcessor.js';
+        import { processSpreadsheet, validateSpreadsheet, mergeSpreadsheetData } from './services/spreadsheetProcessor.js';
         import { fbAuth } from './auth.js?v=3.0';
         import { googleAuth } from './authGoogle.js?v=3.0';
 
@@ -447,10 +447,8 @@ trafego pago</textarea>
             const hasBudget = !!(currentUnit && currentUnit.budgetData);
             if (fromCrm === 'clinicorp' && toCrm === 'sistema_oc') {
                 return hasBudget
-                    ? 'Ao mudar para Sistema OC e salvar, os dados da planilha atual serão removidos.\n\n' +
-                      'A importação de arquivo continua usando apenas o layout Clinicorp (até haver suporte nativo ao OC). Você poderá reimportar depois com o CRM em Clinicorp e salvar.\n\n' +
-                      'Deseja continuar?'
-                    : 'Com Sistema OC, os filtros de relatório mudam (sem «Outros + Observações»). A importação de planilha nesta versão ainda é só no layout Clinicorp.\n\nDeseja continuar?';
+                    ? 'Ao mudar para Sistema OC e salvar, os dados da planilha atual serão removidos. Depois importe a exportação OC (coluna C = Paciente).\n\nDeseja continuar?'
+                    : 'Com Sistema OC, use planilhas com coluna C = «Paciente» (sem filtro Outros + Observações).\n\nDeseja continuar?';
             }
             if (fromCrm === 'sistema_oc' && toCrm === 'clinicorp') {
                 return hasBudget
@@ -1330,14 +1328,21 @@ trafego pago</textarea>
                 
                 // Processar planilha
                 const newBudgetData = await processSpreadsheet(
-                    file, 
-                    combinedTrafficSources, 
+                    file,
+                    combinedTrafficSources,
                     customKeywords,
-                    currentUnit.excludeMaintenance || false
+                    currentUnit.excludeMaintenance || false,
+                    currentUnit.crmSource || 'clinicorp'
                 );
 
-                const hasExistingTrafficRows = (currentUnit.budgetData?.rawData?.length || 0) > 0;
-                await assertSpreadsheetImportIsCompatible(file, newBudgetData, hasExistingTrafficRows);
+                const hadSavedTraffic = (currentUnit.budgetData?.rawData?.length || 0) > 0;
+                if (hadSavedTraffic && newBudgetData.rawData.length === 0 && (newBudgetData.allData?.length || 0) > 0) {
+                    throw new Error(
+                        'A planilha foi reconhecida, mas nenhum orçamento entrou nos filtros de tráfego.\n\n' +
+                            'A importação foi cancelada e os dados anteriores foram mantidos.\n\n' +
+                            'Ajuste os filtros ou confira a fonte de tráfego (Clinicorp: coluna L; Sistema OC: coluna I).'
+                    );
+                }
                 
                 console.log('📊 [handleFile] Dados processados:', {
                     arquivo: file.name,

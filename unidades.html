@@ -202,7 +202,7 @@
         import { onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
         import { doc, getDoc, deleteDoc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
         import { listUnits, createUnit, getUnit, updateBudgetData } from './services/unitsService.js';
-        import { processSpreadsheet, validateSpreadsheet, mergeSpreadsheetData, assertSpreadsheetImportIsCompatible } from './services/spreadsheetProcessor.js';
+        import { processSpreadsheet, validateSpreadsheet, mergeSpreadsheetData } from './services/spreadsheetProcessor.js';
         import { fbAuth } from './auth.js?v=3.0';
         import { googleAuth } from './authGoogle.js?v=3.0';
 
@@ -845,11 +845,18 @@
                     file,
                     combinedTrafficSources,
                     customKeywords,
-                    unit.excludeMaintenance || false
+                    unit.excludeMaintenance || false,
+                    unit.crmSource || 'clinicorp'
                 );
 
-                const hasExistingTrafficRows = (unit.budgetData?.rawData?.length || 0) > 0;
-                await assertSpreadsheetImportIsCompatible(file, newBudgetData, hasExistingTrafficRows);
+                const hadSavedTraffic = (unit.budgetData?.rawData?.length || 0) > 0;
+                if (hadSavedTraffic && newBudgetData.rawData.length === 0 && (newBudgetData.allData?.length || 0) > 0) {
+                    throw new Error(
+                        'A planilha foi reconhecida, mas nenhum orçamento entrou nos filtros de tráfego.\n\n' +
+                            'A importação foi cancelada e os dados anteriores foram mantidos.\n\n' +
+                            'Ajuste os filtros ou confira a fonte de tráfego (Clinicorp: coluna L; Sistema OC: coluna I).'
+                    );
+                }
 
                 console.log('✅ [handleFileUpload] Planilha processada!');
                 console.log('📋 [handleFileUpload] Orçamentos:', newBudgetData.totalBudgets);

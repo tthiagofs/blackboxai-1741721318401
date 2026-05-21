@@ -4,67 +4,7 @@
  * e gerar o HTML da apresentação
  */
 
-/**
- * Verificar se linha atende regras de tráfego (reutilizando lógica do spreadsheetProcessor)
- */
-function matchesTrafficRules(row, trafficSources, customKeywords) {
-    // Se row.source existe, usar ele (formato processado)
-    const colL = (row.source || row.L || "").toString().trim();
-    const colLLower = colL.toLowerCase();
-    const colK = (row.K || "").toString().toLowerCase();
-    
-    // Se não há filtros configurados, retornar true (incluir tudo)
-    if (!trafficSources) {
-        return true;
-    }
-    
-    // Regra 1: Células vazias (sem fonte definida)
-    if (trafficSources.empty && colL === "") {
-        return true;
-    }
-    
-    // Regra 2: Células com "..."
-    if (trafficSources.dots && colL === "...") {
-        return true;
-    }
-    
-    // Regra 3: Fontes de tráfego padrão (coluna L)
-    const platforms = [];
-    if (trafficSources.facebook) platforms.push("facebook");
-    if (trafficSources.instagram) platforms.push("instagram");
-    if (trafficSources.google) platforms.push("google");
-    if (trafficSources.revista) platforms.push("revista");
-    
-    const matchesPlatform = platforms.some(platform => 
-        colLLower.includes(platform)
-    );
-    
-    // Regra 4: "Outros" + palavras-chave personalizadas
-    let matchesCustom = false;
-    if (customKeywords && customKeywords.enabled && colLLower.includes("outros")) {
-        matchesCustom = customKeywords.terms.some(term => 
-            colK.includes(term.toLowerCase())
-        );
-    }
-    
-    const result = matchesPlatform || matchesCustom;
-    
-    // Log detalhado apenas para os primeiros casos (para debug)
-    if (window._debugTrafficRules && window._debugTrafficRulesCount < 10) {
-        console.log('🔍 matchesTrafficRules:', {
-            colL,
-            colLLower,
-            platforms,
-            matchesPlatform,
-            matchesCustom,
-            result,
-            trafficSources
-        });
-        window._debugTrafficRulesCount = (window._debugTrafficRulesCount || 0) + 1;
-    }
-    
-    return result;
-}
+import { matchesTrafficRules, isMaintenanceBudgetRow } from './services/spreadsheetProcessor.js';
 
 /**
  * Filtrar dados da planilha por fonte de tráfego (Meta ou Google)
@@ -75,7 +15,14 @@ function matchesTrafficRules(row, trafficSources, customKeywords) {
  * @param {Boolean} excludeMaintenance - Se deve excluir manutenções
  * @returns {Object} - Dados filtrados { sales, revenue, budgets }
  */
-export function filterSpreadsheetByPlatform(rawData, platform, trafficSources, customKeywords, excludeMaintenance = false) {
+export function filterSpreadsheetByPlatform(
+    rawData,
+    platform,
+    trafficSources,
+    customKeywords,
+    excludeMaintenance = false,
+    isOcCrm = false
+) {
     if (!rawData || !Array.isArray(rawData)) {
         return { sales: 0, revenue: 0, budgets: 0 };
     }
@@ -90,7 +37,7 @@ export function filterSpreadsheetByPlatform(rawData, platform, trafficSources, c
 
     const filteredData = rawData.filter(row => {
         // Excluir manutenções se opção estiver ativa
-        if (excludeMaintenance && isMaintenanceProcedure(row)) {
+        if (excludeMaintenance && isMaintenanceBudgetRow(row, isOcCrm)) {
             excludedByMaintenance++;
             if (sampleExcluded.length < 5) {
                 sampleExcluded.push({ reason: 'maintenance', source: row.source || row.L, procedure: row.procedure || row.H });
@@ -137,47 +84,6 @@ export function filterSpreadsheetByPlatform(rawData, platform, trafficSources, c
     });
 
     return { sales, revenue, budgets };
-}
-
-/**
- * Verificar se um registro é SOMENTE manutenção ortodôntica (para exclusão)
- * Exclui apenas se for SOMENTE manutenção, sem outros procedimentos
- * @param {Object} row - Linha da planilha
- * @returns {Boolean}
- */
-function isMaintenanceProcedure(row) {
-    const colH = (row.procedure || row.H || "").toString().trim();
-    const colHLower = colH.toLowerCase();
-    
-    const maintenanceTerms = [
-        "manutenção aparelho móvel",
-        "manutenção aparelho ortodôntico autoligado",
-        "manutenção aparelho ortodôntico safira",
-        "manutenção ortodôntica mensal",
-        "manutenção ortodôntica"
-    ];
-    
-    // Verificar se contém algum termo de manutenção
-    const hasMaintenance = maintenanceTerms.some(term => colHLower.includes(term));
-    
-    if (!hasMaintenance) {
-        return false; // Não tem manutenção, não excluir
-    }
-    
-    // Verificar se tem vírgula (múltiplos procedimentos)
-    if (colH.includes(',')) {
-        return false; // Tem outros procedimentos junto, não excluir
-    }
-    
-    // Verificar se o texto é exatamente igual a algum termo de manutenção (sem outros textos)
-    const isOnlyMaintenance = maintenanceTerms.some(term => {
-        // Remove espaços extras e compara
-        const cleanedH = colHLower.replace(/\s+/g, ' ').trim();
-        const cleanedTerm = term.replace(/\s+/g, ' ').trim();
-        return cleanedH === cleanedTerm;
-    });
-    
-    return isOnlyMaintenance;
 }
 
 /**

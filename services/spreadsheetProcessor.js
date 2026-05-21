@@ -275,10 +275,47 @@ export function assertSpreadsheetMatchesUnitCrm(fileType, unitCrm) {
     }
 }
 
-function matchesTrafficRules(row, trafficSources, customKeywords) {
-    const colL = (row.L || '').toString().trim();
-    const colLLower = colL.toLowerCase();
-    const colK = (row.K || '').toString().toLowerCase();
+/** Normaliza texto do canal (acentos, espaços especiais). */
+export function normalizeTrafficSourceText(text) {
+    return (text || '')
+        .toString()
+        .replace(/\u00a0/g, ' ')
+        .trim()
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '');
+}
+
+/** Verifica se o canal da planilha corresponde à plataforma do filtro. */
+export function sourceMatchesPlatform(sourceText, platform) {
+    const s = normalizeTrafficSourceText(sourceText);
+    if (!s) return false;
+
+    switch (platform) {
+        case 'facebook':
+            return (
+                s.includes('facebook') ||
+                s.includes('face book') ||
+                /\bfb\b/.test(s) ||
+                /\bmeta\b/.test(s) ||
+                s.includes('trafego face') ||
+                s.includes('trafego pago face')
+            );
+        case 'instagram':
+            return s.includes('instagram') || s.includes('insta') || /\binsta\b/.test(s);
+        case 'google':
+            return s.includes('google') || s.includes('adwords') || s.includes('google ads');
+        case 'revista':
+            return s.includes('revista') || s.includes('black');
+        default:
+            return false;
+    }
+}
+
+export function matchesTrafficRules(row, trafficSources, customKeywords) {
+    const colL = (row.source ?? row.L ?? '').toString().trim();
+    const colLLower = normalizeTrafficSourceText(colL);
+    const colK = normalizeTrafficSourceText(row.observations ?? row.K ?? '');
 
     if (trafficSources.empty && colL === '') {
         return true;
@@ -294,11 +331,13 @@ function matchesTrafficRules(row, trafficSources, customKeywords) {
     if (trafficSources.google) platforms.push('google');
     if (trafficSources.revista) platforms.push('revista');
 
-    const matchesPlatform = platforms.some((platform) => colLLower.includes(platform));
+    const matchesPlatform = platforms.some((platform) => sourceMatchesPlatform(colL, platform));
 
     let matchesCustom = false;
     if (customKeywords && customKeywords.enabled && colLLower.includes('outros')) {
-        matchesCustom = customKeywords.terms.some((term) => colK.includes(term.toLowerCase()));
+        matchesCustom = customKeywords.terms.some((term) =>
+            colK.includes(normalizeTrafficSourceText(term))
+        );
     }
 
     return matchesPlatform || matchesCustom;
@@ -336,6 +375,47 @@ function isMaintenanceProcedureOc(row) {
         isMaintenanceProcedureText((row.J || '').toString()) ||
         isMaintenanceProcedureText((row.K || '').toString())
     );
+}
+
+/** Linha já normalizada (Firestore) ou linha bruta da planilha OC. */
+export function isMaintenanceBudgetRow(row, isOc = false) {
+    if (isOc) {
+        return (
+            isMaintenanceProcedureText(row.procedure) ||
+            isMaintenanceProcedureText(row.procedurePending)
+        );
+    }
+    return isMaintenanceProcedureText(row.procedure || row.H);
+}
+
+/** Detecta colunas pelo cabeçalho (exportações OC podem deslocar letras). */
+function detectOcColumnMap(headerRow) {
+    const map = {
+        date: 'A',
+        approval: 'B',
+        valueApproved: 'E',
+        procedureApproved: 'J',
+        procedurePending: 'K',
+        source: 'I'
+    };
+
+    if (!headerRow) return map;
+
+    for (const [col, rawLabel] of Object.entries(headerRow)) {
+        const label = normalizeHeaderLabel(rawLabel);
+        if (!label) continue;
+        if (label.includes('data') && label.includes('orc')) map.date = col;
+        else if (label.includes('data') && (label.includes('apro') || label.includes('aprov')))
+            map.approval = col;
+        else if (label.includes('valor') && label.includes('aprov')) map.valueApproved = col;
+        else if (label.includes('proced') && (label.includes('aprov') || label.includes('apro')))
+            map.procedureApproved = col;
+        else if (label.includes('proced') && (label.includes('pend') || label.includes('pen')))
+            map.procedurePending = col;
+        else if (label.includes('canal')) map.source = col;
+    }
+
+    return map;
 }
 
 function buildBudgetResult(fileName, rawData, allData) {
@@ -422,27 +502,31 @@ function processClinicorpRows(rows, fileName, trafficSources, customKeywords, ex
     return buildBudgetResult(fileName, rawData, allData);
 }
 
-/** Sistema OC: coluna B = data de aprovação; só é venda se B for uma data válida */
-function ocRowIsSold(row) {
-    return !!parseDate(row.B);
+/** Sistema OC: data de aprovação preenchida = venda */
+function ocRowIsSold(approvalCell) {
+    return !!parseDate(approvalCell);
 }
 
 function processSistemaOcRows(rows, fileName, trafficSources, customKeywords, excludeMaintenance) {
     const rawData = [];
     const allData = [];
+    const cols = detectOcColumnMap(rows[0]);
+    console.log('📋 Sistema OC — colunas detectadas:', cols);
 
     rows.forEach((row, index) => {
         if (index === 0) return;
 
-        const date = parseDate(row.A);
+        const date = parseDate(row[cols.date]);
         if (!date || isNaN(date.getTime())) return;
 
         const dateStr = formatLocalDateYmd(date);
-        const sold = ocRowIsSold(row);
+        const approvalCell = row[cols.approval];
+        const sold = ocRowIsSold(approvalCell);
         const status = sold ? 'APPROVED' : 'OPEN';
-        const value = sold ? parseMoney(row.E) : 0;
-        const source = (row.I || '').toString().trim();
-        const procedure = (row.J || '').toString().trim();
+        const value = sold ? parseMoney(row[cols.valueApproved]) : 0;
+        const source = (row[cols.source] ?? '').toString().trim();
+        const procedure = (row[cols.procedureApproved] ?? '').toString().trim();
+        const procedurePending = (row[cols.procedurePending] ?? '').toString().trim();
 
         const rowData = {
             date: dateStr,
@@ -450,14 +534,17 @@ function processSistemaOcRows(rows, fileName, trafficSources, customKeywords, ex
             value,
             source,
             observations: '',
-            procedure
+            procedure,
+            procedurePending
         };
 
         allData.push(rowData);
 
-        const filterShape = { L: source, K: '', H: procedure };
-        if (matchesTrafficRules(filterShape, trafficSources, customKeywords)) {
-            if (excludeMaintenance && isMaintenanceProcedureOc(row)) {
+        if (matchesTrafficRules(rowData, trafficSources, customKeywords)) {
+            if (
+                excludeMaintenance &&
+                (isMaintenanceProcedureText(procedure) || isMaintenanceProcedureText(procedurePending))
+            ) {
                 return;
             }
             rawData.push(rowData);
@@ -470,6 +557,13 @@ function processSistemaOcRows(rows, fileName, trafficSources, customKeywords, ex
                 'Confira se a coluna A (Data Orçamento) tem datas no formato DD/MM/AAAA.'
         );
     }
+
+    const sourceCounts = {};
+    rawData.forEach((r) => {
+        const key = r.source || '(vazio)';
+        sourceCounts[key] = (sourceCounts[key] || 0) + 1;
+    });
+    console.log('📊 Sistema OC — canais em rawData (após filtros):', sourceCounts);
 
     return buildBudgetResult(fileName, rawData, allData);
 }

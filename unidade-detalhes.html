@@ -428,7 +428,7 @@ trafego pago</textarea>
         import { auth, db } from './config/firebase.js';
         import { onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
         import { getUnit, updateUnit, updateBudgetData, removeBudgetData } from './services/unitsService.js';
-        import { processSpreadsheet, validateSpreadsheet, mergeSpreadsheetData, findSignificantMissingPeriods } from './services/spreadsheetProcessor.js';
+        import { processSpreadsheet, validateSpreadsheet, mergeSpreadsheetData, findSignificantMissingPeriods, matchesTrafficRules, isMaintenanceBudgetRow } from './services/spreadsheetProcessor.js';
         import { fbAuth } from './auth.js?v=3.0';
         import { googleAuth } from './authGoogle.js?v=3.0';
 
@@ -930,76 +930,17 @@ trafego pago</textarea>
                             dots: trafficSourcesMeta.dots || trafficSourcesGoogle.dots
                         };
                         
-                        // Função helper para verificar regras (reutilizar lógica)
-                        function checkTrafficRules(row, trafficSources, customKeywords) {
-                            const colL = (row.source || row.L || "").toString().trim();
-                            const colLLower = colL.toLowerCase();
-                            const colK = (row.observations || row.K || "").toString().toLowerCase();
-                            
-                            if (trafficSources.empty && colL === "") return true;
-                            if (trafficSources.dots && colL === "...") return true;
-                            
-                            const platforms = [];
-                            if (trafficSources.facebook) platforms.push("facebook");
-                            if (trafficSources.instagram) platforms.push("instagram");
-                            if (trafficSources.google) platforms.push("google");
-                            if (trafficSources.revista) platforms.push("revista");
-                            
-                            const matchesPlatform = platforms.some(platform => colLLower.includes(platform));
-                            
-                            let matchesCustom = false;
-                            if (customKeywords && customKeywords.enabled && colLLower.includes("outros")) {
-                                matchesCustom = customKeywords.terms.some(term => colK.includes(term.toLowerCase()));
-                            }
-                            
-                            return matchesPlatform || matchesCustom;
-                        }
-                        
-                        // Função helper para verificar se é SOMENTE manutenção (sem outros procedimentos)
-                        function isMaintenance(row) {
-                            const colH = (row.procedure || row.H || "").toString().trim();
-                            const colHLower = colH.toLowerCase();
-                            
-                            const maintenanceTerms = [
-                                "manutenção aparelho móvel",
-                                "manutenção aparelho ortodôntico autoligado",
-                                "manutenção aparelho ortodôntico safira",
-                                "manutenção ortodôntica mensal",
-                                "manutenção ortodôntica"
-                            ];
-                            
-                            // Verificar se contém algum termo de manutenção
-                            const hasMaintenance = maintenanceTerms.some(term => colHLower.includes(term));
-                            
-                            if (!hasMaintenance) {
-                                return false; // Não tem manutenção, não excluir
-                            }
-                            
-                            // Verificar se tem vírgula (múltiplos procedimentos)
-                            if (colH.includes(',')) {
-                                return false; // Tem outros procedimentos junto, não excluir
-                            }
-                            
-                            // Verificar se o texto é exatamente igual a algum termo de manutenção (sem outros textos)
-                            const isOnlyMaintenance = maintenanceTerms.some(term => {
-                                // Remove espaços extras e compara
-                                const cleanedH = colHLower.replace(/\s+/g, ' ').trim();
-                                const cleanedTerm = term.replace(/\s+/g, ' ').trim();
-                                return cleanedH === cleanedTerm;
-                            });
-                            
-                            return isOnlyMaintenance;
-                        }
-                        
                         // Filtrar rawData usando os novos filtros (combinados para compatibilidade)
                         const newRawData = allData.filter(row => {
-                            // Excluir manutenções se opção estiver ativa
-                            if (excludeMaintenance && isMaintenance(row)) {
+                            if (excludeMaintenance && isMaintenanceBudgetRow(row, ocCrm)) {
                                 return false;
                             }
-                            
-                            // Verificar se atende regras de tráfego (usando filtros combinados para compatibilidade)
-                            return checkTrafficRules(row, trafficSourcesForRelatorio, ocCrm ? { enabled: false, terms: [] } : customKeywordsMeta);
+
+                            return matchesTrafficRules(
+                                row,
+                                trafficSourcesForRelatorio,
+                                ocCrm ? { enabled: false, terms: [] } : customKeywordsMeta
+                            );
                         });
                         
                         // Recalcular métricas

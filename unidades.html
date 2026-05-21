@@ -202,7 +202,7 @@
         import { onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
         import { doc, getDoc, deleteDoc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
         import { listUnits, createUnit, getUnit, updateBudgetData } from './services/unitsService.js';
-        import { processSpreadsheet, validateSpreadsheet, mergeSpreadsheetData } from './services/spreadsheetProcessor.js';
+        import { processSpreadsheet, validateSpreadsheet, mergeSpreadsheetData, formatLocalDateYmd } from './services/spreadsheetProcessor.js';
         import { fbAuth } from './auth.js?v=3.0';
         import { googleAuth } from './authGoogle.js?v=3.0';
 
@@ -248,8 +248,9 @@
                 const result = {
                     totalBudgets: rawData.length,
                     totalSales: rawData.filter(r => r.status === "APPROVED").length,
-                    totalRevenue: rawData.filter(r => r.status === "APPROVED")
-                                        .reduce((sum, r) => sum + r.value, 0)
+                    totalRevenue: rawData
+                        .filter((r) => r.status === 'APPROVED')
+                        .reduce((sum, r) => sum + Number(r.value || 0), 0)
                 };
                 console.log('✅ [filterDataByPeriod - TOTAL] Resultado:', result);
                 return result;
@@ -283,25 +284,24 @@
                 endDate = new Date(customPeriodDates.endDate);
             }
             
-            // Converter para strings YYYY-MM-DD para comparação exata
-            const startDateStr = startDate.toISOString().split('T')[0];
-            const endDateStr = endDate.toISOString().split('T')[0];
+            const startDateStr = formatLocalDateYmd(startDate);
+            const endDateStr = formatLocalDateYmd(endDate);
             
             console.log('📅 Período de filtro:', startDateStr, 'até', endDateStr);
             
-            const filtered = rawData.filter(item => {
-                // item.date já está no formato YYYY-MM-DD
-                const isInRange = item.date >= startDateStr && item.date <= endDateStr;
-                return isInRange;
+            const filtered = rawData.filter((item) => {
+                const itemDate = (item.date || '').toString().slice(0, 10);
+                return itemDate >= startDateStr && itemDate <= endDateStr;
             });
             
             console.log('✅ Registros filtrados:', filtered.length);
             
             const result = {
                 totalBudgets: filtered.length,
-                totalSales: filtered.filter(r => r.status === "APPROVED").length,
-                totalRevenue: filtered.filter(r => r.status === "APPROVED")
-                                    .reduce((sum, r) => sum + r.value, 0)
+                totalSales: filtered.filter((r) => r.status === 'APPROVED').length,
+                totalRevenue: filtered
+                    .filter((r) => r.status === 'APPROVED')
+                    .reduce((sum, r) => sum + Number(r.value || 0), 0)
             };
             
             console.log('✅ [filterDataByPeriod] Resultado:', result);

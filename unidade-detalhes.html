@@ -1412,12 +1412,16 @@ trafego pago</textarea>
             const data = currentUnit.budgetData;
             
             if (!data) return;
+
+            const raw = data.rawData || [];
+            const approved = raw.filter((r) => r.status === 'APPROVED');
+            const revenueSum = approved.reduce((sum, r) => sum + Number(r.value || 0), 0);
             
-            // Cards
+            // Cards (totais a partir de rawData — mesma base dos cards em unidades.html)
             document.getElementById('dataCards').classList.remove('hidden');
-            document.getElementById('totalBudgets').textContent = data.totalBudgets;
-            document.getElementById('totalSales').textContent = data.totalSales;
-            document.getElementById('totalRevenue').textContent = `R$ ${data.totalRevenue.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`;
+            document.getElementById('totalBudgets').textContent = raw.length;
+            document.getElementById('totalSales').textContent = approved.length;
+            document.getElementById('totalRevenue').textContent = `R$ ${revenueSum.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`;
             
             // File info
             document.getElementById('fileInfo').classList.remove('hidden');

@@ -209,19 +209,20 @@ export function filterDataByPeriod(rawData, startDate, endDate) {
         };
     }
     
-    const start = new Date(startDate);
-    const end = new Date(endDate);
-    
-    const filtered = rawData.filter(item => {
-        const itemDate = new Date(item.date);
-        return itemDate >= start && itemDate <= end;
+    const startStr = (startDate || '').toString().slice(0, 10);
+    const endStr = (endDate || '').toString().slice(0, 10);
+
+    const filtered = rawData.filter((item) => {
+        const itemDate = (item.date || '').toString().slice(0, 10);
+        return itemDate >= startStr && itemDate <= endStr;
     });
-    
+
     return {
         totalBudgets: filtered.length,
-        approvedSales: filtered.filter(r => r.status === "APPROVED").length,
-        revenue: filtered.filter(r => r.status === "APPROVED")
-                        .reduce((sum, r) => sum + r.value, 0)
+        approvedSales: filtered.filter((r) => r.status === 'APPROVED').length,
+        revenue: filtered
+            .filter((r) => r.status === 'APPROVED')
+            .reduce((sum, r) => sum + Number(r.value || 0), 0)
     };
 }
 

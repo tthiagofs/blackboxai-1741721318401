@@ -4,8 +4,17 @@
  */
 
 function excelDateToJSDate(excelDate) {
-    const date = new Date((excelDate - 25569) * 86400 * 1000);
-    return date;
+    const d = new Date((excelDate - 25569) * 86400 * 1000);
+    return new Date(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
+}
+
+/** Data civil local em YYYY-MM-DD (evita deslocar dia com toISOString/UTC). */
+export function formatLocalDateYmd(date) {
+    if (!date || isNaN(date.getTime())) return null;
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
 }
 
 function parseDate(dateStr) {
@@ -167,7 +176,9 @@ function buildBudgetResult(fileName, rawData, allData) {
         periodEnd: maxDate,
         totalBudgets: rawData.length,
         totalSales: rawData.filter((r) => r.status === 'APPROVED').length,
-        totalRevenue: rawData.filter((r) => r.status === 'APPROVED').reduce((sum, r) => sum + r.value, 0),
+        totalRevenue: rawData
+            .filter((r) => r.status === 'APPROVED')
+            .reduce((sum, r) => sum + Number(r.value || 0), 0),
         uploadedAt: new Date().toISOString()
     };
 
@@ -192,7 +203,7 @@ function processClinicorpRows(rows, fileName, trafficSources, customKeywords, ex
         const date = parseDate(row.B);
         if (!date || isNaN(date.getTime())) return;
 
-        const dateStr = date.toISOString().split('T')[0];
+        const dateStr = formatLocalDateYmd(date);
         const value = parseMoney(row.J);
 
         const rowData = {
@@ -242,7 +253,7 @@ function processSistemaOcRows(rows, fileName, trafficSources, customKeywords, ex
         const date = parseDate(row.A);
         if (!date || isNaN(date.getTime())) return;
 
-        const dateStr = date.toISOString().split('T')[0];
+        const dateStr = formatLocalDateYmd(date);
         const sold = ocRowIsSold(row);
         const status = sold ? 'APPROVED' : 'OPEN';
         const value = sold ? parseMoney(row.E) : 0;
@@ -421,7 +432,9 @@ export function mergeSpreadsheetData(existingData, newData) {
 
     const totalBudgets = mergedRawData.length;
     const totalSales = mergedRawData.filter((r) => r.status === 'APPROVED').length;
-    const totalRevenue = mergedRawData.filter((r) => r.status === 'APPROVED').reduce((sum, r) => sum + r.value, 0);
+    const totalRevenue = mergedRawData
+        .filter((r) => r.status === 'APPROVED')
+        .reduce((sum, r) => sum + Number(r.value || 0), 0);
 
     console.log('✅ Mesclagem concluída:');
     console.log(`   📊 Tráfego: ${mergedRawData.length} linhas`);

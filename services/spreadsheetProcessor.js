@@ -190,17 +190,35 @@ export function extractImportMonthFromFileName(fileName) {
     return startYm === endYm ? startYm : null;
 }
 
+/**
+ * Data usada em filtros de período: venda → data de aprovação; orçamento em aberto → data do orçamento.
+ */
+export function getEffectiveRowDate(row) {
+    if (!row) return null;
+    if (row.status === 'APPROVED' && row.approvalDate) return row.approvalDate;
+    return row.date || null;
+}
+
+function rowInImportMonth(row, yyyyMm) {
+    if (!yyyyMm || !row) return false;
+    if ((row.date || '').slice(0, 7) === yyyyMm) return true;
+    if ((row.approvalDate || '').slice(0, 7) === yyyyMm) return true;
+    return false;
+}
+
 function filterRowsByMonth(items, yyyyMm) {
     if (!yyyyMm || !items?.length) return items || [];
-    return items.filter((r) => (r.date || '').slice(0, 7) === yyyyMm);
+    return items.filter((r) => rowInImportMonth(r, yyyyMm));
 }
 
 function getDominantMonth(items) {
     const counts = {};
     for (const r of items || []) {
-        const m = (r.date || '').slice(0, 7);
-        if (!m) continue;
-        counts[m] = (counts[m] || 0) + 1;
+        for (const d of [r.date, r.approvalDate]) {
+            if (!d) continue;
+            const m = d.slice(0, 7);
+            counts[m] = (counts[m] || 0) + 1;
+        }
     }
     let best = null;
     let bestN = 0;
@@ -426,12 +444,12 @@ function buildBudgetResult(fileName, rawData, allData) {
         rawData = filterRowsByMonth(rawData, importMonth);
         if (before !== allData.length) {
             console.log(
-                `📅 Filtrado ao mês ${importMonth}: ${before} → ${allData.length} linhas (datas fora do período do arquivo)`
+                `📅 Filtrado ao mês ${importMonth}: ${before} → ${allData.length} linhas (fora do mês na data do orçamento ou da aprovação)`
             );
         }
     }
 
-    const dates = rawData.map((r) => r.date).filter(Boolean);
+    const dates = rawData.flatMap((r) => [r.date, r.approvalDate, getEffectiveRowDate(r)].filter(Boolean));
     const minDate = dates.length ? dates.reduce((a, b) => (a < b ? a : b)) : null;
     const maxDate = dates.length ? dates.reduce((a, b) => (a > b ? a : b)) : null;
 
@@ -516,11 +534,23 @@ function processSistemaOcRows(rows, fileName, trafficSources, customKeywords, ex
     rows.forEach((row, index) => {
         if (index === 0) return;
 
-        const date = parseDate(row[cols.date]);
-        if (!date || isNaN(date.getTime())) return;
-
-        const dateStr = formatLocalDateYmd(date);
+        const budgetDate = parseDate(row[cols.date]);
         const approvalCell = row[cols.approval];
+        const approvalDate = parseDate(approvalCell);
+
+        if (
+            (!budgetDate || isNaN(budgetDate.getTime())) &&
+            (!approvalDate || isNaN(approvalDate.getTime()))
+        ) {
+            return;
+        }
+
+        const dateStr = budgetDate && !isNaN(budgetDate.getTime())
+            ? formatLocalDateYmd(budgetDate)
+            : formatLocalDateYmd(approvalDate);
+        const approvalDateStr =
+            approvalDate && !isNaN(approvalDate.getTime()) ? formatLocalDateYmd(approvalDate) : null;
+
         const sold = ocRowIsSold(approvalCell);
         const status = sold ? 'APPROVED' : 'OPEN';
         const value = sold ? parseMoney(row[cols.valueApproved]) : 0;
@@ -530,6 +560,7 @@ function processSistemaOcRows(rows, fileName, trafficSources, customKeywords, ex
 
         const rowData = {
             date: dateStr,
+            approvalDate: approvalDateStr,
             status,
             value,
             source,

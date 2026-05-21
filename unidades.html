@@ -202,7 +202,7 @@
         import { onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
         import { doc, getDoc, deleteDoc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
         import { listUnits, createUnit, getUnit, updateBudgetData } from './services/unitsService.js';
-        import { processSpreadsheet, validateSpreadsheet, mergeSpreadsheetData, formatLocalDateYmd } from './services/spreadsheetProcessor.js';
+        import { processSpreadsheet, validateSpreadsheet, mergeSpreadsheetData, formatLocalDateYmd, getEffectiveRowDate } from './services/spreadsheetProcessor.js';
         import { fbAuth } from './auth.js?v=3.0';
         import { googleAuth } from './authGoogle.js?v=3.0';
 
@@ -290,7 +290,7 @@
             console.log('📅 Período de filtro:', startDateStr, 'até', endDateStr);
             
             const filtered = rawData.filter((item) => {
-                const itemDate = (item.date || '').toString().slice(0, 10);
+                const itemDate = (getEffectiveRowDate(item) || item.date || '').toString().slice(0, 10);
                 return itemDate >= startDateStr && itemDate <= endDateStr;
             });
             

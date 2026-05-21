@@ -4,6 +4,7 @@
  */
 
 import { db } from '../config/firebase.js';
+import { getEffectiveRowDate } from './spreadsheetProcessor.js';
 import { 
     collection, 
     doc, 
@@ -213,7 +214,7 @@ export function filterDataByPeriod(rawData, startDate, endDate) {
     const endStr = (endDate || '').toString().slice(0, 10);
 
     const filtered = rawData.filter((item) => {
-        const itemDate = (item.date || '').toString().slice(0, 10);
+        const itemDate = (getEffectiveRowDate(item) || item.date || '').toString().slice(0, 10);
         return itemDate >= startStr && itemDate <= endStr;
     });
 

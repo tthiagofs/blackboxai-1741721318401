@@ -428,7 +428,7 @@ trafego pago</textarea>
         import { auth, db } from './config/firebase.js';
         import { onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
         import { getUnit, updateUnit, updateBudgetData, removeBudgetData } from './services/unitsService.js';
-        import { processSpreadsheet, validateSpreadsheet, mergeSpreadsheetData, findSignificantMissingPeriods, matchesTrafficRules, isMaintenanceBudgetRow } from './services/spreadsheetProcessor.js?v=2.2';
+        import { processSpreadsheet, validateSpreadsheet, mergeSpreadsheetData, findSignificantMissingPeriods, matchesTrafficRules, isMaintenanceBudgetRow } from './services/spreadsheetProcessor.js?v=2.3';
         import { fbAuth } from './auth.js?v=3.0';
         import { googleAuth } from './authGoogle.js?v=3.0';
 
@@ -913,7 +913,7 @@ trafego pago</textarea>
                 if (!crmChanged && currentUnit.budgetData?.allData && currentUnit.budgetData.allData.length > 0) {
                     console.log('🔄 Reprocessando planilha com novos filtros...');
                     try {
-                        const { processSpreadsheet } = await import('./services/spreadsheetProcessor.js?v=2.2');
+                        const { processSpreadsheet } = await import('./services/spreadsheetProcessor.js?v=2.3');
                         
                         // ⭐ REPROCESSAR usando allData como base
                         // Como não temos o arquivo original, vamos reprocessar o allData

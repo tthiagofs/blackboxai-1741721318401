@@ -420,9 +420,9 @@ function detectOcColumnMap(headerRow) {
         else if (label.includes('data') && (label.includes('apro') || label.includes('aprov')))
             map.approval = col;
         else if (label.includes('valor') && label.includes('aprov')) map.valueApproved = col;
-        else if (label.includes('proced') && (label.includes('aprov') || label.includes('apro')))
+        else if (label.includes('proced') && (label.includes('aprov') || label.includes('apro')) && !label.includes('não') && !label.includes('nao'))
             map.procedureApproved = col;
-        else if (label.includes('proced') && (label.includes('pend') || label.includes('pen')))
+        else if (label.includes('proced') && (label.includes('pend') || label.includes('pen') || label.includes('não') || label.includes('nao')))
             map.procedurePending = col;
         else if (label.includes('canal')) map.source = col;
     }

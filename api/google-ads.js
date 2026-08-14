@@ -172,7 +172,6 @@ async function getAllClientsFromMCC(mccCustomerId, accessToken, debug = []) {
       customer_client.level,
       customer_client.status
     FROM customer_client
-    WHERE customer_client.status IN ('ENABLED', 'PAUSED')
   `;
 
   try {

@@ -366,9 +366,13 @@ function isMaintenanceProcedureText(text, value) {
     const val = Number(value || 0);
 
     const hasKeyword = ['manutenção', 'manutencao', 'aparelho'].some((term) => procedure.includes(term));
+    const result = hasKeyword && val < 180;
     
-    // Se possui a palavra-chave e o valor for menor que 180 reais, classifica como manutenção
-    return hasKeyword && val < 180;
+    if (hasKeyword) {
+        console.log(`🔍 [Maintenance Check] Proc: "${procedure}" | Valor: ${val} | Keyword Match: Sim | Excluído (<180): ${result ? 'SIM' : 'NÃO'}`);
+    }
+    
+    return result;
 }
 
 function isMaintenanceProcedure(row) {
@@ -516,6 +520,7 @@ function ocRowIsSold(approvalCell) {
 }
 
 function processSistemaOcRows(rows, fileName, trafficSources, customKeywords, excludeMaintenance) {
+    console.log('⚙️ [processSistemaOcRows] excludeMaintenance recebido no parser:', excludeMaintenance);
     const rawData = [];
     const allData = [];
     const cols = detectOcColumnMap(rows[0]);

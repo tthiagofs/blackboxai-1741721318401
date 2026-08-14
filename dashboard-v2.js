@@ -556,8 +556,8 @@ function renderTable(rows) {
       <td class="px-6 py-3 text-sm text-right text-gray-900">${formatCurrency(r.invested)}</td>
       <td class="px-6 py-3 text-sm text-right text-gray-900">${r.messages}</td>
       <td class="px-6 py-3 text-sm text-right text-gray-900">${formatCurrency(r.cpa)}</td>
-      <td class="px-6 py-3 text-sm text-right text-gray-900">${r.sales}</td>
       <td class="px-6 py-3 text-sm text-right text-gray-900">${r.budgets ?? 0}</td>
+      <td class="px-6 py-3 text-sm text-right text-gray-900">${r.sales}</td>
       <td class="px-6 py-3 text-sm text-right text-gray-900">${formatCurrency(r.revenue)}</td>
       <td class="px-6 py-3 text-sm text-right font-semibold ${roiClass}">${r.roi > 0 ? r.roi.toFixed(2) + 'x' : '0x'}</td>`; 
     tbody.appendChild(tr); 
@@ -645,8 +645,8 @@ window.exportToExcel = function() {
       'Investido (R$)': row.invested,
       'Mensagens': row.messages,
       'CPA (R$)': row.cpa,
-      'Vendas': row.sales,
       'Orçamentos': row.budgets ?? 0,
+      'Vendas': row.sales,
       'Faturamento (R$)': row.revenue,
       'ROI': row.roi > 0 ? `${row.roi.toFixed(2)}x` : '0x'
     }));
@@ -661,8 +661,8 @@ window.exportToExcel = function() {
       { wch: 15 }, // Investido
       { wch: 12 }, // Mensagens
       { wch: 12 }, // CPA
-      { wch: 10 }, // Vendas
       { wch: 12 }, // Orçamentos
+      { wch: 10 }, // Vendas
       { wch: 15 }, // Faturamento
       { wch: 10 }  // ROI
     ];

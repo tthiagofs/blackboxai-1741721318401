@@ -1261,10 +1261,12 @@ trafego pago</textarea>
                     customKeywords = { enabled: false, terms: [] };
                 }
                 
+                const excludeMaintenanceVal = document.getElementById('cbExcludeMaintenance').checked;
+                
                 console.log('🔍 Filtros combinados para processamento:', {
                     combinedTrafficSources,
                     customKeywords,
-                    excludeMaintenance: currentUnit.excludeMaintenance || false
+                    excludeMaintenance: excludeMaintenanceVal
                 });
                 
                 // Processar planilha
@@ -1272,7 +1274,7 @@ trafego pago</textarea>
                     file,
                     combinedTrafficSources,
                     customKeywords,
-                    currentUnit.excludeMaintenance || false,
+                    excludeMaintenanceVal,
                     currentUnit.crmSource || 'clinicorp'
                 );
 

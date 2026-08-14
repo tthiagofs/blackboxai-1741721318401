@@ -110,6 +110,8 @@ async function listAccounts(accessToken, res, loginCustomerId = null) {
     const data = await response.json();
     // resourceNames vem como: "customers/1234567890"
     const resourceNames = new Set(data.resourceNames || []);
+    const debugLogs = [];
+    debugLogs.push({ step: 'listAccessibleCustomers_initial', status: response.status, snippet: JSON.stringify(data).substring(0, 2000) });
 
     // Se não foi passado um loginCustomerId específico, tentar reconsultar usando cada customerId
     if (!loginCustomerId) {
@@ -126,10 +128,12 @@ async function listAccounts(accessToken, res, loginCustomerId = null) {
           });
           if (!resp.ok) {
             const errText = await resp.text();
+            debugLogs.push({ step: 'listAccessibleCustomers_try', login: cid, status: resp.status, error: errText.substring(0,2000) });
             console.warn(`⚠️ listAccessibleCustomers com login ${cid} falhou: ${resp.status} - ${errText.substring(0,200)}`);
             continue;
           }
           const d2 = await resp.json();
+          debugLogs.push({ step: 'listAccessibleCustomers_try', login: cid, status: resp.status, found: (d2.resourceNames||[]).length, snippet: JSON.stringify(d2).substring(0,2000) });
           (d2.resourceNames || []).forEach(rn => resourceNames.add(rn));
           console.log(`✅ listAccessibleCustomers com login ${cid} retornou ${ (d2.resourceNames||[]).length } entradas`);
         } catch (err) {
@@ -186,6 +190,7 @@ async function listAccounts(accessToken, res, loginCustomerId = null) {
             accessToken,
             seenIds
           );
+          debugLogs.push({ step: 'collectManagedClientAccounts', manager: customerId, found: managedAccounts.length });
           if (managedAccounts.length > 0) {
             console.log(
               `📂 MCC ${customerId}: ${managedAccounts.length} contas filhas encontradas`
@@ -217,8 +222,9 @@ async function listAccounts(accessToken, res, loginCustomerId = null) {
         try {
           console.log(`🔍 [aggressivo] tentando expandir ${cid}...`);
           const more = await collectManagedClientAccounts(cid, cid, accessToken, seenIds);
+          debugLogs.push({ step: 'aggressive_collect', manager: cid, found: more.length });
           if (more && more.length) {
-            console.log(`📂 [aggressivo] ${cid}: ${more.length} contas filhas encontradas`);
+            console.log(`📂 [agressivo] ${cid}: ${more.length} contas filhas encontradas`);
             more.forEach(addAccount);
           }
         } catch (err) {
@@ -230,7 +236,7 @@ async function listAccounts(accessToken, res, loginCustomerId = null) {
       console.warn('⚠️ Erro durante varredura agressiva:', err.message || err);
     }
 
-    return res.status(200).json({ accounts: allAccounts });
+    return res.status(200).json({ accounts: allAccounts, debug: debugLogs });
   } catch (error) {
     console.error('❌ Erro ao listar contas:', error.message);
     throw error;

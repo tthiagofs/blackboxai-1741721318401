@@ -524,7 +524,13 @@ function processSistemaOcRows(rows, fileName, trafficSources, customKeywords, ex
     const rawData = [];
     const allData = [];
     const cols = detectOcColumnMap(rows[0]);
-    console.log('📋 Sistema OC — colunas detectadas:', cols);
+    console.log('📋 [processSistemaOcRows] Colunas detectadas mapeadas:', JSON.stringify(cols));
+    
+    // Log das primeiras 5 linhas brutas recebidas da planilha para analisar as chaves
+    console.log('📋 [processSistemaOcRows] Amostra de linhas brutas (primeiras 5):');
+    for (let i = 0; i < Math.min(rows.length, 6); i++) {
+        console.log(`   Linha ${i}:`, JSON.stringify(rows[i]));
+    }
 
     rows.forEach((row, index) => {
         if (index === 0) return;
@@ -566,11 +572,23 @@ function processSistemaOcRows(rows, fileName, trafficSources, customKeywords, ex
 
         allData.push(rowData);
 
-        if (matchesTrafficRules(rowData, trafficSources, customKeywords)) {
-            if (excludeMaintenance && isMaintenanceBudgetRow(rowData, true)) {
+        const isTrafficMatch = matchesTrafficRules(rowData, trafficSources, customKeywords);
+        const isMaint = isMaintenanceBudgetRow(rowData, true);
+        
+        if (index <= 15) {
+            console.log(`📌 [Row ${index}] Status: ${status} | Canal: "${source}" | Proc. Aprov: "${procedure}" | Proc. Pend: "${procedurePending}" | Valor: R$ ${value}`);
+            console.log(`   ➡️ Traffic Match: ${isTrafficMatch ? 'SIM' : 'NÃO'} | Is Maintenance: ${isMaint ? 'SIM' : 'NÃO'}`);
+        }
+
+        if (isTrafficMatch) {
+            if (excludeMaintenance && isMaint) {
+                if (index <= 15) console.log(`   ❌ [Row ${index}] EXCLUÍDO DO RAW DATA (Manutenção)`);
                 return;
             }
+            if (index <= 15) console.log(`   ✅ [Row ${index}] INCLUÍDO NO RAW DATA`);
             rawData.push(rowData);
+        } else {
+            if (index <= 15) console.log(`   ⚠️ [Row ${index}] EXCLUÍDO DO RAW DATA (Filtro Tráfego)`);
         }
     });
 

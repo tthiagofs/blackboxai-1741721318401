@@ -111,6 +111,16 @@
                         </div>
                     </div>
 
+                    <!-- MCC input -->
+                    <div class="mb-4">
+                        <label class="block text-xs text-gray-600 mb-1">MCC (opcional)</label>
+                        <div class="flex gap-2">
+                            <input id="googleMccInput" type="text" placeholder="Ex: 123-456-7890 ou 1234567890" class="flex-1 border rounded px-2 py-1 text-sm" />
+                            <button id="saveMccBtn" class="bg-gray-200 text-gray-800 px-3 rounded text-sm">Salvar</button>
+                        </div>
+                        <p id="googleMccHint" class="text-xs text-gray-500 mt-2">Se informado, as contas serão listadas usando esse MCC como `login-customer-id`.</p>
+                    </div>
+
                     <button 
                         id="googleLoginBtn" 
                         class="w-full bg-blue-600 text-white py-2 px-4 rounded text-sm font-medium hover:bg-blue-700 transition-all flex items-center justify-center"
@@ -150,6 +160,10 @@
 
         // Inicializar Google Auth
         await googleAuth.initialize().catch(err => console.error('Erro ao inicializar Google Auth:', err));
+
+        // Expor instâncias úteis globalmente para scripts não-module (campo MCC, etc.)
+        window.googleAuth = googleAuth;
+        window.updateConnectionStatus = updateConnectionStatus;
 
         // Verificar se veio de um erro de token expirado
         const urlParams = new URLSearchParams(window.location.search);
@@ -270,7 +284,9 @@
             
             try {
                 await googleAuth.login();
-                await googleAuth.fetchAccessibleAccounts();
+                // Usar MCC salvo (se fornecido) ao buscar contas
+                const mcc = localStorage.getItem('google_ads_mcc') || null;
+                await googleAuth.fetchAccessibleAccounts(mcc);
                 console.log('✅ Login Google realizado com sucesso');
                 await updateConnectionStatus();
             } catch (error) {
@@ -295,6 +311,48 @@
                 await updateConnectionStatus();
             }
         });
+    </script>
+
+    <script>
+        // Preencher input MCC com valor salvo
+        (function() {
+            try {
+                const input = document.getElementById('googleMccInput');
+                const saveBtn = document.getElementById('saveMccBtn');
+                const hint = document.getElementById('googleMccHint');
+                if (!input || !saveBtn) return;
+
+                const saved = localStorage.getItem('google_ads_mcc');
+                if (saved) input.value = saved;
+
+                saveBtn.addEventListener('click', async () => {
+                    const val = (input.value || '').toString().replace(/-/g, '').trim();
+                    if (!val) {
+                        localStorage.removeItem('google_ads_mcc');
+                        hint.textContent = 'MCC removido. Refaça a conexão para atualizar a lista.';
+                        return;
+                    }
+
+                    localStorage.setItem('google_ads_mcc', val);
+                    hint.textContent = 'MCC salvo. Refaça a conexão para listar contas via esse MCC.';
+
+                    // Tentar atualizar contas imediatamente se já autenticado
+                    try {
+                        if (window.googleAuth && window.googleAuth.fetchAccessibleAccounts) {
+                            await window.googleAuth.fetchAccessibleAccounts(val);
+                            // Atualizar status exibido
+                            if (typeof updateConnectionStatus === 'function') {
+                                await updateConnectionStatus();
+                            }
+                        }
+                    } catch (err) {
+                        console.warn('Erro ao recarregar contas com MCC salvo:', err);
+                    }
+                });
+            } catch (e) {
+                console.error('Erro ao inicializar MCC input:', e);
+            }
+        })();
     </script>
 
     <!-- Inicializar Sidebar Unificada -->

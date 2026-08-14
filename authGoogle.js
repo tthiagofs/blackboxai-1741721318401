@@ -263,7 +263,7 @@ class GoogleAuthService {
     }
 
     // Buscar contas Google Ads acessíveis
-    async fetchAccessibleAccounts() {
+    async fetchAccessibleAccounts(loginCustomerId = null) {
         if (!this.accessToken) {
             throw new Error('Não autenticado. Faça login primeiro.');
         }
@@ -272,6 +272,9 @@ class GoogleAuthService {
             console.log('🔍 Buscando contas Google Ads via API...');
             
             // Chamar a API Function para listar contas
+            // Se não foi passado, tentar obter MCC salvo no localStorage
+            const mcc = loginCustomerId || localStorage.getItem('google_ads_mcc') || null;
+
             const response = await fetch('/api/google-ads', {
                 method: 'POST',
                 headers: {
@@ -280,6 +283,7 @@ class GoogleAuthService {
                 body: JSON.stringify({
                     action: 'listAccounts',
                     accessToken: this.accessToken,
+                    loginCustomerId: mcc
                 }),
             });
 

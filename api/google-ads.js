@@ -58,7 +58,7 @@ export default async function handler(req, res) {
 
     switch (action) {
       case 'listAccounts':
-        return await listAccounts(accessToken, res);
+        return await listAccounts(accessToken, res, loginCustomerId);
       
       case 'getAccountInsights':
         return await getAccountInsights(customerId, startDate, endDate, accessToken, res, loginCustomerId);
@@ -82,7 +82,7 @@ export default async function handler(req, res) {
 }
 
 // Listar contas Google Ads acessíveis (diretas + filhas via MCC)
-async function listAccounts(accessToken, res) {
+async function listAccounts(accessToken, res, loginCustomerId = null) {
   try {
     if (!accessToken) {
       throw new Error('Access token é obrigatório para listar contas');
@@ -92,11 +92,13 @@ async function listAccounts(accessToken, res) {
       throw new Error('DEVELOPER_TOKEN_INVALID');
     }
 
-    console.log(`🔍 Listando contas via Google Ads API ${GOOGLE_ADS_API_VERSION}...`);
+    console.log(`🔍 Listando contas via Google Ads API ${GOOGLE_ADS_API_VERSION}...`, {
+      loginCustomerId: loginCustomerId || 'nenhum'
+    });
 
     const response = await fetch(`${GOOGLE_ADS_BASE}/customers:listAccessibleCustomers`, {
       method: 'GET',
-      headers: buildGoogleAdsHeaders(accessToken)
+      headers: buildGoogleAdsHeaders(accessToken, loginCustomerId)
     });
 
     if (!response.ok) {
@@ -106,12 +108,38 @@ async function listAccounts(accessToken, res) {
     }
 
     const data = await response.json();
-    const customerIds = (data.resourceNames || []).map((name) => {
-      const parts = name.split('/');
-      return parts[parts.length - 1];
-    });
+    // resourceNames vem como: "customers/1234567890"
+    const resourceNames = new Set(data.resourceNames || []);
 
-    console.log(`📋 ${customerIds.length} IDs acessíveis: ${customerIds.join(', ')}`);
+    // Se não foi passado um loginCustomerId específico, tentar reconsultar usando cada customerId
+    if (!loginCustomerId) {
+      const initialCustomerIds = Array.from(resourceNames).map(name => name.split('/').pop());
+      console.log(`📋 ${initialCustomerIds.length} IDs acessíveis inicialmente: ${initialCustomerIds.join(', ')}`);
+
+      // Tentar expandir a lista chamando listAccessibleCustomers com cada customerId como login-customer-id
+      for (const cid of initialCustomerIds.slice(0, 10)) { // limitar a 10 tentativas para segurança
+        try {
+          console.log(`🔄 Tentando listar accounts usando login-customer-id=${cid}...`);
+          const resp = await fetch(`${GOOGLE_ADS_BASE}/customers:listAccessibleCustomers`, {
+            method: 'GET',
+            headers: buildGoogleAdsHeaders(accessToken, cid)
+          });
+          if (!resp.ok) {
+            const errText = await resp.text();
+            console.warn(`⚠️ listAccessibleCustomers com login ${cid} falhou: ${resp.status} - ${errText.substring(0,200)}`);
+            continue;
+          }
+          const d2 = await resp.json();
+          (d2.resourceNames || []).forEach(rn => resourceNames.add(rn));
+          console.log(`✅ listAccessibleCustomers com login ${cid} retornou ${ (d2.resourceNames||[]).length } entradas`);
+        } catch (err) {
+          console.warn(`⚠️ Erro ao tentar listAccessibleCustomers com login ${cid}:`, err.message || err);
+        }
+      }
+    }
+
+    const customerIds = Array.from(resourceNames).map((name) => name.split('/').pop());
+    console.log(`📋 IDs finais acessíveis: ${customerIds.join(', ')}`);
 
     const allAccounts = [];
     const seenIds = new Set();

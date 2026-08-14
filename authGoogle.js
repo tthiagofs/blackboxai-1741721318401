@@ -321,6 +321,13 @@ class GoogleAuthService {
                 throw new Error(data.error || 'Erro ao buscar contas');
             }
 
+            // Salvar resposta bruta para debug (painel UI)
+            try {
+                localStorage.setItem('google_ads_raw_response', JSON.stringify(data));
+            } catch (e) {
+                console.warn('Não foi possível salvar resposta bruta no localStorage:', e);
+            }
+
             console.log('✅ Contas recebidas:', data.accounts);
             
             // Salvar contas no localStorage

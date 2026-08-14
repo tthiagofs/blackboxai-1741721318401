@@ -422,6 +422,12 @@
                 out.push(formatJSON(conn));
             } catch (e) { out.push('(nenhum estado salvo localmente)'); }
 
+            out.push('\n--- google_ads_raw_response (API) ---');
+            try {
+                const raw = JSON.parse(localStorage.getItem('google_ads_raw_response') || 'null');
+                out.push(formatJSON(raw));
+            } catch (e) { out.push('(nenhum raw response salvo)'); }
+
             return out.join('\n');
         }
 

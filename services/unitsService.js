@@ -4,7 +4,7 @@
  */
 
 import { db } from '../config/firebase.js';
-import { getEffectiveRowDate } from './spreadsheetProcessor.js';
+import { getEffectiveRowDate } from './spreadsheetProcessor.js?v=2.0';
 import { 
     collection, 
     doc, 

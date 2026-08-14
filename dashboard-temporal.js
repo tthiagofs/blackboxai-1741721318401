@@ -10,7 +10,7 @@ import { FacebookInsightsService } from './services/facebookInsights.js';
 import { GoogleAdsService } from './services/googleAds.js';
 import { projectsService } from './services/projects.js';
 import * as unitsService from './services/unitsService.js';
-import { getEffectiveRowDate } from './services/spreadsheetProcessor.js';
+import { getEffectiveRowDate } from './services/spreadsheetProcessor.js?v=2.0';
 
 let currentUser = null;
 let currentProject = null;

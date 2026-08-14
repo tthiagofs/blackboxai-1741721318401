@@ -119,43 +119,41 @@ async function listAccounts(accessToken, res) {
       allAccounts.push(account);
     };
 
-    // 2. Para cada ID: verificar se é MCC ou conta direta
+    // 2. Para cada ID: adicionar conta direta E sempre tentar expandir como MCC
+    //    Não dependemos de isManager — tentamos expansão em todos, pois customer_client
+    //    retorna vazio para contas que não são MCC (seguro e robusto)
     for (const customerId of customerIds) {
+      // 2a. Obter info básica da conta
       let info = null;
       try {
         info = await getAccountInfo(customerId, accessToken);
-        console.log(`   • ${info.customerId} — ${info.name}${info.isManager ? ' (MCC)' : ''}`);
+        console.log(`   • ${info.customerId} — ${info.name}${info.isManager ? ' (MCC)' : ' (conta de anúncio)'}`);
       } catch (error) {
         console.warn(`⚠️ Não foi possível obter info de ${customerId}:`, error.message);
-        // Tratar como conta de anúncio e continuar
-        addAccount({ customerId, name: `Conta ${customerId}`, currency: 'BRL', isManager: null });
-        continue;
+        info = { customerId, name: `Conta ${customerId}`, currency: 'BRL', isManager: null };
       }
 
-      if (info.isManager) {
-        // É uma MCC — marcar como vista (não adicionar à lista) e buscar contas filhas
-        seenIds.add(info.customerId);
-        console.log(`🔍 Expandindo MCC ${customerId} (${info.name})...`);
-        try {
-          // A chave: usar o próprio ID da MCC como login-customer-id ao buscar customer_client
-          const children = await collectManagedClientAccounts(
-            customerId, // rootManagerId = essa MCC (login-customer-id)
-            customerId, // managerCustomerId = começa nela mesma
-            accessToken,
-            seenIds
-          );
-          if (children.length > 0) {
-            console.log(`📂 MCC ${customerId}: ${children.length} contas filhas encontradas`);
-            children.forEach(addAccount);
-          } else {
-            console.log(`ℹ️ MCC ${customerId}: nenhuma conta filha encontrada`);
-          }
-        } catch (err) {
-          console.error(`❌ Erro ao expandir MCC ${customerId}:`, err.message);
-        }
-      } else {
-        // É uma conta de anúncio direta — adicionar normalmente
+      // 2b. Se for conta de anúncio direta, adicionar
+      if (info.isManager === false) {
         addAccount(info);
+      } else {
+        // É MCC (ou desconhecido) — não adicionar como conta, apenas marcar como visto
+        seenIds.add(customerId);
+      }
+
+      // 2c. SEMPRE tentar expandir via customer_client com esse ID como login-customer-id
+      //     Isso funciona para MCCs e retorna vazio (sem erro) para contas normais
+      console.log(`🔍 Tentando expansão MCC de ${customerId}...`);
+      try {
+        const children = await getAllClientsFromMCC(customerId, accessToken);
+        if (children.length > 0) {
+          console.log(`📂 ${customerId}: ${children.length} contas filhas encontradas`);
+          children.forEach(addAccount);
+        } else {
+          console.log(`ℹ️ ${customerId}: nenhuma conta filha (não é MCC ou sem permissão)`);
+        }
+      } catch (err) {
+        console.warn(`⚠️ Expansão de ${customerId} falhou:`, err.message);
       }
     }
 
@@ -167,9 +165,14 @@ async function listAccounts(accessToken, res) {
   }
 }
 
-// Buscar contas filhas de uma MCC via customer_client
-// IMPORTANTE: loginCustomerId deve ser o ID da MCC que o usuário tem acesso direto
-async function queryCustomerClients(managerCustomerId, accessToken, loginCustomerId) {
+/**
+ * Busca TODOS os clientes não-manager de uma MCC em uma única query plana.
+ * Usa o próprio ID da MCC como login-customer-id.
+ * A query customer_client retorna todos os descendentes (incluindo sub-MCC e seus filhos).
+ * Filtramos level > 0 para excluir a própria MCC, e manager = false para excluir sub-MCCs.
+ */
+async function getAllClientsFromMCC(mccCustomerId, accessToken) {
+  // Query plana: pega TODOS os clientes não-MCC sob essa conta, em qualquer nível
   const query = `
     SELECT
       customer_client.id,
@@ -183,90 +186,45 @@ async function queryCustomerClients(managerCustomerId, accessToken, loginCustome
       AND customer_client.level > 0
   `;
 
-  console.log(`🔍 [queryCustomerClients] MCC ${managerCustomerId} (login-customer-id: ${loginCustomerId})`);
-
   const response = await fetch(
-    `${GOOGLE_ADS_BASE}/customers/${managerCustomerId}/googleAds:searchStream`,
+    `${GOOGLE_ADS_BASE}/customers/${mccCustomerId}/googleAds:searchStream`,
     {
       method: 'POST',
-      headers: buildGoogleAdsHeaders(accessToken, loginCustomerId),
+      // CRÍTICO: usar o ID da MCC como login-customer-id
+      headers: buildGoogleAdsHeaders(accessToken, mccCustomerId),
       body: JSON.stringify({ query })
     }
   );
 
   if (!response.ok) {
     const errorText = await response.text();
-    console.error(`❌ [queryCustomerClients] Erro ${response.status} para MCC ${managerCustomerId}: ${errorText.substring(0, 500)}`);
+    // 403 = não é MCC ou sem permissão — retornar vazio silenciosamente
     if (response.status === 403) {
-      console.warn(`⚠️ Sem permissão para listar filhas de ${managerCustomerId}`);
+      console.log(`ℹ️ ${mccCustomerId} sem permissão de MCC (403) — pulando`);
       return [];
     }
-    throw new Error(`${response.status} - ${errorText}`);
+    // Outros erros: logar e retornar vazio para não quebrar o fluxo
+    console.error(`❌ getAllClientsFromMCC ${mccCustomerId}: ${response.status} — ${errorText.substring(0, 300)}`);
+    return [];
   }
 
   const data = await response.json();
   const rows = flattenSearchStreamResults(data);
-  console.log(`✅ [queryCustomerClients] ${rows.length} contas encontradas em ${managerCustomerId}`);
-  return rows;
+  console.log(`✅ customer_client de ${mccCustomerId}: ${rows.length} registros`);
+
+  // Filtrar: só contas de anúncio (não MCCs)
+  return rows
+    .filter(row => row.customerClient?.id && row.customerClient.manager !== true)
+    .map(row => ({
+      customerId: String(row.customerClient.id),
+      name: row.customerClient.descriptiveName || `Conta ${row.customerClient.id}`,
+      currency: row.customerClient.currencyCode || 'BRL',
+      managedBy: String(mccCustomerId),
+      isManager: false
+    }));
 }
 
-/**
- * Coleta recursivamente as contas filhas de uma MCC.
- * rootManagerId = ID da MCC raiz com acesso direto (usado como login-customer-id).
- */
-async function collectManagedClientAccounts(
-  rootManagerId,
-  managerCustomerId,
-  accessToken,
-  seenIds,
-  depth = 0
-) {
-  if (depth > 5) return [];
 
-  // Sempre usar a MCC raiz como login-customer-id
-  const rows = await queryCustomerClients(managerCustomerId, accessToken, rootManagerId);
-  const accounts = [];
-
-  for (const row of rows) {
-    const cc = row.customerClient;
-    if (!cc?.id) continue;
-
-    const id = String(cc.id);
-    if (seenIds.has(id)) continue;
-
-    if (cc.manager === true) {
-      // Sub-MCC: expandir recursivamente (ainda usando rootManagerId como login-customer-id)
-      console.log(`   📂 Sub-MCC: ${id} — ${cc.descriptiveName || id}`);
-      const nested = await collectManagedClientAccounts(rootManagerId, id, accessToken, seenIds, depth + 1);
-      accounts.push(...nested);
-    } else {
-      // Conta de anúncio filha
-      seenIds.add(id);
-      const name = cc.descriptiveName || `Conta ${id}`;
-      console.log(`   ✅ Conta filha: ${id} — ${name}`);
-      accounts.push({
-        customerId: id,
-        name,
-        currency: cc.currencyCode || 'BRL',
-        managedBy: String(rootManagerId),
-        isManager: false
-      });
-    }
-  }
-
-  return accounts;
-}
-
-/** @deprecated Use collectManagedClientAccounts — mantido para compatibilidade interna */
-async function getManagedAccounts(managerCustomerId, accessToken) {
-  const seen = new Set();
-  return collectManagedClientAccounts(
-    managerCustomerId,
-    managerCustomerId,
-    accessToken,
-    seen
-  );
-}
 
 // Buscar informações de uma conta específica
 async function getAccountInfo(customerId, accessToken, loginCustomerId = null) {

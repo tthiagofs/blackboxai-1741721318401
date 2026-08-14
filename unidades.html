@@ -1,0 +1,912 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerenciar Unidades - Insightflow</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- XLSX.js -->
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+    <style>
+        /* Animação de drag over */
+        .drag-over {
+            border-color: #3b82f6 !important;
+            background-color: #eff6ff !important;
+            transform: scale(1.02);
+        }
+        
+        /* Animação de processamento */
+        @keyframes pulse-slow {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .processing-overlay {
+            animation: pulse-slow 1.5s ease-in-out infinite;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <div class="flex min-h-screen w-full bg-gray-50">
+        
+        <!-- Sidebar Unificada -->
+        <div id="app-sidebar"></div>
+
+        <!-- Conteúdo Principal -->
+        <main class="flex-1 p-8 overflow-auto">
+            <div class="max-w-7xl mx-auto">
+                
+                <!-- Header -->
+                <div class="mb-8">
+                    <div class="flex items-center justify-between mb-4">
+                        <div>
+                            <h1 class="text-3xl font-bold text-gray-900 mb-2">
+                                Gerenciar Unidades
+                            </h1>
+                            <p class="text-gray-600">
+                                Configure e importe planilhas de orçamentos para cada unidade
+                            </p>
+                        </div>
+                        
+                        <!-- Botão Limpar Todas Planilhas -->
+                        <button 
+                            id="clearAllSpreadsheetsBtn"
+                            onclick="clearAllSpreadsheets()"
+                            class="px-4 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors flex items-center gap-2 border border-red-200">
+                            <i class="fas fa-trash-alt"></i>
+                            <span class="text-sm font-medium">Limpar Todas Planilhas</span>
+                        </button>
+                    </div>
+                    
+                    <!-- Filtro de Período -->
+                    <div class="flex items-center gap-2 bg-white rounded-lg border-2 border-gray-200 p-1 w-fit flex-wrap">
+                        <button 
+                            id="periodLast7Days" 
+                            class="px-4 py-2 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors"
+                            onclick="setPeriod('last7days')">
+                            Últimos 7 dias
+                        </button>
+                        <button 
+                            id="periodThisMonth" 
+                            class="px-4 py-2 rounded-md text-sm font-medium bg-blue-600 text-white"
+                            onclick="setPeriod('thismonth')">
+                            Este mês
+                        </button>
+                        <button 
+                            id="periodLastMonth" 
+                            class="px-4 py-2 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors"
+                            onclick="setPeriod('lastmonth')">
+                            Mês passado
+                        </button>
+                        <button 
+                            id="periodCustom" 
+                            class="px-4 py-2 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors"
+                            onclick="showCustomPeriodModal()">
+                            <i class="fas fa-calendar-alt mr-1"></i>Personalizado
+                        </button>
+                    </div>
+                    
+                    <!-- Modal de Período Personalizado -->
+                    <div id="customPeriodModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                        <div class="bg-white rounded-xl p-6 max-w-md w-full mx-4">
+                            <h3 class="text-xl font-bold text-gray-900 mb-4">Período Personalizado</h3>
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Data de Início</label>
+                                    <input 
+                                        type="date" 
+                                        id="customStartDate" 
+                                        class="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-blue-500"
+                                    >
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Data de Término</label>
+                                    <input 
+                                        type="date" 
+                                        id="customEndDate" 
+                                        class="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-blue-500"
+                                    >
+                                </div>
+                            </div>
+                            <div class="flex gap-3 mt-6">
+                                <button 
+                                    type="button"
+                                    onclick="hideCustomPeriodModal()"
+                                    class="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+                                >
+                                    Cancelar
+                                </button>
+                                <button 
+                                    type="button"
+                                    onclick="applyCustomPeriod()"
+                                    class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                                >
+                                    Aplicar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Loading -->
+                <div id="loadingSection" class="flex items-center justify-center py-12">
+                    <div class="text-center">
+                        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                        <p class="text-gray-600">Carregando unidades...</p>
+                    </div>
+                </div>
+
+                <!-- Grid de Unidades -->
+                <div id="unitsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 hidden">
+                    <!-- Cards serão inseridos aqui via JavaScript -->
+                </div>
+
+                <!-- Empty State -->
+                <div id="emptyState" class="hidden text-center py-12">
+                    <div class="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <i class="fas fa-building text-4xl text-gray-400"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold text-gray-900 mb-2">Nenhuma unidade cadastrada</h3>
+                    <p class="text-gray-600 mb-6">Comece adicionando sua primeira unidade</p>
+                    <button onclick="showAddUnitModal()" class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                        <i class="fas fa-plus mr-2"></i>
+                        Adicionar Unidade
+                    </button>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modal: Adicionar Unidade -->
+    <div id="addUnitModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div class="bg-white rounded-xl p-8 max-w-md w-full mx-4">
+            <h2 class="text-2xl font-bold text-gray-900 mb-6">Nova Unidade</h2>
+            
+            <form id="addUnitForm">
+                <div class="mb-6">
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">
+                        Nome da Unidade
+                    </label>
+                    <input 
+                        type="text" 
+                        id="unitName" 
+                        required
+                        placeholder="Ex: Oral Centter Janaúba"
+                        class="w-full border-2 border-gray-200 rounded-lg px-4 py-3 focus:outline-none focus:border-blue-500"
+                    >
+                </div>
+
+                <div class="flex gap-3">
+                    <button 
+                        type="button"
+                        onclick="hideAddUnitModal()"
+                        class="flex-1 px-4 py-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+                    >
+                        Cancelar
+                    </button>
+                    <button 
+                        type="submit"
+                        class="flex-1 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                    >
+                        Criar Unidade
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script type="module">
+        import { auth, db } from './config/firebase.js';
+        import { onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+        import { doc, getDoc, deleteDoc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+        import { listUnits, createUnit, getUnit, updateBudgetData } from './services/unitsService.js';
+        import { processSpreadsheet, validateSpreadsheet, mergeSpreadsheetData, formatLocalDateYmd, getEffectiveRowDate } from './services/spreadsheetProcessor.js';
+        import { fbAuth } from './auth.js?v=3.0';
+        import { googleAuth } from './authGoogle.js?v=3.0';
+
+        let currentProjectId = null;
+        let currentUser = null;
+        let currentPeriod = 'thismonth'; // 'last7days', 'thismonth', 'lastmonth', 'custom', 'total'
+        let customPeriodDates = null; // { startDate, endDate } para período personalizado
+        let allUnits = [];  // Cache de todas as unidades
+
+        // Auth check
+        onAuthStateChanged(auth, (user) => {
+            if (!user) {
+                window.location.href = '/login.html';
+                return;
+            }
+            
+            currentUser = user;
+            
+            // Pegar projectId da URL
+            const urlParams = new URLSearchParams(window.location.search);
+            currentProjectId = urlParams.get('projectId');
+            
+            if (!currentProjectId) {
+                window.location.href = '/home.html';
+                return;
+            }
+            
+            // Carregar unidades
+            loadUnits();
+        });
+
+        // Calcular dados filtrados por período
+        function filterDataByPeriod(rawData, period) {
+            if (!rawData || rawData.length === 0) {
+                return { totalBudgets: 0, totalSales: 0, totalRevenue: 0 };
+            }
+            
+            console.log('🔍 [filterDataByPeriod] Período:', period);
+            console.log('🔍 [filterDataByPeriod] Total de registros:', rawData.length);
+            
+            if (period === 'total') {
+                // Total - retorna todos os dados sem filtro
+                const result = {
+                    totalBudgets: rawData.length,
+                    totalSales: rawData.filter(r => r.status === "APPROVED").length,
+                    totalRevenue: rawData
+                        .filter((r) => r.status === 'APPROVED')
+                        .reduce((sum, r) => sum + Number(r.value || 0), 0)
+                };
+                console.log('✅ [filterDataByPeriod - TOTAL] Resultado:', result);
+                return result;
+            }
+            
+            // ⭐ Usar datas sem horário para evitar problemas de fuso horário
+            const today = new Date();
+            const todayDateOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+            
+            let startDate = null;
+            let endDate = null;
+            
+            if (period === 'last7days') {
+                // Últimos 7 dias (ex: 17/10 a 23/10 se hoje é 24/10)
+                endDate = new Date(todayDateOnly);
+                endDate.setDate(endDate.getDate() - 1); // Até ontem
+                startDate = new Date(endDate);
+                startDate.setDate(startDate.getDate() - 6); // -6 para ter 7 dias (incluindo o dia final)
+            } else if (period === 'thismonth') {
+                // Este mês - do dia 1 até hoje
+                startDate = new Date(today.getFullYear(), today.getMonth(), 1);
+                endDate = new Date(todayDateOnly); // Até hoje
+            } else if (period === 'lastmonth') {
+                // Mês passado - do dia 1 até o último dia do mês passado
+                const lastMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+                startDate = new Date(lastMonth.getFullYear(), lastMonth.getMonth(), 1);
+                endDate = new Date(lastMonth.getFullYear(), lastMonth.getMonth() + 1, 0); // Último dia do mês passado
+            } else if (period === 'custom' && customPeriodDates) {
+                // Período personalizado
+                startDate = new Date(customPeriodDates.startDate);
+                endDate = new Date(customPeriodDates.endDate);
+            }
+            
+            const startDateStr = formatLocalDateYmd(startDate);
+            const endDateStr = formatLocalDateYmd(endDate);
+            
+            console.log('📅 Período de filtro:', startDateStr, 'até', endDateStr);
+            
+            const filtered = rawData.filter((item) => {
+                const itemDate = (getEffectiveRowDate(item) || item.date || '').toString().slice(0, 10);
+                return itemDate >= startDateStr && itemDate <= endDateStr;
+            });
+            
+            console.log('✅ Registros filtrados:', filtered.length);
+            
+            const result = {
+                totalBudgets: filtered.length,
+                totalSales: filtered.filter((r) => r.status === 'APPROVED').length,
+                totalRevenue: filtered
+                    .filter((r) => r.status === 'APPROVED')
+                    .reduce((sum, r) => sum + Number(r.value || 0), 0)
+            };
+            
+            console.log('✅ [filterDataByPeriod] Resultado:', result);
+            return result;
+        }
+
+        let loadUnitsSeq = 0;
+
+        // Carregar unidades
+        async function loadUnits() {
+            const mySeq = ++loadUnitsSeq;
+            try {
+                const units = await listUnits(currentProjectId);
+                if (mySeq !== loadUnitsSeq) return;
+
+                allUnits = units;
+
+                document.getElementById('emptyState').classList.add('hidden');
+                document.getElementById('unitsGrid').classList.add('hidden');
+
+                if (units.length === 0) {
+                    document.getElementById('emptyState').classList.remove('hidden');
+                } else {
+                    renderUnits(units);
+                }
+            } catch (error) {
+                if (mySeq !== loadUnitsSeq) return;
+                console.error('Erro ao carregar unidades:', error);
+                document.getElementById('unitsGrid').classList.add('hidden');
+                document.getElementById('emptyState').classList.remove('hidden');
+                alert(
+                    'Não foi possível carregar as unidades. Verifique a conexão e tente novamente.\n\n' +
+                        (error?.message ? `Detalhe: ${error.message}` : '')
+                );
+            } finally {
+                if (mySeq === loadUnitsSeq) {
+                    document.getElementById('loadingSection')?.classList.add('hidden');
+                }
+            }
+        }
+
+        window.addEventListener('pageshow', (ev) => {
+            if (ev.persisted && currentProjectId) {
+                loadUnits().catch((e) => console.error('[pageshow] loadUnits:', e));
+            }
+        });
+
+        // Renderizar unidades
+        function renderUnits(units) {
+            const grid = document.getElementById('unitsGrid');
+            grid.classList.remove('hidden');
+            
+            grid.innerHTML = units.map(unit => {
+                // Calcular dados filtrados por período
+                let displayData = { totalBudgets: 0, totalSales: 0, totalRevenue: 0 };
+                const hasData = unit.budgetData && unit.budgetData.rawData && unit.budgetData.rawData.length > 0;
+                
+                if (hasData) {
+                    displayData = filterDataByPeriod(unit.budgetData.rawData, currentPeriod);
+                }
+                
+                return `
+                    <div id="unit-${unit.id}" 
+                         data-unit-id="${unit.id}" 
+                         class="unit-card bg-white border-2 border-gray-200 rounded-lg p-4 hover:shadow-md transition-all group relative cursor-pointer">
+                        
+                        <!-- Overlay de processamento (inicialmente oculto) -->
+                        <div id="processing-${unit.id}" class="hidden absolute inset-0 bg-blue-600 rounded-lg flex flex-col items-center justify-center z-10 processing-overlay">
+                            <div class="text-white text-center">
+                                <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-white mx-auto mb-2"></div>
+                                <p class="text-sm font-semibold">${hasData ? 'Substituindo dados...' : 'Processando...'}</p>
+                            </div>
+                        </div>
+                        
+                        <!-- Botões de ação (canto superior direito) -->
+                        <div class="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-20">
+                            ${hasData ? `
+                            <button 
+                                onclick="clearUnitData('${unit.id}', '${unit.name.replace(/'/g, "\\'")}')" 
+                                class="w-7 h-7 bg-yellow-100 text-yellow-600 rounded-full hover:bg-yellow-200 flex items-center justify-center"
+                                title="Limpar dados">
+                                <i class="fas fa-eraser text-xs"></i>
+                            </button>
+                            ` : ''}
+                            <button 
+                                onclick="deleteUnit('${unit.id}', '${unit.name.replace(/'/g, "\\'")}')" 
+                                class="w-7 h-7 bg-red-100 text-red-600 rounded-full hover:bg-red-200 flex items-center justify-center"
+                                title="Excluir unidade">
+                                <i class="fas fa-trash text-xs"></i>
+                            </button>
+                        </div>
+                        
+                        <div class="flex items-center gap-2 mb-3">
+                            <div class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
+                                <i class="fas fa-building text-blue-600"></i>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <h3 class="text-sm font-bold text-gray-900 truncate" title="${unit.name}">
+                                    ${unit.name}
+                                </h3>
+                                ${unit.linkedAccounts && (unit.linkedAccounts.meta || unit.linkedAccounts.google) ? `
+                                <div class="flex items-center gap-1 mt-1">
+                                    ${unit.linkedAccounts.meta ? `
+                                    <div class="flex items-center gap-1 bg-blue-50 px-2 py-0.5 rounded" title="Meta: ${unit.linkedAccounts.meta.name}">
+                                        <i class="fab fa-meta text-blue-600 text-xs"></i>
+                                        <span class="text-[10px] text-gray-600 truncate max-w-[80px]">${unit.linkedAccounts.meta.name}</span>
+                                    </div>
+                                    ` : ''}
+                                    ${unit.linkedAccounts.google ? `
+                                    <div class="flex items-center gap-1 bg-red-50 px-2 py-0.5 rounded" title="Google: ${unit.linkedAccounts.google.name}">
+                                        <i class="fab fa-google text-red-600 text-xs"></i>
+                                        <span class="text-[10px] text-gray-600 truncate max-w-[80px]">${unit.linkedAccounts.google.name}</span>
+                                    </div>
+                                    ` : ''}
+                                </div>
+                                ` : ''}
+                            </div>
+                        </div>
+                        
+                        ${hasData ? `
+                            <div class="space-y-1 mb-3">
+                                <div class="flex justify-between text-xs">
+                                    <span class="text-gray-600">Orçamentos:</span>
+                                    <span class="font-semibold">${displayData.totalBudgets}</span>
+                                </div>
+                                <div class="flex justify-between text-xs">
+                                    <span class="text-gray-600">Vendas:</span>
+                                    <span class="font-semibold text-green-600">${displayData.totalSales}</span>
+                                </div>
+                                <div class="flex justify-between text-xs">
+                                    <span class="text-gray-600">Faturamento:</span>
+                                    <span class="font-semibold text-purple-600">R$ ${displayData.totalRevenue.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</span>
+                                </div>
+                            </div>
+                        ` : `
+                            <div class="bg-yellow-50 rounded p-2 mb-3">
+                                <p class="text-xs text-yellow-700 text-center">
+                                    <i class="fas fa-file-upload mr-1"></i>
+                                    Arraste uma planilha aqui
+                                </p>
+                            </div>
+                        `}
+                        
+                        <button onclick="openUnit('${unit.id}')" 
+                            class="w-full px-3 py-1.5 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors text-xs font-medium">
+                            <i class="fas fa-folder-open mr-1"></i> Abrir
+                        </button>
+                    </div>
+                `;
+            }).join('');
+            
+            // Card: Adicionar Nova Unidade
+            grid.innerHTML += `
+                <div class="bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg p-4 flex flex-col items-center justify-center hover:border-blue-400 hover:bg-blue-50 transition-colors cursor-pointer"
+                     onclick="showAddUnitModal()">
+                    <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mb-2">
+                        <i class="fas fa-plus text-2xl text-blue-600"></i>
+                    </div>
+                    <h3 class="text-sm font-semibold text-gray-700 text-center">
+                        Nova Unidade
+                    </h3>
+                </div>
+            `;
+            
+            // ⭐ Configurar drag & drop DEPOIS de renderizar HTML
+            setupDragAndDrop();
+        }
+
+        // Formatar data
+        function formatDate(dateStr) {
+            if (!dateStr) return '-';
+            const date = new Date(dateStr);
+            return date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+        }
+
+        // Mudar período
+        window.setPeriod = (period) => {
+            currentPeriod = period;
+            
+            // Atualizar botões
+            document.getElementById('periodLast7Days').className = 'px-4 py-2 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors';
+            document.getElementById('periodThisMonth').className = 'px-4 py-2 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors';
+            document.getElementById('periodLastMonth').className = 'px-4 py-2 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors';
+            document.getElementById('periodCustom').className = 'px-4 py-2 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors';
+            
+            if (period === 'last7days') {
+                document.getElementById('periodLast7Days').className = 'px-4 py-2 rounded-md text-sm font-medium bg-blue-600 text-white';
+            } else if (period === 'thismonth') {
+                document.getElementById('periodThisMonth').className = 'px-4 py-2 rounded-md text-sm font-medium bg-blue-600 text-white';
+            } else if (period === 'lastmonth') {
+                document.getElementById('periodLastMonth').className = 'px-4 py-2 rounded-md text-sm font-medium bg-blue-600 text-white';
+            } else if (period === 'custom') {
+                document.getElementById('periodCustom').className = 'px-4 py-2 rounded-md text-sm font-medium bg-blue-600 text-white';
+            }
+            
+            // Re-renderizar unidades com novo período
+            renderUnits(allUnits);
+        };
+        
+        // Mostrar modal de período personalizado
+        window.showCustomPeriodModal = () => {
+            const modal = document.getElementById('customPeriodModal');
+            if (modal) {
+                modal.classList.remove('hidden');
+                
+                // Preencher com datas padrão se já houver um período personalizado
+                if (customPeriodDates) {
+                    document.getElementById('customStartDate').value = customPeriodDates.startDate;
+                    document.getElementById('customEndDate').value = customPeriodDates.endDate;
+                } else {
+                    // Preencher com últimos 30 dias como padrão
+                    const endDate = new Date();
+                    endDate.setDate(endDate.getDate() - 1); // Até ontem
+                    const startDate = new Date(endDate);
+                    startDate.setDate(startDate.getDate() - 29); // 30 dias atrás
+                    
+                    document.getElementById('customStartDate').value = startDate.toISOString().split('T')[0];
+                    document.getElementById('customEndDate').value = endDate.toISOString().split('T')[0];
+                }
+            }
+        };
+        
+        // Ocultar modal de período personalizado
+        window.hideCustomPeriodModal = () => {
+            const modal = document.getElementById('customPeriodModal');
+            if (modal) {
+                modal.classList.add('hidden');
+            }
+        };
+        
+        // Aplicar período personalizado
+        window.applyCustomPeriod = () => {
+            const startDate = document.getElementById('customStartDate').value;
+            const endDate = document.getElementById('customEndDate').value;
+            
+            if (!startDate || !endDate) {
+                alert('Por favor, selecione ambas as datas.');
+                return;
+            }
+            
+            if (new Date(startDate) > new Date(endDate)) {
+                alert('A data de início deve ser anterior à data de término.');
+                return;
+            }
+            
+            customPeriodDates = { startDate, endDate };
+            currentPeriod = 'custom';
+            
+            // Atualizar botões
+            window.setPeriod('custom');
+            
+            // Fechar modal
+            hideCustomPeriodModal();
+        };
+
+        // Abrir unidade
+        window.openUnit = (unitId) => {
+            window.location.href = `unidade-detalhes.html?projectId=${currentProjectId}&unitId=${unitId}`;
+        };
+
+        // Excluir unidade
+        window.deleteUnit = async (unitId, unitName) => {
+            if (!confirm(`Tem certeza que deseja excluir a unidade "${unitName}"?\n\nIsso não pode ser desfeito.`)) {
+                return;
+            }
+            
+            try {
+                await deleteDoc(doc(db, `projects/${currentProjectId}/units/${unitId}`));
+                
+                // Forçar recarregamento completo
+                document.getElementById('unitsGrid').classList.add('hidden');
+                document.getElementById('loadingSection').classList.remove('hidden');
+                
+                await loadUnits();
+            } catch (error) {
+                console.error('Erro ao excluir unidade:', error);
+            }
+        };
+
+        // Limpar dados de uma unidade específica
+        window.clearUnitData = async (unitId, unitName) => {
+            const confirmMessage = `⚠️ Limpar dados da unidade "${unitName}"?\n\nIsso vai remover TODOS os dados das planilhas.\nA unidade continuará existindo, mas SEM dados.\n\nVocê poderá importar novas planilhas depois.\n\nDeseja continuar?`;
+            
+            if (!confirm(confirmMessage)) {
+                return;
+            }
+            
+            try {
+                // Importar updateDoc
+                const { doc: docRef, updateDoc } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
+                
+                // Limpar budgetData
+                await updateDoc(
+                    docRef(db, `projects/${currentProjectId}/units/${unitId}`),
+                    {
+                        budgetData: null
+                    }
+                );
+                
+                console.log(`✅ Dados da unidade "${unitName}" limpos com sucesso!`);
+                
+                // Recarregar unidades
+                document.getElementById('unitsGrid').classList.add('hidden');
+                document.getElementById('loadingSection').classList.remove('hidden');
+                await loadUnits();
+                
+            } catch (error) {
+                console.error('❌ Erro ao limpar dados:', error);
+                alert('❌ Erro ao limpar dados. Tente novamente.');
+            }
+        };
+
+        // Limpar todas planilhas
+        window.clearAllSpreadsheets = async () => {
+            if (!allUnits || allUnits.length === 0) {
+                alert('Nenhuma unidade encontrada.');
+                return;
+            }
+            
+            // Contar quantas unidades têm planilhas
+            const unitsWithData = allUnits.filter(unit => 
+                unit.budgetData && unit.budgetData.rawData && unit.budgetData.rawData.length > 0
+            );
+            
+            if (unitsWithData.length === 0) {
+                alert('Nenhuma planilha encontrada para limpar.');
+                return;
+            }
+            
+            const confirmMessage = `⚠️ ATENÇÃO!\n\nVocê está prestes a REMOVER TODAS as planilhas de ${unitsWithData.length} unidade(s).\n\nEsta ação NÃO PODE ser desfeita!\n\nDeseja continuar?`;
+            
+            if (!confirm(confirmMessage)) {
+                return;
+            }
+            
+            // Confirmar novamente
+            if (!confirm('Tem certeza ABSOLUTA? Todas as planilhas serão perdidas!')) {
+                return;
+            }
+            
+            try {
+                const btn = document.getElementById('clearAllSpreadsheetsBtn');
+                const originalContent = btn.innerHTML;
+                
+                // Desabilitar botão e mostrar loading
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> <span class="text-sm font-medium">Limpando...</span>';
+                
+                // Importar updateDoc
+                const { doc: docRef, updateDoc } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
+                
+                // Limpar budgetData de todas as unidades que têm dados
+                const promises = unitsWithData.map(unit => 
+                    updateDoc(
+                        docRef(db, `projects/${currentProjectId}/units/${unit.id}`),
+                        {
+                            budgetData: null
+                        }
+                    )
+                );
+                
+                await Promise.all(promises);
+                
+                console.log(`✅ ${unitsWithData.length} planilha(s) removida(s) com sucesso!`);
+                alert(`✅ ${unitsWithData.length} planilha(s) removida(s) com sucesso!`);
+                
+                // Restaurar botão
+                btn.disabled = false;
+                btn.innerHTML = originalContent;
+                
+                // Recarregar unidades
+                document.getElementById('unitsGrid').classList.add('hidden');
+                document.getElementById('loadingSection').classList.remove('hidden');
+                await loadUnits();
+                
+            } catch (error) {
+                console.error('❌ Erro ao limpar planilhas:', error);
+                alert('❌ Erro ao limpar planilhas. Tente novamente.');
+                
+                // Restaurar botão
+                const btn = document.getElementById('clearAllSpreadsheetsBtn');
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-trash-alt"></i> <span class="text-sm font-medium">Limpar Todas Planilhas</span>';
+            }
+        };
+
+        // Modal
+        window.showAddUnitModal = () => {
+            document.getElementById('addUnitModal').classList.remove('hidden');
+        };
+
+        window.hideAddUnitModal = () => {
+            document.getElementById('addUnitModal').classList.add('hidden');
+            document.getElementById('unitName').value = '';
+        };
+
+        // Criar unidade
+        document.getElementById('addUnitForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const name = document.getElementById('unitName').value.trim();
+            
+            if (!name) return;
+            
+            try {
+                await createUnit(currentProjectId, {
+                    name: name,
+                    trafficSources: {
+                        facebook: true,      // ✅ Pré-definido
+                        instagram: true,     // ✅ Pré-definido
+                        google: false,
+                        revista: false,
+                        empty: false,
+                        dots: false
+                    },
+                    customKeywords: {
+                        enabled: false, // ✅ Desativado por padrão
+                        terms: ['Tráfego', 'Tráfego Pago', 'trafego', 'trafego pago']
+                    },
+                    excludeMaintenance: true  // ✅ Pré-definido: Excluir manutenções
+                });
+                
+                hideAddUnitModal();
+                loadUnits();
+            } catch (error) {
+                console.error('Erro ao criar unidade:', error);
+            }
+        });
+
+        // ===== DRAG & DROP =====
+        
+        function setupDragAndDrop() {
+            console.log('🎯 [setupDragAndDrop] Iniciando configuração...');
+            
+            // Buscar todos os cards de unidades
+            const unitCards = document.querySelectorAll('.unit-card');
+            console.log(`📋 [setupDragAndDrop] Encontrados ${unitCards.length} cards`);
+            
+            if (unitCards.length === 0) {
+                console.warn('⚠️ [setupDragAndDrop] Nenhum card encontrado!');
+                return;
+            }
+            
+            unitCards.forEach((card, index) => {
+                const unitId = card.getAttribute('data-unit-id');
+                console.log(`✅ [setupDragAndDrop] Configurando card ${index + 1}: ${unitId}`);
+                
+                // DRAGOVER - Permitir drop e adicionar estilo
+                card.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    card.classList.add('drag-over');
+                });
+                
+                // DRAGLEAVE - Remover estilo
+                card.addEventListener('dragleave', (e) => {
+                    card.classList.remove('drag-over');
+                });
+                
+                // DROP - Processar arquivo
+                card.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    card.classList.remove('drag-over');
+                    
+                    console.log('📥 [DROP] Evento disparado no card:', unitId);
+                    
+                    const files = e.dataTransfer.files;
+                    console.log('📄 [DROP] Arquivos:', files.length);
+                    
+                    if (files.length > 0) {
+                        console.log('✅ [DROP] Chamando handleFileUpload...');
+                        handleFileUpload(unitId, files[0]);
+                    }
+                });
+            });
+            
+            console.log('✅ [setupDragAndDrop] Configuração concluída!');
+        }
+        
+        async function handleFileUpload(unitId, file) {
+            try {
+                console.log('📊 [handleFileUpload] INÍCIO');
+                console.log('📊 [handleFileUpload] Unidade:', unitId);
+                console.log('📄 [handleFileUpload] Arquivo:', file.name, '| Tamanho:', file.size, 'bytes');
+                
+                console.log('🔍 [handleFileUpload] Validando arquivo...');
+                validateSpreadsheet(file);
+                console.log('✅ [handleFileUpload] Arquivo válido!');
+
+                console.log('🔍 [handleFileUpload] Buscando configurações da unidade...');
+                const unit = await getUnit(currentProjectId, unitId);
+                console.log('✅ [handleFileUpload] Unidade carregada:', unit.name);
+
+                const processingOverlay = document.getElementById(`processing-${unitId}`);
+                console.log('🎨 [handleFileUpload] Overlay encontrado:', !!processingOverlay);
+                if (processingOverlay) {
+                    processingOverlay.classList.remove('hidden');
+                    console.log('🎨 [handleFileUpload] Overlay exibido');
+                }
+                
+                console.log('⚙️ [handleFileUpload] Fontes de tráfego:', unit.trafficSources);
+                
+                // ⭐ Combinar filtros Meta e Google em um objeto plano para processamento inicial
+                const trafficSourcesMeta = unit.trafficSources?.meta || {
+                    facebook: true,
+                    instagram: true,
+                    google: false,
+                    revista: false,
+                    empty: false,
+                    dots: false
+                };
+                const trafficSourcesGoogle = unit.trafficSources?.google || {
+                    facebook: false,
+                    instagram: false,
+                    google: true,
+                    revista: false,
+                    empty: false,
+                    dots: false
+                };
+                
+                // Combinar: incluir se estiver em Meta OU Google
+                const combinedTrafficSources = {
+                    facebook: trafficSourcesMeta.facebook || trafficSourcesGoogle.facebook,
+                    instagram: trafficSourcesMeta.instagram || trafficSourcesGoogle.instagram,
+                    google: trafficSourcesMeta.google || trafficSourcesGoogle.google,
+                    revista: trafficSourcesMeta.revista || trafficSourcesGoogle.revista,
+                    empty: trafficSourcesMeta.empty || trafficSourcesGoogle.empty,
+                    dots: trafficSourcesMeta.dots || trafficSourcesGoogle.dots
+                };
+                
+                // Palavras-chave (Sistema OC: sem observações no export)
+                let customKeywords = unit.customKeywords?.meta || unit.customKeywords || { enabled: false, terms: [] };
+                if ((unit.crmSource || 'clinicorp') === 'sistema_oc') {
+                    customKeywords = { enabled: false, terms: [] };
+                }
+                
+                console.log('🔍 [handleFileUpload] Filtros combinados:', combinedTrafficSources);
+                
+                // Processar planilha
+                console.log('📊 [handleFileUpload] Processando planilha...');
+                const newBudgetData = await processSpreadsheet(
+                    file,
+                    combinedTrafficSources,
+                    customKeywords,
+                    unit.excludeMaintenance || false,
+                    unit.crmSource || 'clinicorp'
+                );
+
+                const hadSavedTraffic = (unit.budgetData?.rawData?.length || 0) > 0;
+                if (hadSavedTraffic && newBudgetData.rawData.length === 0 && (newBudgetData.allData?.length || 0) > 0) {
+                    throw new Error(
+                        'A planilha foi reconhecida, mas nenhum orçamento entrou nos filtros de tráfego.\n\n' +
+                            'A importação foi cancelada e os dados anteriores foram mantidos.\n\n' +
+                            'Ajuste os filtros ou confira a fonte de tráfego (Clinicorp: coluna L; Sistema OC: coluna I).'
+                    );
+                }
+
+                console.log('✅ [handleFileUpload] Planilha processada!');
+                console.log('📋 [handleFileUpload] Orçamentos:', newBudgetData.totalBudgets);
+                console.log('✅ [handleFileUpload] Vendas:', newBudgetData.totalSales);
+                console.log('💰 [handleFileUpload] Faturamento:', newBudgetData.totalRevenue);
+                
+                // Mesclar com dados existentes
+                console.log('🔄 [handleFileUpload] Mesclando com dados existentes...');
+                const mergedData = mergeSpreadsheetData(unit.budgetData, newBudgetData);
+                console.log('✅ [handleFileUpload] Mesclagem concluída!');
+                console.log('📊 [handleFileUpload] Total final:', mergedData.totalBudgets, 'registros');
+                console.log('📅 [handleFileUpload] Período:', mergedData.periodStart, 'a', mergedData.periodEnd);
+                
+                // Salvar no Firestore
+                console.log('💾 [handleFileUpload] Salvando no Firestore...');
+                await updateBudgetData(currentProjectId, unitId, mergedData);
+                console.log('✅ [handleFileUpload] Dados salvos no Firestore!');
+                
+                // Ocultar overlay
+                if (processingOverlay) {
+                    processingOverlay.classList.add('hidden');
+                    console.log('🎨 [handleFileUpload] Overlay ocultado');
+                }
+                
+                // Recarregar unidades para atualizar os cards
+                console.log('🔄 [handleFileUpload] Recarregando unidades...');
+                await loadUnits();
+                console.log('✅ [handleFileUpload] Unidades recarregadas!');
+                console.log('🎉 [handleFileUpload] CONCLUÍDO COM SUCESSO!');
+                
+            } catch (error) {
+                console.error('❌ [handleFileUpload] ERRO:', error);
+                console.error('❌ [handleFileUpload] Stack:', error.stack);
+                
+                // Ocultar overlay em caso de erro
+                const processingOverlay = document.getElementById(`processing-${unitId}`);
+                if (processingOverlay) {
+                    processingOverlay.classList.add('hidden');
+                }
+                
+                alert(`❌ Erro: ${error.message}`);
+            }
+        }
+    </script>
+
+    <!-- Inicializar Sidebar Unificada -->
+    <script type="module">
+        import { initSidebar } from './components/sidebar.js';
+        initSidebar('unidades');
+    </script>
+</body>
+</html>
+

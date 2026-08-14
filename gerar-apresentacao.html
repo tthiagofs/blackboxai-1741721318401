@@ -1,0 +1,2067 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerar Apresentação - Insightflow</title>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="style.css">
+    <!-- jsPDF e html2canvas para exportação PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#2563eb',
+                        secondary: '#10b981',
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    <style>
+    /* Remover scroll horizontal */
+    html, body {
+        overflow-x: hidden !important;
+        max-width: 100vw !important;
+    }
+    
+    /* REMOVIDO: CSS do modo PDF - Agora usando página dedicada print */
+    
+     /* Estilo do Modal */
+    #campaignsModal .max-h-64,
+    #adSetsModal .max-h-64,
+    #whiteCampaignsModal .max-h-64,
+    #whiteAdSetsModal .max-h-64,
+    #blackCampaignsModal .max-h-64,
+    #blackAdSetsModal .max-h-64 {
+        max-height: 16rem;
+        overflow-y: auto;
+        scrollbar-width: thin;
+        scrollbar-color: #d1d5db #f3f4f6;
+    }
+
+    #campaignsModal .max-h-64::-webkit-scrollbar,
+    #adSetsModal .max-h-64::-webkit-scrollbar,
+    #whiteCampaignsModal .max-h-64::-webkit-scrollbar,
+    #whiteAdSetsModal .max-h-64::-webkit-scrollbar,
+    #blackCampaignsModal .max-h-64::-webkit-scrollbar,
+    #blackAdSetsModal .max-h-64::-webkit-scrollbar {
+        width: 6px;
+    }
+
+    #campaignsModal .max-h-64::-webkit-scrollbar-thumb,
+    #adSetsModal .max-h-64::-webkit-scrollbar-thumb,
+    #whiteCampaignsModal .max-h-64::-webkit-scrollbar-thumb,
+    #whiteAdSetsModal .max-h-64::-webkit-scrollbar-thumb,
+    #blackCampaignsModal .max-h-64::-webkit-scrollbar-thumb,
+    #blackAdSetsModal .max-h-64::-webkit-scrollbar-thumb {
+        background-color: #d1d5db;
+        border-radius: 3px;
+    }
+
+    #campaignsModal .max-h-64::-webkit-scrollbar-track,
+    #adSetsModal .max-h-64::-webkit-scrollbar-track,
+    #whiteCampaignsModal .max-h-64::-webkit-scrollbar-track,
+    #whiteAdSetsModal .max-h-64::-webkit-scrollbar-track,
+    #blackCampaignsModal .max-h-64::-webkit-scrollbar-track,
+    #blackAdSetsModal .max-h-64::-webkit-scrollbar-track {
+        background-color: #f3f4f6;
+    }
+
+    /* Estilo dos Itens */
+    .filter-option {
+        padding: 0.5rem 0.75rem; /* Equivalente a px-3 py-2 */
+        background: #ffffff; /* Fundo branco direto, sem Tailwind */
+        cursor: pointer;
+        transition: all 0.2s ease;
+        border-bottom: 1px solid #f1f1f1;
+    }
+
+    .filter-option:last-child {
+        border-bottom: none;
+    }
+
+    .filter-option:hover {
+        background: #f1f5f9;
+        transform: scale(1.01);
+    }
+
+    /* Aumentar especificidade para evitar conflitos com Tailwind */
+    div.filter-option.selected {
+        background: #2563eb !important;
+        color: #ffffff !important;
+    }
+
+    div.filter-option.selected:hover {
+        background: #1d4ed8 !important;
+    }
+
+    .filter-option .flex {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    div.filter-option.selected .text-green-600,
+    div.filter-option.selected .text-gray-500 {
+        color: #ffffff !important;
+    }
+
+        .metric-card {
+            @apply bg-white p-6 rounded-lg shadow-lg transition-transform duration-300 hover:transform hover:-translate-y-1;
+        }
+        .metric-comparison.increase {
+            @apply text-green-500 flex items-center;
+        }
+        .metric-comparison.decrease {
+            @apply text-red-500 flex items-center;
+        }
+        .top-ad-card {
+            @apply bg-white p-4 rounded-lg shadow-md transition-all duration-300 hover:shadow-lg;
+        }
+
+/* Estilo para os itens da lista de análise */
+ul.list-disc li {
+    margin-bottom: 0.5rem; /* Espaçamento entre os itens da lista */
+    line-height: 1.5; /* Altura da linha para melhor legibilidade */
+}
+
+/* Garantir que o texto dentro de cada <li> respeite o formato */
+ul.list-disc li br {
+    display: block; /* Forçar a quebra de linha */
+    content: ''; /* Garantir compatibilidade */
+}
+
+/* Estilo para o relatório White (fundo azul) */
+.campaign-section.white-report {
+    background-color: #1e3c72; /* Azul definido no Tailwind */
+    color: #ffffff; /* Texto branco para contraste */
+}
+
+/* Estilo para o relatório Black (fundo preto) */
+.campaign-section.black-report {
+    background-color: #000000; /* Preto */
+    color: #ffffff; /* Texto branco */
+}
+
+/* Garantir que os textos dentro da seção fiquem brancos */
+.campaign-section.white-report h3,
+.campaign-section.white-report h4,
+.campaign-section.white-report p,
+.campaign-section.black-report h3,
+.campaign-section.black-report h4,
+.campaign-section.black-report p {
+    color: #ffffff;
+}
+
+    </style>
+
+<!-- Scripts -->
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+
+</head>
+<body class="bg-white min-h-screen font-sans m-0 p-0">
+    <!-- Container Principal -->
+    <div class="flex min-h-screen w-full">
+        <!-- Sidebar -->
+        <aside class="w-56 bg-white flex flex-col border-r border-gray-200">
+            <div class="p-6">
+                <h1 class="text-xl font-bold text-gray-800">Apresentações</h1>
+            </div>
+            
+            <nav class="flex-1 px-3">
+                <a href="javascript:history.back()" class="flex items-center px-3 py-2.5 mb-1 border-l-4 border-transparent text-gray-700 hover:bg-gray-50 transition-all">
+                    <i class="fas fa-arrow-left mr-3 text-sm"></i>
+                    <span class="text-sm">Voltar</span>
+                </a>
+                <a href="/home.html" class="flex items-center px-3 py-2.5 mb-1 border-l-4 border-transparent text-gray-700 hover:bg-gray-50 transition-all">
+                    <i class="fas fa-home mr-3 text-sm"></i>
+                    <span class="text-sm">Tela Inicial</span>
+                </a>
+                
+                <a href="/dashboard.html" class="flex items-center px-3 py-2.5 mb-1 border-l-4 border-transparent text-gray-700 hover:bg-gray-50 transition-all">
+                    <i class="fas fa-chart-line mr-3 text-sm"></i>
+                    <span class="text-sm">Dashboard</span>
+                </a>
+            </nav>
+            
+            <div class="p-3">
+                <button id="logoutBtnSidebar" class="w-full flex items-center px-3 py-2.5 text-red-600 hover:bg-red-50 rounded-lg transition-all">
+                    <i class="fas fa-sign-out-alt mr-3 text-sm"></i>
+                    <span class="text-sm">Log out</span>
+                </button>
+            </div>
+        </aside>
+
+        <!-- Conteúdo Principal -->
+        <main class="flex-1 p-10 bg-gray-50">
+            <div>
+            <!-- Header -->
+            <div class="text-center mb-8">
+                <h1 class="text-4xl font-bold text-gray-800 mb-2">Gerar Apresentação</h1>
+                <p class="text-lg text-gray-600">Configure os parâmetros e gere sua apresentação personalizada</p>
+            </div>
+
+            <div id="mainContent">
+        <form id="form" class="space-y-6">
+            <!-- Card: Seleção de Unidade -->
+            <div class="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl shadow-md p-6 border-2 border-blue-200">
+                <div class="flex items-center mb-4">
+                    <div class="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center mr-3">
+                        <i class="fas fa-building text-white"></i>
+                    </div>
+                    <h3 class="text-lg font-semibold text-gray-800">Selecionar Unidade</h3>
+                </div>
+                <select id="unitSelect"
+                    class="w-full px-4 py-3 border-2 border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition bg-white font-medium">
+                    <option value="">Selecione uma unidade...</option>
+                </select>
+                <div id="unitLinkedInfo" class="mt-3 hidden">
+                    <div class="bg-white rounded-lg p-3 border border-blue-200">
+                        <p class="text-xs text-gray-600 mb-2">Contas vinculadas:</p>
+                        <div id="linkedAccountsBadges" class="flex flex-wrap gap-2"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card: Seleção de Contas (HIDDEN - apenas para casos sem vinculação) -->
+            <div id="manualAccountSelection" class="bg-white rounded-2xl shadow-md p-6 border border-gray-100 hidden">
+                <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
+                    <p class="text-sm text-yellow-800">
+                        <i class="fas fa-exclamation-triangle mr-2"></i>
+                        Esta unidade não possui contas vinculadas. Selecione manualmente:
+                    </p>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Meta Ads -->
+                    <div>
+                        <div class="flex items-center mb-3">
+                            <div class="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center mr-3">
+                                <span class="text-blue-600 font-bold text-sm">M</span>
+                            </div>
+                            <label for="unitId" class="text-sm font-semibold text-gray-800">Meta Ads</label>
+                        </div>
+                        <label class="block text-xs text-gray-600 mb-2">Conta de Anúncio</label>
+                        <select id="unitId"
+                            class="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition">
+                            <option value="">Selecione a conta</option>
+                        </select>
+                    </div>
+                    
+                    <!-- Google Ads -->
+            <div>
+                        <div class="flex items-center mb-3">
+                            <div class="w-8 h-8 bg-blue-50 rounded-lg flex items-center justify-center mr-3">
+                                <span class="text-blue-500 font-bold text-sm">G</span>
+                            </div>
+                            <label for="googleAdsAccountId" class="text-sm font-semibold text-gray-800">Google Ads</label>
+                        </div>
+                        <label class="block text-xs text-gray-600 mb-2">Conta de Anúncio</label>
+                        <select id="googleAdsAccountId"
+                            class="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition">
+                            <option value="">Selecione a conta</option>
+                </select>
+            </div>
+                </div>
+            </div>
+
+            <!-- Card: Período da Apresentação -->
+            <div class="bg-white rounded-2xl shadow-md p-6 border border-gray-100">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4">Período da Apresentação</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">
+                <div>
+                        <label for="startDate" class="block text-sm font-medium text-gray-700 mb-2">Data de Início</label>
+                    <input type="date" id="startDate" required
+                            class="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition">
+                </div>
+                <div>
+                        <label for="endDate" class="block text-sm font-medium text-gray-700 mb-2">Data de Término</label>
+                    <input type="date" id="endDate" required
+                            class="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition">
+                </div>
+                </div>
+                <button type="button" id="last7DaysBtn" 
+                    class="bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium px-4 py-2 rounded-lg transition inline-flex items-center">
+                    <i class="fas fa-calendar-week mr-2"></i>Últimos 7 Dias
+                </button>
+            </div>
+
+
+            <!-- Card: Filtrar por -->
+            <div class="bg-white rounded-2xl shadow-md p-6 border border-gray-100">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4">Filtrar por</h3>
+                
+                <!-- Pergunta: A unidade possui Black? -->
+                <div id="blackQuestion" class="mb-4">
+                    <p class="text-sm font-medium text-gray-700 mb-3">A unidade possui Black?</p>
+                    <div class="flex gap-3">
+                    <button type="button" id="hasBlackYesBtn"
+                            class="flex-1 bg-gray-100 hover:bg-blue-600 text-gray-800 hover:text-white font-semibold py-3 px-4 rounded-lg transition duration-300 transform hover:scale-[1.02] border-2 border-gray-300">
+                        Sim
+                    </button>
+                    <button type="button" id="hasBlackNoBtn"
+                            class="flex-1 bg-gray-100 hover:bg-blue-600 text-gray-800 hover:text-white font-semibold py-3 px-4 rounded-lg transition duration-300 transform hover:scale-[1.02] border-2 border-gray-300">
+                        Não
+                    </button>
+                </div>
+            </div>
+
+                <!-- Filtros padrão (sem White/Black) -->
+                <div id="defaultFilters" class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <button type="button" id="filterCampaigns"
+                        class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-lg transition duration-300 flex items-center justify-center">
+                        <i class="fas fa-filter mr-2"></i>Selecionar Campanhas
+                    </button>
+                    <button type="button" id="filterAdSets"
+                        class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-lg transition duration-300 flex items-center justify-center">
+                        <i class="fas fa-layer-group mr-2"></i>Selecionar Conjuntos
+                    </button>
+                </div>
+
+                <!-- Filtros White -->
+                <div id="whiteFilters" class="hidden space-y-3">
+                    <div class="bg-blue-50 rounded-lg p-4 border border-blue-200">
+                        <h4 class="text-sm font-semibold text-blue-800 mb-3">Campanhas White</h4>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <button type="button" id="filterWhiteCampaigns"
+                                class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-lg transition duration-300 flex items-center justify-center">
+                                <i class="fas fa-filter mr-2"></i>Campanhas
+                </button>
+                <button type="button" id="filterWhiteAdSets"
+                                class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-lg transition duration-300 flex items-center justify-center">
+                                <i class="fas fa-layer-group mr-2"></i>Conjuntos
+                </button>
+            </div>
+                    </div>
+                </div>
+
+                <!-- Filtros Black -->
+                <div id="blackFilters" class="hidden space-y-3">
+                    <div class="bg-gray-900 rounded-lg p-4 border border-gray-700">
+                        <h4 class="text-sm font-semibold text-gray-100 mb-3">Campanhas Black</h4>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <button type="button" id="filterBlackCampaigns"
+                                class="bg-gray-700 hover:bg-gray-600 text-white font-medium py-3 px-4 rounded-lg transition duration-300 flex items-center justify-center">
+                                <i class="fas fa-filter mr-2"></i>Campanhas
+                </button>
+                <button type="button" id="filterBlackAdSets"
+                                class="bg-gray-700 hover:bg-gray-600 text-white font-medium py-3 px-4 rounded-lg transition duration-300 flex items-center justify-center">
+                    <i class="fas fa-layer-group mr-2"></i>Conjuntos
+                </button>
+            </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card: Período de Comparação -->
+            <div id="comparisonFilter" class="bg-white rounded-2xl shadow-md p-6 border border-gray-100">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4">Período de Comparação</h3>
+                <div class="bg-green-50 border-2 border-green-500 rounded-lg p-3 mb-3">
+                    <p class="text-green-700 text-sm font-medium flex items-center">
+                        <i class="fas fa-check-circle mr-2"></i>
+                        Ativado: Mesmo período anterior
+                    </p>
+                </div>
+                <button type="button" id="comparePeriods"
+                    class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-lg transition duration-300 flex items-center justify-center">
+                    <i class="fas fa-cog mr-2"></i>Configurar Período de Comparação
+                </button>
+            </div>
+            
+            <!-- Card: Métricas do Período -->
+            <div class="bg-white rounded-2xl shadow-md p-6 border border-gray-100">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4">Métricas do Período</h3>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                        <label for="budgetsCompleted" class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="fas fa-clipboard-check mr-2 text-blue-600"></i>Orçamento (R$)
+                    </label>
+                        <input type="number" id="budgetsCompleted" min="0" step="1" placeholder="0.00"
+                            class="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition">
+                </div>
+                <div>
+                        <label for="salesCount" class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="fas fa-shopping-cart mr-2 text-green-600"></i>Número de Vendas
+                    </label>
+                        <input type="number" id="salesCount" min="0" step="1" placeholder="0"
+                            class="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition">
+                </div>
+                <div>
+                        <label for="revenue" class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="fas fa-money-bill-wave mr-2 text-emerald-600"></i>Faturamento (R$)
+                    </label>
+                        <input type="number" id="revenue" min="0" step="0.01" placeholder="0.00"
+                            class="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition">
+                    </div>
+                </div>
+            </div>
+
+
+            <!-- Botões Gerar e Salvar Relatório -->
+            <div class="flex gap-4">
+            <button type="submit"
+                    class="flex-1 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold py-4 px-6 rounded-xl transition duration-300 transform hover:scale-[1.02] shadow-lg flex items-center justify-center">
+                    <i class="fas fa-presentation mr-3 text-xl"></i>
+                    <span class="text-lg">Gerar Apresentação</span>
+                </button>
+                
+                <!-- Botão Salvar Apresentação (aparece após gerar) -->
+                <button type="button" id="saveReportBtn" style="display: none;"
+                    class="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold py-4 px-6 rounded-xl transition duration-300 transform hover:scale-[1.02] shadow-lg flex items-center justify-center">
+                    <i class="fas fa-save mr-3 text-xl"></i>
+                    <span class="text-lg">Salvar Apresentação</span>
+                </button>
+            </div>
+        </form>
+
+            <!-- Container de Loading -->
+            <div id="loadingIndicator" class="hidden">
+                <div class="bg-blue-50 border border-blue-200 rounded-xl p-6 text-center">
+                    <div class="animate-spin inline-block w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full mb-4"></div>
+                    <p class="text-blue-800 font-semibold text-lg">Gerando relatório...</p>
+                    <p class="text-blue-600 text-sm mt-2">Isso pode levar alguns segundos</p>
+                </div>
+            </div>
+
+            <!-- Controles de Edição (aparecem após gerar apresentação) -->
+            <div id="editControls" class="mt-6 mb-4 flex items-center justify-between bg-white rounded-xl shadow-sm border border-gray-200 p-4" style="display: none;">
+                <div class="flex items-center gap-3">
+                    <button id="toggleEditModeBtn" class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-all flex items-center gap-2">
+                        <i class="fas fa-edit"></i>
+                        Modo Edição
+                    </button>
+                    <button id="saveEditsBtn" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-all flex items-center gap-2 hidden">
+                        <i class="fas fa-save"></i>
+                        Salvar Alterações
+                    </button>
+                </div>
+                <p class="text-sm text-gray-600">Ative o modo edição e passe o mouse sobre os elementos para editá-los</p>
+            </div>
+
+            <!-- Container do Relatório Gerado -->
+        <div id="reportContainer" class="mt-8 space-y-8"></div>
+
+            <!-- Card: Análise da Apresentação (aparece após gerar) -->
+            <div id="analysisSection" style="display: none;" class="mt-8 bg-white rounded-2xl shadow-md p-6 border border-gray-100">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4">
+                    <i class="fas fa-comment-dots mr-2 text-purple-600"></i>Próximos Passos (opcional)
+                </h3>
+                
+                <!-- Sugestões Automáticas -->
+                <div id="analysisSuggestions" style="display: none;" class="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                    <p class="text-sm font-semibold text-blue-900 mb-3">
+                        <i class="fas fa-lightbulb mr-2"></i>Sugestões (clique para adicionar):
+                    </p>
+                    
+                    <!-- Tráfego -->
+                    <div id="trafficSuggestions" class="mb-3">
+                        <p class="text-xs font-medium text-gray-600 mb-2">🎯 Tráfego:</p>
+                        <div id="trafficSuggestionsContainer" class="space-y-2"></div>
+                    </div>
+                    
+                    <!-- Negócio -->
+                    <div id="businessSuggestions" style="display: none;">
+                        <p class="text-xs font-medium text-gray-600 mb-2">💼 Negócio:</p>
+                        <div id="businessSuggestionsContainer" class="space-y-2"></div>
+                    </div>
+                    
+                    <!-- Especiais -->
+                    <div id="specialSuggestions" style="display: none;">
+                        <p class="text-xs font-medium text-gray-600 mb-2 mt-3">🔧 Especiais:</p>
+                        <div id="specialSuggestionsContainer" class="space-y-2"></div>
+                    </div>
+                </div>
+                
+                <textarea
+                    id="performanceAnalysis"
+                    name="performanceAnalysis"
+                    rows="8"
+                    class="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition resize-none"
+                    placeholder="Adicione observações e sugestões que aparecerão na página 'Próximos Passos' da apresentação."
+                ></textarea>
+                <p class="text-xs text-gray-500 mt-2">
+                    <i class="fas fa-info-circle mr-1"></i>Campo opcional. Este texto será incluído na apresentação.
+                </p>
+                
+                <!-- Botão Atualizar Apresentação -->
+                <button type="button" id="generateFinalReportBtn"
+                    class="mt-4 w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold py-3 px-6 rounded-xl transition duration-300 transform hover:scale-[1.02] shadow-lg flex items-center justify-center">
+                    <i class="fas fa-sync-alt mr-3 text-xl"></i>
+                    <span class="text-lg">Atualizar Apresentação com Análise</span>
+                </button>
+            </div>
+
+            <!-- Botões de Ação -->
+            <div id="actionButtons" class="flex flex-wrap gap-3 mt-6" style="display: none;">
+            <button id="backToReportSelectionBtn"
+                    class="flex-1 min-w-[200px] bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold py-3 px-6 rounded-lg transition duration-300 flex items-center justify-center">
+                <i class="fas fa-arrow-left mr-2"></i>Voltar
+            </button>
+            <button id="refreshBtn"
+                    class="flex-1 min-w-[200px] bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg transition duration-300 flex items-center justify-center">
+                    <i class="fas fa-sync-alt mr-2"></i>Gerar Nova Apresentação
+            </button>
+            <button id="exportPdfBtn"
+                    class="flex-1 min-w-[200px] bg-red-600 hover:bg-red-700 text-white font-semibold py-3 px-6 rounded-lg transition duration-300 flex items-center justify-center">
+                <i class="fas fa-file-pdf mr-2"></i>Exportar PDF
+            </button>
+        </div>
+        </div>
+        </div>
+        </div>
+        </div>
+        </main>
+    </div>
+
+    <!-- Modal de Campanhas (Default) -->
+    <div id="campaignsModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-lg shadow-lg p-4 max-w-md w-full relative z-60">
+            <h2 class="text-lg font-semibold text-gray-800 mb-3">
+                <i class="fas fa-filter mr-2 text-blue-600"></i>Selecione as Campanhas
+            </h2>
+            <div id="campaignsList" class="max-h-64 overflow-y-auto border border-gray-200 rounded-md bg-white"></div>
+            <div class="flex space-x-3 mt-4">
+                <button type="button" id="applyCampaigns" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition duration-300">
+                    <i class="fas fa-check mr-2"></i>Aplicar
+                </button>
+                <button type="button" id="closeCampaignsModal" class="flex-1 bg-gray-500 hover:bg-gray-600 text-white font-medium py-2 px-4 rounded-md transition duration-300">
+                    <i class="fas fa-times mr-2"></i>Fechar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Conjuntos de Anúncios (Default) -->
+    <div id="adSetsModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-lg shadow-lg p-4 max-w-md w-full relative z-60">
+            <h2 class="text-lg font-semibold text-gray-800 mb-3">
+                <i class="fas fa-layer-group mr-2 text-blue-600"></i>Selecione os Conjuntos de Anúncios
+            </h2>
+            <div id="adSetsList" class="max-h-64 overflow-y-auto border border-gray-200 rounded-md bg-white"></div>
+            <div class="flex space-x-3 mt-4">
+                <button type="button" id="applyAdSets" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition duration-300">
+                    <i class="fas fa-check mr-2"></i>Aplicar
+                </button>
+                <button type="button" id="closeAdSetsModal" class="flex-1 bg-gray-500 hover:bg-gray-600 text-white font-medium py-2 px-4 rounded-md transition duration-300">
+                    <i class="fas fa-times mr-2"></i>Fechar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Campanhas White -->
+    <div id="whiteCampaignsModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-lg shadow-lg p-4 max-w-md w-full relative z-60">
+            <h2 class="text-lg font-semibold text-gray-800 mb-3">
+                <i class="fas fa-filter mr-2 text-blue-600"></i>Selecione as Campanhas White
+            </h2>
+            <div id="whiteCampaignsList" class="max-h-64 overflow-y-auto border border-gray-200 rounded-md bg-white"></div>
+            <div class="flex space-x-3 mt-4">
+                <button type="button" id="applyWhiteCampaigns" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition duration-300">
+                    <i class="fas fa-check mr-2"></i>Aplicar
+                </button>
+                <button type="button" id="closeWhiteCampaignsModal" class="flex-1 bg-gray-500 hover:bg-gray-600 text-white font-medium py-2 px-4 rounded-md transition duration-300">
+                    <i class="fas fa-times mr-2"></i>Fechar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Conjuntos de Anúncios White -->
+    <div id="whiteAdSetsModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-lg shadow-lg p-4 max-w-md w-full relative z-60">
+            <h2 class="text-lg font-semibold text-gray-800 mb-3">
+                <i class="fas fa-layer-group mr-2 text-blue-600"></i>Selecione os Conjuntos de Anúncios White
+            </h2>
+            <div id="whiteAdSetsList" class="max-h-64 overflow-y-auto border border-gray-200 rounded-md bg-white"></div>
+            <div class="flex space-x-3 mt-4">
+                <button type="button" id="applyWhiteAdSets" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition duration-300">
+                    <i class="fas fa-check mr-2"></i>Aplicar
+                </button>
+                <button type="button" id="closeWhiteAdSetsModal" class="flex-1 bg-gray-500 hover:bg-gray-600 text-white font-medium py-2 px-4 rounded-md transition duration-300">
+                    <i class="fas fa-times mr-2"></i>Fechar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Campanhas Black -->
+    <div id="blackCampaignsModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-lg shadow-lg p-4 max-w-md w-full relative z-60">
+            <h2 class="text-lg font-semibold text-gray-800 mb-3">
+                <i class="fas fa-filter mr-2 text-blue-600"></i>Selecione as Campanhas Black
+            </h2>
+            <div id="blackCampaignsList" class="max-h-64 overflow-y-auto border border-gray-200 rounded-md bg-white"></div>
+            <div class="flex space-x-3 mt-4">
+                <button type="button" id="applyBlackCampaigns" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition duration-300">
+                    <i class="fas fa-check mr-2"></i>Aplicar
+                </button>
+                <button type="button" id="closeBlackCampaignsModal" class="flex-1 bg-gray-500 hover:bg-gray-600 text-white font-medium py-2 px-4 rounded-md transition duration-300">
+                    <i class="fas fa-times mr-2"></i>Fechar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Conjuntos de Anúncios Black -->
+    <div id="blackAdSetsModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-lg shadow-lg p-4 max-w-md w-full relative z-60">
+            <h2 class="text-lg font-semibold text-gray-800 mb-3">
+                <i class="fas fa-layer-group mr-2 text-blue-600"></i>Selecione os Conjuntos de Anúncios Black
+            </h2>
+            <div id="blackAdSetsList" class="max-h-64 overflow-y-auto border border-gray-200 rounded-md bg-white"></div>
+            <div class="flex space-x-3 mt-4">
+                <button type="button" id="applyBlackAdSets" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition duration-300">
+                    <i class="fas fa-check mr-2"></i>Aplicar
+                </button>
+                <button type="button" id="closeBlackAdSetsModal" class="flex-1 bg-gray-500 hover:bg-gray-600 text-white font-medium py-2 px-4 rounded-md transition duration-300">
+                    <i class="fas fa-times mr-2"></i>Fechar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div id="comparisonModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-2xl shadow-2xl p-8 max-w-lg w-full">
+            <div class="flex items-center mb-6">
+                <div class="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center mr-4">
+                    <i class="fas fa-calendar-week text-2xl text-blue-600"></i>
+                </div>
+                <h2 class="text-2xl font-bold text-gray-800">Comparação de Períodos</h2>
+            </div>
+            
+            <div class="space-y-4">
+                <!-- Período personalizado -->
+                <label class="block cursor-pointer">
+                    <div class="flex items-center p-4 border-2 border-gray-200 rounded-xl hover:border-blue-500 transition">
+                    <input type="radio" name="comparisonOption" value="custom" checked
+                            class="w-5 h-5 text-blue-600 focus:ring-2 focus:ring-blue-500">
+                        <span class="ml-3 font-semibold text-gray-800">Período personalizado</span>
+                    </div>
+                </label>
+                <div id="customPeriod" class="ml-4 space-y-3 bg-blue-50 p-4 rounded-lg border border-blue-200">
+                    <div>
+                        <label for="compareStartDate" class="block text-sm font-medium text-gray-700 mb-2">Data Início</label>
+                        <input type="date" id="compareStartDate"
+                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition">
+                    </div>
+                    <div>
+                        <label for="compareEndDate" class="block text-sm font-medium text-gray-700 mb-2">Data Fim</label>
+                        <input type="date" id="compareEndDate"
+                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition">
+                    </div>
+                </div>
+                
+                <!-- Mesmo período anterior -->
+                <label class="block cursor-pointer">
+                    <div class="flex items-center p-4 border-2 border-blue-500 rounded-xl hover:border-blue-600 transition bg-blue-50">
+                    <input type="radio" name="comparisonOption" value="previous" checked
+                            class="w-5 h-5 text-blue-600 focus:ring-2 focus:ring-blue-500">
+                        <span class="ml-3 font-semibold text-gray-800">Mesmo período anterior</span>
+                    </div>
+                </label>
+                
+                <!-- Sem comparação -->
+                <label class="block cursor-pointer">
+                    <div class="flex items-center p-4 border-2 border-gray-200 rounded-xl hover:border-blue-500 transition">
+                    <input type="radio" name="comparisonOption" value="none"
+                            class="w-5 h-5 text-blue-600 focus:ring-2 focus:ring-blue-500">
+                        <span class="ml-3 font-semibold text-gray-800">Sem comparação</span>
+                    </div>
+                </label>
+            </div>
+            
+            <div class="flex gap-3 mt-8">
+                <button type="button" id="confirmComparison"
+                    class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-lg transition duration-300 flex items-center justify-center">
+                    <i class="fas fa-check mr-2"></i>Confirmar
+                </button>
+                <button type="button" id="cancelComparison"
+                    class="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold py-3 px-4 rounded-lg transition duration-300 flex items-center justify-center">
+                    <i class="fas fa-times mr-2"></i>Cancelar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Progresso -->
+    <div id="progressModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-6">
+        <div class="bg-white rounded-2xl shadow-2xl p-8 max-w-2xl w-full">
+            <!-- Header -->
+            <div class="text-center mb-8">
+                <div id="modalIconContainer" class="w-16 h-16 bg-gradient-to-br from-purple-600 to-pink-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i class="fas fa-magic text-white text-2xl animate-pulse"></i>
+                </div>
+                <h2 id="modalTitle" class="text-3xl font-bold text-gray-900 mb-2">Gerando Apresentação</h2>
+                <p id="modalSubtitle" class="text-gray-600">Aguarde enquanto processamos seus dados</p>
+            </div>
+
+            <!-- Progress Steps -->
+            <div id="modalProgressSteps" class="space-y-4 mb-8">
+                <div id="modalStep1" class="flex items-center gap-3 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                    <div class="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
+                    <span class="text-sm text-blue-900 font-medium">Validando dados...</span>
+                </div>
+                <div id="modalStep2" class="flex items-center gap-3 p-4 bg-gray-50 border border-gray-200 rounded-lg opacity-50">
+                    <div class="rounded-full h-5 w-5 border-2 border-gray-300"></div>
+                    <span class="text-sm text-gray-600">Gerando HTML da apresentação...</span>
+                </div>
+                <div id="modalStep3" class="flex items-center gap-3 p-4 bg-gray-50 border border-gray-200 rounded-lg opacity-50">
+                    <div class="rounded-full h-5 w-5 border-2 border-gray-300"></div>
+                    <span class="text-sm text-gray-600">Salvando apresentação...</span>
+                </div>
+            </div>
+
+            <!-- Error State -->
+            <div id="modalErrorState" class="hidden">
+                <div class="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
+                    <div class="flex items-start gap-3">
+                        <i class="fas fa-exclamation-circle text-red-600 mt-0.5"></i>
+                        <div class="flex-1">
+                            <p class="text-sm font-medium text-red-900">Erro ao gerar apresentação</p>
+                            <p class="text-xs text-red-700 mt-1 whitespace-pre-wrap" id="modalErrorText"></p>
+                        </div>
+                    </div>
+                </div>
+                <button 
+                    onclick="document.getElementById('progressModal').classList.add('hidden')"
+                    class="w-full px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-all font-medium"
+                >
+                    <i class="fas fa-times mr-2"></i>
+                    Fechar
+                </button>
+            </div>
+
+            <!-- Success State -->
+            <div id="modalSuccessState" class="hidden">
+                <div class="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
+                    <div class="flex items-start gap-3">
+                        <i class="fas fa-check-circle text-green-600 mt-0.5"></i>
+                        <div>
+                            <p class="text-sm font-medium text-green-900">Apresentação gerada com sucesso!</p>
+                            <p class="text-xs text-green-700">Você pode fazer download do PDF.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="flex gap-3">
+                    <button 
+                        onclick="document.getElementById('progressModal').classList.add('hidden')"
+                        class="flex-1 px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-all font-medium text-center"
+                    >
+                        <i class="fas fa-times mr-2"></i>
+                        Fechar
+                    </button>
+                    <button 
+                        id="modalDownloadBtn"
+                        class="flex-1 px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg hover:from-purple-700 hover:to-pink-700 transition-all font-medium shadow-lg"
+                    >
+                        <i class="fas fa-download mr-2"></i>
+                        Baixar PDF
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <!-- Proteção de Auth (DEVE ser o primeiro script) -->
+    <script type="module">
+        import { auth } from './config/firebase.js';
+        import { onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+        import { projectsService } from './services/projectsService.js';
+        import { unitsService } from './services/unitsService.js';
+        import { fbAuth } from './auth.js';
+        import { googleAuth } from './authGoogle.js';
+        
+        console.log('⏳ [RelatorioCompleto] Aguardando Firebase verificar autenticação...');
+        
+        // Aguardar Firebase estar pronto antes de verificar autenticação
+        let currentUser = null;
+        let currentProjectId = null;
+        let allUnits = [];
+
+        onAuthStateChanged(auth, async (user) => {
+            console.log('🔔 [RelatorioCompleto] onAuthStateChanged disparado - user:', user?.email || 'null');
+            
+            if (!user) {
+                console.warn('⚠️ [RelatorioCompleto] Usuário NÃO autenticado - redirecionando para login');
+                window.location.href = '/login.html';
+                return;
+            }
+            
+            console.log('✅ [RelatorioCompleto] Usuário autenticado:', user.email);
+            currentUser = user;
+        });
+
+        // ========== EVENTO: SELEÇÃO DE UNIDADE ==========
+        // NOTA: A lógica de seleção de unidade foi movida para RelatorioCompleto.js
+        // para evitar duplicação e garantir execução correta
+        
+        // Logout da sidebar
+        document.getElementById('logoutBtnSidebar')?.addEventListener('click', async () => {
+            try {
+                await signOut(auth);
+                window.location.href = '/login.html';
+            } catch (error) {
+                console.error('Erro ao fazer logout:', error);
+            }
+        });
+    </script>
+    
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script async defer crossorigin="anonymous" src="https://connect.facebook.net/en_US/sdk.js"></script>
+    <script type="module" src="GerarApresentacao.js?v=1.0"></script>
+    
+    <!-- Script para Salvar Apresentação -->
+    <script type="module">
+        import { presentationsService } from './services/presentationsService.js?v=1.0';
+        
+        // Variável global para armazenar dados da apresentação gerada
+        window.currentPresentationData = null;
+        
+        // Função para resetar o botão de salvar (ao gerar nova apresentação)
+        window.resetSaveButton = () => {
+            console.log('🔄 Resetando botão de salvar apresentação...');
+            const saveBtn = document.getElementById('saveReportBtn');
+            if (saveBtn) {
+                saveBtn.style.display = 'none';
+                saveBtn.disabled = false;
+                saveBtn.className = 'flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold py-4 px-6 rounded-xl transition duration-300 transform hover:scale-[1.02] shadow-lg flex items-center justify-center';
+                saveBtn.innerHTML = '<i class="fas fa-save mr-3 text-xl"></i><span class="text-lg">Salvar Apresentação</span>';
+                console.log('✅ Botão resetado');
+            }
+        };
+        
+        // Função para mostrar botão de salvar (será chamada após gerar a apresentação)
+        window.showSaveButton = () => {
+            console.log('🔘 Mostrando botão de salvar apresentação...');
+            const saveBtn = document.getElementById('saveReportBtn');
+            if (saveBtn) {
+                // Resetar o botão antes de mostrar
+                saveBtn.disabled = false;
+                saveBtn.className = 'flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold py-4 px-6 rounded-xl transition duration-300 transform hover:scale-[1.02] shadow-lg flex items-center justify-center';
+                saveBtn.innerHTML = '<i class="fas fa-save mr-3 text-xl"></i><span class="text-lg">Salvar Apresentação</span>';
+                saveBtn.style.display = 'flex';
+                console.log('✅ Botão de salvar exibido');
+            } else {
+                console.error('❌ Botão saveReportBtn não encontrado');
+            }
+        };
+        
+        // Botão Salvar Apresentação
+        const saveReportBtn = document.getElementById('saveReportBtn');
+        if (saveReportBtn) {
+            saveReportBtn.addEventListener('click', async () => {
+                const projectId = localStorage.getItem('currentProject');
+                
+                if (!projectId) {
+                    console.error('❌ Erro: Nenhum projeto selecionado');
+                    saveReportBtn.className = 'flex-1 bg-gradient-to-r from-red-600 to-red-700 text-white font-bold py-4 px-6 rounded-xl shadow-lg flex items-center justify-center';
+                    saveReportBtn.innerHTML = '<i class="fas fa-times mr-3 text-xl"></i><span class="text-lg">Erro: Projeto não selecionado</span>';
+                    setTimeout(() => {
+                        saveReportBtn.className = 'flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold py-4 px-6 rounded-xl transition duration-300 transform hover:scale-[1.02] shadow-lg flex items-center justify-center';
+                        saveReportBtn.innerHTML = '<i class="fas fa-save mr-3 text-xl"></i><span class="text-lg">Salvar Apresentação</span>';
+                    }, 3000);
+                    return;
+                }
+
+                if (!window.currentPresentationData) {
+                    console.error('❌ Erro: Nenhuma apresentação foi gerada ainda');
+                    saveReportBtn.className = 'flex-1 bg-gradient-to-r from-red-600 to-red-700 text-white font-bold py-4 px-6 rounded-xl shadow-lg flex items-center justify-center';
+                    saveReportBtn.innerHTML = '<i class="fas fa-times mr-3 text-xl"></i><span class="text-lg">Erro: Gere uma apresentação primeiro</span>';
+                    setTimeout(() => {
+                        saveReportBtn.className = 'flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold py-4 px-6 rounded-xl transition duration-300 transform hover:scale-[1.02] shadow-lg flex items-center justify-center';
+                        saveReportBtn.innerHTML = '<i class="fas fa-save mr-3 text-xl"></i><span class="text-lg">Salvar Apresentação</span>';
+                    }, 3000);
+                    return;
+                }
+
+                // Desabilitar botão durante salvamento
+                saveReportBtn.disabled = true;
+                saveReportBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-3 text-xl"></i><span class="text-lg">Salvando...</span>';
+
+                try {
+                    // ⭐ Sempre comprimir HTML antes de salvar (mesmo na primeira vez)
+                    console.log('🗜️ Comprimindo HTML antes de salvar...');
+                    const reportContainer = document.getElementById('reportContainer');
+                    let htmlToSave = window.currentPresentationData.html;
+                    
+                    if (reportContainer) {
+                        // Usar HTML do container atual (pode ter customizações)
+                        htmlToSave = await cleanHTMLForSave(reportContainer.innerHTML);
+                    } else if (window.currentPresentationData.html) {
+                        // Usar HTML salvo, mas comprimir
+                        htmlToSave = await cleanHTMLForSave(window.currentPresentationData.html);
+                    }
+                    
+                    // Verificar tamanho do documento completo antes de salvar
+                    const dataToSave = {
+                        ...window.currentPresentationData,
+                        html: htmlToSave
+                    };
+                    
+                    // Remover imagens Base64 de customData se existir (já estão no HTML)
+                    if (dataToSave.customData && dataToSave.customData.adImages) {
+                        const adImagesReference = {};
+                        Object.keys(dataToSave.customData.adImages).forEach(adId => {
+                            adImagesReference[adId] = true; // Apenas marcação, não a imagem
+                        });
+                        dataToSave.customData.adImages = adImagesReference;
+                    }
+                    
+                    // Calcular tamanho aproximado
+                    const jsonString = JSON.stringify(dataToSave);
+                    const sizeInBytes = new Blob([jsonString]).size;
+                    const sizeInMB = sizeInBytes / (1024 * 1024);
+                    
+                    console.log(`📊 Tamanho do documento antes de salvar: ${sizeInMB.toFixed(2)} MB (${(sizeInBytes / 1024).toFixed(2)} KB)`);
+                    
+                    // Se ainda estiver muito grande (>950KB), comprimir mais agressivamente
+                    if (sizeInBytes > 950 * 1024) {
+                        console.warn('⚠️ Documento ainda muito grande, comprimindo mais agressivamente...');
+                        
+                        // Criar elemento temporário para comprimir imagens ainda mais
+                        const tempDiv = document.createElement('div');
+                        tempDiv.innerHTML = htmlToSave;
+                        // Buscar TODAS as imagens (não apenas ranking-thumbnail)
+                        const images = tempDiv.querySelectorAll('img');
+                        
+                        for (const img of images) {
+                            const src = img.getAttribute('src');
+                            if (src && src.startsWith('data:image')) {
+                                // Verificar se é logo (não comprimir logos agressivamente)
+                                const isLogo = img.classList.contains('capa-logo-horizontal') || 
+                                             img.src.includes('logo') || 
+                                             img.alt?.toLowerCase().includes('logo') ||
+                                             img.closest('.capa-logo-horizontal');
+                                
+                                if (isLogo) {
+                                    // Logo: comprimir levemente mantendo PNG (preserva transparência)
+                                    const compressed = await compressBase64Image(src, 800, 0.85, true);
+                                    img.setAttribute('src', compressed);
+                                } else {
+                                    // Outras imagens: comprimir muito mais agressivamente (400px, qualidade 0.5)
+                                    const compressed = await compressBase64Image(src, 400, 0.5, false);
+                                    img.setAttribute('src', compressed);
+                                }
+                            }
+                        }
+                        
+                        htmlToSave = tempDiv.innerHTML;
+                        htmlToSave = htmlToSave.replace(/>\s+</g, '><');
+                        htmlToSave = htmlToSave.replace(/\s+/g, ' ');
+                        
+                        // Recalcular tamanho
+                        const finalDataToSave = {
+                            ...window.currentPresentationData,
+                            html: htmlToSave
+                        };
+                        if (finalDataToSave.customData && finalDataToSave.customData.adImages) {
+                            const adImagesReference = {};
+                            Object.keys(finalDataToSave.customData.adImages).forEach(adId => {
+                                adImagesReference[adId] = true;
+                            });
+                            finalDataToSave.customData.adImages = adImagesReference;
+                        }
+                        
+                        const finalSize = new Blob([JSON.stringify(finalDataToSave)]).size;
+                        const finalSizeMB = finalSize / (1024 * 1024);
+                        console.log(`📊 Tamanho final após compressão agressiva: ${finalSizeMB.toFixed(2)} MB (${(finalSize / 1024).toFixed(2)} KB)`);
+                        
+                        if (finalSize > 1024 * 1024) {
+                            alert('⚠️ ATENÇÃO: O documento ainda está muito grande após compressão.\n\n' +
+                                  'Tamanho: ' + finalSizeMB.toFixed(2) + ' MB\n' +
+                                  'Limite do Firestore: 1 MB\n\n' +
+                                  'Tente remover algumas imagens ou reduzir o número de anúncios antes de salvar.');
+                            saveReportBtn.disabled = false;
+                            saveReportBtn.className = 'flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold py-4 px-6 rounded-xl transition duration-300 transform hover:scale-[1.02] shadow-lg flex items-center justify-center';
+                            saveReportBtn.innerHTML = '<i class="fas fa-save mr-3 text-xl"></i><span class="text-lg">Salvar Apresentação</span>';
+                            return;
+                        }
+                        
+                        dataToSave.html = htmlToSave;
+                    }
+                    
+                    // Atualizar HTML no objeto antes de salvar
+                    window.currentPresentationData.html = htmlToSave;
+                    
+                    // ⭐ Gerar preview da capa antes de salvar
+                    console.log('🖼️ Gerando preview da capa...');
+                    let coverPreview = null;
+                    try {
+                        const { generateCoverPreview } = await import('./utils/presentationPreview.js');
+                        coverPreview = await generateCoverPreview(htmlToSave);
+                        if (coverPreview) {
+                            console.log('✅ Preview da capa gerada com sucesso');
+                            dataToSave.coverPreview = coverPreview;
+                        } else {
+                            console.warn('⚠️ Preview não foi gerada, continuando sem preview');
+                        }
+                    } catch (error) {
+                        console.warn('⚠️ Erro ao gerar preview, continuando sem preview:', error);
+                        // Continuar salvando mesmo sem preview
+                    }
+                    
+                    const result = await presentationsService.savePresentation(projectId, dataToSave);
+                    
+                    if (result.success) {
+                        // Armazenar IDs para exportação PDF
+                        window.currentPresentationData.presentationId = result.id;
+                        window.currentPresentationData.projectId = projectId;
+                        
+                        console.log('✅ Apresentação salva com ID:', result.id);
+                        
+                        // Mudar botão para indicar sucesso (verde) e MANTER DESABILITADO
+                        saveReportBtn.disabled = true;
+                        saveReportBtn.className = 'flex-1 bg-gradient-to-r from-green-600 to-green-700 text-white font-bold py-4 px-6 rounded-xl shadow-lg flex items-center justify-center opacity-75 cursor-not-allowed';
+                        saveReportBtn.innerHTML = '<i class="fas fa-check mr-3 text-xl"></i><span class="text-lg">Apresentação Salva!</span>';
+                        
+                        // NÃO redirecionar - usuário pode gerar outra apresentação
+                    } else {
+                        console.error('❌ Erro ao salvar apresentação:', result.error);
+                        
+                        // Verificar se é erro de permissão
+                        if (result.error.includes('Missing or insufficient permissions') || result.error.includes('permission')) {
+                            alert('⚠️ ERRO DE PERMISSÃO DO FIRESTORE\n\n' + 
+                                  'As regras do Firestore não estão configuradas para apresentações.\n\n' +
+                                  'COMO CORRIGIR:\n' +
+                                  '1. Acesse Firebase Console\n' +
+                                  '2. Vá em Firestore Database → Regras\n' +
+                                  '3. Veja as instruções no arquivo FIRESTORE_RULES_APRESENTACOES.md\n' +
+                                  '4. Adicione as regras para a coleção "presentations"\n' +
+                                  '5. Clique em "Publicar"\n\n' +
+                                  'Erro: ' + result.error);
+                        }
+                        
+                        saveReportBtn.disabled = false;
+                        saveReportBtn.className = 'flex-1 bg-gradient-to-r from-red-600 to-red-700 text-white font-bold py-4 px-6 rounded-xl shadow-lg flex items-center justify-center';
+                        saveReportBtn.innerHTML = '<i class="fas fa-times mr-3 text-xl"></i><span class="text-lg">Erro ao salvar</span>';
+                        setTimeout(() => {
+                            saveReportBtn.className = 'flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold py-4 px-6 rounded-xl transition duration-300 transform hover:scale-[1.02] shadow-lg flex items-center justify-center';
+                            saveReportBtn.innerHTML = '<i class="fas fa-save mr-3 text-xl"></i><span class="text-lg">Salvar Apresentação</span>';
+                        }, 3000);
+                    }
+                } catch (error) {
+                    console.error('❌ Erro ao salvar apresentação:', error);
+                    
+                    // Verificar se é erro de permissão
+                    if (error.message.includes('Missing or insufficient permissions') || error.message.includes('permission')) {
+                        alert('⚠️ ERRO DE PERMISSÃO DO FIRESTORE\n\n' + 
+                              'As regras do Firestore não estão configuradas para apresentações.\n\n' +
+                              'COMO CORRIGIR:\n' +
+                              '1. Acesse Firebase Console (https://console.firebase.google.com)\n' +
+                              '2. Selecione seu projeto\n' +
+                              '3. Vá em Firestore Database → Regras\n' +
+                              '4. Veja as instruções no arquivo FIRESTORE_RULES_APRESENTACOES.md do projeto\n' +
+                              '5. Adicione as regras para a coleção "presentations"\n' +
+                              '6. Clique em "Publicar"\n\n' +
+                              'Erro: ' + error.message);
+                    }
+                    
+                    saveReportBtn.disabled = false;
+                    saveReportBtn.className = 'flex-1 bg-gradient-to-r from-red-600 to-red-700 text-white font-bold py-4 px-6 rounded-xl shadow-lg flex items-center justify-center';
+                    saveReportBtn.innerHTML = '<i class="fas fa-times mr-3 text-xl"></i><span class="text-lg">Erro ao salvar</span>';
+                    setTimeout(() => {
+                        saveReportBtn.className = 'flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold py-4 px-6 rounded-xl transition duration-300 transform hover:scale-[1.02] shadow-lg flex items-center justify-center';
+                        saveReportBtn.innerHTML = '<i class="fas fa-save mr-3 text-xl"></i><span class="text-lg">Salvar Apresentação</span>';
+                    }, 3000);
+                }
+            });
+        }
+        
+        // Botão Exportar PDF - Impressão nativa (sem servidor)
+        const exportPdfBtn = document.getElementById('exportPdfBtn');
+        if (exportPdfBtn) {
+            exportPdfBtn.addEventListener('click', async () => {
+                if (!window.currentPresentationData) {
+                    console.error('❌ Erro: Nenhuma apresentação foi gerada ainda');
+                    // feedback discreto (sem popup)
+                    const old = exportPdfBtn.innerHTML;
+                    exportPdfBtn.disabled = true;
+                    exportPdfBtn.innerHTML = '<i class="fas fa-exclamation-triangle mr-2"></i>Gere a apresentação primeiro';
+                    setTimeout(() => { exportPdfBtn.disabled = false; exportPdfBtn.innerHTML = old; }, 2000);
+                    return;
+                }
+                
+                try {
+                    // Desabilitar botão durante exportação
+                    exportPdfBtn.disabled = true;
+                    exportPdfBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Gerando PDF...';
+                    
+                    console.log('🖨️ Abrindo tela de impressão nativa...');
+
+                    // Aplicar customizações de imagens antes de exportar
+                    applyImageCustomizationsToHTML();
+                    
+                    // Remover TODAS as bordas de imagens e containers antes de exportar
+                    const allImages = document.querySelectorAll('.ranking-thumbnail img, .ranking-thumbnail');
+                    allImages.forEach(img => {
+                        img.style.border = 'none !important';
+                        img.style.outline = 'none !important';
+                        img.style.boxShadow = 'none !important';
+                        img.style.borderRadius = '0';
+                        img.style.margin = '0';
+                        img.style.padding = '0';
+                    });
+                    
+                    // Remover bordas dos cards também
+                    const allCards = document.querySelectorAll('.ranking-card');
+                    allCards.forEach(card => {
+                        card.style.border = 'none';
+                        card.style.outline = 'none';
+                    });
+                    
+                    // Remover classes e atributos de edição
+                    const editables = document.querySelectorAll('.editable');
+                    editables.forEach(el => {
+                        el.classList.remove('editable');
+                        el.removeAttribute('data-editable');
+                        el.removeAttribute('data-edit-id');
+                        el.removeAttribute('contenteditable');
+                        el.style.cursor = '';
+                        el.style.outline = '';
+                        el.style.backgroundColor = '';
+                    });
+                    
+                    // Remover botões de deletar e inputs de arquivo
+                    document.querySelectorAll('.ranking-card-delete').forEach(btn => btn.remove());
+                    document.querySelectorAll('.ranking-image-input').forEach(input => input.remove());
+                    
+                    // Remover placeholder se existir (mas guardar informação para restaurar depois)
+                    const placeholder = document.querySelector('.ranking-card-placeholder');
+                    const hadPlaceholder = placeholder !== null;
+                    if (placeholder) placeholder.remove();
+                    
+                    // Obter HTML limpo do container
+                    const reportContainer = document.getElementById('reportContainer');
+                    const cleanHTML = reportContainer.innerHTML;
+                    
+                    // Restaurar elementos para edição (caso o usuário queira editar depois)
+                    // Mas primeiro precisamos re-renderizar o HTML com os dados atuais
+                    setTimeout(() => {
+                        if (window.prepareEditMode) {
+                            window.prepareEditMode();
+                        }
+                        // Reorganizar cards para restaurar placeholder se necessário
+                        setTimeout(() => {
+                            if (typeof reorganizeAdCards === 'function') {
+                                reorganizeAdCards();
+                            }
+                        }, 200);
+                    }, 100);
+                    
+                    // Guardar HTML limpo na sessão para a rota de impressão
+                    const printPayload = {
+                        html: cleanHTML.replaceAll('class="page', 'class="page slide'),
+                        unitName: window.currentPresentationData.unitName || 'Apresentacao'
+                    };
+                    sessionStorage.setItem('presentationPrintPayload', JSON.stringify(printPayload));
+
+                    // Abrir rota de impressão (sem salvar no Firestore)
+                    window.open('/apresentacao-print.html?mode=session&auto=1', '_blank');
+                    
+                    // Restaurar botão
+                    exportPdfBtn.disabled = false;
+                    exportPdfBtn.innerHTML = '<i class="fas fa-file-pdf mr-2"></i>Exportar PDF';
+                    
+                } catch (error) {
+                    console.error('❌ Erro ao exportar PDF:', error);
+                    // feedback discreto no botão (sem popup)
+                    const old = exportPdfBtn.innerHTML;
+                    exportPdfBtn.disabled = false;
+                    exportPdfBtn.innerHTML = '<i class="fas fa-exclamation-triangle mr-2"></i>Falha ao exportar';
+                    setTimeout(() => { exportPdfBtn.innerHTML = old; }, 2500);
+                }
+            });
+        }
+        
+        // Botão Atualizar Apresentação com Análise
+        const generateFinalReportBtn = document.getElementById('generateFinalReportBtn');
+        if (generateFinalReportBtn) {
+            generateFinalReportBtn.addEventListener('click', async () => {
+                if (!window.currentPresentationData) {
+                    console.error('❌ Erro: Nenhuma apresentação foi gerada ainda');
+                    return;
+                }
+                
+                console.log('🔄 Atualizando apresentação com análise...');
+                
+                // Pegar texto de análise
+                const performanceAnalysis = document.getElementById('performanceAnalysis')?.value || '';
+                
+                // Atualizar dados da apresentação
+                window.currentPresentationData.performanceAnalysis = performanceAnalysis;
+                
+                // Importar função de geração de HTML
+                const { generatePresentationHTML } = await import('./gerar-html-apresentacao.js?v=1.5');
+                const { getBranding } = await import('./services/brandingService.js');
+
+                // Carregar branding do projeto (logos e uso)
+                const projectId = localStorage.getItem('currentProject');
+                let branding = {};
+                try { branding = await getBranding(projectId); } catch(e){ console.warn('Branding não encontrado', e?.message); }
+                
+                // Gerar HTML atualizado
+                // Obter métricas (pode estar em metaMetrics/googleMetrics ou savedMetrics/savedGoogleMetrics)
+                const metaMetrics = window.currentPresentationData.metaMetrics || window.currentPresentationData.savedMetrics;
+                const googleMetrics = window.currentPresentationData.googleMetrics || window.currentPresentationData.savedGoogleMetrics;
+                
+                // ⭐ Usar dados separados por plataforma se disponíveis (do período original)
+                // Caso contrário, usar dados globais como fallback
+                const metaBudgetsCompleted = window.currentPresentationData.metaBudgetsCompleted;
+                const metaSalesCount = window.currentPresentationData.metaSalesCount;
+                const metaRevenue = window.currentPresentationData.metaRevenue;
+                const googleBudgetsCompleted = window.currentPresentationData.googleBudgetsCompleted;
+                const googleSalesCount = window.currentPresentationData.googleSalesCount;
+                const googleRevenue = window.currentPresentationData.googleRevenue;
+                
+                const updatedHTML = generatePresentationHTML({
+                    unitName: window.currentPresentationData.unitName,
+                    startDate: window.currentPresentationData.startDate,
+                    endDate: window.currentPresentationData.endDate,
+                    hasMeta: !!metaMetrics,
+                    hasGoogle: !!googleMetrics,
+                    metaMetrics: metaMetrics,
+                    googleMetrics: googleMetrics,
+                    metaTop3Ads: window.currentPresentationData.bestAds?.filter(ad => ad.platform === 'meta').slice(0, 3),
+                    performanceAnalysis: performanceAnalysis,
+                    // ⭐ Passar dados separados por plataforma (preservar período original)
+                    metaBudgetsCompleted,
+                    metaSalesCount,
+                    metaRevenue,
+                    googleBudgetsCompleted,
+                    googleSalesCount,
+                    googleRevenue,
+                    // Dados globais (fallback para compatibilidade)
+                    budgetsCompleted: window.currentPresentationData.budgetsCompleted,
+                    salesCount: window.currentPresentationData.salesCount,
+                    revenue: window.currentPresentationData.revenue,
+                    branding
+                });
+                
+                // Atualizar HTML
+                window.currentPresentationData.html = updatedHTML;
+                
+                // Atualizar container
+                const reportContainer = document.getElementById('reportContainer');
+                if (reportContainer) {
+                    reportContainer.innerHTML = updatedHTML;
+                    
+                    // Preparar edição inline após atualizar
+                    setTimeout(() => {
+                        if (window.prepareEditMode) {
+                            window.prepareEditMode();
+                        }
+                    }, 500);
+                }
+                
+                console.log('✅ Apresentação atualizada com sucesso!');
+            });
+        }
+        
+        // ===== SISTEMA DE EDIÇÃO INLINE =====
+        let isEditMode = false;
+        let hasUnsavedChanges = false;
+        let customData = {};
+        
+        // Preparar modo de edição
+        window.prepareEditMode = function() {
+            const editControls = document.getElementById('editControls');
+            if (editControls) {
+                editControls.style.display = 'flex';
+            }
+            
+            const editables = [
+                '.capa-title',
+                '.capa-unidade',
+                '.capa-periodo',
+                '.card-value',
+                '.card-label',
+                '.resultados-title',
+                '.resultados-subtitle',
+                '.ranking-title',
+                '.proximos-title',
+                '.proximos-subtitle',
+                '.proximos-list li',
+                '.obrigado-text'
+            ];
+            
+            // Adicionar métricas de anúncios como editáveis separadamente (já têm data-attributes)
+            setTimeout(() => {
+                const adMetrics = document.querySelectorAll('[data-ad-leads], [data-ad-cost]');
+                adMetrics.forEach((element, index) => {
+                    const adId = element.getAttribute('data-ad-leads') || element.getAttribute('data-ad-cost');
+                    const metricType = element.classList.contains('ranking-metrics-leads') ? 'leads' : 'cost';
+                    const editId = `ad_${adId}_${metricType}`;
+                    
+                    element.setAttribute('data-edit-id', editId);
+                    element.classList.add('editable');
+                    
+                    // Remover listeners antigos se existirem
+                    const newElement = element.cloneNode(true);
+                    element.parentNode.replaceChild(newElement, element);
+                    
+                    newElement.addEventListener('click', () => {
+                        if (isEditMode && !newElement.hasAttribute('contenteditable')) {
+                            startEditing(newElement, editId);
+                        }
+                    });
+                    
+                    newElement.addEventListener('blur', () => {
+                        stopEditing(newElement, editId);
+                    });
+                });
+            }, 100);
+
+            editables.forEach(selector => {
+                const elements = document.querySelectorAll(selector);
+                elements.forEach((element, index) => {
+                    const editId = `${selector.replace(/[.#\s]/g, '_')}_${index}`;
+                    element.setAttribute('data-edit-id', editId);
+                    element.classList.add('editable');
+                    
+                    element.addEventListener('click', () => {
+                        if (isEditMode && !element.hasAttribute('contenteditable')) {
+                            startEditing(element, editId);
+                        }
+                    });
+                    
+                    element.addEventListener('blur', () => {
+                        stopEditing(element, editId);
+                    });
+                });
+            });
+            
+            // Garantir que file inputs existam para todos os anúncios
+            ensureFileInputsExist();
+            
+            updateEditModeUI();
+            setupAdImageEditing();
+            setupDeleteButtons();
+        };
+        
+        // Garantir que file inputs existam para todos os anúncios (necessário ao carregar apresentação salva)
+        function ensureFileInputsExist() {
+            const thumbnails = document.querySelectorAll('.ranking-thumbnail[data-ad-image]');
+            thumbnails.forEach(thumbnail => {
+                const adId = thumbnail.getAttribute('data-ad-image');
+                if (!adId || adId === 'placeholder_new') return;
+                
+                // Verificar se já existe file input
+                let fileInput = document.querySelector(`[data-ad-input="${adId}"]`);
+                if (!fileInput) {
+                    // Criar file input se não existir
+                    const card = thumbnail.closest('.ranking-card');
+                    if (card) {
+                        fileInput = document.createElement('input');
+                        fileInput.type = 'file';
+                        fileInput.accept = 'image/*';
+                        fileInput.className = 'ranking-image-input';
+                        fileInput.setAttribute('data-ad-input', adId);
+                        fileInput.style.display = 'none';
+                        card.appendChild(fileInput);
+                        console.log(`✅ File input criado para anúncio: ${adId}`);
+                    }
+                }
+            });
+        }
+        
+        function updateEditModeUI() {
+            const editables = document.querySelectorAll('.editable');
+            editables.forEach(el => {
+                if (isEditMode) {
+                    el.style.cursor = 'text';
+                } else {
+                    el.style.cursor = 'default';
+                    el.removeAttribute('contenteditable');
+                }
+            });
+            
+            // Mostrar/ocultar botões de deletar anúncios (não mostrar no placeholder)
+            const deleteButtons = document.querySelectorAll('.ranking-card-delete');
+            deleteButtons.forEach(btn => {
+                const card = btn.closest('.ranking-card');
+                // Não mostrar botão de deletar no placeholder
+                if (card && card.classList.contains('ranking-card-placeholder')) {
+                    btn.style.display = 'none';
+                } else {
+                    btn.style.display = isEditMode ? 'flex' : 'none';
+                }
+            });
+            
+            // Adicionar/remover classe edit-mode nos thumbnails para controlar hover
+            const thumbnails = document.querySelectorAll('.ranking-thumbnail-editable');
+            thumbnails.forEach(thumbnail => {
+                if (isEditMode) {
+                    thumbnail.classList.add('edit-mode');
+                } else {
+                    thumbnail.classList.remove('edit-mode');
+                }
+            });
+        }
+        
+        // Configurar edição de imagens dos anúncios
+        function setupAdImageEditing() {
+            const thumbnails = document.querySelectorAll('.ranking-thumbnail-editable');
+            
+            thumbnails.forEach(thumbnail => {
+                const adId = thumbnail.getAttribute('data-ad-image');
+                const fileInput = document.querySelector(`[data-ad-input="${adId}"]`);
+                
+                if (!fileInput) return;
+                
+                // Remover listeners antigos clonando o elemento
+                const newThumbnail = thumbnail.cloneNode(true);
+                thumbnail.parentNode.replaceChild(newThumbnail, thumbnail);
+                
+                // Remover listeners antigos do file input clonando
+                const newFileInput = fileInput.cloneNode(true);
+                fileInput.parentNode.replaceChild(newFileInput, fileInput);
+                
+                // Click para selecionar arquivo
+                newThumbnail.addEventListener('click', (e) => {
+                    if (isEditMode && !e.target.closest('.ranking-card-delete')) {
+                        newFileInput.click();
+                    }
+                });
+                
+                // Drag & Drop
+                newThumbnail.addEventListener('dragover', (e) => {
+                    if (isEditMode) {
+                        e.preventDefault();
+                        newThumbnail.style.border = '2px solid #9333EA';
+                        newThumbnail.style.backgroundColor = 'rgba(147, 51, 234, 0.1)';
+                    }
+                });
+                
+                newThumbnail.addEventListener('dragleave', () => {
+                    newThumbnail.style.border = '';
+                    newThumbnail.style.backgroundColor = '';
+                });
+                
+                newThumbnail.addEventListener('drop', (e) => {
+                    if (isEditMode) {
+                        e.preventDefault();
+                        newThumbnail.style.border = '';
+                        newThumbnail.style.backgroundColor = '';
+                        
+                        const files = e.dataTransfer.files;
+                        if (files.length > 0 && files[0].type.startsWith('image/')) {
+                            handleImageUpload(files[0], adId, newThumbnail, newFileInput);
+                        }
+                    }
+                });
+                
+                // File input change
+                newFileInput.addEventListener('change', (e) => {
+                    if (e.target.files.length > 0) {
+                        handleImageUpload(e.target.files[0], adId, newThumbnail, newFileInput);
+                        // Limpar o valor para permitir selecionar o mesmo arquivo novamente
+                        e.target.value = '';
+                    }
+                });
+            });
+            
+            // Configurar botões de deletar
+            setupDeleteButtons();
+        }
+        
+        // Processar upload de imagem
+        function handleImageUpload(file, adId, thumbnail, fileInput) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const imageUrl = e.target.result; // Base64
+                
+                    // Atualizar imagem
+                const existingImg = thumbnail.querySelector('img');
+                if (existingImg) {
+                    existingImg.src = imageUrl;
+                    // Remover qualquer borda ou outline das imagens customizadas
+                    existingImg.style.border = 'none';
+                    existingImg.style.outline = 'none';
+                    existingImg.style.boxShadow = 'none';
+                    existingImg.style.borderRadius = '0';
+                } else {
+                    // Se não tem img, criar uma
+                    const placeholder = thumbnail.querySelector('div');
+                    if (placeholder) {
+                        thumbnail.innerHTML = `<img src="${imageUrl}" alt="Anúncio" style="width:100%;height:100%;object-fit:cover;border:none;outline:none;box-shadow:none;border-radius:0;">`;
+                    } else {
+                        // Se não tem nada, criar img diretamente
+                        thumbnail.innerHTML = `<img src="${imageUrl}" alt="Anúncio" style="width:100%;height:100%;object-fit:cover;border:none;outline:none;box-shadow:none;border-radius:0;">`;
+                    }
+                }
+                
+                // Remover placeholder class se existir
+                thumbnail.classList.remove('ranking-thumbnail-placeholder');
+                const card = thumbnail.closest('.ranking-card');
+                if (card) {
+                    card.classList.remove('ranking-card-placeholder');
+                    
+                    // Garantir que o botão de deletar existe e está visível (se em modo edição)
+                    if (isEditMode) {
+                        let deleteBtn = card.querySelector('.ranking-card-delete');
+                        if (!deleteBtn) {
+                            // Criar botão de deletar se não existir
+                            deleteBtn = document.createElement('button');
+                            deleteBtn.className = 'ranking-card-delete';
+                            deleteBtn.style.cssText = 'position:absolute;top:10px;right:10px;z-index:10;width:32px;height:32px;background:rgba(239,68,68,0.9);border:none;border-radius:50%;color:white;cursor:pointer;display:flex;align-items:center;justify-content:center;';
+                            deleteBtn.innerHTML = '<i class="fas fa-trash" style="font-size:14px;"></i>';
+                            deleteBtn.title = 'Remover anúncio';
+                            card.style.position = 'relative';
+                            card.appendChild(deleteBtn);
+                        }
+                        // Mostrar botão de deletar
+                        deleteBtn.style.display = 'flex';
+                    }
+                }
+                
+                // Salvar no customData
+                if (!customData.adImages) customData.adImages = {};
+                customData.adImages[adId] = imageUrl;
+                
+                // Se for placeholder_new, criar novo ID
+                if (adId === 'placeholder_new') {
+                    const newAdId = `ad_custom_${Date.now()}`;
+                    thumbnail.setAttribute('data-ad-image', newAdId);
+                    
+                    // Verificar se o img existe antes de atualizar
+                    const img = thumbnail.querySelector('img');
+                    if (img) {
+                        img.setAttribute('data-ad-image', newAdId);
+                    }
+                    
+                    customData.adImages[newAdId] = imageUrl;
+                    delete customData.adImages[adId];
+                    
+                    // Atualizar outros atributos
+                    if (card) {
+                        card.setAttribute('data-ad-id', newAdId);
+                        
+                        const leadsElement = card.querySelector('[data-ad-leads]');
+                        if (leadsElement) {
+                            leadsElement.setAttribute('data-ad-leads', newAdId);
+                        }
+                        
+                        const costElement = card.querySelector('[data-ad-cost]');
+                        if (costElement) {
+                            costElement.setAttribute('data-ad-cost', newAdId);
+                        }
+                    }
+                    
+                    if (fileInput) {
+                        fileInput.setAttribute('data-ad-input', newAdId);
+                    }
+                }
+                
+                // Reconfigurar botões de deletar após adicionar imagem
+                setTimeout(() => {
+                    setupDeleteButtons();
+                }, 100);
+                
+                markAsChanged();
+            };
+            reader.readAsDataURL(file);
+        }
+        
+        // Configurar botões de deletar
+        function setupDeleteButtons() {
+            const deleteButtons = document.querySelectorAll('.ranking-card-delete');
+            deleteButtons.forEach(btn => {
+                // Não adicionar listener no placeholder
+                const card = btn.closest('.ranking-card');
+                if (card && card.classList.contains('ranking-card-placeholder')) {
+                    return; // Não adicionar listener em placeholder
+                }
+                
+                // Remover listeners antigos clonando o botão
+                const newBtn = btn.cloneNode(true);
+                btn.parentNode.replaceChild(newBtn, btn);
+                
+                newBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    const currentCard = newBtn.closest('.ranking-card');
+                    if (isEditMode && currentCard && !currentCard.classList.contains('ranking-card-placeholder')) {
+                        if (confirm('Tem certeza que deseja remover este anúncio?')) {
+                            deleteAdCard(currentCard);
+                        }
+                    }
+                });
+            });
+        }
+        
+        // Deletar card de anúncio
+        function deleteAdCard(card) {
+            const adId = card.getAttribute('data-ad-id');
+            
+            // SEMPRE marcar como mudado ANTES de qualquer operação
+            markAsChanged();
+            
+            // Remover do customData
+            if (customData.adImages && customData.adImages[adId]) {
+                delete customData.adImages[adId];
+            }
+            
+            // Remover card
+            card.remove();
+            
+            // Reorganizar cards e mostrar placeholder se necessário
+            reorganizeAdCards();
+        }
+        
+        // Reorganizar cards após deletar
+        function reorganizeAdCards() {
+            const grid = document.querySelector('.ranking-grid');
+            if (!grid) return;
+            
+            const cards = Array.from(grid.querySelectorAll('.ranking-card:not(.ranking-card-placeholder)'));
+            const placeholder = grid.querySelector('.ranking-card-placeholder');
+            
+            // Sempre manter 3 colunas para layout consistente
+            grid.style.gridTemplateColumns = 'repeat(3, 1fr)';
+            // Garantir que os cards mantenham o mesmo tamanho
+            grid.style.gridAutoRows = 'auto';
+            
+            // Se tem menos de 3 cards, garantir que placeholder existe e está visível
+            if (cards.length < 3) {
+                if (!placeholder) {
+                    // Criar placeholder se não existir
+                    const placeholderHTML = `
+                    <div class="ranking-card ranking-card-placeholder" data-ad-id="placeholder_new" style="display:flex;">
+                        <div class="ranking-thumbnail ranking-thumbnail-editable ranking-thumbnail-placeholder" data-ad-image="placeholder_new" style="border:2px dashed #9333EA;background:#f9fafb;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-direction:column;color:#9333EA;">
+                            <i class="fas fa-plus-circle" style="font-size:48px;margin-bottom:8px;"></i>
+                            <span style="font-size:14px;font-weight:500;">Clique ou arraste uma imagem</span>
+                        </div>
+                        <div class="ranking-metrics-bar">
+                            <span class="ranking-metrics-leads" data-ad-leads="placeholder_new">0 Leads</span>
+                            <span class="ranking-metrics-cost" data-ad-cost="placeholder_new">R$ 0,00</span>
+                        </div>
+                        <input type="file" accept="image/*" class="ranking-image-input" data-ad-input="placeholder_new" style="display:none;">
+                    </div>
+                    `;
+                    grid.insertAdjacentHTML('beforeend', placeholderHTML);
+                    // Reconfigurar edição de imagens após criar placeholder
+                    if (isEditMode) {
+                        setTimeout(() => {
+                            setupAdImageEditing();
+                        }, 100);
+                    }
+                } else {
+                    placeholder.style.display = 'flex';
+                    // Esconder botão de deletar do placeholder
+                    const placeholderDeleteBtn = placeholder.querySelector('.ranking-card-delete');
+                    if (placeholderDeleteBtn) {
+                        placeholderDeleteBtn.style.display = 'none';
+                    }
+                }
+            } else if (placeholder) {
+                placeholder.style.display = 'none';
+            }
+            
+            // Centralizar grid sem alterar tamanho dos cards
+            if (cards.length === 1) {
+                // Usar justify-content no grid container sem alterar o tamanho dos cards
+                grid.style.justifyContent = 'center';
+                grid.style.justifyItems = 'stretch';
+            } else if (cards.length === 2) {
+                grid.style.justifyContent = 'center';
+                grid.style.justifyItems = 'stretch';
+            } else {
+                grid.style.justifyContent = '';
+                grid.style.justifyItems = 'stretch';
+            }
+            
+            // Reconfigurar edição de imagens após reorganizar
+            if (isEditMode) {
+                setTimeout(() => {
+                    setupAdImageEditing();
+                }, 100);
+            }
+        }
+        
+        function startEditing(element, editId) {
+            element.setAttribute('contenteditable', 'true');
+            element.focus();
+            const range = document.createRange();
+            range.selectNodeContents(element);
+            const selection = window.getSelection();
+            selection.removeAllRanges();
+            selection.addRange(range);
+        }
+        
+        function stopEditing(element, editId) {
+            element.removeAttribute('contenteditable');
+            const newValue = element.textContent.trim();
+            
+            // Obter valor original antes de qualquer alteração
+            if (!element.hasAttribute('data-original-value')) {
+                const originalText = element.textContent.trim();
+                element.setAttribute('data-original-value', originalText);
+            }
+            
+            const originalValue = element.getAttribute('data-original-value') || '';
+            
+            // Detectar qualquer alteração (adicionar, remover, modificar - mesmo que fique vazio)
+            if (newValue !== originalValue) {
+                // SEMPRE marcar como mudado ANTES de restaurar qualquer valor visual
+                markAsChanged();
+                
+                if (newValue === '') {
+                    // Se ficou vazio, salvar como string vazia ou remover do customData
+                    delete customData[editId];
+                    // Restaurar valor original visualmente mas manter a mudança registrada
+                    element.textContent = originalValue;
+                    element.setAttribute('data-original-value', originalValue);
+                } else {
+                    customData[editId] = newValue;
+                }
+            }
+        }
+        
+        function markAsChanged() {
+            hasUnsavedChanges = true;
+            const saveBtn = document.getElementById('saveEditsBtn');
+            if (saveBtn) {
+                saveBtn.classList.remove('hidden');
+                console.log('✅ Botão salvar habilitado');
+            }
+        }
+        
+        async function saveEdits() {
+            if (!hasUnsavedChanges || !window.currentPresentationData) {
+                return;
+            }
+
+            const saveBtn = document.getElementById('saveEditsBtn');
+            if (saveBtn) {
+                saveBtn.disabled = true;
+                saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Salvando...';
+            }
+
+            try {
+                // Aplicar customizações de imagens no HTML antes de salvar
+                applyImageCustomizationsToHTML();
+                
+                // Limpar HTML antes de salvar (remover elementos de edição e otimizar)
+                const reportContainer = document.getElementById('reportContainer');
+                const cleanedHTML = await cleanHTMLForSave(reportContainer.innerHTML);
+                
+                window.currentPresentationData.html = cleanedHTML;
+                
+                // Salvar customData no objeto da apresentação
+                if (!window.currentPresentationData.customData) {
+                    window.currentPresentationData.customData = {};
+                }
+                
+                // Preparar customData para salvar (remover imagens Base64 grandes para reduzir tamanho)
+                const customDataToSave = { ...window.currentPresentationData.customData, ...customData };
+                
+                // Remover imagens Base64 de customData.adImages (elas já estão no HTML)
+                // Manter apenas referência de quais anúncios foram customizados
+                if (customDataToSave.adImages) {
+                    const adImagesReference = {};
+                    // Guardar apenas IDs dos anúncios customizados, sem as imagens Base64
+                    Object.keys(customDataToSave.adImages).forEach(adId => {
+                        adImagesReference[adId] = true; // Apenas marcação, não a imagem
+                    });
+                    customDataToSave.adImages = adImagesReference;
+                }
+                
+                window.currentPresentationData.customData = customDataToSave;
+                
+                // Se a apresentação já foi salva, atualizar no Firestore
+                if (window.currentPresentationData.presentationId) {
+                    const { presentationsService } = await import('./services/presentationsService.js?v=1.0');
+                    const projectId = localStorage.getItem('currentProject');
+                    await presentationsService.updatePresentation(projectId, window.currentPresentationData.presentationId, {
+                        customData: window.currentPresentationData.customData,
+                        html: cleanedHTML,
+                        updatedAt: new Date().toISOString()
+                    });
+                }
+                
+                hasUnsavedChanges = false;
+                if (saveBtn) {
+                    saveBtn.classList.add('hidden');
+                    saveBtn.disabled = false;
+                    saveBtn.innerHTML = '<i class="fas fa-save"></i> Salvar Alterações';
+                }
+                
+                // Feedback visual
+                const notification = document.createElement('div');
+                notification.className = 'fixed top-4 right-4 px-6 py-3 rounded-lg shadow-lg z-50 bg-green-600 text-white';
+                notification.innerHTML = '<div class="flex items-center gap-2"><i class="fas fa-check-circle"></i><span>Alterações salvas!</span></div>';
+                document.body.appendChild(notification);
+                setTimeout(() => {
+                    notification.style.opacity = '0';
+                    notification.style.transition = 'opacity 0.3s';
+                    setTimeout(() => notification.remove(), 300);
+                }, 3000);
+                
+            } catch (error) {
+                console.error('❌ Erro ao salvar:', error);
+                if (saveBtn) {
+                    saveBtn.disabled = false;
+                    saveBtn.innerHTML = '<i class="fas fa-save"></i> Salvar Alterações';
+                }
+                alert('Erro ao salvar alterações');
+            }
+        }
+        
+        // Toggle modo de edição
+        const toggleEditModeBtn = document.getElementById('toggleEditModeBtn');
+        if (toggleEditModeBtn) {
+            toggleEditModeBtn.addEventListener('click', () => {
+                isEditMode = !isEditMode;
+                updateEditModeUI();
+                
+                // Reconfigurar edição de imagens quando mudar modo
+                if (isEditMode) {
+                    setupAdImageEditing();
+                }
+                
+                toggleEditModeBtn.innerHTML = isEditMode 
+                    ? '<i class="fas fa-eye"></i> Modo Visualização'
+                    : '<i class="fas fa-edit"></i> Modo Edição';
+            });
+        }
+        
+        // Salvar edições
+        const saveEditsBtn = document.getElementById('saveEditsBtn');
+        if (saveEditsBtn) {
+            saveEditsBtn.addEventListener('click', saveEdits);
+        }
+        
+        // Aplicar customizações ao carregar
+        window.applyCustomizations = function() {
+            if (!window.currentPresentationData?.customData || Object.keys(window.currentPresentationData.customData).length === 0) {
+                return;
+            }
+            
+            setTimeout(() => {
+                // Aplicar customizações de texto
+                Object.keys(window.currentPresentationData.customData).forEach(editId => {
+                    if (editId.startsWith('ad_')) return; // Pular imagens de anúncios
+                    
+                    const element = document.querySelector(`[data-edit-id="${editId}"]`);
+                    if (element) {
+                        const customValue = window.currentPresentationData.customData[editId];
+                        element.textContent = customValue;
+                        element.setAttribute('data-original-value', customValue);
+                    }
+                });
+                
+                // Aplicar customizações de imagens
+                // Nota: As imagens já estão no HTML quando carregamos, então só precisamos
+                // extrair as URLs das imagens Base64 do HTML para o customData em memória
+                if (window.currentPresentationData.customData.adImages) {
+                    Object.keys(window.currentPresentationData.customData.adImages).forEach(adId => {
+                        const thumbnail = document.querySelector(`[data-ad-image="${adId}"]`);
+                        if (thumbnail) {
+                            const img = thumbnail.querySelector('img');
+                            if (img && img.src && img.src.startsWith('data:image')) {
+                                // Se a imagem é Base64 (customizada), extrair para customData em memória
+                                // Isso permite editar novamente após carregar
+                                if (!customData.adImages) customData.adImages = {};
+                                customData.adImages[adId] = img.src;
+                                console.log(`✅ Imagem customizada extraída do HTML para anúncio: ${adId}`);
+                            }
+                        }
+                    });
+                }
+            }, 500);
+        };
+        
+        // Aplicar customizações de imagens ao HTML antes de salvar
+        function applyImageCustomizationsToHTML() {
+            if (!customData.adImages) return;
+            
+            Object.keys(customData.adImages).forEach(adId => {
+                const thumbnail = document.querySelector(`[data-ad-image="${adId}"]`);
+                if (thumbnail) {
+                    const img = thumbnail.querySelector('img');
+                    if (img && customData.adImages[adId]) {
+                        img.src = customData.adImages[adId];
+                        // Remover qualquer borda ou outline das imagens customizadas com !important
+                        img.setAttribute('style', 
+                            (img.getAttribute('style') || '') + 
+                            'border:none !important;outline:none !important;box-shadow:none !important;border-radius:0 !important;margin:0 !important;padding:0 !important;'
+                        );
+                    }
+                    // Remover borda do container também
+                    thumbnail.setAttribute('style', 
+                        (thumbnail.getAttribute('style') || '') + 
+                        'border:none !important;outline:none !important;box-shadow:none !important;margin:0 !important;padding:0 !important;'
+                    );
+                }
+            });
+        }
+        
+        // Comprimir imagem Base64 reduzindo qualidade
+        // ⭐ Preserva PNG para manter transparência (importante para logos)
+        async function compressBase64Image(base64String, maxWidth = 800, quality = 0.7, isLogo = false) {
+            return new Promise((resolve) => {
+                const img = new Image();
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    let width = img.width;
+                    let height = img.height;
+                    
+                    // Redimensionar se necessário
+                    if (width > maxWidth) {
+                        height = (height * maxWidth) / width;
+                        width = maxWidth;
+                    }
+                    
+                    canvas.width = width;
+                    canvas.height = height;
+                    
+                    const ctx = canvas.getContext('2d');
+                    
+                    // Se for logo ou imagem PNG, preservar transparência
+                    const isPNG = base64String.startsWith('data:image/png') || isLogo;
+                    
+                    // ⭐ NÃO desenhar fundo - preservar transparência para PNGs
+                    // Se não for PNG, o canvas já tem fundo transparente por padrão
+                    // Mas ao converter para JPEG, o fundo transparente vira preto
+                    // Então só converter para JPEG se NÃO for PNG/logo
+                    
+                    ctx.drawImage(img, 0, 0, width, height);
+                    
+                    // Se for logo ou PNG, manter formato PNG (preserva transparência)
+                    // Caso contrário, converter para JPEG (menor tamanho)
+                    if (isPNG) {
+                        // Manter PNG - preserva transparência automaticamente
+                        const compressed = canvas.toDataURL('image/png');
+                        resolve(compressed);
+                    } else {
+                        // Converter para JPEG com qualidade reduzida (menor tamanho)
+                        // Para JPEG, precisamos de fundo branco para evitar preto
+                        const tempCanvas = document.createElement('canvas');
+                        tempCanvas.width = width;
+                        tempCanvas.height = height;
+                        const tempCtx = tempCanvas.getContext('2d');
+                        tempCtx.fillStyle = '#FFFFFF';
+                        tempCtx.fillRect(0, 0, width, height);
+                        tempCtx.drawImage(img, 0, 0, width, height);
+                        const compressed = tempCanvas.toDataURL('image/jpeg', quality);
+                        resolve(compressed);
+                    }
+                };
+                img.onerror = () => resolve(base64String); // Se falhar, retorna original
+                img.src = base64String;
+            });
+        }
+        
+        // Limpar e otimizar HTML antes de salvar para reduzir tamanho
+        async function cleanHTMLForSave(html) {
+            // Criar um elemento temporário para manipular o HTML
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = html;
+            
+            // Remover elementos de edição desnecessários
+            tempDiv.querySelectorAll('.ranking-card-delete').forEach(el => el.remove());
+            tempDiv.querySelectorAll('.ranking-image-input').forEach(el => el.remove());
+            tempDiv.querySelectorAll('.ranking-card-placeholder').forEach(el => el.remove());
+            tempDiv.querySelectorAll('[contenteditable]').forEach(el => el.removeAttribute('contenteditable'));
+            tempDiv.querySelectorAll('[data-edit-id]').forEach(el => el.removeAttribute('data-edit-id'));
+            tempDiv.querySelectorAll('.editable').forEach(el => el.classList.remove('editable'));
+            
+            // Comprimir imagens Base64 se necessário
+            const images = tempDiv.querySelectorAll('.ranking-thumbnail img');
+            for (const img of images) {
+                const src = img.getAttribute('src');
+                if (src && src.startsWith('data:image')) {
+                    // Comprimir imagem Base64 para reduzir tamanho
+                    // Não é logo, então pode usar JPEG (menor tamanho)
+                    const compressed = await compressBase64Image(src, 800, 0.75, false);
+                    img.setAttribute('src', compressed);
+                }
+            }
+            
+            // ⭐ Preservar logos - não comprimir ou comprimir muito levemente
+            const logoImages = tempDiv.querySelectorAll('img.capa-logo-horizontal, img[src*="logo"], img[alt*="Logo"], img[alt*="logo"]');
+            for (const img of logoImages) {
+                const src = img.getAttribute('src');
+                if (src && src.startsWith('data:image')) {
+                    // Logo: comprimir levemente mantendo PNG (preserva transparência)
+                    // Usar tamanho maior (1200px) e qualidade alta (0.9) para logos
+                    const compressed = await compressBase64Image(src, 1200, 0.9, true);
+                    img.setAttribute('src', compressed);
+                }
+            }
+            
+            // Minificar HTML removendo espaços extras
+            let cleaned = tempDiv.innerHTML;
+            
+            // Remover múltiplos espaços em branco e quebras de linha extras
+            cleaned = cleaned.replace(/>\s+</g, '><');
+            cleaned = cleaned.replace(/\s+/g, ' ');
+            
+            // Verificar tamanho do HTML
+            const htmlSize = new Blob([cleaned]).size;
+            console.log(`📊 Tamanho do HTML após limpeza: ${(htmlSize / 1024).toFixed(2)} KB`);
+            
+            // Se ainda estiver muito grande (>950KB), comprimir mais agressivamente
+            if (htmlSize > 950 * 1024) {
+                console.warn('⚠️ HTML ainda muito grande, comprimindo imagens mais agressivamente...');
+                const tempDiv2 = document.createElement('div');
+                tempDiv2.innerHTML = cleaned;
+                const images2 = tempDiv2.querySelectorAll('.ranking-thumbnail img');
+                for (const img of images2) {
+                    const src = img.getAttribute('src');
+                    if (src && src.startsWith('data:image')) {
+                        const compressed = await compressBase64Image(src, 600, 0.6);
+                        img.setAttribute('src', compressed);
+                    }
+                }
+                cleaned = tempDiv2.innerHTML;
+                cleaned = cleaned.replace(/>\s+</g, '><');
+                cleaned = cleaned.replace(/\s+/g, ' ');
+                const finalSize = new Blob([cleaned]).size;
+                console.log(`📊 Tamanho final do HTML: ${(finalSize / 1024).toFixed(2)} KB`);
+            }
+            
+            return cleaned;
+        }
+    </script>
+    
+    <style>
+        /* Estilos para edição inline */
+        .editable {
+            position: relative;
+            transition: all 0.2s;
+        }
+        
+        .editable:hover {
+            background-color: rgba(147, 51, 234, 0.1);
+            outline: 2px dashed rgba(147, 51, 234, 0.3);
+            outline-offset: 2px;
+            cursor: text;
+        }
+        
+        .editable[contenteditable="true"] {
+            background-color: rgba(147, 51, 234, 0.15);
+            outline: 2px solid rgba(147, 51, 234, 0.5);
+            outline-offset: 2px;
+        }
+        
+        .editable[contenteditable="true"]:focus {
+            outline: 2px solid rgba(147, 51, 234, 0.8);
+            background-color: rgba(147, 51, 234, 0.2);
+        }
+    </style>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'93075eeb8ba96b9d',t:'MTc0NDY3NzQwOC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script><script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'930c0ec9980abce6',t:'MTc0NDcyNjU1NS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script><script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'930e06e76bdd8027',t:'MTc0NDc0NzIwMy4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>

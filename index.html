@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Insightflow - Redirecionando...</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+<body class="min-h-screen font-sans bg-gradient-to-br from-blue-600 to-indigo-700 flex items-center justify-center">
+    <!-- Loading Screen -->
+    <div class="text-center">
+        <div class="inline-block bg-white bg-opacity-20 rounded-full p-6 mb-6">
+            <i class="fas fa-chart-line text-6xl text-white"></i>
+        </div>
+        <h1 class="text-4xl font-bold text-white mb-4">Insightflow</h1>
+        <div class="flex items-center justify-center space-x-2 mb-4">
+            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
+            <p class="text-white text-lg">Redirecionando...</p>
+        </div>
+    </div>
+
+    <script type="module">
+        import { authService } from './services/authService.js?v=1.0';
+
+        // Verificar se o usuário está autenticado
+        setTimeout(() => {
+            if (authService.isAuthenticated()) {
+                console.log('✅ Usuário autenticado - redirecionando para dashboard');
+                window.location.href = '/home.html';
+            } else {
+                console.log('⚠️ Usuário não autenticado - redirecionando para login');
+                window.location.href = '/login.html';
+            }
+        }, 1000);
+    </script>
+</body>
+</html>

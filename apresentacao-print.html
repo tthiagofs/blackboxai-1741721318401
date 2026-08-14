@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Apresentação - Print</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        /* Reset */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: white;
+        }
+
+        /* Configuração de página 16:9 em unidades físicas (uso digital, sem sobras) */
+        @page {
+            size: 297mm 167mm; /* 297mm x (297*9/16)mm ≈ 167mm */
+            margin: 0;
+        }
+
+        /* Cada slide ocupa exatamente 16:9 na mesma medida física da página */
+        .slide {
+            width: 297mm;
+            height: 167mm;
+            page-break-after: always;
+            break-after: page;
+            overflow: hidden;
+            position: relative;
+            background: white;
+        }
+
+        /*
+         * Apenas Próximos Passos: HTML antigo podia vir com height:1080px (quebrava PDF).
+         * NÃO forçar 167mm em todas as .page.slide — o template usa 1280×720px e 167mm
+         * fica mais baixo que o layout em px, cortando ROI, ranking etc.
+         */
+        #printContainer .page.slide.proximos-passos {
+            height: 720px !important;
+            min-height: 720px !important;
+            max-height: 720px !important;
+            box-sizing: border-box !important;
+        }
+
+
+        /* Último slide não precisa de quebra */
+        .slide:last-child {
+            page-break-after: avoid;
+            break-after: avoid;
+        }
+
+        /* Remover animações/transições na impressão */
+        @media print {
+            * {
+                animation: none !important;
+                transition: none !important;
+                filter: none !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+
+            body {
+                background: white;
+            }
+
+            .slide {
+                page-break-after: always;
+                break-after: page;
+            }
+
+            /* sem resets extras */
+        }
+
+        /* Loader (apenas para desenvolvimento) */
+        #loader {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 24px;
+            color: #2563A8;
+        }
+
+        @media print {
+            #loader {
+                display: none !important;
+            }
+        }
+        
+        /* Remover TODAS as bordas de imagens dos anúncios */
+        .ranking-thumbnail,
+        .ranking-thumbnail img,
+        .ranking-thumbnail * {
+            border: none !important;
+            outline: none !important;
+            box-shadow: none !important;
+            border-radius: 0 !important;
+            margin: 0 !important;
+            padding: 0 !important;
+        }
+        
+        .ranking-card {
+            border: none !important;
+            outline: none !important;
+        }
+        
+        .ranking-card img {
+            border: none !important;
+            outline: none !important;
+            box-shadow: none !important;
+        }
+    </style>
+</head>
+<body>
+    <div id="loader">Carregando apresentação...</div>
+    <div id="printContainer"></div>
+
+    <!-- Carregamento flexível: via Firestore (id/projeto) ou via sessionStorage (mode=session) -->
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
+        import { getFirestore, doc, getDoc } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
+        
+        const urlParams = new URLSearchParams(window.location.search);
+        const mode = urlParams.get('mode');
+        const auto = urlParams.get('auto') === '1';
+        
+        async function renderHTML(html) {
+            const container = document.getElementById('printContainer');
+            container.innerHTML = html;
+            const pages = container.querySelectorAll('.page');
+            pages.forEach(p => p.classList.add('slide'));
+            await document.fonts.ready;
+            await waitForImages();
+            document.getElementById('loader').style.display = 'none';
+            if (auto) {
+                setTimeout(() => {
+                    window.print();
+                }, 200);
+            }
+        }
+
+        async function loadPresentation() {
+            try {
+                if (mode === 'session') {
+                    const raw = sessionStorage.getItem('presentationPrintPayload');
+                    if (!raw) throw new Error('Conteúdo da apresentação não encontrado na sessão.');
+                    const payload = JSON.parse(raw);
+                    await renderHTML(payload.html || '');
+                    return;
+                }
+
+                // Firebase (fallback)
+                const firebaseConfig = {
+                    apiKey: "AIzaSyB3-n3WIdEOhCxvpbigs_ogse7b3tggGGU",
+                    authDomain: "insightflow-82cc4.firebaseapp.com",
+                    projectId: "insightflow-82cc4",
+                    storageBucket: "insightflow-82cc4.firebasestorage.app",
+                    messagingSenderId: "945960175733",
+                    appId: "1:945960175733:web:70345b9cf08a553db2d03c"
+                };
+                const app = initializeApp(firebaseConfig);
+                const db = getFirestore(app);
+                const presentationId = urlParams.get('id');
+                const projectId = urlParams.get('projectId');
+                if (!presentationId || !projectId) throw new Error('Parâmetros id/projeto ausentes.');
+                const docRef = doc(db, `projects/${projectId}/presentations/${presentationId}`);
+                const snap = await getDoc(docRef);
+                if (!snap.exists()) throw new Error('Apresentação não encontrada.');
+                const data = snap.data();
+                await renderHTML(data.html || '');
+            } catch (error) {
+                console.error('❌ Erro ao carregar apresentação:', error);
+                document.getElementById('loader').innerHTML = `Erro: ${error.message}`;
+            }
+        }
+
+        function waitForImages() {
+            const images = Array.from(document.images);
+            return Promise.all(
+                images.map(img => {
+                    if (img.complete) return Promise.resolve();
+                    return new Promise(resolve => {
+                        img.onload = resolve;
+                        img.onerror = resolve; // Continuar mesmo se imagem falhar
+                    });
+                })
+            );
+        }
+
+        // Carregar apresentação ao abrir a página
+        loadPresentation();
+    </script>
+</body>
+</html>
+

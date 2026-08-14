@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Conexões - Insightflow</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-gray-50 min-h-screen font-sans m-0 p-0">
+    <!-- Proteção de Auth -->
+    <script type="module">
+        import { auth } from './config/firebase.js';
+        import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+        
+        console.log('⏳ [Conexões] Aguardando Firebase verificar autenticação...');
+        
+        onAuthStateChanged(auth, (user) => {
+            console.log('🔔 [Conexões] onAuthStateChanged disparado - user:', user?.email || 'null');
+            
+            if (!user) {
+                console.warn('⚠️ [Conexões] Usuário NÃO autenticado - redirecionando para login');
+                window.location.href = '/login.html';
+                return;
+            }
+            
+            console.log('✅ [Conexões] Usuário autenticado:', user.email);
+        });
+    </script>
+
+    <!-- Container Principal -->
+    <div class="flex min-h-screen w-full bg-gray-50">
+        <!-- Sidebar Unificada -->
+        <div id="app-sidebar"></div>
+
+        <!-- Conteúdo Principal -->
+        <main class="flex-1 p-10">
+            <!-- Header -->
+            <div class="mb-8">
+                <h2 class="text-2xl font-bold text-gray-900 mb-2">Conexões</h2>
+                <p class="text-sm text-gray-600">Conecte suas contas de anúncios para gerar relatórios</p>
+            </div>
+
+            <!-- Alerta de Token Expirado (oculto por padrão) -->
+            <div id="tokenExpiredAlert" class="hidden bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6 max-w-4xl">
+                <div class="flex">
+                    <div class="flex-shrink-0">
+                        <i class="fas fa-exclamation-triangle text-yellow-400 text-xl"></i>
+                    </div>
+                    <div class="ml-3">
+                        <p class="text-sm text-yellow-700 font-semibold">
+                            Sua sessão do Facebook expirou!
+                        </p>
+                        <p class="mt-2 text-sm text-yellow-700">
+                            Por favor, clique no botão "Conectar Meta Ads" abaixo para fazer login novamente e renovar suas permissões.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Grid de Plataformas -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8 max-w-4xl">
+                <!-- Meta Ads -->
+                <div class="bg-white border border-gray-200 rounded-lg p-5 hover:shadow-lg transition-all">
+                    <div class="flex items-center mb-3">
+                        <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center mr-3">
+                            <i class="fab fa-facebook text-xl text-blue-600"></i>
+                        </div>
+                        <div class="flex-1">
+                            <h3 class="text-base font-bold text-gray-900">Meta Ads</h3>
+                            <p class="text-xs text-gray-600">Facebook e Instagram</p>
+                        </div>
+                    </div>
+                    
+                    <p class="text-xs text-gray-600 mb-4">Conecte sua conta de Meta Ads para importar dados de campanhas do Facebook e Instagram.</p>
+                    
+                    <div id="metaStatus" class="mb-4">
+                        <div class="flex items-center text-gray-500">
+                            <i class="fas fa-circle text-xs mr-2"></i>
+                            <span class="text-xs">Não conectado</span>
+                        </div>
+                    </div>
+
+                    <button 
+                        id="loginBtn" 
+                        class="w-full bg-blue-600 text-white py-2 px-4 rounded text-sm font-medium hover:bg-blue-700 transition-all flex items-center justify-center"
+                    >
+                        <span>Conectar Meta Ads</span>
+                    </button>
+                </div>
+
+                <!-- Google Ads -->
+                <div class="bg-white border border-gray-200 rounded-lg p-5 hover:shadow-lg transition-all">
+                    <div class="flex items-center mb-3">
+                        <div class="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center mr-3">
+                            <i class="fab fa-google text-xl text-red-600"></i>
+                        </div>
+                        <div class="flex-1">
+                            <h3 class="text-base font-bold text-gray-900">Google Ads</h3>
+                            <p class="text-xs text-gray-600">Google Marketing</p>
+                        </div>
+                    </div>
+                    
+                    <p class="text-xs text-gray-600 mb-4">Conecte sua conta do Google Ads para importar dados de campanhas de pesquisa e display.</p>
+                    
+                    <div id="googleStatus" class="mb-4">
+                        <div class="flex items-center text-gray-500">
+                            <i class="fas fa-circle text-xs mr-2"></i>
+                            <span class="text-xs">Não conectado</span>
+                        </div>
+                    </div>
+
+                    <button 
+                        id="googleLoginBtn" 
+                        class="w-full bg-blue-600 text-white py-2 px-4 rounded text-sm font-medium hover:bg-blue-700 transition-all flex items-center justify-center"
+                    >
+                        <span>Conectar Google Ads</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Botão Voltar -->
+            <div class="flex justify-center max-w-4xl">
+                <button 
+                    onclick="window.location.href='/home.html'" 
+                    class="text-gray-700 py-2 px-4 hover:text-gray-900 transition-all flex items-center text-sm"
+                >
+                    <i class="fas fa-arrow-left mr-2"></i>
+                    Voltar
+                </button>
+            </div>
+        </main>
+    </div>
+
+    <!-- Scripts -->
+    <script async defer crossorigin="anonymous" src="https://connect.facebook.net/en_US/sdk.js"></script>
+    <script type="module">
+        import { auth } from './config/firebase.js';
+        import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+        import { fbAuth } from './auth.js?v=2.11';
+        import { googleAuth } from './authGoogle.js?v=2.11';
+        import { connectionService } from './services/connectionService.js?v=1.1';
+        import { authService } from './services/authService.js?v=1.4';
+
+        const loginBtn = document.getElementById('loginBtn');
+        const googleLoginBtn = document.getElementById('googleLoginBtn');
+        const metaStatus = document.getElementById('metaStatus');
+        const googleStatus = document.getElementById('googleStatus');
+
+        // Inicializar Google Auth
+        await googleAuth.initialize().catch(err => console.error('Erro ao inicializar Google Auth:', err));
+
+        // Verificar se veio de um erro de token expirado
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('tokenExpired') === 'true') {
+            const alert = document.getElementById('tokenExpiredAlert');
+            if (alert) {
+                alert.classList.remove('hidden');
+                // Scroll suave até o alerta
+                setTimeout(() => {
+                    alert.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }, 300);
+            }
+        }
+
+        // Verificar status de login ao carregar
+        async function updateConnectionStatus() {
+            try {
+                // Aguardar Firebase autenticar
+                const user = auth.currentUser;
+                if (!user) {
+                    console.log('⏳ Aguardando autenticação do Firebase...');
+                    return;
+                }
+
+                await connectionService.initialize();
+                const status = connectionService.getConnectionStatus();
+                
+                console.log('📊 Status das conexões:', status);
+
+                // Status do Meta
+                if (status.meta.connected) {
+                    metaStatus.innerHTML = `
+                        <div class="flex items-center text-green-600">
+                            <i class="fas fa-check-circle text-xs mr-2"></i>
+                            <span class="text-xs font-semibold">Conectado (${status.meta.accountsCount} contas)</span>
+                        </div>
+                    `;
+                    loginBtn.innerHTML = '<span>Reconectar</span>';
+                    loginBtn.classList.remove('bg-blue-600', 'hover:bg-blue-700');
+                    loginBtn.classList.add('bg-green-600', 'hover:bg-green-700');
+                }
+
+                // Status do Google
+                if (status.google.connected) {
+                    googleStatus.innerHTML = `
+                        <div class="flex items-center text-green-600">
+                            <i class="fas fa-check-circle text-xs mr-2"></i>
+                            <span class="text-xs font-semibold">Conectado (${status.google.accountsCount} contas)</span>
+                        </div>
+                    `;
+                    googleLoginBtn.innerHTML = '<span>Reconectar</span>';
+                    googleLoginBtn.classList.remove('bg-blue-600', 'hover:bg-blue-700');
+                    googleLoginBtn.classList.add('bg-green-600', 'hover:bg-green-700');
+                }
+            } catch (error) {
+                console.warn('⚠️ Erro ao verificar status de conexões:', error);
+            }
+        }
+
+        // Mostrar mensagem de erro
+        function showErrorMessage(platform, message) {
+            // Tratamento especial para erros específicos
+            let displayMessage = message;
+            let isWarning = false;
+            
+            if (message.includes('DEVELOPER_TOKEN_INVALID') || message.includes('developer token')) {
+                displayMessage = 'O Developer Token do Google Ads está configurado para produção. Este é o ambiente de desenvolvimento/testes. Use o ambiente de produção para conectar ao Google Ads.';
+                isWarning = true;
+            }
+            
+            const colorClass = isWarning ? 'yellow' : 'red';
+            const icon = isWarning ? 'exclamation-triangle' : 'exclamation-circle';
+            
+            const errorDiv = document.createElement('div');
+            errorDiv.className = `fixed top-4 right-4 bg-${colorClass}-50 border border-${colorClass}-200 rounded-lg p-4 shadow-lg max-w-md z-50`;
+            errorDiv.innerHTML = `
+                <div class="flex items-start gap-3">
+                    <i class="fas fa-${icon} text-${colorClass}-600 text-xl mt-0.5"></i>
+                    <div class="flex-1">
+                        <h3 class="font-semibold text-${colorClass}-900">${isWarning ? 'Aviso' : 'Erro'} ao conectar ${platform}</h3>
+                        <p class="text-sm text-${colorClass}-700 mt-1">${displayMessage}</p>
+                        ${!isWarning ? '<p class="text-xs text-' + colorClass + '-600 mt-2">Verifique o console para mais detalhes (F12)</p>' : ''}
+                    </div>
+                    <button onclick="this.parentElement.parentElement.remove()" class="text-${colorClass}-400 hover:text-${colorClass}-600">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            `;
+            document.body.appendChild(errorDiv);
+            
+            // Remover automaticamente após 15 segundos
+            setTimeout(() => {
+                errorDiv.remove();
+            }, 15000);
+        }
+
+        // Event listeners
+        loginBtn.addEventListener('click', async () => {
+            loginBtn.disabled = true;
+            loginBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i><span>Conectando...</span>';
+            
+            try {
+                await fbAuth.login();
+                console.log('✅ Login Meta realizado com sucesso');
+                await updateConnectionStatus();
+            } catch (error) {
+                console.error('❌ Erro no login Meta:', error);
+                console.error('Detalhes:', error.message, error.stack);
+                showErrorMessage('Meta Ads', error.message || 'Erro desconhecido');
+            } finally {
+                loginBtn.disabled = false;
+            }
+        });
+
+        googleLoginBtn.addEventListener('click', async () => {
+            googleLoginBtn.disabled = true;
+            googleLoginBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i><span>Conectando...</span>';
+            
+            try {
+                await googleAuth.login();
+                await googleAuth.fetchAccessibleAccounts();
+                console.log('✅ Login Google realizado com sucesso');
+                await updateConnectionStatus();
+            } catch (error) {
+                console.error('❌ Erro no login Google:', error);
+                console.error('Detalhes:', error.message, error.stack);
+                showErrorMessage('Google Ads', error.message || 'Erro desconhecido');
+            } finally {
+                googleLoginBtn.disabled = false;
+            }
+        });
+
+        // Carregar dados do usuário
+        async function loadUserData() {
+            // Função mantida para compatibilidade
+        }
+
+        // Aguardar autenticação antes de verificar status
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                console.log('✅ Usuário autenticado, verificando conexões...');
+                await loadUserData();
+                await updateConnectionStatus();
+            }
+        });
+    </script>
+
+    <!-- Inicializar Sidebar Unificada -->
+    <script type="module">
+        import { initSidebar } from './components/sidebar.js';
+        initSidebar('conexoes');
+    </script>
+</body>
+</html>

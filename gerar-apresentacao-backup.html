@@ -1,0 +1,810 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerar Relatório - Insightflow</title>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="style.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#2563eb',
+                        secondary: '#10b981',
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    <style>
+    /* Remover scroll horizontal */
+    html, body {
+        overflow-x: hidden !important;
+        max-width: 100vw !important;
+    }
+    
+     /* Estilo do Modal */
+    #campaignsModal .max-h-64,
+    #adSetsModal .max-h-64,
+    #whiteCampaignsModal .max-h-64,
+    #whiteAdSetsModal .max-h-64,
+    #blackCampaignsModal .max-h-64,
+    #blackAdSetsModal .max-h-64 {
+        max-height: 16rem;
+        overflow-y: auto;
+        scrollbar-width: thin;
+        scrollbar-color: #d1d5db #f3f4f6;
+    }
+
+    #campaignsModal .max-h-64::-webkit-scrollbar,
+    #adSetsModal .max-h-64::-webkit-scrollbar,
+    #whiteCampaignsModal .max-h-64::-webkit-scrollbar,
+    #whiteAdSetsModal .max-h-64::-webkit-scrollbar,
+    #blackCampaignsModal .max-h-64::-webkit-scrollbar,
+    #blackAdSetsModal .max-h-64::-webkit-scrollbar {
+        width: 6px;
+    }
+
+    #campaignsModal .max-h-64::-webkit-scrollbar-thumb,
+    #adSetsModal .max-h-64::-webkit-scrollbar-thumb,
+    #whiteCampaignsModal .max-h-64::-webkit-scrollbar-thumb,
+    #whiteAdSetsModal .max-h-64::-webkit-scrollbar-thumb,
+    #blackCampaignsModal .max-h-64::-webkit-scrollbar-thumb,
+    #blackAdSetsModal .max-h-64::-webkit-scrollbar-thumb {
+        background-color: #d1d5db;
+        border-radius: 3px;
+    }
+
+    #campaignsModal .max-h-64::-webkit-scrollbar-track,
+    #adSetsModal .max-h-64::-webkit-scrollbar-track,
+    #whiteCampaignsModal .max-h-64::-webkit-scrollbar-track,
+    #whiteAdSetsModal .max-h-64::-webkit-scrollbar-track,
+    #blackCampaignsModal .max-h-64::-webkit-scrollbar-track,
+    #blackAdSetsModal .max-h-64::-webkit-scrollbar-track {
+        background-color: #f3f4f6;
+    }
+
+    /* Estilo dos Itens */
+    .filter-option {
+        padding: 0.5rem 0.75rem; /* Equivalente a px-3 py-2 */
+        background: #ffffff; /* Fundo branco direto, sem Tailwind */
+        cursor: pointer;
+        transition: all 0.2s ease;
+        border-bottom: 1px solid #f1f1f1;
+    }
+
+    .filter-option:last-child {
+        border-bottom: none;
+    }
+
+    .filter-option:hover {
+        background: #f1f5f9;
+        transform: scale(1.01);
+    }
+
+    /* Aumentar especificidade para evitar conflitos com Tailwind */
+    div.filter-option.selected {
+        background: #2563eb !important;
+        color: #ffffff !important;
+    }
+
+    div.filter-option.selected:hover {
+        background: #1d4ed8 !important;
+    }
+
+    .filter-option .flex {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    div.filter-option.selected .text-green-600,
+    div.filter-option.selected .text-gray-500 {
+        color: #ffffff !important;
+    }
+
+        .metric-card {
+            @apply bg-white p-6 rounded-lg shadow-lg transition-transform duration-300 hover:transform hover:-translate-y-1;
+        }
+        .metric-comparison.increase {
+            @apply text-green-500 flex items-center;
+        }
+        .metric-comparison.decrease {
+            @apply text-red-500 flex items-center;
+        }
+        .top-ad-card {
+            @apply bg-white p-4 rounded-lg shadow-md transition-all duration-300 hover:shadow-lg;
+        }
+
+/* Estilo para os itens da lista de análise */
+ul.list-disc li {
+    margin-bottom: 0.5rem; /* Espaçamento entre os itens da lista */
+    line-height: 1.5; /* Altura da linha para melhor legibilidade */
+}
+
+/* Garantir que o texto dentro de cada <li> respeite o formato */
+ul.list-disc li br {
+    display: block; /* Forçar a quebra de linha */
+    content: ''; /* Garantir compatibilidade */
+}
+
+/* Estilo para o relatório White (fundo azul) */
+.campaign-section.white-report {
+    background-color: #1e3c72; /* Azul definido no Tailwind */
+    color: #ffffff; /* Texto branco para contraste */
+}
+
+/* Estilo para o relatório Black (fundo preto) */
+.campaign-section.black-report {
+    background-color: #000000; /* Preto */
+    color: #ffffff; /* Texto branco */
+}
+
+/* Garantir que os textos dentro da seção fiquem brancos */
+.campaign-section.white-report h3,
+.campaign-section.white-report h4,
+.campaign-section.white-report p,
+.campaign-section.black-report h3,
+.campaign-section.black-report h4,
+.campaign-section.black-report p {
+    color: #ffffff;
+}
+
+    </style>
+
+<!-- Scripts -->
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+
+</head>
+<body class="bg-white min-h-screen font-sans m-0 p-0">
+    <!-- Container Principal -->
+    <div class="flex min-h-screen w-full">
+        <!-- Sidebar -->
+        <aside class="w-56 bg-white flex flex-col border-r border-gray-200">
+            <div class="p-6">
+                <h1 class="text-xl font-bold text-gray-800">Relatórios</h1>
+            </div>
+            
+            <nav class="flex-1 px-3">
+                <a href="javascript:history.back()" class="flex items-center px-3 py-2.5 mb-1 border-l-4 border-transparent text-gray-700 hover:bg-gray-50 transition-all">
+                    <i class="fas fa-arrow-left mr-3 text-sm"></i>
+                    <span class="text-sm">Voltar</span>
+                </a>
+                <a href="/home.html" class="flex items-center px-3 py-2.5 mb-1 border-l-4 border-transparent text-gray-700 hover:bg-gray-50 transition-all">
+                    <i class="fas fa-home mr-3 text-sm"></i>
+                    <span class="text-sm">Tela Inicial</span>
+                </a>
+                
+                <a href="/dashboard.html" class="flex items-center px-3 py-2.5 mb-1 border-l-4 border-transparent text-gray-700 hover:bg-gray-50 transition-all">
+                    <i class="fas fa-chart-line mr-3 text-sm"></i>
+                    <span class="text-sm">Dashboard</span>
+                </a>
+            </nav>
+            
+            <div class="p-3">
+                <button id="logoutBtnSidebar" class="w-full flex items-center px-3 py-2.5 text-red-600 hover:bg-red-50 rounded-lg transition-all">
+                    <i class="fas fa-sign-out-alt mr-3 text-sm"></i>
+                    <span class="text-sm">Log out</span>
+                </button>
+            </div>
+        </aside>
+
+        <!-- Conteúdo Principal -->
+        <main class="flex-1 p-10 bg-gray-50">
+            <div>
+            <!-- Header -->
+            <div class="text-center mb-8">
+                <h1 class="text-4xl font-bold text-gray-800 mb-2">Gerar Relatório</h1>
+                <p class="text-lg text-gray-600">Configure os parâmetros e gere seu relatório personalizado</p>
+            </div>
+
+            <div id="mainContent">
+        <form id="form" class="space-y-6">
+            <!-- Card: Seleção de Unidade -->
+            <div class="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl shadow-md p-6 border-2 border-blue-200">
+                <div class="flex items-center mb-4">
+                    <div class="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center mr-3">
+                        <i class="fas fa-building text-white"></i>
+                    </div>
+                    <h3 class="text-lg font-semibold text-gray-800">Selecionar Unidade</h3>
+                </div>
+                <select id="unitSelect"
+                    class="w-full px-4 py-3 border-2 border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition bg-white font-medium">
+                    <option value="">Selecione uma unidade...</option>
+                </select>
+                <div id="unitLinkedInfo" class="mt-3 hidden">
+                    <div class="bg-white rounded-lg p-3 border border-blue-200">
+                        <p class="text-xs text-gray-600 mb-2">Contas vinculadas:</p>
+                        <div id="linkedAccountsBadges" class="flex flex-wrap gap-2"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card: Seleção de Contas (HIDDEN - apenas para casos sem vinculação) -->
+            <div id="manualAccountSelection" class="bg-white rounded-2xl shadow-md p-6 border border-gray-100 hidden">
+                <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
+                    <p class="text-sm text-yellow-800">
+                        <i class="fas fa-exclamation-triangle mr-2"></i>
+                        Esta unidade não possui contas vinculadas. Selecione manualmente:
+                    </p>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Meta Ads -->
+                    <div>
+                        <div class="flex items-center mb-3">
+                            <div class="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center mr-3">
+                                <span class="text-blue-600 font-bold text-sm">M</span>
+                            </div>
+                            <label for="unitId" class="text-sm font-semibold text-gray-800">Meta Ads</label>
+                        </div>
+                        <label class="block text-xs text-gray-600 mb-2">Conta de Anúncio</label>
+                        <select id="unitId"
+                            class="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition">
+                            <option value="">Selecione a conta</option>
+                        </select>
+                    </div>
+                    
+                    <!-- Google Ads -->
+            <div>
+                        <div class="flex items-center mb-3">
+                            <div class="w-8 h-8 bg-blue-50 rounded-lg flex items-center justify-center mr-3">
+                                <span class="text-blue-500 font-bold text-sm">G</span>
+                            </div>
+                            <label for="googleAdsAccountId" class="text-sm font-semibold text-gray-800">Google Ads</label>
+                        </div>
+                        <label class="block text-xs text-gray-600 mb-2">Conta de Anúncio</label>
+                        <select id="googleAdsAccountId"
+                            class="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition">
+                            <option value="">Selecione a conta</option>
+                </select>
+            </div>
+                </div>
+            </div>
+
+            <!-- Card: Período do Relatório -->
+            <div class="bg-white rounded-2xl shadow-md p-6 border border-gray-100">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4">Período do Relatório</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">
+                <div>
+                        <label for="startDate" class="block text-sm font-medium text-gray-700 mb-2">Data de Início</label>
+                    <input type="date" id="startDate" required
+                            class="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition">
+                </div>
+                <div>
+                        <label for="endDate" class="block text-sm font-medium text-gray-700 mb-2">Data de Término</label>
+                    <input type="date" id="endDate" required
+                            class="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition">
+                </div>
+                </div>
+                <button type="button" id="last7DaysBtn" 
+                    class="bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium px-4 py-2 rounded-lg transition inline-flex items-center">
+                    <i class="fas fa-calendar-week mr-2"></i>Últimos 7 Dias
+                </button>
+            </div>
+
+
+            <!-- Card: Filtrar por -->
+            <div class="bg-white rounded-2xl shadow-md p-6 border border-gray-100">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4">Filtrar por</h3>
+                
+                <!-- Pergunta: A unidade possui Black? -->
+                <div id="blackQuestion" class="mb-4">
+                    <p class="text-sm font-medium text-gray-700 mb-3">A unidade possui Black?</p>
+                    <div class="flex gap-3">
+                    <button type="button" id="hasBlackYesBtn"
+                            class="flex-1 bg-gray-100 hover:bg-blue-600 text-gray-800 hover:text-white font-semibold py-3 px-4 rounded-lg transition duration-300 transform hover:scale-[1.02] border-2 border-gray-300">
+                        Sim
+                    </button>
+                    <button type="button" id="hasBlackNoBtn"
+                            class="flex-1 bg-gray-100 hover:bg-blue-600 text-gray-800 hover:text-white font-semibold py-3 px-4 rounded-lg transition duration-300 transform hover:scale-[1.02] border-2 border-gray-300">
+                        Não
+                    </button>
+                </div>
+            </div>
+
+                <!-- Filtros padrão (sem White/Black) -->
+                <div id="defaultFilters" class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <button type="button" id="filterCampaigns"
+                        class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-lg transition duration-300 flex items-center justify-center">
+                        <i class="fas fa-filter mr-2"></i>Selecionar Campanhas
+                    </button>
+                    <button type="button" id="filterAdSets"
+                        class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-lg transition duration-300 flex items-center justify-center">
+                        <i class="fas fa-layer-group mr-2"></i>Selecionar Conjuntos
+                    </button>
+                </div>
+
+                <!-- Filtros White -->
+                <div id="whiteFilters" class="hidden space-y-3">
+                    <div class="bg-blue-50 rounded-lg p-4 border border-blue-200">
+                        <h4 class="text-sm font-semibold text-blue-800 mb-3">Campanhas White</h4>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <button type="button" id="filterWhiteCampaigns"
+                                class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-lg transition duration-300 flex items-center justify-center">
+                                <i class="fas fa-filter mr-2"></i>Campanhas
+                </button>
+                <button type="button" id="filterWhiteAdSets"
+                                class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-lg transition duration-300 flex items-center justify-center">
+                                <i class="fas fa-layer-group mr-2"></i>Conjuntos
+                </button>
+            </div>
+                    </div>
+                </div>
+
+                <!-- Filtros Black -->
+                <div id="blackFilters" class="hidden space-y-3">
+                    <div class="bg-gray-900 rounded-lg p-4 border border-gray-700">
+                        <h4 class="text-sm font-semibold text-gray-100 mb-3">Campanhas Black</h4>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <button type="button" id="filterBlackCampaigns"
+                                class="bg-gray-700 hover:bg-gray-600 text-white font-medium py-3 px-4 rounded-lg transition duration-300 flex items-center justify-center">
+                                <i class="fas fa-filter mr-2"></i>Campanhas
+                </button>
+                <button type="button" id="filterBlackAdSets"
+                                class="bg-gray-700 hover:bg-gray-600 text-white font-medium py-3 px-4 rounded-lg transition duration-300 flex items-center justify-center">
+                    <i class="fas fa-layer-group mr-2"></i>Conjuntos
+                </button>
+            </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card: Período de Comparação -->
+            <div id="comparisonFilter" class="bg-white rounded-2xl shadow-md p-6 border border-gray-100">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4">Período de Comparação</h3>
+                <div class="bg-green-50 border-2 border-green-500 rounded-lg p-3 mb-3">
+                    <p class="text-green-700 text-sm font-medium flex items-center">
+                        <i class="fas fa-check-circle mr-2"></i>
+                        Ativado: Mesmo período anterior
+                    </p>
+                </div>
+                <button type="button" id="comparePeriods"
+                    class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-lg transition duration-300 flex items-center justify-center">
+                    <i class="fas fa-cog mr-2"></i>Configurar Período de Comparação
+                </button>
+            </div>
+            
+            <!-- Card: Métricas do Período -->
+            <div class="bg-white rounded-2xl shadow-md p-6 border border-gray-100">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4">Métricas do Período</h3>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                        <label for="budgetsCompleted" class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="fas fa-clipboard-check mr-2 text-blue-600"></i>Orçamento (R$)
+                    </label>
+                        <input type="number" id="budgetsCompleted" min="0" step="1" placeholder="0.00"
+                            class="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition">
+                </div>
+                <div>
+                        <label for="salesCount" class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="fas fa-shopping-cart mr-2 text-green-600"></i>Número de Vendas
+                    </label>
+                        <input type="number" id="salesCount" min="0" step="1" placeholder="0"
+                            class="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition">
+                </div>
+                <div>
+                        <label for="revenue" class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="fas fa-money-bill-wave mr-2 text-emerald-600"></i>Faturamento (R$)
+                    </label>
+                        <input type="number" id="revenue" min="0" step="0.01" placeholder="0.00"
+                            class="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition">
+                    </div>
+                </div>
+            </div>
+
+
+            <!-- Botões Gerar e Salvar Relatório -->
+            <div class="flex gap-4">
+            <button type="submit"
+                    class="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-bold py-4 px-6 rounded-xl transition duration-300 transform hover:scale-[1.02] shadow-lg flex items-center justify-center">
+                    <i class="fas fa-chart-bar mr-3 text-xl"></i>
+                    <span class="text-lg">Gerar Relatório</span>
+                </button>
+                
+                <!-- Botão Salvar Relatório (aparece após gerar) -->
+                <button type="button" id="saveReportBtn" style="display: none;"
+                    class="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold py-4 px-6 rounded-xl transition duration-300 transform hover:scale-[1.02] shadow-lg flex items-center justify-center">
+                    <i class="fas fa-save mr-3 text-xl"></i>
+                    <span class="text-lg">Salvar Relatório</span>
+            </button>
+            </div>
+        </form>
+
+            <!-- Container de Loading -->
+            <div id="loadingIndicator" class="hidden">
+                <div class="bg-blue-50 border border-blue-200 rounded-xl p-6 text-center">
+                    <div class="animate-spin inline-block w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full mb-4"></div>
+                    <p class="text-blue-800 font-semibold text-lg">Gerando relatório...</p>
+                    <p class="text-blue-600 text-sm mt-2">Isso pode levar alguns segundos</p>
+                </div>
+            </div>
+
+            <!-- Container do Relatório Gerado -->
+        <div id="reportContainer" class="mt-8 space-y-8"></div>
+
+            <!-- Card: Análise do Relatório (aparece após gerar) -->
+            <div id="analysisSection" style="display: none;" class="mt-8 bg-white rounded-2xl shadow-md p-6 border border-gray-100">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4">
+                    <i class="fas fa-comment-dots mr-2 text-purple-600"></i>Análise do Relatório
+                </h3>
+                
+                <!-- Sugestões Automáticas -->
+                <div id="analysisSuggestions" style="display: none;" class="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                    <p class="text-sm font-semibold text-blue-900 mb-3">
+                        <i class="fas fa-lightbulb mr-2"></i>Sugestões (clique para adicionar):
+                    </p>
+                    
+                    <!-- Tráfego -->
+                    <div id="trafficSuggestions" class="mb-3">
+                        <p class="text-xs font-medium text-gray-600 mb-2">🎯 Tráfego:</p>
+                        <div id="trafficSuggestionsContainer" class="space-y-2"></div>
+                    </div>
+                    
+                    <!-- Negócio -->
+                    <div id="businessSuggestions" style="display: none;">
+                        <p class="text-xs font-medium text-gray-600 mb-2">💼 Negócio:</p>
+                        <div id="businessSuggestionsContainer" class="space-y-2"></div>
+                    </div>
+                    
+                    <!-- Especiais -->
+                    <div id="specialSuggestions" style="display: none;">
+                        <p class="text-xs font-medium text-gray-600 mb-2 mt-3">🔧 Especiais:</p>
+                        <div id="specialSuggestionsContainer" class="space-y-2"></div>
+                    </div>
+                </div>
+                
+                <textarea
+                    id="performanceAnalysis"
+                    name="performanceAnalysis"
+                    rows="8"
+                    class="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition resize-none"
+                    placeholder="Suas análises aparecerão aqui. Clique nas sugestões acima para adicioná-las automaticamente."
+                ></textarea>
+                <p class="text-xs text-gray-500 mt-2">
+                    <i class="fas fa-info-circle mr-1"></i>Campo opcional. Clique nas sugestões acima ou digite sua própria análise. Pressione Enter 2x para criar novo parágrafo com marcador.
+                </p>
+                
+                <!-- Botão Gerar Relatório Final -->
+                <button type="button" id="generateFinalReportBtn"
+                    class="mt-4 w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-bold py-3 px-6 rounded-xl transition duration-300 transform hover:scale-[1.02] shadow-lg flex items-center justify-center">
+                    <i class="fas fa-check-circle mr-3 text-xl"></i>
+                    <span class="text-lg">Incluir Análise e Gerar Relatório Final</span>
+                </button>
+            </div>
+
+            <!-- Botões de Ação -->
+            <div class="flex flex-wrap gap-3 mt-6">
+            <button id="backToReportSelectionBtn"
+                    class="flex-1 min-w-[200px] bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold py-3 px-6 rounded-lg transition duration-300 flex items-center justify-center">
+                <i class="fas fa-arrow-left mr-2"></i>Voltar
+            </button>
+            <button id="refreshBtn"
+                    class="flex-1 min-w-[200px] bg-blue-100 hover:bg-blue-200 text-blue-700 font-semibold py-3 px-6 rounded-lg transition duration-300 flex items-center justify-center">
+                    <i class="fas fa-sync-alt mr-2"></i>Atualizar
+            </button>
+            <button id="shareWhatsAppBtn"
+                    class="hidden flex-1 min-w-[200px] bg-[#25D366] hover:bg-[#20c058] text-white font-semibold py-3 px-6 rounded-lg transition duration-300 flex items-center justify-center">
+                <i class="fab fa-whatsapp mr-2"></i>Compartilhar no WhatsApp
+            </button>
+        </div>
+        </div>
+        </div>
+        </div>
+        </div>
+        </main>
+    </div>
+
+    <!-- Modal de Campanhas (Default) -->
+    <div id="campaignsModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-lg shadow-lg p-4 max-w-md w-full relative z-60">
+            <h2 class="text-lg font-semibold text-gray-800 mb-3">
+                <i class="fas fa-filter mr-2 text-blue-600"></i>Selecione as Campanhas
+            </h2>
+            <div id="campaignsList" class="max-h-64 overflow-y-auto border border-gray-200 rounded-md bg-white"></div>
+            <div class="flex space-x-3 mt-4">
+                <button type="button" id="applyCampaigns" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition duration-300">
+                    <i class="fas fa-check mr-2"></i>Aplicar
+                </button>
+                <button type="button" id="closeCampaignsModal" class="flex-1 bg-gray-500 hover:bg-gray-600 text-white font-medium py-2 px-4 rounded-md transition duration-300">
+                    <i class="fas fa-times mr-2"></i>Fechar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Conjuntos de Anúncios (Default) -->
+    <div id="adSetsModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-lg shadow-lg p-4 max-w-md w-full relative z-60">
+            <h2 class="text-lg font-semibold text-gray-800 mb-3">
+                <i class="fas fa-layer-group mr-2 text-blue-600"></i>Selecione os Conjuntos de Anúncios
+            </h2>
+            <div id="adSetsList" class="max-h-64 overflow-y-auto border border-gray-200 rounded-md bg-white"></div>
+            <div class="flex space-x-3 mt-4">
+                <button type="button" id="applyAdSets" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition duration-300">
+                    <i class="fas fa-check mr-2"></i>Aplicar
+                </button>
+                <button type="button" id="closeAdSetsModal" class="flex-1 bg-gray-500 hover:bg-gray-600 text-white font-medium py-2 px-4 rounded-md transition duration-300">
+                    <i class="fas fa-times mr-2"></i>Fechar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Campanhas White -->
+    <div id="whiteCampaignsModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-lg shadow-lg p-4 max-w-md w-full relative z-60">
+            <h2 class="text-lg font-semibold text-gray-800 mb-3">
+                <i class="fas fa-filter mr-2 text-blue-600"></i>Selecione as Campanhas White
+            </h2>
+            <div id="whiteCampaignsList" class="max-h-64 overflow-y-auto border border-gray-200 rounded-md bg-white"></div>
+            <div class="flex space-x-3 mt-4">
+                <button type="button" id="applyWhiteCampaigns" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition duration-300">
+                    <i class="fas fa-check mr-2"></i>Aplicar
+                </button>
+                <button type="button" id="closeWhiteCampaignsModal" class="flex-1 bg-gray-500 hover:bg-gray-600 text-white font-medium py-2 px-4 rounded-md transition duration-300">
+                    <i class="fas fa-times mr-2"></i>Fechar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Conjuntos de Anúncios White -->
+    <div id="whiteAdSetsModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-lg shadow-lg p-4 max-w-md w-full relative z-60">
+            <h2 class="text-lg font-semibold text-gray-800 mb-3">
+                <i class="fas fa-layer-group mr-2 text-blue-600"></i>Selecione os Conjuntos de Anúncios White
+            </h2>
+            <div id="whiteAdSetsList" class="max-h-64 overflow-y-auto border border-gray-200 rounded-md bg-white"></div>
+            <div class="flex space-x-3 mt-4">
+                <button type="button" id="applyWhiteAdSets" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition duration-300">
+                    <i class="fas fa-check mr-2"></i>Aplicar
+                </button>
+                <button type="button" id="closeWhiteAdSetsModal" class="flex-1 bg-gray-500 hover:bg-gray-600 text-white font-medium py-2 px-4 rounded-md transition duration-300">
+                    <i class="fas fa-times mr-2"></i>Fechar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Campanhas Black -->
+    <div id="blackCampaignsModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-lg shadow-lg p-4 max-w-md w-full relative z-60">
+            <h2 class="text-lg font-semibold text-gray-800 mb-3">
+                <i class="fas fa-filter mr-2 text-blue-600"></i>Selecione as Campanhas Black
+            </h2>
+            <div id="blackCampaignsList" class="max-h-64 overflow-y-auto border border-gray-200 rounded-md bg-white"></div>
+            <div class="flex space-x-3 mt-4">
+                <button type="button" id="applyBlackCampaigns" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition duration-300">
+                    <i class="fas fa-check mr-2"></i>Aplicar
+                </button>
+                <button type="button" id="closeBlackCampaignsModal" class="flex-1 bg-gray-500 hover:bg-gray-600 text-white font-medium py-2 px-4 rounded-md transition duration-300">
+                    <i class="fas fa-times mr-2"></i>Fechar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Conjuntos de Anúncios Black -->
+    <div id="blackAdSetsModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-lg shadow-lg p-4 max-w-md w-full relative z-60">
+            <h2 class="text-lg font-semibold text-gray-800 mb-3">
+                <i class="fas fa-layer-group mr-2 text-blue-600"></i>Selecione os Conjuntos de Anúncios Black
+            </h2>
+            <div id="blackAdSetsList" class="max-h-64 overflow-y-auto border border-gray-200 rounded-md bg-white"></div>
+            <div class="flex space-x-3 mt-4">
+                <button type="button" id="applyBlackAdSets" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition duration-300">
+                    <i class="fas fa-check mr-2"></i>Aplicar
+                </button>
+                <button type="button" id="closeBlackAdSetsModal" class="flex-1 bg-gray-500 hover:bg-gray-600 text-white font-medium py-2 px-4 rounded-md transition duration-300">
+                    <i class="fas fa-times mr-2"></i>Fechar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div id="comparisonModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-2xl shadow-2xl p-8 max-w-lg w-full">
+            <div class="flex items-center mb-6">
+                <div class="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center mr-4">
+                    <i class="fas fa-calendar-week text-2xl text-blue-600"></i>
+                </div>
+                <h2 class="text-2xl font-bold text-gray-800">Comparação de Períodos</h2>
+            </div>
+            
+            <div class="space-y-4">
+                <!-- Período personalizado -->
+                <label class="block cursor-pointer">
+                    <div class="flex items-center p-4 border-2 border-gray-200 rounded-xl hover:border-blue-500 transition">
+                    <input type="radio" name="comparisonOption" value="custom" checked
+                            class="w-5 h-5 text-blue-600 focus:ring-2 focus:ring-blue-500">
+                        <span class="ml-3 font-semibold text-gray-800">Período personalizado</span>
+                    </div>
+                </label>
+                <div id="customPeriod" class="ml-4 space-y-3 bg-blue-50 p-4 rounded-lg border border-blue-200">
+                    <div>
+                        <label for="compareStartDate" class="block text-sm font-medium text-gray-700 mb-2">Data Início</label>
+                        <input type="date" id="compareStartDate"
+                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition">
+                    </div>
+                    <div>
+                        <label for="compareEndDate" class="block text-sm font-medium text-gray-700 mb-2">Data Fim</label>
+                        <input type="date" id="compareEndDate"
+                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition">
+                    </div>
+                </div>
+                
+                <!-- Mesmo período anterior -->
+                <label class="block cursor-pointer">
+                    <div class="flex items-center p-4 border-2 border-blue-500 rounded-xl hover:border-blue-600 transition bg-blue-50">
+                    <input type="radio" name="comparisonOption" value="previous" checked
+                            class="w-5 h-5 text-blue-600 focus:ring-2 focus:ring-blue-500">
+                        <span class="ml-3 font-semibold text-gray-800">Mesmo período anterior</span>
+                    </div>
+                </label>
+                
+                <!-- Sem comparação -->
+                <label class="block cursor-pointer">
+                    <div class="flex items-center p-4 border-2 border-gray-200 rounded-xl hover:border-blue-500 transition">
+                    <input type="radio" name="comparisonOption" value="none"
+                            class="w-5 h-5 text-blue-600 focus:ring-2 focus:ring-blue-500">
+                        <span class="ml-3 font-semibold text-gray-800">Sem comparação</span>
+                    </div>
+                </label>
+            </div>
+            
+            <div class="flex gap-3 mt-8">
+                <button type="button" id="confirmComparison"
+                    class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-lg transition duration-300 flex items-center justify-center">
+                    <i class="fas fa-check mr-2"></i>Confirmar
+                </button>
+                <button type="button" id="cancelComparison"
+                    class="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold py-3 px-4 rounded-lg transition duration-300 flex items-center justify-center">
+                    <i class="fas fa-times mr-2"></i>Cancelar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <!-- Proteção de Auth (DEVE ser o primeiro script) -->
+    <script type="module">
+        import { auth } from './config/firebase.js';
+        import { onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+        import { projectsService } from './services/projectsService.js';
+        import { unitsService } from './services/unitsService.js';
+        import { fbAuth } from './auth.js';
+        import { googleAuth } from './authGoogle.js';
+        
+        console.log('⏳ [RelatorioCompleto] Aguardando Firebase verificar autenticação...');
+        
+        // Aguardar Firebase estar pronto antes de verificar autenticação
+        let currentUser = null;
+        let currentProjectId = null;
+        let allUnits = [];
+
+        onAuthStateChanged(auth, async (user) => {
+            console.log('🔔 [RelatorioCompleto] onAuthStateChanged disparado - user:', user?.email || 'null');
+            
+            if (!user) {
+                console.warn('⚠️ [RelatorioCompleto] Usuário NÃO autenticado - redirecionando para login');
+                window.location.href = '/login.html';
+                return;
+            }
+            
+            console.log('✅ [RelatorioCompleto] Usuário autenticado:', user.email);
+            currentUser = user;
+        });
+
+        // ========== EVENTO: SELEÇÃO DE UNIDADE ==========
+        // NOTA: A lógica de seleção de unidade foi movida para RelatorioCompleto.js
+        // para evitar duplicação e garantir execução correta
+        
+        // Logout da sidebar
+        document.getElementById('logoutBtnSidebar')?.addEventListener('click', async () => {
+            try {
+                await signOut(auth);
+                window.location.href = '/login.html';
+            } catch (error) {
+                console.error('Erro ao fazer logout:', error);
+            }
+        });
+    </script>
+    
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script async defer crossorigin="anonymous" src="https://connect.facebook.net/en_US/sdk.js"></script>
+    <script type="module" src="RelatorioCompleto.js?v=6.0"></script>
+    
+    <!-- Script para Salvar Relatório -->
+    <script type="module">
+        import { reportsService } from './services/reportsService.js?v=1.0';
+        
+        // Variável global para armazenar dados do relatório gerado
+        window.currentReportData = null;
+        
+        // Função para resetar o botão de salvar (ao gerar novo relatório)
+        window.resetSaveButton = () => {
+            console.log('🔄 Resetando botão de salvar relatório...');
+            const saveBtn = document.getElementById('saveReportBtn');
+            if (saveBtn) {
+                saveBtn.style.display = 'none';
+                saveBtn.disabled = false;
+                saveBtn.className = 'flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold py-4 px-6 rounded-xl transition duration-300 transform hover:scale-[1.02] shadow-lg flex items-center justify-center';
+                saveBtn.innerHTML = '<i class="fas fa-save mr-3 text-xl"></i><span class="text-lg">Salvar Relatório</span>';
+                console.log('✅ Botão resetado');
+            }
+        };
+        
+        // Função para mostrar botão de salvar (será chamada após gerar o relatório)
+        window.showSaveButton = () => {
+            console.log('🔘 Mostrando botão de salvar relatório...');
+            const saveBtn = document.getElementById('saveReportBtn');
+            if (saveBtn) {
+                // Resetar o botão antes de mostrar
+                saveBtn.disabled = false;
+                saveBtn.className = 'flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold py-4 px-6 rounded-xl transition duration-300 transform hover:scale-[1.02] shadow-lg flex items-center justify-center';
+                saveBtn.innerHTML = '<i class="fas fa-save mr-3 text-xl"></i><span class="text-lg">Salvar Relatório</span>';
+                saveBtn.style.display = 'flex';
+                console.log('✅ Botão de salvar exibido');
+            } else {
+                console.error('❌ Botão saveReportBtn não encontrado');
+            }
+        };
+        
+        // Botão Salvar Relatório
+        const saveReportBtn = document.getElementById('saveReportBtn');
+        if (saveReportBtn) {
+            saveReportBtn.addEventListener('click', async () => {
+                const projectId = localStorage.getItem('currentProject');
+                
+                if (!projectId) {
+                    alert('Erro: Nenhum projeto selecionado');
+                    return;
+                }
+
+                if (!window.currentReportData) {
+                    alert('Erro: Nenhum relatório foi gerado ainda');
+                    return;
+                }
+
+                // Desabilitar botão durante salvamento
+                saveReportBtn.disabled = true;
+                saveReportBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-3 text-xl"></i><span class="text-lg">Salvando...</span>';
+
+                try {
+                    const result = await reportsService.saveReport(projectId, window.currentReportData);
+                    
+                    if (result.success) {
+                        // Mudar botão para indicar sucesso (verde) e MANTER DESABILITADO
+                        saveReportBtn.disabled = true;
+                        saveReportBtn.className = 'flex-1 bg-gradient-to-r from-green-600 to-green-700 text-white font-bold py-4 px-6 rounded-xl shadow-lg flex items-center justify-center opacity-75 cursor-not-allowed';
+                        saveReportBtn.innerHTML = '<i class="fas fa-check mr-3 text-xl"></i><span class="text-lg">Relatório Salvo!</span>';
+                        
+                        console.log('✅ Relatório salvo com sucesso!');
+                        
+                        // NÃO redirecionar - usuário pode gerar outro relatório
+                    } else {
+                        alert('❌ Erro ao salvar relatório: ' + result.error);
+                        saveReportBtn.disabled = false;
+                        saveReportBtn.innerHTML = '<i class="fas fa-save mr-3 text-xl"></i><span class="text-lg">Salvar Relatório</span>';
+                    }
+                } catch (error) {
+                    console.error('Erro ao salvar relatório:', error);
+                    alert('❌ Erro ao salvar relatório. Tente novamente.');
+                    saveReportBtn.disabled = false;
+                    saveReportBtn.innerHTML = '<i class="fas fa-save mr-3 text-xl"></i><span class="text-lg">Salvar Relatório</span>';
+                }
+            });
+        }
+    </script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'93075eeb8ba96b9d',t:'MTc0NDY3NzQwOC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script><script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'930c0ec9980abce6',t:'MTc0NDcyNjU1NS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script><script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'930e06e76bdd8027',t:'MTc0NDc0NzIwMy4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>

@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Configurações do Projeto</title>
+  <!-- Removido style.css para evitar herdar fundo/centrais de outras telas -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* Overrides para não herdar layout/cores globais de style.css */
+    body { background: #f8fafc !important; color: #111827; display: block !important; min-height: auto !important; }
+    #app-sidebar { position: sticky; top: 0; height: 100vh; }
+  </style>
+</head>
+<body class="bg-gray-50" style="background:#f8fafc!important;display:block!important;min-height:auto!important;">
+  <div class="flex min-h-screen">
+    <div id="app-sidebar" class="w-64"></div>
+
+    <main class="flex-1 p-6">
+      <div class="max-w-6xl mx-auto">
+        <div class="mb-6">
+          <h1 class="text-2xl font-bold text-gray-800">Configurações</h1>
+          <p class="text-sm text-gray-500">Defina as logos do projeto e escolha onde cada uma será usada.</p>
+        </div>
+
+      <!-- Uploads de Logos -->
+      <section class="bg-white shadow-sm rounded-xl p-6 mb-8 border border-gray-200">
+        <h2 class="font-semibold mb-4 text-gray-800">Logos</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div>
+            <label class="block text-sm font-medium text-gray-700">Logo Horizontal (normal)</label>
+            <input type="file" id="logoHorizontal" accept="image/*" class="mt-1 text-sm" />
+            <img id="logoHorizontalPreview" class="mt-3 h-10 object-contain" />
+            <label class="block text-sm font-medium mt-5 text-gray-700">Logo Horizontal (branca) – opcional</label>
+            <p class="text-xs text-gray-500">Boa opção para fundos escuros.</p>
+            <input type="file" id="logoHorizontalWhite" accept="image/*" class="mt-1 text-sm" />
+            <img id="logoHorizontalWhitePreview" class="mt-3 h-10 object-contain bg-gray-800 p-1 rounded" />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700">Logo Quadrada (normal)</label>
+            <input type="file" id="logoSquare" accept="image/*" class="mt-1 text-sm" />
+            <img id="logoSquarePreview" class="mt-3 h-14 w-14 object-contain" />
+            <label class="block text-sm font-medium mt-5 text-gray-700">Logo Quadrada (branca) – opcional</label>
+            <p class="text-xs text-gray-500">Boa opção para fundos escuros.</p>
+            <input type="file" id="logoSquareWhite" accept="image/*" class="mt-1 text-sm" />
+            <img id="logoSquareWhitePreview" class="mt-3 h-14 w-14 object-contain bg-gray-800 p-1 rounded" />
+          </div>
+        </div>
+      </section>
+
+      <!-- Uso por Tela da Apresentação -->
+      <section class="bg-white shadow-sm rounded-xl p-6 mb-8 border border-gray-200">
+        <h2 class="font-semibold mb-4 text-gray-800">Uso nas Telas da Apresentação</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-5" id="usageForm">
+          <!-- Gerado via JS: capa, resultados, ranking, proximosPassos, obrigado -->
+        </div>
+      </section>
+
+      <!-- Relatório -->
+      <section class="bg-white shadow-sm rounded-xl p-6 mb-10 border border-gray-200">
+        <h2 class="font-semibold mb-4 text-gray-800">Uso no Relatório</h2>
+        <div class="flex items-center gap-4">
+          <label class="text-sm text-gray-700">Logo:</label>
+          <select id="reportLogoType" class="border rounded px-3 py-2 text-sm focus:ring-2 focus:ring-blue-200">
+            <option value="horizontal">Horizontal</option>
+            <option value="square">Quadrada</option>
+          </select>
+        </div>
+      </section>
+
+      <div class="flex gap-3 pb-8">
+        <button id="saveBtn" class="px-5 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg shadow hover:from-blue-700 hover:to-indigo-700 transition">Salvar Configurações</button>
+        <span id="saveMsg" class="text-sm text-gray-500"></span>
+      </div>
+      </div>
+    </main>
+  </div>
+
+  <script type="module">
+    import { initSidebar } from './components/sidebar.js';
+    import { getBranding, saveBranding } from './services/brandingService.js';
+    import { auth } from './config/firebase.js';
+    import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+
+    const currentPage = 'configuracoes';
+    initSidebar(currentPage);
+
+    const params = new URLSearchParams(window.location.search);
+    const projectId = params.get('id') || params.get('projectId') || localStorage.getItem('currentProject');
+
+    const usageScreens = [
+      { key: 'capa', label: 'Capa' },
+      { key: 'resultados', label: 'Resultados' },
+      { key: 'ranking', label: 'Ranking' },
+      { key: 'proximosPassos', label: 'Próximos Passos' },
+      { key: 'obrigado', label: 'Obrigado' },
+    ];
+
+    const usageForm = document.getElementById('usageForm');
+    usageScreens.forEach(s => {
+      const wrap = document.createElement('div');
+      wrap.className = 'flex items-center gap-3';
+      wrap.innerHTML = `
+        <div class="w-40 text-sm text-gray-700">${s.label}</div>
+        <select data-field="type" data-key="${s.key}" class="border rounded px-3 py-2 text-sm focus:ring-2 focus:ring-blue-200">
+          <option value="horizontal">Horizontal</option>
+          <option value="square">Quadrada</option>
+        </select>
+        <select data-field="color" data-key="${s.key}" class="border rounded px-3 py-2 text-sm focus:ring-2 focus:ring-blue-200">
+          <option value="normal">Normal</option>
+          <option value="white">Branca</option>
+        </select>
+      `;
+      usageForm.appendChild(wrap);
+    });
+
+    // Preload branding
+    let branding = { usage: { apresentacao: {}, relatorio: {} } };
+    try {
+      branding = await getBranding(projectId);
+    } catch (e) { console.warn(e.message); }
+
+    // Preencher previews e selects
+    const setPreview = (id, url) => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      if (url) {
+        el.src = url;
+        el.style.display = 'inline-block';
+      } else {
+        el.removeAttribute('src');
+        el.style.display = 'none';
+      }
+    };
+    setPreview('logoHorizontalPreview', branding.logoHorizontalUrl);
+    setPreview('logoHorizontalWhitePreview', branding.logoHorizontalWhiteUrl);
+    setPreview('logoSquarePreview', branding.logoSquareUrl);
+    setPreview('logoSquareWhitePreview', branding.logoSquareWhiteUrl);
+
+    const defaultMap = {
+      capa:        { type: 'horizontal', color: 'normal' },
+      resultados:  { type: 'horizontal', color: 'normal' },
+      ranking:     { type: 'square',    color: 'white'  },
+      proximosPassos: { type: 'horizontal', color: 'normal' },
+      obrigado:    { type: 'square',    color: 'normal' },
+    };
+
+    usageScreens.forEach(s => {
+      const conf = branding.usage?.apresentacao?.[s.key] || defaultMap[s.key];
+      const typeEl = usageForm.querySelector(`select[data-key="${s.key}"][data-field="type"]`);
+      const colorEl = usageForm.querySelector(`select[data-key="${s.key}"][data-field="color"]`);
+      if (typeEl) typeEl.value = conf.type;
+      if (colorEl) colorEl.value = conf.color;
+    });
+    document.getElementById('reportLogoType').value = branding.usage?.relatorio?.type || 'square';
+
+    // Preview local ao selecionar arquivo
+    function bindLocalPreview(inputId, previewId) {
+      const input = document.getElementById(inputId);
+      if (!input) return;
+      input.addEventListener('change', () => {
+        const file = input.files && input.files[0];
+        if (!file) return setPreview(previewId, '');
+        const reader = new FileReader();
+        reader.onload = e => setPreview(previewId, e.target.result);
+        reader.readAsDataURL(file);
+      });
+    }
+
+    bindLocalPreview('logoHorizontal', 'logoHorizontalPreview');
+    bindLocalPreview('logoHorizontalWhite', 'logoHorizontalWhitePreview');
+    bindLocalPreview('logoSquare', 'logoSquarePreview');
+    bindLocalPreview('logoSquareWhite', 'logoSquareWhitePreview');
+
+    // Converter arquivo para base64 (mesma lógica das outras telas)
+    function fileToBase64(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (e) => resolve(e.target.result);
+        reader.onerror = (e) => reject(new Error('Erro ao ler arquivo'));
+        reader.readAsDataURL(file);
+      });
+    }
+
+    // Upload handlers - usando base64 igual outras telas
+    async function handleUpload(inputId, key) {
+      try {
+        const input = document.getElementById(inputId);
+        const file = input?.files?.[0];
+        if (!file) {
+          console.log(`⏭️ Nenhum arquivo selecionado para ${key}`);
+          return null;
+        }
+        console.log(`📤 Convertendo ${key} para base64...`, { fileName: file.name, size: file.size });
+        const base64 = await fileToBase64(file);
+        console.log(`✅ Base64 gerado para ${key}`, { size: Math.round(base64.length / 1024) + 'KB' });
+        return base64;
+      } catch (error) {
+        console.error(`❌ Erro ao processar ${key}:`, error);
+        throw new Error(`Falha ao processar ${key}: ${error.message}`);
+      }
+    }
+
+    document.getElementById('saveBtn').addEventListener('click', async () => {
+      const saveMsg = document.getElementById('saveMsg');
+      const btn = document.getElementById('saveBtn');
+      try {
+        btn.disabled = true;
+        saveMsg.textContent = 'Salvando...';
+
+        console.log('📋 Iniciando processo de salvamento...');
+
+        // Converter arquivos para base64 (se houver novos arquivos)
+        const logos = {};
+        console.log('📤 Processando logos como base64...');
+        
+        try {
+          const newLogo = await handleUpload('logoHorizontal', 'logo-horizontal');
+          if (newLogo) logos.logoHorizontalUrl = newLogo;
+          else if (branding.logoHorizontalUrl) logos.logoHorizontalUrl = branding.logoHorizontalUrl;
+        } catch (e) {
+          console.warn('⚠️ Falha ao processar logo horizontal, mantendo anterior:', e.message);
+          if (branding.logoHorizontalUrl) logos.logoHorizontalUrl = branding.logoHorizontalUrl;
+        }
+
+        try {
+          const newLogo = await handleUpload('logoHorizontalWhite', 'logo-horizontal-white');
+          if (newLogo) logos.logoHorizontalWhiteUrl = newLogo;
+          else if (branding.logoHorizontalWhiteUrl) logos.logoHorizontalWhiteUrl = branding.logoHorizontalWhiteUrl;
+        } catch (e) {
+          console.warn('⚠️ Falha ao processar logo horizontal branca, mantendo anterior:', e.message);
+          if (branding.logoHorizontalWhiteUrl) logos.logoHorizontalWhiteUrl = branding.logoHorizontalWhiteUrl;
+        }
+
+        try {
+          const newLogo = await handleUpload('logoSquare', 'logo-square');
+          if (newLogo) logos.logoSquareUrl = newLogo;
+          else if (branding.logoSquareUrl) logos.logoSquareUrl = branding.logoSquareUrl;
+        } catch (e) {
+          console.warn('⚠️ Falha ao processar logo quadrada, mantendo anterior:', e.message);
+          if (branding.logoSquareUrl) logos.logoSquareUrl = branding.logoSquareUrl;
+        }
+
+        try {
+          const newLogo = await handleUpload('logoSquareWhite', 'logo-square-white');
+          if (newLogo) logos.logoSquareWhiteUrl = newLogo;
+          else if (branding.logoSquareWhiteUrl) logos.logoSquareWhiteUrl = branding.logoSquareWhiteUrl;
+        } catch (e) {
+          console.warn('⚠️ Falha ao processar logo quadrada branca, mantendo anterior:', e.message);
+          if (branding.logoSquareWhiteUrl) logos.logoSquareWhiteUrl = branding.logoSquareWhiteUrl;
+        }
+
+        const usage = { apresentacao: {}, relatorio: {} };
+        usageScreens.forEach(s => {
+          const type = usageForm.querySelector(`select[data-key="${s.key}"][data-field="type"]`).value;
+          const color = usageForm.querySelector(`select[data-key="${s.key}"][data-field="color"]`).value;
+          usage.apresentacao[s.key] = { type, color };
+        });
+        usage.relatorio.type = document.getElementById('reportLogoType').value;
+
+        console.log('💾 Preparando dados para salvar...', { logos: Object.keys(logos), usage });
+        
+        // Montar branding: manter campos existentes e adicionar apenas logos que existem
+        const newBranding = { 
+          ...branding, 
+          usage 
+        };
+        
+        // Adicionar apenas logos que não são undefined
+        if (logos.logoHorizontalUrl) newBranding.logoHorizontalUrl = logos.logoHorizontalUrl;
+        if (logos.logoHorizontalWhiteUrl) newBranding.logoHorizontalWhiteUrl = logos.logoHorizontalWhiteUrl;
+        if (logos.logoSquareUrl) newBranding.logoSquareUrl = logos.logoSquareUrl;
+        if (logos.logoSquareWhiteUrl) newBranding.logoSquareWhiteUrl = logos.logoSquareWhiteUrl;
+        
+        // Remover campos undefined (caso existam)
+        Object.keys(newBranding).forEach(key => {
+          if (newBranding[key] === undefined) delete newBranding[key];
+        });
+        if (newBranding.usage) {
+          Object.keys(newBranding.usage).forEach(key => {
+            if (newBranding.usage[key] === undefined) delete newBranding.usage[key];
+            if (newBranding.usage[key] && typeof newBranding.usage[key] === 'object') {
+              Object.keys(newBranding.usage[key]).forEach(subKey => {
+                if (newBranding.usage[key][subKey] === undefined) delete newBranding.usage[key][subKey];
+              });
+            }
+          });
+        }
+        
+        console.log('🔄 Salvando branding no Firestore...', newBranding);
+        
+        // Verificar autenticação antes de salvar
+        if (!auth.currentUser) {
+          throw new Error('Usuário não autenticado. Faça login novamente.');
+        }
+        
+        await saveBranding(projectId, newBranding);
+        console.log('✅ Branding salvo com sucesso!');
+        
+        // Atualizar branding local e previews
+        branding = newBranding;
+        setPreview('logoHorizontalPreview', branding.logoHorizontalUrl);
+        setPreview('logoHorizontalWhitePreview', branding.logoHorizontalWhiteUrl);
+        setPreview('logoSquarePreview', branding.logoSquareUrl);
+        setPreview('logoSquareWhitePreview', branding.logoSquareWhiteUrl);
+        
+        // Limpar inputs de arquivo para não fazer upload novamente
+        document.getElementById('logoHorizontal').value = '';
+        document.getElementById('logoHorizontalWhite').value = '';
+        document.getElementById('logoSquare').value = '';
+        document.getElementById('logoSquareWhite').value = '';
+        
+        saveMsg.textContent = 'Salvo!';
+        setTimeout(() => saveMsg.textContent = '', 1500);
+      } catch (e) {
+        console.error('❌ Erro ao salvar branding:', e);
+        saveMsg.textContent = `Erro: ${e.message || 'Tente novamente.'}`;
+      } finally {
+        btn.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>
+
+

@@ -1,0 +1,1446 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Unidade - Insightflow</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+      @keyframes insightflow-save-pulse {
+        0%, 100% {
+          box-shadow:
+            0 0 0 0 rgba(234, 179, 8, 0.95),
+            0 0 0 0 rgba(250, 204, 21, 0.5),
+            0 4px 14px rgba(234, 179, 8, 0.35);
+          transform: scale(1);
+        }
+        45% {
+          box-shadow:
+            0 0 0 12px rgba(234, 179, 8, 0),
+            0 0 0 22px rgba(250, 204, 21, 0),
+            0 6px 22px rgba(234, 179, 8, 0.45);
+          transform: scale(1.045);
+        }
+        70% { transform: scale(1); }
+      }
+      .btn-needs-save-pulse {
+        animation: insightflow-save-pulse 0.75s ease-in-out infinite;
+      }
+      #saveConfigBtn.insightflow-btn-config-dirty {
+        background-color: #eab308 !important;
+        color: #1f2937 !important;
+      }
+      #saveConfigBtn.insightflow-btn-config-dirty:hover {
+        background-color: #ca8a04 !important;
+      }
+      #saveLinkBtn.insightflow-btn-links-dirty {
+        background-color: #eab308 !important;
+        color: #1f2937 !important;
+      }
+      #saveLinkBtn.insightflow-btn-links-dirty:hover {
+        background-color: #ca8a04 !important;
+      }
+    </style>
+    <!-- XLSX.js -->
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+</head>
+<body class="bg-white min-h-screen">
+    <div class="flex min-h-screen w-full">
+        
+        <!-- Sidebar (mesma estrutura) -->
+        <aside id="sidebar" class="w-56 bg-white flex flex-col border-r border-gray-200">
+            <div class="p-6">
+                <h1 class="text-xl font-bold text-gray-800">Relatórios</h1>
+            </div>
+
+            <nav class="flex-1 px-3">
+                <a href="#" id="telaInicialLink" class="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors">
+                    <i class="fas fa-home"></i>
+                    <span>Tela Inicial</span>
+                </a>
+
+                <a href="/dashboard.html" class="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors">
+                    <i class="fas fa-chart-line"></i>
+                    <span>Dashboard</span>
+                </a>
+
+                <a href="#" id="unidadesLink" class="flex items-center gap-3 px-4 py-3 rounded-lg bg-blue-50 text-blue-600 border-l-4 border-blue-600 transition-colors">
+                    <i class="fas fa-building"></i>
+                    <span>Unidades</span>
+                </a>
+
+                <a href="conexoes.html" class="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors">
+                    <i class="fas fa-plug"></i>
+                    <span>Conexões</span>
+                </a>
+
+                <a href="minha-conta.html" class="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors">
+                    <i class="fas fa-user"></i>
+                    <span>Minha Conta</span>
+                </a>
+
+                <a href="usuarios.html" id="adminLink" class="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors hidden">
+                    <i class="fas fa-users"></i>
+                    <span>Usuários</span>
+                </a>
+
+                <a href="analises-predefinidas.html" id="analysisLink" class="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors hidden">
+                    <i class="fas fa-comments"></i>
+                    <span>Análises Pré-Definidas</span>
+                </a>
+            </nav>
+
+            <div class="p-4 border-t border-gray-200">
+                <button id="logoutBtn" class="w-full flex items-center justify-center gap-2 px-4 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors">
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span>Sair</span>
+                </button>
+            </div>
+        </aside>
+
+        <!-- Conteúdo Principal -->
+        <main class="flex-1 p-8 overflow-auto">
+            <div class="max-w-4xl mx-auto">
+                
+                <!-- Breadcrumb -->
+                <div class="mb-6">
+                    <a href="#" id="backLink" class="text-blue-600 hover:text-blue-700 flex items-center gap-2">
+                        <i class="fas fa-arrow-left"></i>
+                        <span>Voltar para Unidades</span>
+                    </a>
+                </div>
+
+                <!-- Header -->
+                <div class="mb-8">
+                    <h1 id="unitTitle" class="text-3xl font-bold text-gray-900 mb-2">
+                        <i class="fas fa-building text-blue-600"></i>
+                        <span id="unitName">Carregando...</span>
+                    </h1>
+                </div>
+
+                <!-- Dashboard da Unidade -->
+                <div id="dataCards" class="grid grid-cols-3 gap-6 mb-8 hidden">
+                    <div class="bg-blue-50 border-2 border-blue-200 rounded-xl p-6">
+                        <div class="text-sm text-gray-600 mb-1">📋 Orçamentos</div>
+                        <div id="totalBudgets" class="text-3xl font-bold text-blue-600">-</div>
+                    </div>
+                    <div class="bg-green-50 border-2 border-green-200 rounded-xl p-6">
+                        <div class="text-sm text-gray-600 mb-1">✅ Vendas</div>
+                        <div id="totalSales" class="text-3xl font-bold text-green-600">-</div>
+                    </div>
+                    <div class="bg-purple-50 border-2 border-purple-200 rounded-xl p-6">
+                        <div class="text-sm text-gray-600 mb-1">💰 Faturamento</div>
+                        <div id="totalRevenue" class="text-3xl font-bold text-purple-600">-</div>
+                    </div>
+                </div>
+
+                <!-- Importar Planilha -->
+                <div class="bg-white border-2 border-gray-200 rounded-xl p-6 mb-8">
+                    <h2 class="text-xl font-bold text-gray-900 mb-4">
+                        <i class="fas fa-file-excel text-green-600"></i>
+                        Importar Planilha de Orçamentos
+                    </h2>
+                    
+                    <div id="dropZone" 
+                         class="border-4 border-dashed border-gray-300 rounded-xl p-12 text-center hover:border-blue-400 hover:bg-blue-50 transition-colors cursor-pointer">
+                        <div class="text-6xl mb-4">📥</div>
+                        <h3 class="text-lg font-semibold text-gray-900 mb-2">
+                            Arraste a planilha aqui
+                        </h3>
+                        <p class="text-gray-600 mb-4">
+                            ou clique para selecionar
+                        </p>
+                        <p class="text-sm text-gray-500">
+                            Formatos aceitos: .xlsx, .xls | Tamanho máximo: 10MB
+                        </p>
+                        <input type="file" id="fileInput" accept=".xlsx,.xls" class="hidden">
+                    </div>
+
+                    <div id="fileInfo" class="mt-4 hidden bg-green-50 border border-green-200 rounded-lg p-4">
+                        <div class="flex items-center gap-3">
+                            <i class="fas fa-file-excel text-2xl text-green-600"></i>
+                            <div class="flex-1">
+                                <p id="fileName" class="font-semibold text-gray-900"></p>
+                                <p id="fileDate" class="text-sm text-gray-600"></p>
+                            </div>
+                        </div>
+                        
+                        <!-- Períodos sem dados -->
+                        <div id="missingPeriodsContainer" class="mt-4 hidden">
+                            <div class="flex items-start gap-2 bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                                <i class="fas fa-exclamation-triangle text-yellow-600 mt-0.5"></i>
+                                <div class="flex-1">
+                                    <p class="text-sm font-semibold text-yellow-800 mb-1">⚠️ Períodos sem dados:</p>
+                                    <ul id="missingPeriodsList" class="text-sm text-yellow-700 space-y-1">
+                                        <!-- Preenchido dinamicamente -->
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div id="noDuplicatesContainer" class="mt-4 hidden">
+                            <div class="flex items-center gap-2 text-sm text-green-700">
+                                <i class="fas fa-check-circle"></i>
+                                <span>✅ Sem períodos faltando</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="uploadProgress" class="mt-4 hidden">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-sm font-semibold text-gray-700">Processando planilha...</span>
+                            <span id="progressPercent" class="text-sm text-gray-600">0%</span>
+                        </div>
+                        <div class="w-full bg-gray-200 rounded-full h-2">
+                            <div id="progressBar" class="bg-blue-600 h-2 rounded-full transition-all" style="width: 0%"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Configurações de Filtro -->
+                <div class="bg-white border-2 border-gray-200 rounded-xl p-6">
+                    <h2 class="text-xl font-bold text-gray-900 mb-4">
+                        <i class="fas fa-filter text-blue-600"></i>
+                        Configurações de Filtro
+                    </h2>
+
+                    <div class="mb-6 pb-6 border-b border-gray-200">
+                        <p class="text-sm font-semibold text-gray-800 mb-3">Escolha o CRM:</p>
+                        <div class="flex flex-wrap items-center gap-6">
+                            <label class="inline-flex items-center gap-2 cursor-pointer select-none">
+                                <input type="radio" name="crmSource" id="crmClinicorp" value="clinicorp" class="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500" checked>
+                                <span class="text-gray-800">Clinicorp</span>
+                            </label>
+                            <label class="inline-flex items-center gap-2 cursor-pointer select-none">
+                                <input type="radio" name="crmSource" id="crmSistemaOc" value="sistema_oc" class="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500">
+                                <span class="text-gray-800">Sistema OC</span>
+                            </label>
+                        </div>
+                        <p id="crmOcKeywordsHint" class="hidden text-xs text-amber-800 mt-2 max-w-2xl">
+                            Com <strong>Sistema OC</strong>, o filtro <strong>“Outros + Observações”</strong> fica oculto e desativado (essa exportação não traz observações para esse canal).
+                            <span class="block mt-1 font-medium">Use a exportação padrão do Sistema OC (Data Orçamento em A, aprovação em B, valor aprovado em E, fonte em I). A coluna C do arquivo deve ser «Paciente».</span>
+                        </p>
+                    </div>
+                    
+                    <!-- Duas seções lado a lado: Meta e Google -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                        <!-- Configuração Meta -->
+                        <div class="space-y-4">
+                            <h3 class="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                                <i class="fab fa-meta text-blue-600"></i>
+                                Configurações de Filtro - Meta
+                            </h3>
+                            <div class="space-y-2">
+                                <label class="flex items-center gap-3 p-3 border-2 border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+                                    <input type="checkbox" id="cbFacebookMeta" class="w-5 h-5 text-blue-600">
+                                    <i class="fab fa-facebook text-blue-600"></i>
+                                    <span>Facebook</span>
+                                </label>
+                                <label class="flex items-center gap-3 p-3 border-2 border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+                                    <input type="checkbox" id="cbInstagramMeta" class="w-5 h-5 text-pink-600">
+                                    <i class="fab fa-instagram text-pink-600"></i>
+                                    <span>Instagram</span>
+                                </label>
+                                <label class="flex items-center gap-3 p-3 border-2 border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+                                    <input type="checkbox" id="cbGoogleMeta" class="w-5 h-5 text-red-600">
+                                    <i class="fab fa-google text-red-600"></i>
+                                    <span>Google Ads</span>
+                                </label>
+                                <label class="flex items-center gap-3 p-3 border-2 border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+                                    <input type="checkbox" id="cbRevistaMeta" class="w-5 h-5 text-gray-600">
+                                    <i class="fas fa-book text-gray-600"></i>
+                                    <span>Revista (campanhas black)</span>
+                                </label>
+                                <label class="flex items-center gap-3 p-3 border-2 border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+                                    <input type="checkbox" id="cbEmptyMeta" class="w-5 h-5 text-gray-400">
+                                    <i class="fas fa-ban text-gray-400"></i>
+                                    <span>(Vazias)</span>
+                                </label>
+                                <label class="flex items-center gap-3 p-3 border-2 border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+                                    <input type="checkbox" id="cbDotsMeta" class="w-5 h-5 text-gray-400">
+                                    <i class="fas fa-ellipsis-h text-gray-400"></i>
+                                    <span>...</span>
+                                </label>
+                            </div>
+                            
+                            <div id="keywordsBlockMeta">
+                                <label class="flex items-center gap-3 p-3 border-2 border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer mb-3">
+                                    <input type="checkbox" id="cbCustomKeywordsMeta" class="w-5 h-5 text-blue-600">
+                                    <i class="fas fa-search text-blue-600"></i>
+                                    <span class="font-semibold text-sm">Busca em "Outros" + Observações</span>
+                                </label>
+                                
+                                <div id="keywordsSectionMeta" class="hidden">
+                                    <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                        Palavras-chave (uma por linha):
+                                    </label>
+                                    <textarea 
+                                        id="customKeywordsMeta"
+                                        rows="5"
+                                        placeholder="Tráfego&#10;Tráfego Pago&#10;trafego face&#10;facebook ads"
+                                        class="w-full border-2 border-gray-200 rounded-lg p-3 font-mono text-sm focus:outline-none focus:border-blue-500"
+                                    >Tráfego
+Tráfego Pago
+trafego
+trafego pago</textarea>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Configuração Google -->
+                        <div class="space-y-4">
+                            <h3 class="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                                <i class="fab fa-google text-red-600"></i>
+                                Configurações de Filtro - Google
+                            </h3>
+                            <div class="space-y-2">
+                                <label class="flex items-center gap-3 p-3 border-2 border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+                                    <input type="checkbox" id="cbFacebookGoogle" class="w-5 h-5 text-blue-600">
+                                    <i class="fab fa-facebook text-blue-600"></i>
+                                    <span>Facebook</span>
+                                </label>
+                                <label class="flex items-center gap-3 p-3 border-2 border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+                                    <input type="checkbox" id="cbInstagramGoogle" class="w-5 h-5 text-pink-600">
+                                    <i class="fab fa-instagram text-pink-600"></i>
+                                    <span>Instagram</span>
+                                </label>
+                                <label class="flex items-center gap-3 p-3 border-2 border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+                                    <input type="checkbox" id="cbGoogleGoogle" class="w-5 h-5 text-red-600">
+                                    <i class="fab fa-google text-red-600"></i>
+                                    <span>Google Ads</span>
+                                </label>
+                                <label class="flex items-center gap-3 p-3 border-2 border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+                                    <input type="checkbox" id="cbRevistaGoogle" class="w-5 h-5 text-gray-600">
+                                    <i class="fas fa-book text-gray-600"></i>
+                                    <span>Revista (campanhas black)</span>
+                                </label>
+                                <label class="flex items-center gap-3 p-3 border-2 border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+                                    <input type="checkbox" id="cbEmptyGoogle" class="w-5 h-5 text-gray-400">
+                                    <i class="fas fa-ban text-gray-400"></i>
+                                    <span>(Vazias)</span>
+                                </label>
+                                <label class="flex items-center gap-3 p-3 border-2 border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+                                    <input type="checkbox" id="cbDotsGoogle" class="w-5 h-5 text-gray-400">
+                                    <i class="fas fa-ellipsis-h text-gray-400"></i>
+                                    <span>...</span>
+                                </label>
+                            </div>
+                            
+                            <div id="keywordsBlockGoogle">
+                                <label class="flex items-center gap-3 p-3 border-2 border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer mb-3">
+                                    <input type="checkbox" id="cbCustomKeywordsGoogle" class="w-5 h-5 text-blue-600">
+                                    <i class="fas fa-search text-blue-600"></i>
+                                    <span class="font-semibold text-sm">Busca em "Outros" + Observações</span>
+                                </label>
+                                
+                                <div id="keywordsSectionGoogle" class="hidden">
+                                    <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                        Palavras-chave (uma por linha):
+                                    </label>
+                                    <textarea 
+                                        id="customKeywordsGoogle"
+                                        rows="5"
+                                        placeholder="Tráfego&#10;Tráfego Pago&#10;trafego google&#10;google ads"
+                                        class="w-full border-2 border-gray-200 rounded-lg p-3 font-mono text-sm focus:outline-none focus:border-blue-500"
+                                    >Tráfego
+Tráfego Pago
+trafego
+trafego pago</textarea>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Exclusão de Manutenções (único para ambas plataformas) -->
+                    <div class="bg-white rounded-xl border-2 border-gray-200 p-6">
+                        <h3 class="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+                            <i class="fas fa-filter text-red-600"></i>
+                            Filtros de Exclusão
+                        </h3>
+                        
+                        <label class="flex items-center gap-3 p-3 border-2 border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+                            <input type="checkbox" id="cbExcludeMaintenance" class="w-5 h-5 text-red-600">
+                            <i class="fas fa-ban text-red-600"></i>
+                            <div>
+                                <span class="font-semibold">Excluir Manutenções Ortodônticas</span>
+                                <p class="text-xs text-gray-600 mt-1">Remove da contagem (Meta e Google): Manutenção Aparelho Móvel, Manutenção Aparelho Ortodôntico (Autoligado/Safira), Manutenção Ortodôntica Mensal, Manutenção Ortodôntica</p>
+                            </div>
+                        </label>
+                    </div>
+
+                    <button id="saveConfigBtn" type="button" class="w-full px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold">
+                        <i class="fas fa-save mr-2"></i>
+                        Salvar Configurações
+                    </button>
+                    <p id="saveConfigHint" class="hidden mt-2 text-center text-sm text-amber-800">
+                        Há alterações não salvas. Clique em <strong>Salvar Configurações</strong> para persistir.
+                    </p>
+                </div>
+
+                <!-- Vincular Contas de Anúncios -->
+                <div class="bg-white border-2 border-gray-200 rounded-xl p-6">
+                    <h2 class="text-xl font-bold text-gray-900 mb-4">
+                        <i class="fas fa-link text-green-600"></i>
+                        Vincular Contas de Anúncios
+                    </h2>
+                    
+                    <div class="space-y-4">
+                        <!-- Meta Ads -->
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                <i class="fab fa-meta text-blue-600 mr-2"></i>
+                                Meta Ads
+                            </label>
+                            <select id="metaAccountSelect" class="w-full p-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none">
+                                <option value="">Selecione uma conta Meta...</option>
+                            </select>
+                            <div id="metaAccountStatus" class="mt-2 text-sm"></div>
+                        </div>
+
+                        <!-- Google Ads -->
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                <i class="fab fa-google text-red-600 mr-2"></i>
+                                Google Ads
+                            </label>
+                            <select id="googleAccountSelect" class="w-full p-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none">
+                                <option value="">Selecione uma conta Google...</option>
+                            </select>
+                            <div id="googleAccountStatus" class="mt-2 text-sm"></div>
+                        </div>
+
+                        <button id="saveLinkBtn" type="button" class="w-full px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-semibold">
+                            <i class="fas fa-save mr-2"></i>
+                            Salvar Vinculações
+                        </button>
+                        <p id="saveLinkHint" class="hidden mt-2 text-center text-sm text-amber-800">
+                            Há alterações não salvas nas contas. Clique em <strong>Salvar Vinculações</strong> para persistir.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Scripts -->
+    <script type="module">
+        import { auth, db } from './config/firebase.js';
+        import { onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+        import { getUnit, updateUnit, updateBudgetData, removeBudgetData } from './services/unitsService.js';
+        import { processSpreadsheet, validateSpreadsheet, mergeSpreadsheetData, findSignificantMissingPeriods, matchesTrafficRules, isMaintenanceBudgetRow } from './services/spreadsheetProcessor.js';
+        import { fbAuth } from './auth.js?v=3.0';
+        import { googleAuth } from './authGoogle.js?v=3.0';
+
+        let currentProjectId = null;
+        let currentUnitId = null;
+        let currentUnit = null;
+
+        /** Evita marcar “não salvo” enquanto a tela preenche a partir do Firestore */
+        let suppressUnsavedHints = false;
+        /** Valores dos selects de vinculação considerados “já salvos” */
+        let linkedAccountsSnapshot = { meta: '', google: '' };
+        /** CRM refletido na UI antes do último clique (para confirmar qualquer troca de opção) */
+        let uiCrmSourceSnapshot = 'clinicorp';
+
+        function crmSwitchConfirmMessage(fromCrm, toCrm) {
+            const hasBudget = !!(currentUnit && currentUnit.budgetData);
+            if (fromCrm === 'clinicorp' && toCrm === 'sistema_oc') {
+                return hasBudget
+                    ? 'Ao mudar para Sistema OC e salvar, os dados da planilha atual serão removidos. Depois importe a exportação OC (coluna C = Paciente).\n\nDeseja continuar?'
+                    : 'Com Sistema OC, use planilhas com coluna C = «Paciente» (sem filtro Outros + Observações).\n\nDeseja continuar?';
+            }
+            if (fromCrm === 'sistema_oc' && toCrm === 'clinicorp') {
+                return hasBudget
+                    ? 'Ao mudar para Clinicorp e salvar, os dados da planilha atual serão removidos. Depois você pode importar de novo a exportação Clinicorp (colunas A–L).\n\nDeseja continuar?'
+                    : 'Voltar para Clinicorp permite importar de novo no layout Clinicorp (colunas A–L).\n\nDeseja continuar?';
+            }
+            return 'Trocar o CRM altera o formato esperado da planilha.\n\nDeseja continuar?';
+        }
+
+        function revertCrmRadios(toCrm) {
+            document.getElementById('crmClinicorp').checked = toCrm === 'clinicorp';
+            document.getElementById('crmSistemaOc').checked = toCrm === 'sistema_oc';
+            applyCrmSourceKeywordsVisibility();
+        }
+
+        function markConfigDirty() {
+            if (suppressUnsavedHints) return;
+            const btn = document.getElementById('saveConfigBtn');
+            const hint = document.getElementById('saveConfigHint');
+            if (btn) {
+                btn.classList.add('btn-needs-save-pulse', 'insightflow-btn-config-dirty');
+            }
+            if (hint) hint.classList.remove('hidden');
+        }
+
+        function clearConfigDirty() {
+            const btn = document.getElementById('saveConfigBtn');
+            const hint = document.getElementById('saveConfigHint');
+            if (btn) {
+                btn.classList.remove('btn-needs-save-pulse', 'insightflow-btn-config-dirty');
+            }
+            if (hint) hint.classList.add('hidden');
+        }
+
+        function markLinksDirty() {
+            if (suppressUnsavedHints) return;
+            const btn = document.getElementById('saveLinkBtn');
+            const hint = document.getElementById('saveLinkHint');
+            if (btn) {
+                btn.classList.add('btn-needs-save-pulse', 'insightflow-btn-links-dirty');
+            }
+            if (hint) hint.classList.remove('hidden');
+        }
+
+        function clearLinksDirty() {
+            const btn = document.getElementById('saveLinkBtn');
+            const hint = document.getElementById('saveLinkHint');
+            if (btn) {
+                btn.classList.remove('btn-needs-save-pulse', 'insightflow-btn-links-dirty');
+            }
+            if (hint) hint.classList.add('hidden');
+        }
+
+        function captureLinksSnapshot() {
+            linkedAccountsSnapshot = {
+                meta: document.getElementById('metaAccountSelect')?.value ?? '',
+                google: document.getElementById('googleAccountSelect')?.value ?? ''
+            };
+        }
+
+        function linksSelectionChangedFromSnapshot() {
+            const m = document.getElementById('metaAccountSelect')?.value ?? '';
+            const g = document.getElementById('googleAccountSelect')?.value ?? '';
+            return m !== (linkedAccountsSnapshot.meta ?? '') || g !== (linkedAccountsSnapshot.google ?? '');
+        }
+
+        function onLinkSelectionMaybeDirty() {
+            if (suppressUnsavedHints) return;
+            if (linksSelectionChangedFromSnapshot()) markLinksDirty();
+            else clearLinksDirty();
+        }
+
+        function attachConfigDirtyListeners() {
+            const configIds = [
+                'cbFacebookMeta', 'cbInstagramMeta', 'cbGoogleMeta', 'cbRevistaMeta', 'cbEmptyMeta', 'cbDotsMeta',
+                'cbFacebookGoogle', 'cbInstagramGoogle', 'cbGoogleGoogle', 'cbRevistaGoogle', 'cbEmptyGoogle', 'cbDotsGoogle',
+                'cbCustomKeywordsMeta', 'cbCustomKeywordsGoogle', 'cbExcludeMaintenance'
+            ];
+            configIds.forEach((id) => {
+                const el = document.getElementById(id);
+                if (el) el.addEventListener('change', () => markConfigDirty());
+            });
+            ['customKeywordsMeta', 'customKeywordsGoogle'].forEach((id) => {
+                const el = document.getElementById(id);
+                if (el) el.addEventListener('input', () => markConfigDirty());
+            });
+        }
+
+        function attachLinkDirtyListeners() {
+            ['metaAccountSelect', 'googleAccountSelect'].forEach((id) => {
+                const el = document.getElementById(id);
+                if (el) el.addEventListener('change', () => onLinkSelectionMaybeDirty());
+            });
+        }
+
+        function getSelectedCrmSource() {
+            const oc = document.getElementById('crmSistemaOc');
+            return oc && oc.checked ? 'sistema_oc' : 'clinicorp';
+        }
+
+        function isSistemaOcCrm() {
+            return getSelectedCrmSource() === 'sistema_oc';
+        }
+
+        function applyCrmSourceKeywordsVisibility() {
+            const hint = document.getElementById('crmOcKeywordsHint');
+            const bm = document.getElementById('keywordsBlockMeta');
+            const bg = document.getElementById('keywordsBlockGoogle');
+            if (!bm || !bg) return;
+
+            if (isSistemaOcCrm()) {
+                bm.classList.add('hidden');
+                bg.classList.add('hidden');
+                if (hint) hint.classList.remove('hidden');
+                const cbm = document.getElementById('cbCustomKeywordsMeta');
+                const cbg = document.getElementById('cbCustomKeywordsGoogle');
+                if (cbm) cbm.checked = false;
+                if (cbg) cbg.checked = false;
+                document.getElementById('keywordsSectionMeta')?.classList.add('hidden');
+                document.getElementById('keywordsSectionGoogle')?.classList.add('hidden');
+            } else {
+                bm.classList.remove('hidden');
+                bg.classList.remove('hidden');
+                if (hint) hint.classList.add('hidden');
+                if (currentUnit) {
+                    const ckm = currentUnit.customKeywords?.meta || currentUnit.customKeywords || { enabled: false, terms: [] };
+                    const ckg = currentUnit.customKeywords?.google || { enabled: false, terms: [] };
+                    document.getElementById('cbCustomKeywordsMeta').checked = ckm.enabled === true;
+                    document.getElementById('customKeywordsMeta').value = (ckm.terms || []).join('\n');
+                    document.getElementById('cbCustomKeywordsGoogle').checked = ckg.enabled === true;
+                    document.getElementById('customKeywordsGoogle').value = (ckg.terms || []).join('\n');
+                }
+                toggleKeywordsSection();
+            }
+        }
+
+        // Auth check
+        onAuthStateChanged(auth, async (user) => {
+            if (!user) {
+                window.location.href = '/login.html';
+                return;
+            }
+            
+            console.log('✅ Usuário autenticado:', user.email);
+            
+            // Mostrar links de admin
+            if (user.email === 'thiagofelipefreire0810@gmail.com') {
+                document.getElementById('adminLink').classList.remove('hidden');
+                document.getElementById('analysisLink').classList.remove('hidden');
+            }
+            
+            // Pegar IDs da URL
+            const urlParams = new URLSearchParams(window.location.search);
+            currentProjectId = urlParams.get('projectId');
+            currentUnitId = urlParams.get('unitId');
+            
+            if (!currentProjectId || !currentUnitId) {
+                alert('❌ Parâmetros inválidos');
+                window.location.href = '/home.html';
+                return;
+            }
+            
+            // Atualizar links
+            document.getElementById('telaInicialLink').href = `projeto.html?id=${currentProjectId}`;
+            document.getElementById('unidadesLink').href = `unidades.html?projectId=${currentProjectId}`;
+            document.getElementById('backLink').href = `unidades.html?projectId=${currentProjectId}`;
+            
+            // Carregar dados da unidade
+            ensureDirtyListenersOnce();
+            await loadUnit();
+        });
+
+        // Logout
+        document.getElementById('logoutBtn').addEventListener('click', async () => {
+            try {
+                await signOut(auth);
+                window.location.href = '/login.html';
+            } catch (error) {
+                console.error('Erro ao fazer logout:', error);
+            }
+        });
+
+        let _dirtyListenersAttached = false;
+        function ensureDirtyListenersOnce() {
+            if (_dirtyListenersAttached) return;
+            _dirtyListenersAttached = true;
+            attachConfigDirtyListeners();
+            attachLinkDirtyListeners();
+        }
+
+        // Carregar unidade
+        async function loadUnit() {
+            suppressUnsavedHints = true;
+            clearConfigDirty();
+            clearLinksDirty();
+            try {
+                currentUnit = await getUnit(currentProjectId, currentUnitId);
+                
+                // ⭐ MIGRAÇÃO AUTOMÁTICA: Corrigir unidades antigas
+                let needsUpdate = false;
+                
+                // Se customKeywords.enabled não existe ou é undefined, forçar para false
+                if (currentUnit.customKeywords && currentUnit.customKeywords.enabled !== false && currentUnit.customKeywords.enabled !== true) {
+                    console.log('🔄 [MIGRAÇÃO] Corrigindo customKeywords.enabled de undefined para false');
+                    currentUnit.customKeywords.enabled = false;
+                    needsUpdate = true;
+                }
+                
+                // Aplicar migração no Firestore
+                if (needsUpdate) {
+                    await updateUnit(currentProjectId, currentUnitId, {
+                        customKeywords: currentUnit.customKeywords
+                    });
+                    console.log('✅ [MIGRAÇÃO] Unidade atualizada no Firestore');
+                }
+                
+                // Atualizar UI
+                document.getElementById('unitName').textContent = currentUnit.name;
+                
+                // ⭐ MIGRAÇÃO: Se trafficSources não tem .meta e .google, criar a partir da estrutura antiga
+                let trafficSourcesMeta = currentUnit.trafficSources?.meta || null;
+                let trafficSourcesGoogle = currentUnit.trafficSources?.google || null;
+                
+                if (!trafficSourcesMeta && !trafficSourcesGoogle) {
+                    // Unidade antiga - migrar para nova estrutura
+                    console.log('🔄 [MIGRAÇÃO] Convertendo estrutura antiga de trafficSources para nova');
+                    const oldSources = currentUnit.trafficSources || {
+                        facebook: true,
+                        instagram: true,
+                        google: false,
+                        revista: false,
+                        empty: false,
+                        dots: false
+                    };
+                    
+                    // Meta: manter Facebook + Instagram como padrão
+                    trafficSourcesMeta = {
+                        facebook: oldSources.facebook ?? true,
+                        instagram: oldSources.instagram ?? true,
+                        google: oldSources.google ?? false,
+                        revista: oldSources.revista ?? false,
+                        empty: oldSources.empty ?? false,
+                        dots: oldSources.dots ?? false
+                    };
+                    
+                    // Google: apenas Google Ads marcado por padrão
+                    trafficSourcesGoogle = {
+                        facebook: false,
+                        instagram: false,
+                        google: true, // ✅ Padrão: Google Ads selecionado
+                        revista: false,
+                        empty: false,
+                        dots: false
+                    };
+                    
+                    // Salvar estrutura migrada
+                    needsUpdate = true;
+                } else {
+                    // Usar valores existentes
+                    trafficSourcesMeta = trafficSourcesMeta || {
+                        facebook: true,
+                        instagram: true,
+                        google: false,
+                        revista: false,
+                        empty: false,
+                        dots: false
+                    };
+                    trafficSourcesGoogle = trafficSourcesGoogle || {
+                        facebook: false,
+                        instagram: false,
+                        google: true,
+                        revista: false,
+                        empty: false,
+                        dots: false
+                    };
+                }
+                
+                // Carregar configurações Meta
+                document.getElementById('cbFacebookMeta').checked = trafficSourcesMeta.facebook === true;
+                document.getElementById('cbInstagramMeta').checked = trafficSourcesMeta.instagram === true;
+                document.getElementById('cbGoogleMeta').checked = trafficSourcesMeta.google === true;
+                document.getElementById('cbRevistaMeta').checked = trafficSourcesMeta.revista === true;
+                document.getElementById('cbEmptyMeta').checked = trafficSourcesMeta.empty === true;
+                document.getElementById('cbDotsMeta').checked = trafficSourcesMeta.dots === true;
+                
+                // Carregar configurações Google
+                document.getElementById('cbFacebookGoogle').checked = trafficSourcesGoogle.facebook === true;
+                document.getElementById('cbInstagramGoogle').checked = trafficSourcesGoogle.instagram === true;
+                document.getElementById('cbGoogleGoogle').checked = trafficSourcesGoogle.google === true;
+                document.getElementById('cbRevistaGoogle').checked = trafficSourcesGoogle.revista === true;
+                document.getElementById('cbEmptyGoogle').checked = trafficSourcesGoogle.empty === true;
+                document.getElementById('cbDotsGoogle').checked = trafficSourcesGoogle.dots === true;
+                
+                // Carregar customKeywords (Meta e Google separados)
+                const customKeywordsMeta = currentUnit.customKeywords?.meta || currentUnit.customKeywords || { enabled: false, terms: ['Tráfego', 'Tráfego Pago', 'trafego', 'trafego pago'] };
+                const customKeywordsGoogle = currentUnit.customKeywords?.google || { enabled: false, terms: ['Tráfego', 'Tráfego Pago', 'trafego', 'trafego pago'] };
+                
+                document.getElementById('cbCustomKeywordsMeta').checked = customKeywordsMeta.enabled === true;
+                document.getElementById('customKeywordsMeta').value = (customKeywordsMeta.terms || []).join('\n');
+                
+                document.getElementById('cbCustomKeywordsGoogle').checked = customKeywordsGoogle.enabled === true;
+                document.getElementById('customKeywordsGoogle').value = (customKeywordsGoogle.terms || []).join('\n');
+                
+                const crm = currentUnit.crmSource || 'clinicorp';
+                document.getElementById('crmClinicorp').checked = crm !== 'sistema_oc';
+                document.getElementById('crmSistemaOc').checked = crm === 'sistema_oc';
+                applyCrmSourceKeywordsVisibility();
+                
+                document.getElementById('cbExcludeMaintenance').checked = currentUnit.excludeMaintenance === true;
+                
+                // Atualizar estrutura no Firestore se foi migrada
+                if (needsUpdate) {
+                    await updateUnit(currentProjectId, currentUnitId, {
+                        trafficSources: {
+                            meta: trafficSourcesMeta,
+                            google: trafficSourcesGoogle
+                        },
+                        customKeywords: {
+                            meta: customKeywordsMeta,
+                            google: customKeywordsGoogle
+                        }
+                    });
+                    console.log('✅ [MIGRAÇÃO] Estrutura atualizada no Firestore');
+                }
+                
+                // Mostrar dados da planilha se existir
+                if (currentUnit.budgetData) {
+                    showBudgetData();
+                }
+                
+                // Carregar contas vinculadas
+                await loadLinkedAccounts();
+                
+            } catch (error) {
+                console.error('Erro ao carregar unidade:', error);
+                alert('Erro ao carregar dados da unidade');
+            } finally {
+                captureLinksSnapshot();
+                suppressUnsavedHints = false;
+                uiCrmSourceSnapshot = getSelectedCrmSource();
+                clearConfigDirty();
+                clearLinksDirty();
+            }
+        }
+
+        // Mostrar/ocultar seção de palavras-chave (Meta)
+        document.getElementById('cbCustomKeywordsMeta').addEventListener('change', () => {
+            const section = document.getElementById('keywordsSectionMeta');
+            if (document.getElementById('cbCustomKeywordsMeta').checked) {
+                section.classList.remove('hidden');
+            } else {
+                section.classList.add('hidden');
+            }
+        });
+        
+        // Mostrar/ocultar seção de palavras-chave (Google)
+        document.getElementById('cbCustomKeywordsGoogle').addEventListener('change', () => {
+            const section = document.getElementById('keywordsSectionGoogle');
+            if (document.getElementById('cbCustomKeywordsGoogle').checked) {
+                section.classList.remove('hidden');
+            } else {
+                section.classList.add('hidden');
+            }
+        });
+
+        document.querySelectorAll('input[name="crmSource"]').forEach((el) => {
+            el.addEventListener('change', () => {
+                const prev = uiCrmSourceSnapshot;
+                const now = getSelectedCrmSource();
+                if (prev !== now) {
+                    const msg = crmSwitchConfirmMessage(prev, now);
+                    if (!window.confirm(msg)) {
+                        revertCrmRadios(prev);
+                        return;
+                    }
+                }
+                uiCrmSourceSnapshot = now;
+                applyCrmSourceKeywordsVisibility();
+                markConfigDirty();
+            });
+        });
+        
+        function toggleKeywordsSection() {
+            // Atualizar seção Meta
+            const sectionMeta = document.getElementById('keywordsSectionMeta');
+            if (document.getElementById('cbCustomKeywordsMeta').checked) {
+                sectionMeta.classList.remove('hidden');
+            } else {
+                sectionMeta.classList.add('hidden');
+            }
+            
+            // Atualizar seção Google
+            const sectionGoogle = document.getElementById('keywordsSectionGoogle');
+            if (document.getElementById('cbCustomKeywordsGoogle').checked) {
+                sectionGoogle.classList.remove('hidden');
+            } else {
+                sectionGoogle.classList.add('hidden');
+            }
+        }
+
+        // Salvar configurações
+        document.getElementById('saveConfigBtn').addEventListener('click', async () => {
+            try {
+                // Configurações Meta
+                const trafficSourcesMeta = {
+                    facebook: document.getElementById('cbFacebookMeta').checked,
+                    instagram: document.getElementById('cbInstagramMeta').checked,
+                    google: document.getElementById('cbGoogleMeta').checked,
+                    revista: document.getElementById('cbRevistaMeta').checked,
+                    empty: document.getElementById('cbEmptyMeta').checked,
+                    dots: document.getElementById('cbDotsMeta').checked
+                };
+                
+                // Configurações Google
+                const trafficSourcesGoogle = {
+                    facebook: document.getElementById('cbFacebookGoogle').checked,
+                    instagram: document.getElementById('cbInstagramGoogle').checked,
+                    google: document.getElementById('cbGoogleGoogle').checked,
+                    revista: document.getElementById('cbRevistaGoogle').checked,
+                    empty: document.getElementById('cbEmptyGoogle').checked,
+                    dots: document.getElementById('cbDotsGoogle').checked
+                };
+                
+                const excludeMaintenance = document.getElementById('cbExcludeMaintenance').checked;
+                const crmSource = getSelectedCrmSource();
+                const ocCrm = crmSource === 'sistema_oc';
+                
+                const metaTerms = document.getElementById('customKeywordsMeta').value
+                    .split('\n')
+                    .map(t => t.trim())
+                    .filter(t => t.length > 0);
+                const googleTerms = document.getElementById('customKeywordsGoogle').value
+                    .split('\n')
+                    .map(t => t.trim())
+                    .filter(t => t.length > 0);
+                
+                // Custom Keywords Meta / Google (Sistema OC: sempre desativado — sem coluna de observações)
+                const customKeywordsMeta = {
+                    enabled: ocCrm ? false : document.getElementById('cbCustomKeywordsMeta').checked,
+                    terms: metaTerms
+                };
+                
+                const customKeywordsGoogle = {
+                    enabled: ocCrm ? false : document.getElementById('cbCustomKeywordsGoogle').checked,
+                    terms: googleTerms
+                };
+                
+                const previousCrm = currentUnit.crmSource || 'clinicorp';
+                const crmChanged = previousCrm !== crmSource;
+                let clearedBudgetForCrmChange = false;
+
+                if (crmChanged && currentUnit.budgetData) {
+                    await removeBudgetData(currentProjectId, currentUnitId);
+                    currentUnit.budgetData = null;
+                    hideBudgetDataUi();
+                    clearedBudgetForCrmChange = true;
+                }
+
+                // ⭐ REPROCESSAR PLANILHA SE EXISTIR allData (somente se o CRM não mudou — senão os dados já foram removidos)
+                let updatedBudgetData = currentUnit.budgetData;
+                let reprocessedForFilters = false;
+                if (!crmChanged && currentUnit.budgetData?.allData && currentUnit.budgetData.allData.length > 0) {
+                    console.log('🔄 Reprocessando planilha com novos filtros...');
+                    try {
+                        const { processSpreadsheet } = await import('./services/spreadsheetProcessor.js');
+                        
+                        // ⭐ REPROCESSAR usando allData como base
+                        // Como não temos o arquivo original, vamos reprocessar o allData
+                        // criando um objeto temporário que simula o processamento
+                        const allData = currentUnit.budgetData.allData || [];
+                        
+                        // Aplicar filtros para Meta (somar ambos para o relatório que usa filtros antigos)
+                        const trafficSourcesForRelatorio = {
+                            facebook: trafficSourcesMeta.facebook || trafficSourcesGoogle.facebook,
+                            instagram: trafficSourcesMeta.instagram || trafficSourcesGoogle.instagram,
+                            google: trafficSourcesMeta.google || trafficSourcesGoogle.google,
+                            revista: trafficSourcesMeta.revista || trafficSourcesGoogle.revista,
+                            empty: trafficSourcesMeta.empty || trafficSourcesGoogle.empty,
+                            dots: trafficSourcesMeta.dots || trafficSourcesGoogle.dots
+                        };
+                        
+                        // Filtrar rawData usando os novos filtros (combinados para compatibilidade)
+                        const newRawData = allData.filter(row => {
+                            if (excludeMaintenance && isMaintenanceBudgetRow(row, ocCrm)) {
+                                return false;
+                            }
+
+                            return matchesTrafficRules(
+                                row,
+                                trafficSourcesForRelatorio,
+                                ocCrm ? { enabled: false, terms: [] } : customKeywordsMeta
+                            );
+                        });
+                        
+                        // Recalcular métricas
+                        updatedBudgetData = {
+                            ...currentUnit.budgetData,
+                            rawData: newRawData,
+                            totalBudgets: newRawData.length,
+                            totalSales: newRawData.filter(r => r.status === "APPROVED").length,
+                            totalRevenue: newRawData.filter(r => r.status === "APPROVED")
+                                .reduce((sum, r) => sum + (r.value || 0), 0),
+                            updatedAt: new Date().toISOString()
+                        };
+                        
+                        console.log('✅ Planilha reprocessada:', {
+                            totalBudgets: updatedBudgetData.totalBudgets,
+                            totalSales: updatedBudgetData.totalSales,
+                            totalRevenue: updatedBudgetData.totalRevenue
+                        });
+                    } catch (error) {
+                        console.error('⚠️ Erro ao reprocessar planilha (mantendo dados originais):', error);
+                        // Manter dados originais se houver erro
+                    }
+                }
+                
+                // Atualizar unidade com novos filtros e dados reprocessados
+                const updateData = {
+                    crmSource,
+                    trafficSources: {
+                        meta: trafficSourcesMeta,
+                        google: trafficSourcesGoogle
+                    },
+                    customKeywords: {
+                        meta: customKeywordsMeta,
+                        google: customKeywordsGoogle
+                    },
+                    excludeMaintenance
+                };
+                
+                // Se reprocessou a planilha, incluir nos dados de atualização
+                if (updatedBudgetData && updatedBudgetData !== currentUnit.budgetData) {
+                    await updateBudgetData(currentProjectId, currentUnitId, updatedBudgetData);
+                    console.log('✅ Dados da planilha atualizados');
+                    
+                    // ⭐ Atualizar currentUnit com os novos dados para atualizar a tela
+                    currentUnit.budgetData = updatedBudgetData;
+                    reprocessedForFilters = true;
+                    
+                    // ⭐ Atualizar os cards na tela com os novos dados
+                    showBudgetData();
+                }
+                
+                await updateUnit(currentProjectId, currentUnitId, updateData);
+                
+                currentUnit.crmSource = crmSource;
+                currentUnit.customKeywords = updateData.customKeywords;
+                
+                clearConfigDirty();
+                uiCrmSourceSnapshot = getSelectedCrmSource();
+                let extraMsg = '';
+                if (clearedBudgetForCrmChange) {
+                    extraMsg = '\n\n📋 Dados da planilha foram removidos por causa da troca de CRM. Importe uma planilha no formato do CRM selecionado.';
+                } else if (reprocessedForFilters) {
+                    extraMsg = '\n\n📊 Planilha reprocessada automaticamente com os novos filtros.';
+                }
+                alert('✅ Configurações salvas com sucesso!' + extraMsg);
+            } catch (error) {
+                console.error('Erro ao salvar configurações:', error);
+                alert('Erro ao salvar configurações');
+            }
+        });
+
+        // ========== VINCULAR CONTAS DE ANÚNCIOS ==========
+        async function loadLinkedAccounts() {
+            try {
+                console.log('🚀 [loadLinkedAccounts] Iniciando...');
+                console.log('📦 [loadLinkedAccounts] currentUnit:', currentUnit);
+                
+                if (!currentUnit) {
+                    console.warn('⚠️ [loadLinkedAccounts] currentUnit está vazio!');
+                    return;
+                }
+                
+                const linkedAccounts = currentUnit.linkedAccounts || {};
+                console.log('🔗 [loadLinkedAccounts] Contas já vinculadas:', linkedAccounts);
+                
+                // Carregar contas disponíveis do Meta
+                const metaSelect = document.getElementById('metaAccountSelect');
+                const metaStatus = document.getElementById('metaAccountStatus');
+                
+                console.log('📍 [loadLinkedAccounts] Elements:', { metaSelect, metaStatus });
+                
+                try {
+                    console.log('🔍 [META] Verificando fbAuth:', fbAuth);
+                    console.log('🔍 [META] Verificando fbAuth.getAdAccounts:', fbAuth.getAdAccounts);
+                    console.log('🔍 [META] Chamando fbAuth.getAdAccounts()...');
+                    
+                    const adAccountsMap = fbAuth.getAdAccounts();
+                    console.log('✅ [META] adAccountsMap retornado:', adAccountsMap);
+                    console.log('✅ [META] Tipo:', typeof adAccountsMap);
+                    
+                    metaSelect.innerHTML = '<option value="">Nenhuma</option>';
+                    
+                    if (adAccountsMap && typeof adAccountsMap === 'object') {
+                        const sortedAccounts = Object.entries(adAccountsMap)
+                            .map(([id, name]) => ({ id, name }))
+                            .sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
+                        
+                        console.log('✅ [META] Contas ordenadas:', sortedAccounts);
+                        
+                        if (sortedAccounts.length > 0) {
+                            sortedAccounts.forEach(acc => {
+                                console.log('➕ [META] Adicionando conta:', acc);
+                                const option = document.createElement('option');
+                                option.value = acc.id;
+                                option.textContent = acc.name;
+                                option.dataset.name = acc.name;
+                                metaSelect.appendChild(option);
+                            });
+                        } else {
+                            console.warn('⚠️ [META] Nenhuma conta disponível');
+                            metaStatus.innerHTML = '<span class="text-yellow-600"><i class="fas fa-exclamation-triangle mr-1"></i>Nenhuma conta Meta encontrada</span>';
+                        }
+                    } else {
+                        console.warn('⚠️ [META] adAccountsMap inválido');
+                        metaStatus.innerHTML = '<span class="text-red-600"><i class="fas fa-exclamation-circle mr-1"></i>Conecte-se ao Meta primeiro</span>';
+                    }
+                    
+                    if (linkedAccounts.meta) {
+                        console.log('🔗 [META] Selecionando conta vinculada:', linkedAccounts.meta);
+                        metaSelect.value = linkedAccounts.meta.id;
+                        metaStatus.innerHTML = `<span class="text-green-600"><i class="fas fa-check-circle mr-1"></i>Vinculada: ${linkedAccounts.meta.name}</span>`;
+                    }
+                } catch (error) {
+                    console.error('❌ [META] Erro completo:', error);
+                    console.error('❌ [META] Stack:', error.stack);
+                    metaStatus.innerHTML = '<span class="text-red-600"><i class="fas fa-exclamation-circle mr-1"></i>Conecte-se ao Meta primeiro</span>';
+                }
+                
+                // Carregar contas disponíveis do Google
+                const googleSelect = document.getElementById('googleAccountSelect');
+                const googleStatus = document.getElementById('googleAccountStatus');
+                
+                try {
+                    console.log('🔍 [GOOGLE] Verificando googleAuth:', googleAuth);
+                    console.log('🔍 [GOOGLE] Verificando googleAuth.getStoredAccounts:', googleAuth.getStoredAccounts);
+                    console.log('🔍 [GOOGLE] Chamando googleAuth.getStoredAccounts()...');
+                    
+                    const googleAccounts = googleAuth.getStoredAccounts();
+                    console.log('✅ [GOOGLE] Contas retornadas:', googleAccounts);
+                    console.log('✅ [GOOGLE] Tipo:', typeof googleAccounts, 'Array?', Array.isArray(googleAccounts), 'Length:', googleAccounts?.length);
+                    
+                    googleSelect.innerHTML = '<option value="">Nenhuma</option>';
+                    
+                    if (Array.isArray(googleAccounts) && googleAccounts.length > 0) {
+                        googleAccounts.forEach(acc => {
+                            console.log('➕ [GOOGLE] Adicionando conta:', acc);
+                            const option = document.createElement('option');
+                            option.value = acc.customerId;
+                            option.textContent = acc.name;
+                            option.dataset.name = acc.name;
+                            option.dataset.managedBy = acc.managedBy || '';
+                            googleSelect.appendChild(option);
+                        });
+                    } else {
+                        console.warn('⚠️ [GOOGLE] Nenhuma conta disponível ou array vazio');
+                        googleStatus.innerHTML = '<span class="text-yellow-600"><i class="fas fa-exclamation-triangle mr-1"></i>Nenhuma conta Google encontrada</span>';
+                    }
+                    
+                    if (linkedAccounts.google) {
+                        console.log('🔗 [GOOGLE] Selecionando conta vinculada:', linkedAccounts.google);
+                        googleSelect.value = linkedAccounts.google.id;
+                        googleStatus.innerHTML = `<span class="text-green-600"><i class="fas fa-check-circle mr-1"></i>Vinculada: ${linkedAccounts.google.name}</span>`;
+                    }
+                } catch (error) {
+                    console.error('❌ [GOOGLE] Erro completo:', error);
+                    console.error('❌ [GOOGLE] Stack:', error.stack);
+                    googleStatus.innerHTML = '<span class="text-red-600"><i class="fas fa-exclamation-circle mr-1"></i>Conecte-se ao Google primeiro</span>';
+                }
+            } catch (error) {
+                console.error('❌ [loadLinkedAccounts] Erro geral:', error);
+                console.error('❌ [loadLinkedAccounts] Stack:', error.stack);
+            }
+        }
+
+        // Salvar vinculações
+        document.getElementById('saveLinkBtn').addEventListener('click', async () => {
+            try {
+                const metaSelect = document.getElementById('metaAccountSelect');
+                const googleSelect = document.getElementById('googleAccountSelect');
+                
+                const linkedAccounts = {};
+                
+                if (metaSelect.value) {
+                    const selectedOption = metaSelect.options[metaSelect.selectedIndex];
+                    linkedAccounts.meta = {
+                        id: metaSelect.value,
+                        name: selectedOption.dataset.name || selectedOption.textContent
+                    };
+                }
+                
+                if (googleSelect.value) {
+                    const selectedOption = googleSelect.options[googleSelect.selectedIndex];
+                    linkedAccounts.google = {
+                        id: googleSelect.value,
+                        name: selectedOption.dataset.name || selectedOption.textContent
+                    };
+                }
+                
+                await updateUnit(currentProjectId, currentUnitId, { linkedAccounts });
+                
+                currentUnit.linkedAccounts = linkedAccounts;
+                captureLinksSnapshot();
+                clearLinksDirty();
+                
+                console.log('✅ Contas vinculadas com sucesso:', linkedAccounts);
+                
+                // Atualizar status
+                const metaStatus = document.getElementById('metaAccountStatus');
+                const googleStatus = document.getElementById('googleAccountStatus');
+                
+                if (linkedAccounts.meta) {
+                    metaStatus.innerHTML = `<span class="text-green-600"><i class="fas fa-check-circle mr-1"></i>Vinculada: ${linkedAccounts.meta.name}</span>`;
+                } else {
+                    metaStatus.innerHTML = '';
+                }
+                
+                if (linkedAccounts.google) {
+                    googleStatus.innerHTML = `<span class="text-green-600"><i class="fas fa-check-circle mr-1"></i>Vinculada: ${linkedAccounts.google.name}</span>`;
+                } else {
+                    googleStatus.innerHTML = '';
+                }
+                
+                alert('✅ Contas vinculadas com sucesso!');
+            } catch (error) {
+                console.error('❌ Erro ao salvar vinculações:', error);
+                alert('❌ Erro ao salvar vinculações');
+            }
+        });
+
+        // Drag & Drop
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+
+        dropZone.addEventListener('click', () => {
+            fileInput.click();
+        });
+
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('border-blue-500', 'bg-blue-100');
+        });
+
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('border-blue-500', 'bg-blue-100');
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('border-blue-500', 'bg-blue-100');
+            
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                handleFile(files[0]);
+            }
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                handleFile(e.target.files[0]);
+            }
+        });
+
+        // Processar arquivo
+        async function handleFile(file) {
+            try {
+                validateSpreadsheet(file);
+
+                currentUnit = await getUnit(currentProjectId, currentUnitId);
+
+                console.log('📊 Processando arquivo:', file.name);
+
+                document.getElementById('uploadProgress').classList.remove('hidden');
+                updateProgress(0);
+                updateProgress(20);
+
+                // ⭐ Combinar filtros Meta e Google em um objeto plano para processamento inicial
+                // O processSpreadsheet espera um objeto plano, não aninhado
+                const trafficSourcesMeta = currentUnit.trafficSources?.meta || {
+                    facebook: true,
+                    instagram: true,
+                    google: false,
+                    revista: false,
+                    empty: false,
+                    dots: false
+                };
+                const trafficSourcesGoogle = currentUnit.trafficSources?.google || {
+                    facebook: false,
+                    instagram: false,
+                    google: true,
+                    revista: false,
+                    empty: false,
+                    dots: false
+                };
+                
+                // Combinar: incluir se estiver em Meta OU Google
+                const combinedTrafficSources = {
+                    facebook: trafficSourcesMeta.facebook || trafficSourcesGoogle.facebook,
+                    instagram: trafficSourcesMeta.instagram || trafficSourcesGoogle.instagram,
+                    google: trafficSourcesMeta.google || trafficSourcesGoogle.google,
+                    revista: trafficSourcesMeta.revista || trafficSourcesGoogle.revista,
+                    empty: trafficSourcesMeta.empty || trafficSourcesGoogle.empty,
+                    dots: trafficSourcesMeta.dots || trafficSourcesGoogle.dots
+                };
+                
+                // Palavras-chave customizadas (Sistema OC: sem coluna de observações no export)
+                let customKeywords = currentUnit.customKeywords?.meta || currentUnit.customKeywords || { enabled: false, terms: [] };
+                if ((currentUnit.crmSource || 'clinicorp') === 'sistema_oc') {
+                    customKeywords = { enabled: false, terms: [] };
+                }
+                
+                console.log('🔍 Filtros combinados para processamento:', {
+                    combinedTrafficSources,
+                    customKeywords,
+                    excludeMaintenance: currentUnit.excludeMaintenance || false
+                });
+                
+                // Processar planilha
+                const newBudgetData = await processSpreadsheet(
+                    file,
+                    combinedTrafficSources,
+                    customKeywords,
+                    currentUnit.excludeMaintenance || false,
+                    currentUnit.crmSource || 'clinicorp'
+                );
+
+                const hadSavedTraffic = (currentUnit.budgetData?.rawData?.length || 0) > 0;
+                if (hadSavedTraffic && newBudgetData.rawData.length === 0 && (newBudgetData.allData?.length || 0) > 0) {
+                    throw new Error(
+                        'A planilha foi reconhecida, mas nenhum orçamento entrou nos filtros de tráfego.\n\n' +
+                            'A importação foi cancelada e os dados anteriores foram mantidos.\n\n' +
+                            'Ajuste os filtros ou confira a fonte de tráfego (Clinicorp: coluna L; Sistema OC: coluna I).'
+                    );
+                }
+                
+                console.log('📊 [handleFile] Dados processados:', {
+                    arquivo: file.name,
+                    registros: newBudgetData.rawData?.length || 0,
+                    periodo: `${newBudgetData.periodStart} a ${newBudgetData.periodEnd}`,
+                    orcamentos: newBudgetData.totalBudgets,
+                    vendas: newBudgetData.totalSales,
+                    faturamento: newBudgetData.totalRevenue
+                });
+                
+                updateProgress(50);
+                
+                // 🔄 MESCLAR com dados existentes
+                console.log('🔄 [handleFile] Mesclando com dados existentes...');
+                const mergedData = mergeSpreadsheetData(currentUnit.budgetData, newBudgetData);
+                
+                console.log('✅ [handleFile] Mesclagem concluída!', {
+                    totalFinal: mergedData.rawData?.length || 0,
+                    periodo: `${mergedData.periodStart} a ${mergedData.periodEnd}`,
+                    orcamentos: mergedData.totalBudgets,
+                    vendas: mergedData.totalSales,
+                    faturamento: mergedData.totalRevenue
+                });
+                
+                updateProgress(70);
+                
+                // Salvar no Firestore
+                console.log('💾 [handleFile] Salvando no Firestore...');
+                await updateBudgetData(currentProjectId, currentUnitId, mergedData);
+                console.log('✅ [handleFile] Dados salvos!');
+                
+                updateProgress(100);
+                
+                // Atualizar currentUnit
+                currentUnit.budgetData = mergedData;
+                
+                // Mostrar dados
+                showBudgetData();
+                
+                // Ocultar progress
+                setTimeout(() => {
+                    document.getElementById('uploadProgress').classList.add('hidden');
+                    alert('✅ Planilha importada com sucesso!');
+                }, 500);
+                
+            } catch (error) {
+                console.error('Erro ao processar planilha:', error);
+                document.getElementById('uploadProgress').classList.add('hidden');
+                alert(`❌ Erro: ${error.message}`);
+            }
+        }
+
+        function updateProgress(percent) {
+            document.getElementById('progressBar').style.width = `${percent}%`;
+            document.getElementById('progressPercent').textContent = `${percent}%`;
+        }
+
+        function hideBudgetDataUi() {
+            document.getElementById('dataCards')?.classList.add('hidden');
+            document.getElementById('fileInfo')?.classList.add('hidden');
+            document.getElementById('missingPeriodsContainer')?.classList.add('hidden');
+            document.getElementById('noDuplicatesContainer')?.classList.add('hidden');
+        }
+
+        // Mostrar dados da planilha
+        function showBudgetData() {
+            const data = currentUnit.budgetData;
+            
+            if (!data) return;
+
+            const raw = data.rawData || [];
+            const approved = raw.filter((r) => r.status === 'APPROVED');
+            const revenueSum = approved.reduce((sum, r) => sum + Number(r.value || 0), 0);
+            
+            // Cards (totais a partir de rawData — mesma base dos cards em unidades.html)
+            document.getElementById('dataCards').classList.remove('hidden');
+            document.getElementById('totalBudgets').textContent = raw.length;
+            document.getElementById('totalSales').textContent = approved.length;
+            document.getElementById('totalRevenue').textContent = `R$ ${revenueSum.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`;
+            
+            // File info
+            document.getElementById('fileInfo').classList.remove('hidden');
+            document.getElementById('fileName').textContent = data.fileName;
+            document.getElementById('fileDate').textContent = `Período: ${formatDate(data.periodStart)} a ${formatDate(data.periodEnd)}`;
+            
+            // Verificar períodos sem dados
+            checkMissingPeriods(data);
+        }
+        
+        // Verificar lacunas entre blocos de datas (ex.: ano passado + este mês)
+        function checkMissingPeriods(data) {
+            console.log('🔍 [checkMissingPeriods] Verificando lacunas entre datas com orçamento...');
+
+            const dataToCheck = data?.rawData || [];
+
+            if (!dataToCheck.length) {
+                document.getElementById('missingPeriodsContainer').classList.add('hidden');
+                document.getElementById('noDuplicatesContainer').classList.add('hidden');
+                return;
+            }
+
+            const significantPeriods = findSignificantMissingPeriods(dataToCheck, 5);
+            console.log('📊 Períodos sem dados (lacunas reais):', significantPeriods);
+            
+            // Se não tem períodos significativos
+            if (significantPeriods.length === 0) {
+                document.getElementById('missingPeriodsContainer').classList.add('hidden');
+                document.getElementById('noDuplicatesContainer').classList.remove('hidden');
+                return;
+            }
+            
+            // Renderizar lista de períodos significativos
+            const listEl = document.getElementById('missingPeriodsList');
+            listEl.innerHTML = '';
+            
+            significantPeriods.forEach(period => {
+                const li = document.createElement('li');
+                
+                const start = new Date(period.start + 'T00:00:00');
+                const end = new Date(period.end + 'T00:00:00');
+                const days = Math.round((end - start) / (1000 * 60 * 60 * 24)) + 1;
+                
+                if (period.start === period.end) {
+                    li.textContent = `• ${formatDate(period.start)} (1 dia)`;
+                } else {
+                    li.textContent = `• ${formatDate(period.start)} a ${formatDate(period.end)} (${days} dias)`;
+                }
+                
+                listEl.appendChild(li);
+            });
+            
+            document.getElementById('missingPeriodsContainer').classList.remove('hidden');
+            document.getElementById('noDuplicatesContainer').classList.add('hidden');
+        }
+
+        function formatDate(dateStr) {
+            if (!dateStr) return '-';
+            const date = new Date(`${dateStr}T12:00:00`);
+            return date.toLocaleDateString('pt-BR');
+        }
+
+        // ========== BOTÃO VOLTAR ==========
+        document.getElementById('backLink').addEventListener('click', (e) => {
+            e.preventDefault();
+            window.location.href = `unidades.html?projectId=${currentProjectId}`;
+        });
+
+        // ========== LOGOUT ==========
+        document.getElementById('logoutBtn').addEventListener('click', async () => {
+            try {
+                await signOut(auth);
+                window.location.href = '/login.html';
+            } catch (error) {
+                console.error('❌ Erro ao fazer logout:', error);
+            }
+        });
+    </script>
+</body>
+</html>
+

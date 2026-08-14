@@ -1,0 +1,913 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>Visualizar Relatório - Insightflow</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <style>
+        /* Remover scroll horizontal */
+        html, body {
+            overflow-x: hidden !important;
+            max-width: 100vw !important;
+        }
+    </style>
+</head>
+<body class="bg-white min-h-screen font-sans m-0 p-0">
+    <!-- Container Principal -->
+    <div class="flex min-h-screen w-full">
+        <!-- Sidebar -->
+        <aside class="w-56 bg-white flex flex-col border-r border-gray-200">
+            <div class="p-6">
+                <h1 class="text-xl font-bold text-gray-800">Relatórios</h1>
+            </div>
+            
+            <nav class="flex-1 px-3">
+                <a href="javascript:history.back()" class="flex items-center px-3 py-2.5 mb-1 border-l-4 border-transparent text-gray-700 hover:bg-gray-50 transition-all">
+                    <i class="fas fa-arrow-left mr-3 text-sm"></i>
+                    <span class="text-sm">Voltar</span>
+                </a>
+                <a href="/home.html" class="flex items-center px-3 py-2.5 mb-1 border-l-4 border-transparent text-gray-700 hover:bg-gray-50 transition-all">
+                    <i class="fas fa-home mr-3 text-sm"></i>
+                    <span class="text-sm">Tela Inicial</span>
+                </a>
+                
+                <a href="/dashboard.html" class="flex items-center px-3 py-2.5 mb-1 border-l-4 border-transparent text-gray-700 hover:bg-gray-50 transition-all">
+                    <i class="fas fa-chart-line mr-3 text-sm"></i>
+                    <span class="text-sm">Dashboard</span>
+                </a>
+            </nav>
+            
+            <div class="p-3">
+                <button id="logoutBtn" class="w-full flex items-center px-3 py-2.5 text-red-600 hover:bg-red-50 rounded-lg transition-all">
+                    <i class="fas fa-sign-out-alt mr-3 text-sm"></i>
+                    <span class="text-sm">Log out</span>
+                </button>
+            </div>
+        </aside>
+
+        <!-- Conteúdo Principal -->
+        <main class="flex-1 p-10 bg-gray-50">
+            <div>
+            <!-- Loading -->
+            <div id="loadingSection" class="text-center py-12">
+                <i class="fas fa-spinner fa-spin text-4xl text-blue-600 mb-4"></i>
+                <p class="text-gray-600 text-lg">Carregando relatório salvo...</p>
+            </div>
+
+            <!-- Relatório Container -->
+            <div id="reportContainer" class="hidden"></div>
+        </div>
+        </div>
+        </main>
+    </div>
+
+    <!-- Scripts -->
+    <script type="module">
+        import { auth, db } from './config/firebase.js';
+        import { onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+        import { doc, getDoc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+        import { createIconWithBackgroundSVG } from './iconsSVG.js';
+
+        console.log('🎨 Visualizar Relatório v2.0 - SIMPLIFICADO');
+
+        let reportData = null;
+
+        // Auth
+        onAuthStateChanged(auth, async (user) => {
+            if (!user) {
+                window.location.href = '/login.html';
+                return;
+            }
+            console.log('✅ Usuário autenticado:', user.email);
+            await loadReport();
+        });
+
+        // Logout
+        document.getElementById('logoutBtn').addEventListener('click', async () => {
+            await signOut(auth);
+            window.location.href = '/login.html';
+        });
+
+        // Carregar relatório
+        async function loadReport() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const reportId = urlParams.get('report');
+            const projectId = localStorage.getItem('currentProject');
+
+            if (!reportId || !projectId) {
+                alert('Relatório não encontrado');
+                window.location.href = '/home.html';
+                return;
+            }
+
+            try {
+                console.log('📥 Carregando relatório:', reportId, 'do projeto:', projectId);
+                
+                const reportRef = doc(db, 'projects', projectId, 'reports', reportId);
+                const reportSnap = await getDoc(reportRef);
+                
+                if (!reportSnap.exists()) {
+                    throw new Error('Relatório não encontrado');
+                }
+
+                reportData = { id: reportSnap.id, ...reportSnap.data() };
+                console.log('✅ Dados carregados:', reportData);
+                console.log('📊 Métricas salvas:', reportData.savedMetrics);
+                console.log('🏆 Melhores anúncios:', reportData.savedBestAds);
+                console.log('💼 Dados manuais:', reportData.manualData);
+
+                // Renderizar
+                renderReport();
+                
+            } catch (error) {
+                console.error('❌ Erro:', error);
+                document.getElementById('loadingSection').innerHTML = `
+                    <div class="text-center">
+                        <i class="fas fa-exclamation-triangle text-6xl text-red-600 mb-4"></i>
+                        <h2 class="text-2xl font-bold text-gray-900 mb-4">Erro ao Carregar</h2>
+                        <p class="text-gray-600 mb-6">${error.message}</p>
+                        <button onclick="window.location.href='/home.html'" class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700">
+                            Voltar
+                        </button>
+                    </div>
+                `;
+            }
+        }
+
+        // ========== FUNÇÕES DE RENDERIZAÇÃO (COPIADAS DO RelatorioCompleto.js) ==========
+        
+        function formatCurrencyBRL(value) {
+            return `R$ ${parseFloat(value || 0).toFixed(2).replace('.', ',')}`;
+        }
+        
+        function formatDateISOToBR(dateStr) {
+            const [year, month, day] = dateStr.split('-');
+            return `${day}/${month}/${year}`;
+        }
+        
+        function renderBlackWhiteReport(metrics, blackMetrics, accountName = '') {
+            // Helper para calcular variação percentual
+            const renderMetricChange = (current, previous) => {
+                if (!previous || previous === 0) return '';
+                const change = ((current - previous) / previous) * 100;
+                const isPositive = change > 0;
+                const color = isPositive ? 'text-green-600' : 'text-red-600';
+                const arrow = isPositive ? '▲' : '▼';
+                return `<span class="${color} text-xs font-semibold block mt-1">${arrow} ${Math.abs(change).toFixed(2)}%</span>`;
+            };
+            
+            // Helper para custo (invertido)
+            const renderCostChange = (current, previous) => {
+                if (!previous || previous === 0) return '';
+                const change = ((current - previous) / previous) * 100;
+                const isPositive = change > 0;
+                const color = isPositive ? 'text-red-600' : 'text-green-600'; // Invertido
+                const arrow = isPositive ? '▲' : '▼';
+                return `<span class="${color} text-xs font-semibold block mt-1">${arrow} ${Math.abs(change).toFixed(2)}%</span>`;
+            };
+
+            return `
+                <!-- Campanhas White -->
+                <div class="bg-blue-600 rounded-xl p-5 mb-6 shadow-sm">
+                    <div class="flex items-center gap-3 mb-4">
+                        <i class="fab fa-facebook text-white text-2xl"></i>
+                        <h3 class="text-xl font-bold text-white">Meta Ads - Campanhas White</h3>
+                        <span class="text-sm text-blue-100">${accountName || 'CA - Oral Center'}</span>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
+                        <div class="bg-white rounded-lg p-4">
+                            <div class="flex items-center gap-2 mb-2">
+                                ${createIconWithBackgroundSVG('dollar', '#3b82f6')}
+                                <h4 class="text-xs text-gray-600 font-medium">Valor investido</h4>
+                            </div>
+                            <p class="text-2xl font-bold text-gray-900">
+                                ${formatCurrencyBRL(metrics.spend || 0)}
+                                ${renderCostChange(parseFloat(metrics.spend || 0), parseFloat(metrics.previousSpend || 0))}
+                            </p>
+                            ${metrics.previousSpend ? `<p class="text-xs text-gray-500 mt-1">${formatCurrencyBRL(metrics.previousSpend)} no período anterior</p>` : ''}
+                        </div>
+                        <div class="bg-white rounded-lg p-4">
+                            <div class="flex items-center gap-2 mb-2">
+                                ${createIconWithBackgroundSVG('users', '#10b981')}
+                                <h4 class="text-xs text-gray-600 font-medium">Alcance Total</h4>
+                            </div>
+                            <p class="text-2xl font-bold text-gray-900">
+                                ${(metrics.reach || 0).toLocaleString('pt-BR')}
+                                ${renderMetricChange(metrics.reach || 0, metrics.previousReach || 0)}
+                            </p>
+                            ${metrics.previousReach ? `<p class="text-xs text-gray-500 mt-1">${metrics.previousReach.toLocaleString('pt-BR')} no período anterior</p>` : ''}
+                        </div>
+                        <div class="bg-white rounded-lg p-4">
+                            <div class="flex items-center gap-2 mb-2">
+                                ${createIconWithBackgroundSVG('comments', '#8b5cf6')}
+                                <h4 class="text-xs text-gray-600 font-medium">Conversas iniciadas por mensagem</h4>
+                            </div>
+                            <p class="text-2xl font-bold text-gray-900">
+                                ${metrics.conversations || 0}
+                                ${renderMetricChange(metrics.conversations || 0, metrics.previousConversations || 0)}
+                            </p>
+                            ${metrics.previousConversations ? `<p class="text-xs text-gray-500 mt-1">${metrics.previousConversations} no período anterior</p>` : ''}
+                        </div>
+                        <div class="bg-white rounded-lg p-4">
+                            <div class="flex items-center gap-2 mb-2">
+                                ${createIconWithBackgroundSVG('chart-line', '#f59e0b')}
+                                <h4 class="text-xs text-gray-600 font-medium">Custo por conversas iniciadas por mensagem</h4>
+                            </div>
+                            <p class="text-2xl font-bold text-gray-900">
+                                ${formatCurrencyBRL(metrics.costPerConversation || 0)}
+                                ${renderCostChange(parseFloat(metrics.costPerConversation || 0), parseFloat(metrics.previousCostPerConversation || 0))}
+                            </p>
+                            ${metrics.previousCostPerConversation ? `<p class="text-xs text-gray-500 mt-1">${formatCurrencyBRL(metrics.previousCostPerConversation)} no período anterior</p>` : ''}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Campanhas Black -->
+                <div class="bg-gray-900 rounded-xl p-5 mb-6 shadow-sm">
+                    <div class="flex items-center gap-3 mb-4">
+                        <i class="fab fa-facebook text-white text-2xl"></i>
+                        <h3 class="text-xl font-bold text-white">Meta Ads - Campanhas Black</h3>
+                        <span class="text-sm text-gray-300">${accountName || 'CA - Oral Center'}</span>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
+                        <div class="bg-white rounded-lg p-4">
+                            <div class="flex items-center gap-2 mb-2">
+                                ${createIconWithBackgroundSVG('dollar', '#3b82f6')}
+                                <h4 class="text-xs text-gray-600 font-medium">Valor investido</h4>
+                            </div>
+                            <p class="text-2xl font-bold text-gray-900">
+                                ${formatCurrencyBRL(blackMetrics.spend || 0)}
+                                ${renderCostChange(parseFloat(blackMetrics.spend || 0), parseFloat(blackMetrics.previousSpend || 0))}
+                            </p>
+                            ${blackMetrics.previousSpend ? `<p class="text-xs text-gray-500 mt-1">${formatCurrencyBRL(blackMetrics.previousSpend)} no período anterior</p>` : ''}
+                        </div>
+                        <div class="bg-white rounded-lg p-4">
+                            <div class="flex items-center gap-2 mb-2">
+                                ${createIconWithBackgroundSVG('users', '#10b981')}
+                                <h4 class="text-xs text-gray-600 font-medium">Alcance Total</h4>
+                            </div>
+                            <p class="text-2xl font-bold text-gray-900">
+                                ${(blackMetrics.reach || 0).toLocaleString('pt-BR')}
+                                ${renderMetricChange(blackMetrics.reach || 0, blackMetrics.previousReach || 0)}
+                            </p>
+                            ${blackMetrics.previousReach ? `<p class="text-xs text-gray-500 mt-1">${blackMetrics.previousReach.toLocaleString('pt-BR')} no período anterior</p>` : ''}
+                        </div>
+                        <div class="bg-white rounded-lg p-4">
+                            <div class="flex items-center gap-2 mb-2">
+                                ${createIconWithBackgroundSVG('comments', '#8b5cf6')}
+                                <h4 class="text-xs text-gray-600 font-medium">Conversas iniciadas por mensagem</h4>
+                            </div>
+                            <p class="text-2xl font-bold text-gray-900">
+                                ${blackMetrics.conversations || 0}
+                                ${renderMetricChange(blackMetrics.conversations || 0, blackMetrics.previousConversations || 0)}
+                            </p>
+                            ${blackMetrics.previousConversations ? `<p class="text-xs text-gray-500 mt-1">${blackMetrics.previousConversations} no período anterior</p>` : ''}
+                        </div>
+                        <div class="bg-white rounded-lg p-4">
+                            <div class="flex items-center gap-2 mb-2">
+                                ${createIconWithBackgroundSVG('chart-line', '#f59e0b')}
+                                <h4 class="text-xs text-gray-600 font-medium">Custo por conversas iniciadas por mensagem</h4>
+                            </div>
+                            <p class="text-2xl font-bold text-gray-900">
+                                ${formatCurrencyBRL(blackMetrics.costPerConversation || 0)}
+                                ${renderCostChange(parseFloat(blackMetrics.costPerConversation || 0), parseFloat(blackMetrics.previousCostPerConversation || 0))}
+                            </p>
+                            ${blackMetrics.previousCostPerConversation ? `<p class="text-xs text-gray-500 mt-1">${formatCurrencyBRL(blackMetrics.previousCostPerConversation)} no período anterior</p>` : ''}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        function renderStandardReport(metrics, accountName = '') {
+            // Helper para calcular variação percentual
+            const renderMetricChange = (current, previous) => {
+                if (!previous || previous === 0) return '';
+                const change = ((current - previous) / previous) * 100;
+                const isPositive = change > 0;
+                const color = isPositive ? 'text-green-600' : 'text-red-600';
+                const arrow = isPositive ? '▲' : '▼';
+                return `<span class="${color} text-xs font-semibold block mt-1">${arrow} ${Math.abs(change).toFixed(2)}%</span>`;
+            };
+
+            // Helper para variação de custo (invertido: menos é melhor)
+            const renderCostChange = (current, previous) => {
+                if (!previous || previous === 0) return '';
+                const change = ((current - previous) / previous) * 100;
+                const isPositive = change > 0;
+                const color = isPositive ? 'text-red-600' : 'text-green-600'; // Invertido
+                const arrow = isPositive ? '▲' : '▼';
+                return `<span class="${color} text-xs font-semibold block mt-1">${arrow} ${Math.abs(change).toFixed(2)}%</span>`;
+            };
+            
+            // Detectar se é Google Ads ou Meta Ads
+            const isGoogleAds = metrics.platform === 'google';
+            const platformName = isGoogleAds ? 'Google Ads' : 'Meta Ads';
+            const platformIcon = isGoogleAds ? 'fab fa-google' : 'fab fa-facebook';
+            const platformColor = isGoogleAds ? 'bg-red-600' : 'bg-blue-600';
+            const platformLightColor = isGoogleAds ? 'text-red-100' : 'text-blue-100';
+
+            return `
+                <div class="${platformColor} rounded-xl p-5 mb-6 shadow-sm">
+                    <div class="flex items-center gap-3 mb-4">
+                        <i class="${platformIcon} text-white text-2xl"></i>
+                        <h3 class="text-xl font-bold text-white">${platformName}</h3>
+                        <span class="text-sm ${platformLightColor}">${accountName || (isGoogleAds ? 'Google Ads' : 'CA - Oral Center')}</span>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
+                        <div class="bg-white rounded-lg p-4">
+                            <div class="flex items-center gap-2 mb-2">
+                                ${createIconWithBackgroundSVG('dollar', '#3b82f6')}
+                                <h4 class="text-xs text-gray-600 font-medium">Valor investido</h4>
+                            </div>
+                            <p class="text-2xl font-bold text-gray-900">
+                                ${formatCurrencyBRL(metrics.spend || 0)}
+                                ${renderCostChange(parseFloat(metrics.spend || 0), parseFloat(metrics.previousSpend || 0))}
+                            </p>
+                            ${metrics.previousSpend ? `<p class="text-xs text-gray-500 mt-1">${formatCurrencyBRL(metrics.previousSpend)} no período anterior</p>` : ''}
+                        </div>
+                        <div class="bg-white rounded-lg p-4">
+                            <div class="flex items-center gap-2 mb-2">
+                                ${createIconWithBackgroundSVG('users', '#10b981')}
+                                <h4 class="text-xs text-gray-600 font-medium">Alcance Total</h4>
+                            </div>
+                            <p class="text-2xl font-bold text-gray-900">
+                                ${(metrics.reach || 0).toLocaleString('pt-BR')}
+                                ${renderMetricChange(metrics.reach || 0, metrics.previousReach || 0)}
+                            </p>
+                            ${metrics.previousReach ? `<p class="text-xs text-gray-500 mt-1">${metrics.previousReach.toLocaleString('pt-BR')} no período anterior</p>` : ''}
+                        </div>
+                        <div class="bg-white rounded-lg p-4">
+                            <div class="flex items-center gap-2 mb-2">
+                                ${createIconWithBackgroundSVG('comments', '#8b5cf6')}
+                                <h4 class="text-xs text-gray-600 font-medium">Conversas iniciadas por mensagem</h4>
+                            </div>
+                            <p class="text-2xl font-bold text-gray-900">
+                                ${metrics.conversations || 0}
+                                ${renderMetricChange(metrics.conversations || 0, metrics.previousConversations || 0)}
+                            </p>
+                            ${metrics.previousConversations ? `<p class="text-xs text-gray-500 mt-1">${metrics.previousConversations} no período anterior</p>` : ''}
+                        </div>
+                        <div class="bg-white rounded-lg p-4">
+                            <div class="flex items-center gap-2 mb-2">
+                                ${createIconWithBackgroundSVG('chart-line', '#f59e0b')}
+                                <h4 class="text-xs text-gray-600 font-medium">Custo por conversas iniciadas por mensagem</h4>
+                            </div>
+                            <p class="text-2xl font-bold text-gray-900">
+                                ${formatCurrencyBRL(metrics.costPerConversation || 0)}
+                                ${renderCostChange(parseFloat(metrics.costPerConversation || 0), parseFloat(metrics.previousCostPerConversation || 0))}
+                            </p>
+                            ${metrics.previousCostPerConversation ? `<p class="text-xs text-gray-500 mt-1">${formatCurrencyBRL(metrics.previousCostPerConversation)} no período anterior</p>` : ''}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        function renderBestAds(bestAds) {
+            if (!bestAds || bestAds.length === 0) {
+                return '';
+            }
+
+            return `
+                <div class="mt-6">
+                    <div class="bg-yellow-50 rounded-xl p-5 border-l-4 border-yellow-400 mb-6">
+                        <div class="flex items-center gap-2 mb-3">
+                            <i class="fas fa-star text-yellow-500 text-xl"></i>
+                            <h3 class="text-lg font-bold text-gray-900">Anúncios em Destaque</h3>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            ${bestAds.map(ad => `
+                                <div class="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
+                                    <div class="flex items-start gap-3">
+                                        <div class="relative">
+                                            <img src="${ad.imageUrl || 'https://dummyimage.com/150x150/2563eb/fff&text=AD'}" 
+                                                 alt="Anúncio" 
+                                                 class="w-20 h-20 object-cover rounded-lg border border-gray-300" 
+                                                 onerror="this.src='https://dummyimage.com/150x150/2563eb/fff&text=AD'">
+                                        </div>
+                                        <div class="flex-1">
+                                            <div class="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-3 mb-2 border border-blue-200">
+                                                <p class="text-xs text-gray-600 mb-1">Leads</p>
+                                                <p class="text-2xl font-bold text-blue-600">${ad.messages || ad.conversations || 0}</p>
+                                            </div>
+                                            <div class="grid grid-cols-2 gap-2 text-xs">
+                                                <div>
+                                                    <p class="text-gray-500">Investimento</p>
+                                                    <p class="font-bold text-gray-900">${formatCurrencyBRL(ad.spend)}</p>
+                                                </div>
+                                                <div>
+                                                    <p class="text-gray-500">Custo/Lead</p>
+                                                    <p class="font-bold text-gray-900">${formatCurrencyBRL(ad.costPerMessage || ad.costPerConversation || 0)}</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        function renderBusinessResults(budgetsCompleted, salesCount, revenue, totalInvestment) {
+            if (budgetsCompleted === 0 && salesCount === 0 && revenue === 0) {
+                return '';
+            }
+
+            // Calcular ROI: (Faturamento x 0.25) / gasto total
+            const roi = totalInvestment && totalInvestment > 0 && revenue > 0
+                ? (revenue * 0.25) / totalInvestment
+                : 0;
+
+            return `
+                <div class="mt-6">
+                    <div class="bg-green-50 rounded-xl p-5 border-l-4 border-green-400 mb-6">
+                        <div class="flex items-center gap-2 mb-3">
+                            <i class="fas fa-chart-line text-green-600 text-xl"></i>
+                            <h3 class="text-lg font-bold text-gray-900">Resultados do Negócio</h3>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                            <div class="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
+                                <div class="flex items-center gap-2 mb-2">
+                                    <div class="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
+                                        ${createIconWithBackgroundSVG('file-invoice', '#3b82f6', 'white', 16, 40)}
+                                    </div>
+                                    <div class="flex-1">
+                                        <p class="text-xs text-gray-600">Orçamentos Concluídos</p>
+                                        <p class="text-2xl font-bold text-gray-900">${budgetsCompleted.toLocaleString('pt-BR')}</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
+                                <div class="flex items-center gap-2 mb-2">
+                                    <div class="w-10 h-10 bg-green-600 rounded-lg flex items-center justify-center">
+                                        ${createIconWithBackgroundSVG('shopping-bag', '#10b981', 'white', 16, 40)}
+                                    </div>
+                                    <div class="flex-1">
+                                        <p class="text-xs text-gray-600">Número de Vendas</p>
+                                        <p class="text-2xl font-bold text-gray-900">${salesCount.toLocaleString('pt-BR')}</p>
+                                    </div>
+                                </div>
+                                <p class="text-xs text-gray-500 mt-1">${budgetsCompleted > 0 ? ((salesCount / budgetsCompleted) * 100).toFixed(1) : 0}% convertido</p>
+                            </div>
+                            <div class="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
+                                <div class="flex items-center gap-2 mb-2">
+                                    <div class="w-10 h-10 bg-purple-600 rounded-lg flex items-center justify-center">
+                                        ${createIconWithBackgroundSVG('dollar', '#8b5cf6', 'white', 16, 40)}
+                                    </div>
+                                    <div class="flex-1">
+                                        <p class="text-xs text-gray-600">Faturamento Total</p>
+                                        <p class="text-2xl font-bold text-gray-900">${formatCurrencyBRL(revenue)}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- ROI em destaque -->
+                        <div class="bg-gradient-to-r from-yellow-100 to-yellow-50 rounded-lg p-4 border-2 border-yellow-400">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-12 h-12 bg-yellow-500 rounded-lg flex items-center justify-center">
+                                        ${createIconWithBackgroundSVG('trophy', '#eab308', 'white', 18, 48)}
+                                    </div>
+                                    <div>
+                                        <p class="text-sm text-gray-600 font-medium">Retorno sobre Investimento (ROI)</p>
+                                        <p class="text-4xl font-bold text-yellow-700">${roi.toFixed(2)}</p>
+                                    </div>
+                                </div>
+                                <div class="text-right">
+                                    <p class="text-xs text-gray-600 mb-1">Investimento Total</p>
+                                    <p class="text-lg font-bold text-gray-900">${formatCurrencyBRL(totalInvestment || 0)}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        function renderPerformanceAnalysis(performanceAnalysis) {
+            if (!performanceAnalysis || performanceAnalysis.trim() === '') {
+                return '';
+            }
+
+            const paragraphs = performanceAnalysis.split(/\n\s*\n/).filter(p => p.trim());
+            if (paragraphs.length === 0) {
+                return '';
+            }
+
+            return `
+                <div class="mt-6">
+                    <div class="bg-white rounded-xl p-5 border border-gray-200 shadow-sm">
+                        <div class="flex items-center gap-2 mb-4">
+                            <i class="fas fa-lightbulb text-purple-600 text-xl"></i>
+                            <h3 class="text-lg font-bold text-gray-900">Análise de Desempenho e Melhorias</h3>
+                        </div>
+                        <div class="space-y-3">
+                            ${paragraphs.map(paragraph => {
+                                const formattedParagraph = paragraph.replace(/\n/g, '<br>');
+                                return `
+                                    <div class="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
+                                        <div class="flex-shrink-0 mt-1">
+                                            <div class="w-6 h-6 rounded-full bg-white border-2 border-gray-300 flex items-center justify-center">
+                                                <div class="w-2 h-2 rounded-full bg-gray-400"></div>
+                                            </div>
+                                        </div>
+                                        <p class="text-sm text-gray-700 leading-relaxed flex-1">${formattedParagraph}</p>
+                                    </div>
+                                `;
+                            }).join('')}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        /**
+         * Renderizar métricas das plataformas (Meta, Google, ou ambas)
+         */
+        function renderPlatformMetrics(metaMetrics, googleMetrics, blackMetrics, accountName) {
+            let html = '';
+            
+            // Verificar se realmente existem (não null/undefined e com dados)
+            const hasRealMeta = metaMetrics && (metaMetrics.conversations > 0 || metaMetrics.spend > 0);
+            const hasRealBlack = blackMetrics && (blackMetrics.conversations > 0 || blackMetrics.spend > 0);
+            const hasRealGoogle = googleMetrics && (googleMetrics.conversations > 0 || googleMetrics.spend > 0);
+            
+            console.log('🎨 [renderPlatformMetrics] Detecção:', {
+                hasRealMeta,
+                hasRealBlack,
+                hasRealGoogle
+            });
+            
+            // Cenário 1: Meta White + Black (SEM Google)
+            if (hasRealMeta && hasRealBlack && !hasRealGoogle) {
+                html += renderBlackWhiteReport(metaMetrics, blackMetrics, accountName);
+            }
+            // Cenário 2: Apenas Meta (sem Black, sem Google)
+            else if (hasRealMeta && !hasRealBlack && !hasRealGoogle) {
+                html += renderStandardReport(metaMetrics, accountName);
+            }
+            // Cenário 3: Meta + Google (com ou sem Black)
+            else if (hasRealMeta && hasRealGoogle) {
+                // Renderizar Meta (White + Black se existir)
+                if (hasRealBlack) {
+                    html += renderBlackWhiteReport(metaMetrics, blackMetrics, accountName);
+                } else {
+                    html += renderStandardReport(metaMetrics, accountName);
+                }
+                
+                // Renderizar Google separadamente
+                html += renderStandardReport(googleMetrics, 'Google Ads');
+            }
+            // Cenário 4: Apenas Google
+            else if (!hasRealMeta && hasRealGoogle) {
+                console.log('🎨 Renderizando APENAS Google');
+                html += renderStandardReport(googleMetrics, accountName);
+            }
+            
+            return html;
+        }
+        
+        /**
+         * Renderizar Número Total de Leads
+         */
+        function renderTotalLeads(metaMetrics, blackMetrics, googleMetrics = null) {
+            // Calcular variação percentual
+            const renderMetricChange = (current, previous) => {
+                if (!previous || previous === 0) return '';
+                const change = ((current - previous) / previous) * 100;
+                const isPositive = change > 0;
+                const color = isPositive ? 'text-green-600' : 'text-red-600';
+                const arrow = isPositive ? '▲' : '▼';
+                return `<span class="${color} text-xs font-semibold block mt-1">${arrow} ${Math.abs(change).toFixed(2)}%</span>`;
+            };
+
+            // Verificar se Black realmente existe
+            const hasRealBlack = blackMetrics && (blackMetrics.conversations > 0 || blackMetrics.spend > 0);
+
+            // Calcular totais (Meta White + Black (se existir) + Google)
+            const currentTotal = (metaMetrics?.conversations || 0) + 
+                                (hasRealBlack ? (blackMetrics?.conversations || 0) : 0) + 
+                                (googleMetrics?.conversations || 0);
+            
+            const previousTotal = (metaMetrics?.previousConversations || 0) + 
+                                 (hasRealBlack ? (blackMetrics?.previousConversations || 0) : 0) + 
+                                 (googleMetrics?.previousConversations || 0);
+
+            return `
+                <!-- Número Total de Leads -->
+                <div class="bg-gradient-to-r from-purple-50 to-indigo-50 rounded-xl p-5 mb-6 shadow-sm border-2 border-purple-200">
+                    <div class="flex items-center justify-center gap-3 mb-3">
+                        <i class="fas fa-calculator text-purple-600 text-xl"></i>
+                        <h3 class="text-lg font-bold text-purple-900">Número Total de Leads</h3>
+                    </div>
+                    <div class="bg-white rounded-lg p-6 text-center">
+                        <div class="flex items-center justify-center gap-2 mb-2">
+                            ${createIconWithBackgroundSVG('comments', '#8b5cf6')}
+                            <h4 class="text-sm text-gray-600 font-medium">Conversas Totais (Todas as Fontes)</h4>
+                        </div>
+                        <p class="text-4xl font-bold text-purple-900">
+                            ${currentTotal}
+                            ${renderMetricChange(currentTotal, previousTotal)}
+                        </p>
+                        ${previousTotal > 0 ? `<p class="text-sm text-gray-500 mt-2">${previousTotal} no período anterior</p>` : ''}
+                    </div>
+                </div>
+            `;
+        }
+        
+        // ========== RENDERIZAR RELATÓRIO ==========
+        function renderReport() {
+            console.log('🎨 Renderizando relatório salvo...');
+            
+            const loadingSection = document.getElementById('loadingSection');
+            const reportContainer = document.getElementById('reportContainer');
+            
+            loadingSection.classList.add('hidden');
+            reportContainer.classList.remove('hidden');
+
+            const md = reportData.manualData || {};
+            
+            // Carregar métricas salvas (JÁ VEM COM previousConversations, previousSpend, etc.)
+            let separateMetaMetrics = reportData.savedMetrics || null;
+            let separateBlackMetrics = reportData.savedBlackMetrics || null;
+            let separateGoogleMetrics = reportData.savedGoogleMetrics || null;
+            const savedBestAds = reportData.savedBestAds || [];
+            
+            console.log('📊 Métricas carregadas do Firestore:', {
+                meta: separateMetaMetrics,
+                black: separateBlackMetrics,
+                google: separateGoogleMetrics
+            });
+            
+            // Verificar se as métricas existem e têm conversações
+            const hasMetaMetrics = separateMetaMetrics && (separateMetaMetrics.conversations > 0 || separateMetaMetrics.spend > 0);
+            const hasBlackMetrics = separateBlackMetrics && (separateBlackMetrics.conversations > 0 || separateBlackMetrics.spend > 0);
+            const hasGoogleMetrics = separateGoogleMetrics && (separateGoogleMetrics.conversations > 0 || separateGoogleMetrics.spend > 0);
+            
+            // Detectar múltiplas plataformas (2 ou mais fontes de dados)
+            const platformCount = (hasMetaMetrics ? 1 : 0) + (hasBlackMetrics ? 1 : 0) + (hasGoogleMetrics ? 1 : 0);
+            const hasMultiplePlatforms = platformCount >= 2;
+            
+            console.log('📊 Detecção de plataformas:', {
+                hasMetaMetrics,
+                hasBlackMetrics,
+                hasGoogleMetrics,
+                hasMultiplePlatforms
+            });
+
+            // Adicionar costPerConversation às métricas (se não existir)
+            if (hasMetaMetrics && !separateMetaMetrics.costPerConversation) {
+                separateMetaMetrics.costPerConversation = separateMetaMetrics.conversations > 0 
+                    ? separateMetaMetrics.spend / separateMetaMetrics.conversations 
+                    : 0;
+            }
+            
+            if (hasBlackMetrics && !separateBlackMetrics.costPerConversation) {
+                separateBlackMetrics.costPerConversation = separateBlackMetrics.conversations > 0 
+                    ? separateBlackMetrics.spend / separateBlackMetrics.conversations 
+                    : 0;
+            }
+            
+            if (hasGoogleMetrics) {
+                if (!separateGoogleMetrics.costPerConversation) {
+                    separateGoogleMetrics.costPerConversation = separateGoogleMetrics.conversations > 0 
+                        ? separateGoogleMetrics.spend / separateGoogleMetrics.conversations 
+                        : 0;
+                }
+                separateGoogleMetrics.platform = 'google'; // Marcar como Google
+            }
+
+            // Usar o MESMO HTML/CSS do RelatorioCompleto.js
+            const formattedStartDate = formatDateISOToBR(reportData.analysisStart);
+            const formattedEndDate = formatDateISOToBR(reportData.analysisEnd);
+            
+            // Calcular investimento total para o ROI (incluir todas as plataformas)
+            const totalInvestment = (parseFloat(separateMetaMetrics?.spend || 0) + 
+                                   parseFloat(separateBlackMetrics?.spend || 0) + 
+                                   parseFloat(separateGoogleMetrics?.spend || 0));
+
+            reportContainer.innerHTML = `
+                <style>
+                    /* Melhorar renderização de ícones para PDF */
+                    .report-card-icon {
+                        display: inline-flex !important;
+                        align-items: center !important;
+                        justify-content: center !important;
+                        width: 14px !important;
+                        height: 14px !important;
+                        min-width: 14px !important;
+                        min-height: 14px !important;
+                        text-align: center !important;
+                        vertical-align: middle !important;
+                    }
+                    .fas, .fab {
+                        display: inline-flex !important;
+                        align-items: center !important;
+                        justify-content: center !important;
+                    }
+                </style>
+                <div class="max-w-4xl mx-auto">
+                    <!-- Header do Relatório -->
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="flex items-center gap-4">
+                                <!-- Logo do Projeto -->
+                                ${reportData.logoUrl 
+                                    ? `<img src="${reportData.logoUrl}" alt="Logo" class="w-16 h-16 rounded-xl object-cover border-2 border-gray-200" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
+                                       <div class="w-16 h-16 rounded-xl border-2 border-dashed border-gray-300 flex items-center justify-center bg-gray-50" style="display:none;" title="Logo não configurada">
+                                           <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" style="width:32px;height:32px;opacity:0.4;">
+                                               <rect x="8" y="8" width="48" height="48" rx="4" fill="none" stroke="#9ca3af" stroke-width="2" stroke-dasharray="4,4"/>
+                                               <circle cx="32" cy="28" r="6" fill="none" stroke="#9ca3af" stroke-width="2"/>
+                                               <path d="M22 42 Q32 36 42 42" stroke="#9ca3af" stroke-width="2" fill="none" stroke-linecap="round"/>
+                                           </svg>
+                                       </div>`
+                                    : `<div class="w-16 h-16 rounded-xl border-2 border-dashed border-gray-300 flex items-center justify-center bg-gray-50" title="Logo não configurada">
+                                           <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" style="width:32px;height:32px;opacity:0.4;">
+                                               <rect x="8" y="8" width="48" height="48" rx="4" fill="none" stroke="#9ca3af" stroke-width="2" stroke-dasharray="4,4"/>
+                                               <circle cx="32" cy="28" r="6" fill="none" stroke="#9ca3af" stroke-width="2"/>
+                                               <path d="M22 42 Q32 36 42 42" stroke="#9ca3af" stroke-width="2" fill="none" stroke-linecap="round"/>
+                                           </svg>
+                                       </div>`
+                                }
+                                <div>
+                                    <h2 class="text-2xl font-bold text-gray-900">${reportData.reportName}</h2>
+                                    <p class="text-sm text-gray-600">${formattedStartDate} - ${formattedEndDate}</p>
+                                </div>
+                            </div>
+                            <button id="exportPDFBtn" class="bg-blue-600 text-white px-6 py-3 rounded-xl hover:bg-blue-700 transition-all flex items-center gap-2 font-semibold shadow-lg">
+                                <i class="fas fa-download"></i>
+                                Exportar PDF
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Conteúdo do Relatório -->
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                        ${renderPlatformMetrics(separateMetaMetrics, separateGoogleMetrics, separateBlackMetrics, reportData.reportName)}
+                        
+                        ${hasMultiplePlatforms ? renderTotalLeads(separateMetaMetrics, separateBlackMetrics, separateGoogleMetrics) : ''}
+                    
+                        ${renderBestAds(savedBestAds)}
+                        
+                        ${renderBusinessResults(md.budgets || 0, md.sales || 0, md.revenue || 0, totalInvestment)}
+                        
+                        ${renderPerformanceAnalysis(md.analysis || '')}
+                    </div>
+                </div>
+            `;
+
+            // Adicionar evento ao botão PDF (com verificação)
+            const exportBtn = document.getElementById('exportPDFBtn');
+            if (exportBtn) {
+                exportBtn.addEventListener('click', exportPDF);
+                console.log('✅ Botão exportar PDF configurado');
+            } else {
+                console.error('❌ Botão exportPDFBtn não encontrado no DOM');
+            }
+            
+            console.log('✅ Relatório renderizado com sucesso!');
+        }
+
+        // Exportar PDF
+        async function exportPDF() {
+            console.log('📄 Exportando para PDF...');
+            
+            const { jsPDF } = window.jspdf;
+            
+            // Buscar o container do relatório (max-w-4xl mx-auto contém tudo)
+            const reportContent = document.querySelector('.max-w-4xl.mx-auto');
+            
+            if (!reportContent) {
+                alert('Erro ao exportar PDF: Conteúdo não encontrado');
+                console.error('❌ Container do relatório não encontrado');
+                console.error('Tentando seletores alternativos...');
+                
+                // Tentar seletor alternativo
+                const altContent = document.getElementById('reportContainer');
+                if (altContent && altContent.children.length > 0) {
+                    exportPDFWithContent(altContent.children[0]);
+                    return;
+                }
+                return;
+            }
+            
+            exportPDFWithContent(reportContent);
+        }
+        
+        async function exportPDFWithContent(reportContent) {
+            const { jsPDF } = window.jspdf;
+
+            try {
+                // Ocultar botão durante captura (ID correto: exportPDFBtn)
+                const btn = document.getElementById('exportPDFBtn');
+                if (btn) btn.style.display = 'none';
+
+                // Identificar as seções principais do relatório
+                const sections = [];
+                
+                // 1. Header (logo + título)
+                const header = reportContent.querySelector('.bg-white.rounded-xl.shadow-sm.border.border-gray-200.p-6.mb-6');
+                if (header) sections.push(header);
+                
+                // 2. Conteúdo do relatório (todas as seções dentro do bg-white principal)
+                const mainContent = reportContent.querySelector('.bg-white.rounded-xl.shadow-sm.border.border-gray-200.p-6:not(.mb-6)');
+                if (mainContent) {
+                    // Pegar todas as seções filhas diretas
+                    const children = Array.from(mainContent.children);
+                    children.forEach(child => {
+                        // Cada seção (Meta Ads White, Black, Google, Total Leads, Anúncios, Resultados, Análise)
+                        if (child.classList.contains('bg-blue-600') || 
+                            child.classList.contains('bg-gray-900') || 
+                            child.classList.contains('bg-red-600') ||
+                            child.classList.contains('bg-gradient-to-r') || // Incluir gradientes (Total de Leads)
+                            child.classList.contains('mt-6') ||
+                            child.tagName === 'P') {
+                            sections.push(child);
+                        }
+                    });
+                }
+
+                // Criar o PDF
+                const doc = new jsPDF({
+                    orientation: 'portrait',
+                    unit: 'mm',
+                    format: 'a4',
+                });
+
+                const pdfWidth = 210;
+                const pdfHeight = 297;
+                const margin = 10;
+                const usableWidth = pdfWidth - (margin * 2);
+                const usableHeight = pdfHeight - (margin * 2);
+                
+                let currentY = margin;
+                let currentPage = 1;
+
+                // Processar cada seção
+                for (let i = 0; i < sections.length; i++) {
+                    const section = sections[i];
+                    
+                    // Capturar a seção como imagem
+                    const canvas = await html2canvas(section, {
+                        scale: 2,
+                        useCORS: true,
+                        logging: false,
+                        backgroundColor: '#ffffff'
+                    });
+
+                    const imgData = canvas.toDataURL('image/png');
+                    const imgWidth = canvas.width;
+                    const imgHeight = canvas.height;
+
+                    // Calcular dimensões para o PDF mantendo a proporção
+                    const ratio = usableWidth / (imgWidth * 0.264583); // 0.264583 mm per pixel at 96 DPI
+                    const scaledWidth = usableWidth;
+                    const scaledHeight = (imgHeight * 0.264583) * ratio;
+
+                    // Verificar se a seção cabe na página atual
+                    if (currentY + scaledHeight > pdfHeight - margin) {
+                        // Não cabe, criar nova página
+                        doc.addPage();
+                        currentPage++;
+                        currentY = margin;
+                    }
+
+                    // Adicionar a imagem na posição atual
+                    doc.addImage(imgData, 'PNG', margin, currentY, scaledWidth, scaledHeight);
+                    
+                    // Atualizar a posição Y para a próxima seção
+                    currentY += scaledHeight + 5; // 5mm de espaçamento entre seções
+                }
+
+                // Restaurar botão
+                if (btn) btn.style.display = 'inline-flex';
+
+                // Salvar PDF
+                doc.save(`${reportData.reportName || 'Relatorio'}.pdf`);
+                
+                console.log('✅ PDF exportado!');
+            } catch (error) {
+                console.error('❌ Erro ao exportar PDF:', error);
+                alert('Erro ao exportar PDF. Tente novamente.');
+                
+                // Restaurar botão em caso de erro
+                const btn = document.getElementById('exportPDFBtn');
+                if (btn) btn.style.display = 'inline-flex';
+            }
+        }
+    </script>
+</body>
+</html>
+

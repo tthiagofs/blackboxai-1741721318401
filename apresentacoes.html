@@ -1,0 +1,1504 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>Projeto - Insightflow</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .logo-upload-container {
+            position: relative;
+            width: 80px;
+            height: 80px;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 2px dashed #3B82F6;
+            background: #EFF6FF;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .logo-upload-container:hover {
+            border-color: #2563EB;
+            background: #DBEAFE;
+        }
+        .logo-upload-container.has-image {
+            border: 2px solid #E5E7EB;
+            background: white;
+        }
+        .logo-upload-container img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .project-name-editable {
+            cursor: pointer;
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 4px 8px;
+            border-radius: 6px;
+            transition: all 0.2s ease;
+        }
+        .project-name-editable:hover {
+            background: #F3F4F6;
+        }
+        .project-name-editable .edit-icon {
+            opacity: 0;
+            transition: opacity 0.2s ease;
+        }
+        .project-name-editable:hover .edit-icon {
+            opacity: 1;
+        }
+        .report-card {
+            position: relative;
+            transition: all 0.3s ease;
+        }
+        .report-card.selected {
+            border-color: #3B82F6 !important;
+            background: #EFF6FF !important;
+        }
+        .report-card .checkbox {
+            display: none;
+            position: absolute;
+            top: 12px;
+            left: 12px;
+            width: 20px;
+            height: 20px;
+            border: 2px solid #D1D5DB;
+            border-radius: 4px;
+            background: white;
+            cursor: pointer;
+            z-index: 10;
+        }
+        .report-card .checkbox.show {
+            display: block;
+        }
+        .report-card .checkbox.checked {
+            background: #3B82F6;
+            border-color: #3B82F6;
+        }
+        .report-card .checkbox.checked::after {
+            content: '✓';
+            color: white;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .platform-icon-facebook {
+            color: #1877F2;
+        }
+        .platform-icon-instagram {
+            background: linear-gradient(45deg, #f09433 0%,#e6683c 25%,#dc2743 50%,#cc2366 75%,#bc1888 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .platform-icon-google {
+            color: #EA4335;
+        }
+        .scrollbar-hide {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        .scrollbar-hide::-webkit-scrollbar {
+            display: none;
+        }
+        .presentation-card:hover {
+            transform: translateY(-2px);
+        }
+        .folder-card:hover {
+            transform: translateY(-2px);
+        }
+        .folder-card.drag-over {
+            border-color: #3B82F6 !important;
+            transform: scale(1.02);
+        }
+        .drop-overlay {
+            transition: all 0.2s ease;
+        }
+        .scroll-arrow-btn {
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            transform-origin: center;
+        }
+        .scroll-arrow-btn:hover {
+            transform: translateY(-50%) scale(1.2) !important;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2) !important;
+        }
+        .scroll-arrow-btn:hover i {
+            transform: scale(1.2);
+        }
+        .presentation-card-small {
+            width: 17.4rem; /* 278px = 15% maior que 242px */
+            min-width: 17.4rem;
+        }
+        .folder-card-small {
+            width: 11.6rem; /* ~185px = 15% menor que 218px */
+            min-width: 11.6rem;
+        }
+        /* Design de pasta estilo Canva - ícone de pasta com preview dentro */
+        .folder-icon-wrapper {
+            position: relative;
+            width: 100%;
+            height: 140px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 12px;
+        }
+        .folder-icon-canva {
+            position: relative;
+            width: 100px;
+            height: 80px;
+            background: linear-gradient(135deg, #E5E7EB 0%, #D1D5DB 100%);
+            border-radius: 4px 4px 0 0;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1), 0 4px 12px rgba(0, 0, 0, 0.08);
+            transform: perspective(200px) rotateX(5deg);
+            transform-style: preserve-3d;
+        }
+        .folder-icon-canva::before {
+            content: '';
+            position: absolute;
+            top: -8px;
+            left: 0;
+            width: 40px;
+            height: 12px;
+            background: linear-gradient(135deg, #E5E7EB 0%, #D1D5DB 100%);
+            border-radius: 2px 2px 0 0;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+        .folder-preview-inside {
+            position: absolute;
+            top: 8px;
+            left: 8px;
+            right: 8px;
+            bottom: 8px;
+            border-radius: 2px;
+            overflow: hidden;
+            background: white;
+            box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.1);
+        }
+        .folder-preview-inside img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .folder-icon-empty-inside {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 1.5rem;
+            color: #9CA3AF;
+            opacity: 0.5;
+        }
+        .temporary-message {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #3B82F6;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            z-index: 9999;
+            animation: slideIn 0.3s ease-out;
+        }
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+        .section-content {
+            transition: max-height 0.3s ease, opacity 0.3s ease, margin 0.3s ease;
+            overflow: hidden;
+            max-height: 5000px;
+            opacity: 1;
+        }
+        .section-content.collapsed {
+            max-height: 0 !important;
+            opacity: 0;
+            margin-top: 0 !important;
+            margin-bottom: 0 !important;
+            padding-top: 0 !important;
+            padding-bottom: 0 !important;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen font-sans m-0 p-0">
+    <!-- Proteção de Auth -->
+    <script type="module">
+        import { auth } from './config/firebase.js';
+        import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+        
+        // Handler global de erros
+        window.addEventListener('error', (event) => {
+            console.error('🚨 ERRO GLOBAL:', event.error);
+            console.error('Arquivo:', event.filename);
+            console.error('Linha:', event.lineno);
+            console.error('Coluna:', event.colno);
+        });
+        
+        window.addEventListener('unhandledrejection', (event) => {
+            console.error('🚨 PROMISE REJEITADA:', event.reason);
+        });
+        
+        onAuthStateChanged(auth, (user) => {
+            if (!user) {
+                console.log('❌ Usuário não autenticado, redirecionando...');
+                window.location.href = '/login.html';
+                return;
+            }
+            console.log('✅ Autenticação verificada no script inicial');
+        });
+    </script>
+
+    <!-- Container Principal -->
+    <div class="flex min-h-screen w-full bg-gray-50">
+        <!-- Sidebar Unificada -->
+        <div id="app-sidebar"></div>
+
+        <!-- Conteúdo Principal -->
+        <main class="flex-1 p-10">
+            <!-- Header do Projeto -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
+                <!-- Botão Voltar -->
+                <button onclick="window.location.href='/home.html'" class="mb-4 text-gray-600 hover:text-gray-900 transition-colors flex items-center text-sm">
+                    <i class="fas fa-arrow-left mr-2"></i>
+                    Voltar
+                </button>
+
+                <!-- Logo e Nome do Projeto -->
+                <div class="flex items-center gap-4 mb-6">
+                    <!-- Exibição de Logo (apenas leitura - configurar em Configurações) -->
+                    <div>
+                        <div class="logo-upload-container has-image" id="logoContainer" style="cursor: default;">
+                            <img id="logoPreview" class="hidden" alt="Logo do Projeto">
+                            <div id="logoPlaceholder" class="w-full h-full flex items-center justify-center bg-gray-100 rounded-lg">
+                                <i class="fas fa-image text-2xl text-gray-400"></i>
+                        </div>
+                        </div>
+                        <p class="text-xs text-gray-500 text-center mt-2" id="configLinkContainer">
+                            <a href="#" id="configLink" class="text-blue-600 hover:text-blue-700 underline">
+                                Configurar logos
+                            </a>
+                        </p>
+                    </div>
+
+                    <!-- Nome e Descrição -->
+                    <div class="flex-1">
+                        <div class="project-name-editable" id="projectNameEditable">
+                            <h1 id="projectName" class="text-3xl font-bold text-gray-900">Carregando...</h1>
+                            <i class="fas fa-pencil-alt text-gray-400 text-sm edit-icon"></i>
+                        </div>
+                        <p class="text-sm text-gray-600 mt-1">Gerencie as apresentações deste projeto</p>
+                    </div>
+
+                    <!-- Botão Gerar Apresentação -->
+                    <button 
+                        id="generatePresentationBtn"
+                        class="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white px-6 py-3 rounded-xl font-semibold transition-all transform hover:scale-105 shadow-lg flex items-center"
+                    >
+                        <i class="fas fa-plus mr-2"></i>
+                        Gerar Apresentação
+                    </button>
+                </div>
+
+                <!-- Cards de Estatísticas -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-2" style="max-width: 100%; overflow: hidden; box-sizing: border-box;">
+                    <!-- Total de Apresentações -->
+                    <div class="bg-gradient-to-br from-purple-50 to-pink-50 border border-purple-200 rounded-xl p-2" style="box-sizing: border-box; overflow: hidden;">
+                        <div class="flex items-center justify-between">
+                            <div class="flex-1 min-w-0" style="overflow: hidden;">
+                                <p class="text-xs text-gray-600 mb-1 truncate">Total de Apresentações</p>
+                                <h3 id="totalPresentations" class="text-xl font-bold text-purple-600 truncate">0</h3>
+                            </div>
+                            <div class="w-8 h-8 bg-purple-600 rounded-lg flex items-center justify-center flex-shrink-0 ml-1">
+                                <i class="fas fa-presentation text-sm text-white"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Última Apresentação -->
+                    <div class="bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-xl p-2" style="box-sizing: border-box; overflow: hidden;">
+                        <div class="flex items-center justify-between">
+                            <div class="flex-1 min-w-0" style="overflow: hidden;">
+                                <p class="text-xs text-gray-600 mb-1 truncate">Última Apresentação</p>
+                                <h3 id="lastPresentation" class="text-xl font-bold text-green-600 truncate">-</h3>
+                            </div>
+                            <div class="w-8 h-8 bg-green-600 rounded-lg flex items-center justify-center flex-shrink-0 ml-1">
+                                <i class="fas fa-clock text-sm text-white"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Plataformas -->
+                    <div class="bg-gradient-to-br from-blue-50 to-cyan-50 border border-blue-200 rounded-xl p-2" style="box-sizing: border-box; overflow: hidden;">
+                        <div class="flex items-center justify-between">
+                            <div class="flex-1 min-w-0" style="overflow: hidden;">
+                                <p class="text-xs text-gray-600 mb-1 truncate">Plataformas</p>
+                                <div id="platformsStats" class="text-sm font-bold text-blue-600 flex items-center gap-1 flex-wrap truncate">
+                                    <span class="text-xs text-gray-500">Nenhuma</span>
+                                </div>
+                            </div>
+                            <div class="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center flex-shrink-0 ml-1">
+                                <i class="fas fa-chart-line text-sm text-white"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Seção de Apresentações (estilo Canva) -->
+            <div class="space-y-8">
+                <!-- Loading State -->
+                <div id="presentationsLoading" class="text-center py-12">
+                    <div class="animate-spin rounded-full h-12 w-12 border-b-4 border-purple-600 mx-auto mb-4"></div>
+                    <p class="text-gray-600">Carregando apresentações...</p>
+                            </div>
+
+                <!-- Empty State -->
+                <div id="presentationsEmpty" class="hidden text-center py-12">
+                    <div class="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <i class="fas fa-presentation text-5xl text-gray-300"></i>
+                    </div>
+                    <h4 class="text-xl font-bold text-gray-800 mb-2">Nenhuma apresentação salva</h4>
+                    <p class="text-gray-600 mb-6">Gere sua primeira apresentação para começar</p>
+                    <button onclick="document.getElementById('generatePresentationBtn').click()" class="bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700 transition-all">
+                        <i class="fas fa-plus mr-2"></i>
+                        Gerar Primeira Apresentação
+                            </button>
+                        </div>
+
+                <!-- Conteúdo Principal (oculto até carregar) -->
+                <div id="presentationsContent" class="hidden space-y-8">
+                    <!-- Seção: Recentes -->
+                    <div>
+                        <h2 class="text-2xl font-bold text-gray-900 mb-4 flex items-center gap-2 cursor-pointer hover:text-gray-700 transition-colors" onclick="toggleSection('recentes')">
+                            <i id="recentesIcon" class="fas fa-chevron-down text-gray-400 transition-transform"></i>
+                            Recentes
+                        </h2>
+                        <div id="recentesContent" class="section-content">
+                            <div class="relative" style="max-width: 100%; overflow: hidden;">
+                                <!-- Setas de Navegação estilo Canva -->
+                                <button id="recentesScrollLeft" class="scroll-arrow-btn absolute left-2 top-1/2 -translate-y-1/2 z-10 bg-white rounded-full w-10 h-10 flex items-center justify-center shadow-lg hidden" style="box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);">
+                                    <i class="fas fa-chevron-left text-gray-900 text-sm"></i>
+                            </button>
+                                <button id="recentesScrollRight" class="scroll-arrow-btn absolute right-2 top-1/2 -translate-y-1/2 z-10 bg-white rounded-full w-10 h-10 flex items-center justify-center shadow-lg hidden" style="box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);">
+                                    <i class="fas fa-chevron-right text-gray-900 text-sm"></i>
+                            </button>
+
+                                <!-- Container de Scroll Horizontal -->
+                                <div id="recentesContainer" class="flex gap-4 overflow-x-auto scrollbar-hide pb-4" style="scroll-behavior: smooth; max-width: calc(100vw - 400px);">
+                                    <!-- Cards serão inseridos aqui -->
+                                </div>
+                        </div>
+                    </div>
+                </div>
+
+                    <!-- Seção: Pastas -->
+                    <div>
+                        <div class="flex items-center justify-between mb-4">
+                            <h2 class="text-2xl font-bold text-gray-900 flex items-center gap-2 cursor-pointer hover:text-gray-700 transition-colors" onclick="toggleSection('pastas')">
+                                <i id="pastasIcon" class="fas fa-chevron-down text-gray-400 transition-transform"></i>
+                                Pastas
+                            </h2>
+                            <button id="createFolderBtn" class="px-4 py-2 bg-purple-600 text-white rounded-lg text-sm hover:bg-purple-700 transition-all flex items-center gap-2">
+                                <i class="fas fa-plus"></i>
+                                Nova Pasta
+                            </button>
+                        </div>
+                        <div id="pastasContent" class="section-content">
+                            <div id="foldersGrid" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                                <!-- Pastas serão inseridas aqui -->
+                            </div>
+                        </div>
+                </div>
+
+                    <!-- Seção: Todas Apresentações -->
+                    <div>
+                        <h2 class="text-2xl font-bold text-gray-900 mb-4 flex items-center gap-2 cursor-pointer hover:text-gray-700 transition-colors" onclick="toggleSection('todas')">
+                            <i id="todasIcon" class="fas fa-chevron-down text-gray-400 transition-transform"></i>
+                            Todas apresentações
+                        </h2>
+                        <div id="todasContent" class="section-content">
+                            <div id="allPresentationsGrid" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5" style="gap: 1rem;">
+                                <!-- Apresentações serão inseridas aqui -->
+                    </div>
+                            <div id="loadMoreContainer" class="text-center mt-6 hidden">
+                                <button id="loadMoreBtn" class="px-6 py-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-all">
+                                    Ver mais
+                    </button>
+                </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script type="module">
+        console.log('🚀 Script principal iniciado - versão 1.2');
+        
+        import { auth, db } from './config/firebase.js';
+        import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+        import { doc, updateDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+        import { authService } from './services/authService.js?v=1.5';
+        import { projectsService } from './services/projects.js?v=1.4';
+        import { presentationsService } from './services/presentationsService.js?v=1.1';
+        import { foldersService } from './services/foldersService.js?v=1.1';
+        
+        console.log('✅ Imports carregados com sucesso');
+
+        const projectNameEl = document.getElementById('projectName');
+        const projectNameEditable = document.getElementById('projectNameEditable');
+        const generatePresentationBtn = document.getElementById('generatePresentationBtn');
+        const presentationsLoading = document.getElementById('presentationsLoading');
+        const presentationsEmpty = document.getElementById('presentationsEmpty');
+        const presentationsContent = document.getElementById('presentationsContent');
+        const totalPresentations = document.getElementById('totalPresentations');
+        const lastPresentation = document.getElementById('lastPresentation');
+        const platformsStats = document.getElementById('platformsStats');
+        const logoContainer = document.getElementById('logoContainer');
+        const logoPreview = document.getElementById('logoPreview');
+        
+        // Novos elementos
+        const recentesContainer = document.getElementById('recentesContainer');
+        const recentesScrollLeft = document.getElementById('recentesScrollLeft');
+        const recentesScrollRight = document.getElementById('recentesScrollRight');
+        const foldersGrid = document.getElementById('foldersGrid');
+        const createFolderBtn = document.getElementById('createFolderBtn');
+        const allPresentationsGrid = document.getElementById('allPresentationsGrid');
+        const loadMoreContainer = document.getElementById('loadMoreContainer');
+        const loadMoreBtn = document.getElementById('loadMoreBtn');
+
+        let currentProjectId = null;
+        let currentProject = null;
+        let allPresentations = [];
+        let allFolders = [];
+        let displayedCount = 12; // Limite inicial para "Ver mais"
+        let draggedPresentationId = null;
+
+        // Pegar ID do projeto da URL
+        const urlParams = new URLSearchParams(window.location.search);
+        currentProjectId = urlParams.get('id');
+        
+        console.log('📋 Project ID da URL:', currentProjectId);
+
+        if (!currentProjectId) {
+            console.error('❌ Project ID não encontrado na URL');
+            alert('Projeto não encontrado');
+            window.location.href = '/home.html';
+            // Não usar return aqui - o redirecionamento já vai acontecer
+        }
+        
+        console.log('✅ Project ID válido:', currentProjectId);
+
+        // Links do menu agora são gerenciados pela sidebar unificada
+
+        // Botão Gerar Apresentação
+        generatePresentationBtn.addEventListener('click', () => {
+            localStorage.setItem('currentProject', currentProjectId);
+            window.location.href = '/gerar-apresentacao.html';
+        });
+
+        // Carregar logo do branding (apenas visualização)
+        async function loadBrandingLogo() {
+            try {
+                const { getBranding } = await import('./services/brandingService.js');
+                const branding = await getBranding(currentProjectId);
+                
+                // Atualizar link de configurações
+                const configLink = document.getElementById('configLink');
+                if (configLink) {
+                    configLink.href = `configuracoes.html?id=${currentProjectId}`;
+                }
+                
+                // Usar logo quadrada para exibição no header
+                const logoUrl = branding?.logoSquareUrl || branding?.logoHorizontalUrl || null;
+                
+                if (logoUrl) {
+                    logoPreview.src = logoUrl;
+                    logoPreview.classList.remove('hidden');
+                    document.getElementById('logoPlaceholder').style.display = 'none';
+                } else {
+                        logoPreview.classList.add('hidden');
+                    document.getElementById('logoPlaceholder').style.display = 'flex';
+                }
+            } catch (error) {
+                console.warn('⚠️ Branding não encontrado ou sem logo:', error.message);
+                // Atualizar link mesmo sem branding
+                const configLink = document.getElementById('configLink');
+                if (configLink) {
+                    configLink.href = `configuracoes.html?id=${currentProjectId}`;
+                }
+                        logoPreview.classList.add('hidden');
+                document.getElementById('logoPlaceholder').style.display = 'flex';
+            }
+        }
+        
+        loadBrandingLogo();
+
+        // Edição do Nome do Projeto
+        projectNameEditable.addEventListener('click', async () => {
+            const currentName = projectNameEl.textContent;
+            const newName = prompt('Digite o novo nome do projeto:', currentName);
+
+            if (newName && newName.trim() !== '' && newName !== currentName) {
+                try {
+                    const projectRef = doc(db, 'projects', currentProjectId);
+                    await updateDoc(projectRef, {
+                        name: newName.trim(),
+                        updatedAt: new Date().toISOString()
+                    });
+
+                    projectNameEl.textContent = newName.trim();
+                    console.log('✅ Nome do projeto atualizado!');
+                } catch (error) {
+                    console.error('❌ Erro ao atualizar nome:', error);
+                    alert('Erro ao atualizar nome do projeto');
+                }
+            }
+        });
+
+        // Scroll horizontal para "Recentes"
+        recentesScrollLeft?.addEventListener('click', () => {
+            recentesContainer.scrollBy({ left: -300, behavior: 'smooth' });
+        });
+
+        recentesScrollRight?.addEventListener('click', () => {
+            recentesContainer.scrollBy({ left: 300, behavior: 'smooth' });
+        });
+
+        // Atualizar visibilidade das setas
+        function updateScrollButtons() {
+            if (!recentesContainer) {
+                console.warn('⚠️ recentesContainer não encontrado em updateScrollButtons');
+                return;
+            }
+            if (!recentesScrollLeft) {
+                console.warn('⚠️ recentesScrollLeft não encontrado');
+                return;
+            }
+            if (!recentesScrollRight) {
+                console.warn('⚠️ recentesScrollRight não encontrado');
+                return;
+            }
+            
+            // Forçar recálculo do layout
+            recentesContainer.offsetHeight;
+            
+            const scrollWidth = recentesContainer.scrollWidth;
+            const clientWidth = recentesContainer.clientWidth;
+            const scrollLeft = recentesContainer.scrollLeft;
+            
+            // Verificar se há conteúdo para rolar
+            const hasOverflow = scrollWidth > clientWidth;
+            const canScrollLeft = scrollLeft > 5;
+            const canScrollRight = scrollLeft < (scrollWidth - clientWidth - 5);
+            
+            console.log('🔍 UpdateScrollButtons:', {
+                scrollWidth,
+                clientWidth,
+                scrollLeft,
+                hasOverflow,
+                canScrollLeft,
+                canScrollRight
+            });
+            
+            // Mostrar seta direita se houver overflow e não estiver no final
+            if (hasOverflow && canScrollRight) {
+                recentesScrollRight.classList.remove('hidden');
+                console.log('✅ Seta direita VISÍVEL');
+            } else {
+                recentesScrollRight.classList.add('hidden');
+                console.log('❌ Seta direita OCULTA');
+            }
+            
+            // Mostrar seta esquerda se houver scroll para a esquerda
+            if (canScrollLeft) {
+                recentesScrollLeft.classList.remove('hidden');
+                console.log('✅ Seta esquerda VISÍVEL');
+            } else {
+                recentesScrollLeft.classList.add('hidden');
+                console.log('❌ Seta esquerda OCULTA');
+            }
+        }
+
+        recentesContainer?.addEventListener('scroll', updateScrollButtons);
+        
+        // Observar mudanças no tamanho do container
+        if (recentesContainer && window.ResizeObserver) {
+            const resizeObserver = new ResizeObserver(() => {
+                updateScrollButtons();
+            });
+            resizeObserver.observe(recentesContainer);
+        }
+
+        // Criar pasta (input inline)
+        createFolderBtn?.addEventListener('click', () => {
+            // Esconder botão e mostrar input
+            createFolderBtn.style.display = 'none';
+            const inputContainer = document.createElement('div');
+            inputContainer.className = 'flex items-center gap-2';
+            inputContainer.innerHTML = `
+                <input type="text" id="newFolderNameInput" placeholder="Nome da pasta" 
+                       class="px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-600"
+                       onkeypress="if(event.key === 'Enter') window.createFolderInline()">
+                <button onclick="window.createFolderInline()" class="px-4 py-2 bg-purple-600 text-white rounded-lg text-sm hover:bg-purple-700 transition-all">
+                    <i class="fas fa-check"></i>
+                </button>
+                <button onclick="window.cancelCreateFolder()" class="px-4 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50 transition-all">
+                    <i class="fas fa-times"></i>
+                </button>
+            `;
+            createFolderBtn.parentElement.appendChild(inputContainer);
+            document.getElementById('newFolderNameInput').focus();
+        });
+
+        window.createFolderInline = async () => {
+            const input = document.getElementById('newFolderNameInput');
+            const folderName = input?.value?.trim();
+            
+            if (!folderName) {
+                alert('Digite um nome para a pasta');
+                return;
+            }
+
+            try {
+                await foldersService.createFolder(currentProjectId, { name: folderName });
+                await loadFolders();
+                
+                // Restaurar botão
+                const inputContainer = input.closest('div');
+                if (inputContainer) inputContainer.remove();
+                if (createFolderBtn) createFolderBtn.style.display = 'inline-flex';
+            } catch (error) {
+                console.error('❌ Erro ao criar pasta:', error);
+                alert('Erro ao criar pasta: ' + error.message);
+            }
+        };
+
+        window.cancelCreateFolder = () => {
+            const input = document.getElementById('newFolderNameInput');
+            if (input) {
+                const inputContainer = input.closest('div');
+                if (inputContainer) inputContainer.remove();
+            }
+            if (createFolderBtn) createFolderBtn.style.display = 'inline-flex';
+        };
+
+        // Ver mais apresentações
+        loadMoreBtn?.addEventListener('click', () => {
+            displayedCount += 12;
+            renderAllPresentations();
+        });
+
+        // Carregar dados do projeto
+        async function loadProject() {
+            try {
+                const projects = await projectsService.listProjects();
+                const project = projects.find(p => p.id === currentProjectId);
+                
+                if (project) {
+                    currentProject = project;
+                    projectNameEl.textContent = project.name;
+
+                    // Logo agora é carregada via branding (loadBrandingLogo)
+                } else {
+                    projectNameEl.textContent = 'Projeto não encontrado';
+                }
+            } catch (error) {
+                console.error('Erro ao carregar projeto:', error);
+                projectNameEl.textContent = 'Erro ao carregar';
+            }
+        }
+
+        // Carregar apresentações salvas
+        async function loadPresentations() {
+            try {
+                console.log('📥 Carregando apresentações...');
+                presentationsLoading.classList.remove('hidden');
+                presentationsEmpty.classList.add('hidden');
+                presentationsContent.classList.add('hidden');
+
+                const [presentations, folders] = await Promise.all([
+                    presentationsService.listPresentations(currentProjectId),
+                    foldersService.listFolders(currentProjectId).catch((err) => {
+                        console.warn('⚠️ Erro ao carregar pastas:', err);
+                        return [];
+                    })
+                ]);
+
+                console.log('✅ Apresentações carregadas:', presentations.length);
+                console.log('✅ Pastas carregadas:', folders.length);
+                
+                allPresentations = presentations;
+                allFolders = folders;
+                
+                presentationsLoading.classList.add('hidden');
+                
+                if (presentations.length === 0) {
+                    console.log('ℹ️ Nenhuma apresentação encontrada');
+                    presentationsEmpty.classList.remove('hidden');
+                    totalPresentations.textContent = '0';
+                    lastPresentation.textContent = '-';
+                    platformsStats.innerHTML = '<span class="text-sm text-gray-500">Nenhuma</span>';
+                } else {
+                    console.log('🎨 Renderizando apresentações...');
+                    presentationsContent.classList.remove('hidden');
+                    updateStatistics(presentations);
+                    renderRecentPresentations();
+                    renderFolders();
+                    renderAllPresentations();
+                    
+                    // Garantir que o botão de criar pasta está visível após carregar
+                    setTimeout(() => {
+                        if (createFolderBtn) {
+                            console.log('✅ Garantindo visibilidade do botão criar pasta');
+                            createFolderBtn.style.display = 'inline-flex';
+                            createFolderBtn.style.visibility = 'visible';
+                            createFolderBtn.style.opacity = '1';
+                        }
+                    }, 100);
+                    
+                    console.log('✅ Renderização completa');
+                }
+            } catch (error) {
+                console.error('❌ ERRO ao carregar apresentações:', error);
+                console.error('Stack:', error.stack);
+                presentationsLoading.classList.add('hidden');
+                presentationsEmpty.classList.remove('hidden');
+            }
+        }
+
+        // Carregar pastas
+        async function loadFolders() {
+            try {
+                allFolders = await foldersService.listFolders(currentProjectId);
+                renderFolders();
+            } catch (error) {
+                console.error('Erro ao carregar pastas:', error);
+            }
+        }
+
+        // Atualizar estatísticas
+        function updateStatistics(presentations) {
+            // Total de Apresentações
+            totalPresentations.textContent = presentations.length;
+
+            // Última Apresentação
+            const sortedByDate = [...presentations].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+            if (sortedByDate.length > 0) {
+                const last = new Date(sortedByDate[0].createdAt);
+                const now = new Date();
+                const diffMs = now - last;
+                const diffMins = Math.floor(diffMs / 60000);
+                const diffHours = Math.floor(diffMs / 3600000);
+                const diffDays = Math.floor(diffMs / 86400000);
+
+                let timeAgo = '';
+                if (diffMins < 60) {
+                    timeAgo = `${diffMins}min atrás`;
+                } else if (diffHours < 24) {
+                    timeAgo = `${diffHours}h atrás`;
+                } else {
+                    timeAgo = `${diffDays}d atrás`;
+                }
+
+                lastPresentation.textContent = timeAgo;
+            } else {
+                lastPresentation.textContent = '-';
+            }
+
+            // Plataformas
+            const platformCounts = {
+                meta: 0,
+                google: 0,
+                both: 0
+            };
+
+            presentations.forEach(presentation => {
+                if (platformCounts.hasOwnProperty(presentation.platform)) {
+                    platformCounts[presentation.platform]++;
+                }
+            });
+
+            let platformsHTML = '';
+            if (platformCounts.meta > 0 || platformCounts.both > 0) {
+                platformsHTML += `<div class="flex items-center gap-1"><i class="fab fa-facebook platform-icon-facebook text-lg"></i><span class="text-xs text-gray-600">${platformCounts.meta + platformCounts.both}</span></div>`;
+            }
+            if (platformCounts.google > 0 || platformCounts.both > 0) {
+                platformsHTML += `<div class="flex items-center gap-1"><i class="fab fa-google platform-icon-google text-lg"></i><span class="text-xs text-gray-600">${platformCounts.google + platformCounts.both}</span></div>`;
+            }
+
+            if (platformsHTML === '') {
+                platformsHTML = '<span class="text-sm text-gray-500">Nenhuma</span>';
+            }
+
+            platformsStats.innerHTML = platformsHTML;
+        }
+
+        // Função auxiliar para formatar "Criado há" ou "Editado há X tempo"
+        function getTimeAgo(date) {
+            const now = new Date();
+            const then = new Date(date);
+            const diffMs = now - then;
+            const diffMins = Math.floor(diffMs / 60000);
+            const diffHours = Math.floor(diffMs / 3600000);
+            const diffDays = Math.floor(diffMs / 86400000);
+
+            let timeStr = '';
+            if (diffMins < 60) {
+                timeStr = `${diffMins}min atrás`;
+            } else if (diffHours < 24) {
+                timeStr = `${diffHours}h atrás`;
+            } else if (diffDays < 30) {
+                timeStr = `${diffDays}d atrás`;
+            } else {
+                timeStr = then.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+            }
+            return timeStr;
+        }
+
+        // Renderizar card de apresentação (reutilizável)
+        function renderPresentationCard(presentation, isSmall = false, enableDrag = false) {
+            // Determinar se foi editado ou apenas criado
+            const wasEdited = presentation.updatedAt && presentation.updatedAt !== presentation.createdAt;
+            const timeAgo = getTimeAgo(presentation.updatedAt || presentation.createdAt);
+            const timeLabel = wasEdited ? 'Editado há' : 'Criado há';
+            
+            const preview = presentation.coverPreview || null;
+            // Aumentar cards em 15%: w-48 (192px) -> ~220px (custom class)
+            const cardClass = isSmall ? 'presentation-card-small flex-shrink-0' : 'w-full';
+            const cardStyle = preview ? `background-image: url('${preview}'); background-size: cover; background-position: center;` : '';
+            const draggableAttr = enableDrag ? 'draggable="true" ondragstart="handleDragStart(event, \'' + presentation.id + '\')" ondragend="handleDragEnd(event)"' : '';
+
+                return `
+                <div class="presentation-card ${cardClass} bg-white border border-gray-200 rounded-lg overflow-hidden hover:shadow-lg transition-all cursor-pointer group relative"
+                     data-presentation-id="${presentation.id}"
+                     ${draggableAttr}
+                     onclick="openPresentation('${presentation.id}', event)">
+                    
+                    <!-- Preview da Capa -->
+                    <div class="w-full h-32 bg-gradient-to-br from-purple-100 to-pink-100 relative" style="${cardStyle}">
+                        ${!preview ? '<div class="absolute inset-0 flex items-center justify-center"><i class="fas fa-presentation text-4xl text-gray-300"></i></div>' : ''}
+                        
+                        <!-- Menu "..." no hover -->
+                        <div class="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button onclick="event.stopPropagation(); showPresentationMenu(event, '${presentation.id}')" 
+                                    class="bg-white rounded-full p-2 shadow-lg hover:bg-gray-50">
+                                <i class="fas fa-ellipsis-v text-gray-600 text-xs"></i>
+                            </button>
+                        </div>
+                        </div>
+
+                    <!-- Conteúdo do Card -->
+                    <div class="p-3">
+                        <h4 class="text-sm font-semibold text-gray-900 mb-1 truncate">${presentation.presentationName || 'Sem nome'}</h4>
+                        <p class="text-xs text-gray-500">${timeLabel} ${timeAgo}</p>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Renderizar seção "Recentes" (últimas 8)
+        function renderRecentPresentations() {
+            if (!recentesContainer) {
+                console.error('❌ recentesContainer não encontrado!');
+                return;
+            }
+            
+            console.log('🔄 Renderizando Recentes...');
+            const recent = [...allPresentations]
+                .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+                .slice(0, 8);
+
+            console.log('📊 Cards recentes:', recent.length);
+            
+            // Cards em Recentes devem ser arrastáveis e do mesmo tamanho que "Todas apresentações"
+            recentesContainer.innerHTML = recent.map(p => renderPresentationCard(p, true, true)).join('');
+            
+            console.log('✅ Cards renderizados, atualizando setas...');
+            
+            // Forçar layout recalculation e atualizar setas
+            setTimeout(() => {
+                // Forçar reflow
+                recentesContainer.offsetHeight;
+                // Aguardar um frame para garantir que o layout foi calculado
+            requestAnimationFrame(() => {
+                const scrollWidth = recentesContainer.scrollWidth;
+                const clientWidth = recentesContainer.clientWidth;
+                console.log('📏 ScrollWidth:', scrollWidth, 'ClientWidth:', clientWidth, 'Diff:', scrollWidth - clientWidth);
+                updateScrollButtons();
+            });
+            }, 0);
+            
+            setTimeout(() => {
+                updateScrollButtons();
+            }, 100);
+            
+            setTimeout(() => {
+                updateScrollButtons();
+            }, 300);
+            
+            setTimeout(() => {
+                updateScrollButtons();
+            }, 600);
+        }
+
+        // Renderizar pastas
+        function renderFolders() {
+            if (!foldersGrid) {
+                console.warn('⚠️ foldersGrid não encontrado');
+                return;
+            }
+            
+            console.log('📁 Renderizando pastas...');
+            
+            // SEMPRE garantir que o botão de criar pasta está visível
+            if (createFolderBtn) {
+                console.log('✅ Botão criar pasta encontrado, garantindo visibilidade');
+                createFolderBtn.style.display = 'inline-flex';
+                createFolderBtn.style.visibility = 'visible';
+                createFolderBtn.style.opacity = '1';
+                createFolderBtn.removeAttribute('hidden');
+                createFolderBtn.classList.remove('hidden');
+            } else {
+                console.error('❌ createFolderBtn NÃO encontrado no DOM!');
+            }
+
+            if (allFolders.length === 0) {
+                foldersGrid.innerHTML = '<p class="col-span-full text-gray-500 text-sm">Nenhuma pasta criada ainda</p>';
+                return;
+            }
+
+            foldersGrid.innerHTML = allFolders.map(folder => {
+                // Filtrar apenas apresentações que realmente existem
+                const presentationIds = folder.presentationIds || [];
+                const validPresentationIds = presentationIds.filter(id => 
+                    allPresentations.some(p => p.id === id)
+                );
+                
+                // Atualizar contagem real
+                const realCount = validPresentationIds.length;
+                
+                // Se a contagem mudou, atualizar no Firestore (assíncrono, não bloqueia renderização)
+                if (realCount !== presentationIds.length) {
+                    foldersService.updateFolderPresentationIds(currentProjectId, folder.id, validPresentationIds)
+                        .catch(err => console.error('Erro ao atualizar IDs da pasta:', err));
+                }
+                
+                // Pegar preview da última apresentação válida na pasta
+                const folderPresentations = allPresentations.filter(p => 
+                    validPresentationIds.includes(p.id)
+                );
+                const lastPresentation = folderPresentations.sort((a, b) => 
+                    new Date(b.createdAt) - new Date(a.createdAt)
+                )[0];
+                const preview = lastPresentation?.coverPreview || null;
+
+                return `
+                    <div class="folder-card folder-card-small bg-transparent hover:bg-gray-50 rounded-lg p-4 transition-all cursor-pointer group relative"
+                         data-folder-id="${folder.id}"
+                         ondragover="handleDragOver(event)"
+                         ondrop="handleDrop(event, '${folder.id}')"
+                         ondragenter="handleDragEnter(event)"
+                         ondragleave="handleDragLeave(event)"
+                         onclick="openFolder('${folder.id}', event)">
+                        
+                        <!-- Ícone de pasta estilo Canva com preview dentro -->
+                        <div class="folder-icon-wrapper folder-drop-zone relative">
+                            <div class="folder-icon-canva">
+                                ${preview ? `
+                                    <div class="folder-preview-inside">
+                                        <img src="${preview}" alt="Preview">
+                                    </div>
+                                ` : `
+                                    <div class="folder-icon-empty-inside">
+                                        <i class="fas fa-folder"></i>
+                                    </div>
+                                `}
+                            </div>
+                            <div class="drop-overlay absolute inset-0 bg-blue-500 bg-opacity-20 border-2 border-blue-500 border-dashed hidden items-center justify-center rounded-lg">
+                                <span class="text-white font-semibold text-xs">Solte aqui</span>
+                            </div>
+                        </div>
+
+                        <!-- Conteúdo (nome e contagem) -->
+                        <div class="text-center relative">
+                            <h4 class="text-sm font-semibold text-gray-900 mb-1 truncate">${folder.name}</h4>
+                            <p class="text-xs text-gray-500">${realCount} apresentação(ões)</p>
+                            
+                            <!-- Botão de lixeira no hover -->
+                            <button onclick="event.stopPropagation(); deleteFolder('${folder.id}', event)" 
+                                    class="absolute top-0 right-0 opacity-0 group-hover:opacity-100 transition-opacity bg-red-500 hover:bg-red-600 text-white rounded-full p-1.5 shadow-lg">
+                                <i class="fas fa-trash text-xs"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Renderizar todas apresentações
+        function renderAllPresentations() {
+            if (!allPresentationsGrid) return;
+
+            const sorted = [...allPresentations]
+                .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+            const toDisplay = sorted.slice(0, displayedCount);
+            // Cards em "Todas apresentações" NÃO são arrastáveis, mas têm o mesmo tamanho
+            allPresentationsGrid.innerHTML = toDisplay.map(p => renderPresentationCard(p, true, false)).join('');
+
+            // Mostrar "Ver mais" se houver mais apresentações
+            if (sorted.length > displayedCount) {
+                loadMoreContainer.classList.remove('hidden');
+            } else {
+                loadMoreContainer.classList.add('hidden');
+            }
+        }
+
+        // Drag and Drop
+        window.handleDragStart = (event, presentationId) => {
+            draggedPresentationId = presentationId;
+            event.dataTransfer.effectAllowed = 'move';
+            event.dataTransfer.setData('text/plain', presentationId);
+            
+            // Adicionar classe de feedback visual
+            event.target.closest('.presentation-card').style.opacity = '0.5';
+        };
+
+        window.handleDragEnd = (event) => {
+            // Restaurar opacidade
+            event.target.closest('.presentation-card').style.opacity = '1';
+            draggedPresentationId = null;
+        };
+
+        window.handleDragOver = (event) => {
+            event.preventDefault();
+            event.dataTransfer.dropEffect = 'move';
+        };
+
+        window.handleDragEnter = (event) => {
+            event.preventDefault();
+            const folderCard = event.currentTarget;
+            const overlay = folderCard.querySelector('.drop-overlay');
+            if (overlay) {
+                overlay.classList.remove('hidden');
+                overlay.classList.add('flex');
+            }
+            folderCard.classList.add('border-blue-500');
+        };
+
+        window.handleDragLeave = (event) => {
+            const folderCard = event.currentTarget;
+            const overlay = folderCard.querySelector('.drop-overlay');
+            if (overlay) {
+                overlay.classList.add('hidden');
+                overlay.classList.remove('flex');
+            }
+            folderCard.classList.remove('border-blue-500');
+        };
+
+        window.handleDrop = async (event, folderId) => {
+            event.preventDefault();
+            event.stopPropagation();
+
+            // Remover feedback visual
+            const folderCard = event.currentTarget;
+            const overlay = folderCard.querySelector('.drop-overlay');
+            if (overlay) {
+                overlay.classList.add('hidden');
+                overlay.classList.remove('flex');
+            }
+            folderCard.classList.remove('border-blue-500');
+
+            // Restaurar opacidade do card arrastado
+            const allCards = document.querySelectorAll('.presentation-card');
+            allCards.forEach(card => card.style.opacity = '1');
+
+            if (!draggedPresentationId) {
+                draggedPresentationId = event.dataTransfer.getData('text/plain');
+            }
+
+            if (!draggedPresentationId) {
+                console.warn('⚠️ Nenhuma apresentação sendo arrastada');
+                return;
+            }
+
+            // Verificar se a apresentação já está na pasta
+            const folder = allFolders.find(f => f.id === folderId);
+            if (folder && folder.presentationIds && folder.presentationIds.includes(draggedPresentationId)) {
+                console.log('ℹ️ Apresentação já está nesta pasta');
+                
+                // Mostrar mensagem temporária (3 segundos)
+                showTemporaryMessage('Esta apresentação já está nesta pasta', 3000);
+                
+                // Restaurar opacidade
+                const allCards = document.querySelectorAll('.presentation-card');
+                allCards.forEach(card => card.style.opacity = '1');
+                
+                draggedPresentationId = null;
+                return;
+            }
+
+            // Remover de outras pastas (se estiver em alguma)
+            for (const f of allFolders) {
+                if (f.presentationIds && f.presentationIds.includes(draggedPresentationId)) {
+                    try {
+                        await foldersService.removePresentationFromFolder(currentProjectId, f.id, draggedPresentationId);
+                    } catch (error) {
+                        console.warn('⚠️ Erro ao remover de pasta anterior:', error);
+                    }
+                }
+            }
+
+            // Adicionar à pasta selecionada
+            try {
+                await foldersService.movePresentationToFolder(currentProjectId, folderId, draggedPresentationId);
+                console.log('✅ Apresentação movida para pasta com sucesso');
+                
+                // Recarregar dados
+                await loadPresentations();
+            } catch (error) {
+                console.error('❌ Erro ao mover apresentação:', error);
+                alert('Erro ao mover apresentação para pasta');
+            }
+
+            draggedPresentationId = null;
+        };
+
+        // Abrir apresentação
+        window.openPresentation = (presentationId, event) => {
+            if (event) event.stopPropagation();
+            console.log('Abrindo apresentação:', presentationId);
+            window.location.href = `visualizar-apresentacao.html?projectId=${currentProjectId}&id=${presentationId}`;
+        };
+
+        // Abrir pasta
+        window.openFolder = (folderId, event) => {
+            if (event && draggedPresentationId) {
+                // Se há um drag em andamento, não abrir pasta
+                return;
+            }
+            window.location.href = `pasta-detalhes.html?projectId=${currentProjectId}&folderId=${folderId}`;
+        };
+
+        // Função para mostrar mensagem temporária
+        function showTemporaryMessage(message, duration = 3000) {
+            // Remover mensagem anterior se existir
+            const existing = document.querySelector('.temporary-message');
+            if (existing) existing.remove();
+
+            const messageEl = document.createElement('div');
+            messageEl.className = 'temporary-message';
+            messageEl.textContent = message;
+            document.body.appendChild(messageEl);
+
+            setTimeout(() => {
+                messageEl.style.animation = 'slideIn 0.3s ease-out reverse';
+                setTimeout(() => messageEl.remove(), 300);
+            }, duration);
+        }
+
+        // Menu "..." da apresentação
+        window.showPresentationMenu = async (event, presentationId) => {
+            event.stopPropagation();
+            
+            // Remover menu anterior se existir
+            const existingMenu = document.querySelector('.presentation-menu-dropdown');
+            if (existingMenu) existingMenu.remove();
+            
+            // Criar menu dropdown
+            const menu = document.createElement('div');
+            menu.className = 'presentation-menu-dropdown absolute right-0 top-10 bg-white border border-gray-200 rounded-lg shadow-lg z-50 py-2 min-w-[150px]';
+            
+            // Função para fechar menu
+            const closeMenu = () => {
+                if (menu && menu.parentElement) {
+                    menu.remove();
+                }
+            };
+            
+            menu.innerHTML = `
+                <button onclick="window.closePresentationMenu(); window.renamePresentation('${presentationId}', event)" class="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2">
+                    <i class="fas fa-pencil-alt text-gray-400"></i>
+                    Renomear
+                </button>
+                <button onclick="window.closePresentationMenu(); window.movePresentation('${presentationId}')" class="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2">
+                    <i class="fas fa-folder text-gray-400"></i>
+                    Mover para pasta
+                </button>
+                <hr class="my-1">
+                <button onclick="window.closePresentationMenu(); window.deletePresentation('${presentationId}')" class="w-full px-4 py-2 text-left text-sm hover:bg-red-50 text-red-600 flex items-center gap-2">
+                    <i class="fas fa-trash text-red-600"></i>
+                    Excluir
+                </button>
+            `;
+
+            // Posicionar menu
+            const button = event.target.closest('button');
+            const rect = button.getBoundingClientRect();
+            menu.style.position = 'fixed';
+            menu.style.top = `${rect.bottom + 5}px`;
+            menu.style.right = `${window.innerWidth - rect.right}px`;
+
+            // Fechar menu ao clicar fora
+            const closeMenuOnOutsideClick = (e) => {
+                if (!menu.contains(e.target) && e.target !== button) {
+                    closeMenu();
+                    document.removeEventListener('click', closeMenuOnOutsideClick);
+                }
+            };
+
+            document.body.appendChild(menu);
+            
+            // Guardar referência global para poder fechar de qualquer lugar
+            window.currentPresentationMenu = menu;
+            window.closePresentationMenu = closeMenu;
+            
+            setTimeout(() => document.addEventListener('click', closeMenuOnOutsideClick), 100);
+        };
+
+        // Renomear apresentação (input inline)
+        window.renamePresentation = (presentationId, event) => {
+            if (event) event.stopPropagation();
+            
+            // Fechar menu se estiver aberto
+            if (window.closePresentationMenu) {
+                window.closePresentationMenu();
+            }
+            
+            const presentation = allPresentations.find(p => p.id === presentationId);
+            if (!presentation) return;
+
+            // Encontrar o card
+            const card = document.querySelector(`[data-presentation-id="${presentationId}"]`);
+            if (!card) return;
+
+            const titleEl = card.querySelector('h4');
+            if (!titleEl) return;
+
+            // Salvar título original
+            const originalTitle = titleEl.textContent;
+            
+            // Criar input inline
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.value = originalTitle;
+            input.className = 'w-full px-2 py-1 border border-purple-600 rounded text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-purple-600';
+            input.style.fontSize = 'inherit';
+            input.style.fontWeight = 'inherit';
+            
+            // Substituir título por input
+            titleEl.style.display = 'none';
+            titleEl.parentElement.insertBefore(input, titleEl);
+            input.focus();
+            input.select();
+
+            // Salvar ao pressionar Enter ou perder foco
+            const saveName = async () => {
+                const newName = input.value.trim();
+                if (!newName || newName === originalTitle) {
+                    // Cancelar
+                    input.remove();
+                    titleEl.style.display = '';
+                return;
+            }
+
+            try {
+                    await presentationsService.updatePresentation(currentProjectId, presentationId, {
+                        presentationName: newName
+                    });
+                    titleEl.textContent = newName;
+                    input.remove();
+                    titleEl.style.display = '';
+                    // Atualizar dados locais
+                    const presentationIndex = allPresentations.findIndex(p => p.id === presentationId);
+                    if (presentationIndex !== -1) {
+                        allPresentations[presentationIndex].presentationName = newName;
+                    }
+            } catch (error) {
+                    console.error('Erro ao renomear:', error);
+                    alert('Erro ao renomear apresentação');
+                    input.remove();
+                    titleEl.style.display = '';
+                }
+            };
+
+            input.addEventListener('blur', saveName);
+            input.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    input.blur();
+                } else if (e.key === 'Escape') {
+                    input.remove();
+                    titleEl.style.display = '';
+                }
+            });
+        };
+
+        // Toggle section (colapsar/expandir)
+        window.toggleSection = (sectionName) => {
+            const icon = document.getElementById(`${sectionName}Icon`);
+            const content = document.getElementById(`${sectionName}Content`);
+            
+            if (!icon || !content) return;
+
+            const isCollapsed = content.classList.contains('collapsed');
+            
+            if (isCollapsed) {
+                // Expandir
+                content.classList.remove('collapsed');
+                icon.classList.remove('fa-chevron-right');
+                icon.classList.add('fa-chevron-down');
+            } else {
+                // Colapsar
+                content.classList.add('collapsed');
+                icon.classList.remove('fa-chevron-down');
+                icon.classList.add('fa-chevron-right');
+            }
+        };
+
+        // Mover apresentação para pasta
+        window.movePresentation = async (presentationId) => {
+            // Fechar menu se estiver aberto
+            if (window.closePresentationMenu) {
+                window.closePresentationMenu();
+            }
+            
+            if (allFolders.length === 0) {
+                alert('Não há pastas disponíveis. Crie uma pasta primeiro.');
+                return;
+            }
+
+            const folderNames = allFolders.map(f => f.name);
+            const selectedIndex = prompt(`Escolha a pasta (1-${folderNames.length}):\n${folderNames.map((n, i) => `${i + 1}. ${n}`).join('\n')}`);
+            const index = parseInt(selectedIndex) - 1;
+
+            if (isNaN(index) || index < 0 || index >= allFolders.length) return;
+
+            try {
+                await foldersService.movePresentationToFolder(currentProjectId, allFolders[index].id, presentationId);
+                await loadPresentations();
+            } catch (error) {
+                console.error('Erro ao mover apresentação:', error);
+                alert('Erro ao mover apresentação');
+            }
+        };
+
+        // Deletar apresentação (remove de todos os lugares automaticamente)
+        window.deletePresentation = async (presentationId) => {
+            // Fechar menu se estiver aberto
+            if (window.closePresentationMenu) {
+                window.closePresentationMenu();
+            }
+            
+            if (!confirm('Tem certeza que deseja excluir esta apresentação? Ela será removida permanentemente de todos os lugares.')) {
+                return;
+            }
+
+            try {
+                // Remover de todas as pastas primeiro
+                for (const folder of allFolders) {
+                    if (folder.presentationIds && folder.presentationIds.includes(presentationId)) {
+                        try {
+                            await foldersService.removePresentationFromFolder(currentProjectId, folder.id, presentationId);
+                        } catch (error) {
+                            console.warn('⚠️ Erro ao remover de pasta:', error);
+                        }
+                    }
+                }
+                
+                // Deletar apresentação (remove automaticamente de Recentes, Pastas e Todas)
+                await presentationsService.deletePresentation(currentProjectId, presentationId);
+                await loadPresentations();
+            } catch (error) {
+                console.error('Erro ao deletar apresentação:', error);
+                alert('Erro ao deletar apresentação');
+            }
+        };
+
+        // Deletar pasta (confirmação inline, sem popup)
+        window.deleteFolder = async (folderId, event) => {
+            if (event) event.stopPropagation();
+            
+            const folder = allFolders.find(f => f.id === folderId);
+            if (!folder) return;
+            
+            // Criar overlay de confirmação inline
+            const card = document.querySelector(`[data-folder-id="${folderId}"]`);
+            if (!card) return;
+            
+            // Verificar se já existe confirmação
+            const existingConfirm = card.querySelector('.delete-confirmation');
+            if (existingConfirm) {
+                existingConfirm.remove();
+                return;
+            }
+            
+            const confirmDiv = document.createElement('div');
+            confirmDiv.className = 'delete-confirmation absolute inset-0 bg-white bg-opacity-95 rounded-lg flex flex-col items-center justify-center gap-3 p-4 z-50 border-2 border-red-200';
+            confirmDiv.innerHTML = `
+                <p class="text-sm font-semibold text-gray-900 text-center">Excluir pasta "${folder.name}"?</p>
+                <p class="text-xs text-gray-600 text-center">Esta ação não pode ser desfeita.</p>
+                <div class="flex gap-2">
+                    <button onclick="event.stopPropagation(); this.closest('.delete-confirmation').remove()" 
+                            class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg text-sm hover:bg-gray-300 transition-all">
+                        Cancelar
+                    </button>
+                    <button onclick="event.stopPropagation(); window.confirmDeleteFolder('${folderId}')" 
+                            class="px-4 py-2 bg-red-500 text-white rounded-lg text-sm hover:bg-red-600 transition-all">
+                        Excluir
+                    </button>
+                </div>
+            `;
+            
+            card.style.position = 'relative';
+            card.appendChild(confirmDiv);
+        };
+
+        // Confirmar exclusão da pasta
+        window.confirmDeleteFolder = async (folderId) => {
+            try {
+                await foldersService.deleteFolder(currentProjectId, folderId);
+                await loadPresentations();
+            } catch (error) {
+                console.error('Erro ao excluir pasta:', error);
+                alert('Erro ao excluir pasta');
+            }
+        };
+
+        // Carregar dados do usuário e mostrar link admin
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                // Admin check agora é feito pela sidebar unificada
+                await loadProject();
+                await loadPresentations();
+            }
+        });
+    </script>
+    <script type="module">
+        import { initSidebar } from './components/sidebar.js';
+        initSidebar('apresentacoes');
+    </script>
+</body>
+</html>

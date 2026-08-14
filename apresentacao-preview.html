@@ -1,0 +1,688 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Relatório de Resultados - Oral Centter</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Poppins', sans-serif;
+      background: #f0f0f0;
+      overflow-x: hidden;
+    }
+
+    .page {
+      width: 1280px;
+      height: 720px;
+      background: white;
+      margin: 20px auto;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+    }
+
+    /* === PÁGINA 1 - CAPA === */
+    .capa {
+      background: linear-gradient(180deg, #ffffff 0%, #f5f5f5 100%);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding: 50px 65px;
+      position: relative;
+    }
+
+    .capa-logo-horizontal {
+      position: absolute;
+      top: 40px;
+      left: 65px;
+      height: 50px;
+    }
+
+    .capa-content {
+      max-width: 600px;
+      z-index: 2;
+    }
+
+    .capa-title {
+      font-size: 62px;
+      font-weight: 700;
+      color: #1e5091;
+      line-height: 1.05;
+      margin-bottom: 50px;
+      letter-spacing: -1px;
+    }
+
+    .capa-title .destaque {
+      font-weight: 800;
+      color: #2563A8;
+    }
+
+    .capa-unidade {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 32px;
+      font-weight: 700;
+      color: #2563A8;
+      margin-bottom: 25px;
+    }
+
+    .capa-unidade-icon {
+      width: 35px;
+      height: 35px;
+      fill: #2563A8;
+    }
+
+    .capa-periodo {
+      display: inline-block;
+      border: 3px solid #2563A8;
+      border-radius: 8px;
+      padding: 14px 35px;
+      font-size: 24px;
+      color: #2563A8;
+      font-weight: 400;
+      background: white;
+    }
+
+    .capa-rocket {
+      position: absolute;
+      bottom: -80px;
+      right: -120px;
+      width: 700px;
+      height: 700px;
+      z-index: 1;
+      background: url('./assets/images/foguete.png') center/contain no-repeat;
+    }
+
+    .capa-footer {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 15px;
+      background: linear-gradient(90deg, #1e7fd4 0%, #2563A8 100%);
+    }
+
+    /* === PÁGINA 2 - RESULTADOS === */
+    .resultados {
+      padding: 45px 65px;
+      background: #ffffff;
+      position: relative;
+    }
+
+    .resultados-logo-horizontal {
+      position: absolute;
+      top: 40px;
+      right: 65px;
+      height: 42px;
+    }
+
+    .resultados-header {
+      margin-bottom: 35px;
+    }
+
+    .resultados-title {
+      font-size: 32px;
+      font-weight: 600;
+      color: #7B4397;
+      margin-bottom: 3px;
+      letter-spacing: 2px;
+    }
+
+    .resultados-subtitle {
+      font-size: 38px;
+      font-weight: 700;
+      color: #2563A8;
+      letter-spacing: 0px;
+    }
+
+    .resultados-container {
+      display: grid;
+      grid-template-columns: 1fr 1.4fr;
+      gap: 35px;
+    }
+
+    .resultados-left {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .card-white {
+      border: 3px solid #2563A8;
+      border-radius: 10px;
+      padding: 14px 24px;
+      background: white;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .card-white-label {
+      font-size: 19px;
+      color: #666;
+      font-weight: 400;
+    }
+
+    .card-white-value {
+      font-size: 26px;
+      color: #2563A8;
+      font-weight: 600;
+    }
+
+    .resultados-right {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .card-purple {
+      border-radius: 10px;
+      background: #7B4397;
+      padding: 14px 26px;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      align-items: center;
+      gap: 20px;
+    }
+
+    .card-purple-metric {
+      font-size: 21px;
+      color: white;
+      font-weight: 400;
+    }
+
+    .card-purple-cost {
+      background: white;
+      border-radius: 8px;
+      padding: 8px 20px;
+      font-size: 19px;
+      color: #666;
+      font-weight: 400;
+      white-space: nowrap;
+    }
+
+    .resultados-footer {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 15px;
+      background: #7B4397;
+    }
+
+    /* === PÁGINA 3 - RANKING === */
+    .ranking {
+      background: #7B4397;
+      padding: 50px 65px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .ranking::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-image: 
+        repeating-linear-gradient(
+          45deg,
+          transparent,
+          transparent 70px,
+          rgba(255,255,255,0.02) 70px,
+          rgba(255,255,255,0.02) 140px
+        );
+      pointer-events: none;
+    }
+
+    .ranking-logo-circle {
+      position: absolute;
+      top: 45px;
+      right: 65px;
+      width: 80px;
+      height: 80px;
+      z-index: 2;
+    }
+
+    .ranking-title {
+      font-size: 48px;
+      font-weight: 700;
+      color: white;
+      margin-bottom: 40px;
+      text-transform: uppercase;
+      line-height: 1.15;
+      letter-spacing: 2px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .ranking-cards {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 26px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .ranking-card {
+      background: white;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 5px 20px rgba(0,0,0,0.25);
+    }
+
+    .ranking-card-image {
+      width: 100%;
+      height: 250px;
+      background: linear-gradient(135deg, #e0e0e0 0%, #f5f5f5 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .ranking-card-image img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .ranking-card-play {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 55px;
+      height: 55px;
+      background: rgba(255,255,255,0.95);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+
+    .ranking-card-play::after {
+      content: '';
+      width: 0;
+      height: 0;
+      border-left: 18px solid #7B4397;
+      border-top: 11px solid transparent;
+      border-bottom: 11px solid transparent;
+      margin-left: 3px;
+    }
+
+    .ranking-card-info {
+      background: white;
+      padding: 16px;
+      text-align: center;
+    }
+
+    .ranking-card-leads {
+      font-size: 17px;
+      color: #1e5091;
+      font-weight: 700;
+      margin-bottom: 3px;
+    }
+
+    .ranking-card-cpl {
+      font-size: 20px;
+      color: #7B4397;
+      font-weight: 700;
+    }
+
+    /* === PÁGINA 4 - PRÓXIMOS PASSOS === */
+    .proximos-passos {
+      display: grid;
+      grid-template-columns: 40% 60%;
+      height: 720px;
+    }
+
+    .passos-left {
+      background: linear-gradient(135deg, #1976D2 0%, #1e5091 100%);
+      padding: 65px 45px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      position: relative;
+    }
+
+    .passos-title {
+      font-size: 45px;
+      font-weight: 700;
+      color: white;
+      text-transform: uppercase;
+      line-height: 1.1;
+      letter-spacing: 1px;
+    }
+
+    .passos-stepper {
+      display: flex;
+      align-items: center;
+      gap: 13px;
+      margin-top: auto;
+    }
+
+    .passos-step {
+      width: 47px;
+      height: 47px;
+      border-radius: 50%;
+      border: 3px solid white;
+      background: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+
+    .passos-step.completed::after {
+      content: '✓';
+      font-size: 26px;
+      color: #1976D2;
+      font-weight: 700;
+    }
+
+    .passos-step.empty {
+      background: transparent;
+    }
+
+    .passos-step-line {
+      width: 33px;
+      height: 3px;
+      background: white;
+    }
+
+    .passos-right {
+      background: #f8f9fa;
+      padding: 65px 55px;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start;
+      position: relative;
+    }
+
+    .passos-right-title {
+      font-size: 30px;
+      color: #1e5091;
+      font-weight: 600;
+      margin-bottom: 35px;
+    }
+
+    .passos-list {
+      list-style: none;
+    }
+
+    .passos-list li {
+      font-size: 19px;
+      color: #1e5091;
+      margin-bottom: 24px;
+      padding-left: 24px;
+      position: relative;
+      line-height: 1.5;
+      font-weight: 400;
+    }
+
+    .passos-list li:before {
+      content: "○";
+      position: absolute;
+      left: 0;
+      font-size: 22px;
+      font-weight: 700;
+      color: #1e5091;
+    }
+
+    .passos-logo-horizontal {
+      position: absolute;
+      bottom: 40px;
+      right: 55px;
+      height: 40px;
+    }
+
+    /* === PÁGINA 5 - OBRIGADO === */
+    .obrigado {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: white;
+      position: relative;
+    }
+
+    .obrigado-logo {
+      width: 130px;
+      height: 130px;
+      margin-bottom: 35px;
+    }
+
+    .obrigado-text {
+      font-size: 80px;
+      font-weight: 700;
+      color: #2563A8;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+    }
+
+    /* PRINT STYLES */
+    @media print {
+      body {
+        background: white;
+      }
+      .page {
+        margin: 0;
+        box-shadow: none;
+        page-break-after: always;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ===== PÁGINA 1 - CAPA ===== -->
+  <div class="page capa">
+    <!-- Logo Horizontal -->
+    <svg class="capa-logo-horizontal" viewBox="0 0 300 70" xmlns="http://www.w3.org/2000/svg">
+      <!-- Ícone do sorriso -->
+      <circle cx="35" cy="35" r="30" fill="none" stroke="#2563A8" stroke-width="5"/>
+      <path d="M 20 40 Q 35 50 50 40" fill="none" stroke="#2563A8" stroke-width="5" stroke-linecap="round"/>
+      <!-- Texto -->
+      <text x="75" y="35" font-family="Poppins" font-size="28" font-weight="700" fill="#2563A8">Oral</text>
+      <text x="145" y="35" font-family="Poppins" font-size="28" font-weight="400" fill="#666">Centter</text>
+      <text x="75" y="52" font-family="Poppins" font-size="9" font-weight="400" fill="#999" letter-spacing="1">CLÍNICAS ODONTOLÓGICAS</text>
+    </svg>
+
+    <div class="capa-content">
+      <h1 class="capa-title">
+        RELATÓRIO DE<br>
+        <span class="destaque">RESULTADOS</span>
+      </h1>
+
+      <div class="capa-unidade">
+        <svg class="capa-unidade-icon" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+        </svg>
+        <span>Januária</span>
+      </div>
+
+      <div class="capa-periodo">
+        01 a 31 de Julho 2025
+      </div>
+    </div>
+
+    <!-- Foguete 3D (Imagem) -->
+    <div class="capa-rocket"></div>
+
+    <div class="capa-footer"></div>
+  </div>
+
+  <!-- ===== PÁGINA 2 - RESULTADOS ===== -->
+  <div class="page resultados">
+    <!-- Logo Horizontal -->
+    <svg class="resultados-logo-horizontal" viewBox="0 0 300 70" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="35" cy="35" r="30" fill="none" stroke="#2563A8" stroke-width="5"/>
+      <path d="M 20 40 Q 35 50 50 40" fill="none" stroke="#2563A8" stroke-width="5" stroke-linecap="round"/>
+      <text x="75" y="35" font-family="Poppins" font-size="28" font-weight="700" fill="#2563A8">Oral</text>
+      <text x="145" y="35" font-family="Poppins" font-size="28" font-weight="400" fill="#666">Centter</text>
+      <text x="75" y="52" font-family="Poppins" font-size="9" font-weight="400" fill="#999" letter-spacing="1">CLÍNICAS ODONTOLÓGICAS</text>
+    </svg>
+
+    <div class="resultados-header">
+      <div class="resultados-title">RESULTADOS</div>
+      <div class="resultados-subtitle">TRÁFEGO PAGO</div>
+    </div>
+
+    <div class="resultados-container">
+      <!-- Coluna Esquerda - Cards Brancos -->
+      <div class="resultados-left">
+        <div class="card-white">
+          <span class="card-white-label">Investimento</span>
+          <span class="card-white-value">R$ 1.453,22</span>
+        </div>
+        <div class="card-white">
+          <span class="card-white-label">Faturamento</span>
+          <span class="card-white-value">R$ 18.132,93</span>
+        </div>
+        <div class="card-white">
+          <span class="card-white-label">Ticket médio</span>
+          <span class="card-white-value">R$ 1.132,93</span>
+        </div>
+        <div class="card-white">
+          <span class="card-white-label">Roi</span>
+          <span class="card-white-value">1.22</span>
+        </div>
+      </div>
+
+      <!-- Coluna Direita - Cards Roxos -->
+      <div class="resultados-right">
+        <div class="card-purple">
+          <span class="card-purple-metric">174.729 | Cliques</span>
+          <span class="card-purple-cost">CPC | R$ 6,48</span>
+        </div>
+        <div class="card-purple">
+          <span class="card-purple-metric">677 | Leads</span>
+          <span class="card-purple-cost">CPL | R$ 1,67</span>
+        </div>
+        <div class="card-purple">
+          <span class="card-purple-metric">52 | Orçamentos</span>
+          <span class="card-purple-cost">CPO | R$ 18,21</span>
+        </div>
+        <div class="card-purple">
+          <span class="card-purple-metric">10 | Vendas</span>
+          <span class="card-purple-cost">CPV | R$ 18,21</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="resultados-footer"></div>
+  </div>
+
+  <!-- ===== PÁGINA 3 - RANKING ===== -->
+  <div class="page ranking">
+    <!-- Logo Circular Branco -->
+    <svg class="ranking-logo-circle" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="60" cy="60" r="55" fill="white"/>
+      <circle cx="60" cy="60" r="40" fill="none" stroke="#7B4397" stroke-width="6"/>
+      <path d="M 40 65 Q 60 80 80 65" fill="none" stroke="#7B4397" stroke-width="6" stroke-linecap="round"/>
+    </svg>
+
+    <h2 class="ranking-title">RANKING<br>ANÚNCIOS</h2>
+
+    <div class="ranking-cards">
+      <!-- Card 1 -->
+      <div class="ranking-card">
+        <div class="ranking-card-image">
+          <img src="https://via.placeholder.com/400x380/e0e0e0/666?text=Anúncio+1" alt="Anúncio 1">
+        </div>
+        <div class="ranking-card-info">
+          <div class="ranking-card-leads">14 Leads</div>
+          <div class="ranking-card-cpl">R$12,32</div>
+        </div>
+      </div>
+
+      <!-- Card 2 -->
+      <div class="ranking-card">
+        <div class="ranking-card-image">
+          <img src="https://via.placeholder.com/400x380/e0e0e0/666?text=Anúncio+2" alt="Anúncio 2">
+          <div class="ranking-card-play"></div>
+        </div>
+        <div class="ranking-card-info">
+          <div class="ranking-card-leads">9 Leads</div>
+          <div class="ranking-card-cpl">R$15,56</div>
+        </div>
+      </div>
+
+      <!-- Card 3 -->
+      <div class="ranking-card">
+        <div class="ranking-card-image">
+          <img src="https://via.placeholder.com/400x380/e0e0e0/666?text=Anúncio+3" alt="Anúncio 3">
+          <div class="ranking-card-play"></div>
+        </div>
+        <div class="ranking-card-info">
+          <div class="ranking-card-leads">9 Leads</div>
+          <div class="ranking-card-cpl">R$15,56</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== PÁGINA 4 - PRÓXIMOS PASSOS ===== -->
+  <div class="page proximos-passos">
+    <!-- Lado Esquerdo - Azul -->
+    <div class="passos-left">
+      <h2 class="passos-title">PRÓXIMOS<br>PASSOS</h2>
+      
+      <div class="passos-stepper">
+        <div class="passos-step completed"></div>
+        <div class="passos-step-line"></div>
+        <div class="passos-step completed"></div>
+        <div class="passos-step-line"></div>
+        <div class="passos-step completed"></div>
+        <div class="passos-step-line"></div>
+        <div class="passos-step empty"></div>
+      </div>
+    </div>
+
+    <!-- Lado Direito - Branco -->
+    <div class="passos-right">
+      <h3 class="passos-right-title">Orientações:</h3>
+      
+      <ul class="passos-list">
+        <li>Precisamos de novos conteúdos para diminuir a frequência de visualização dos anúncios;</li>
+        <li>As campanhas de mensagem serão pausadas em breve.</li>
+      </ul>
+
+      <!-- Logo Horizontal -->
+      <svg class="passos-logo-horizontal" viewBox="0 0 300 70" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="35" cy="35" r="30" fill="none" stroke="#2563A8" stroke-width="5"/>
+        <path d="M 20 40 Q 35 50 50 40" fill="none" stroke="#2563A8" stroke-width="5" stroke-linecap="round"/>
+        <text x="75" y="35" font-family="Poppins" font-size="28" font-weight="700" fill="#2563A8">Oral</text>
+        <text x="145" y="35" font-family="Poppins" font-size="28" font-weight="400" fill="#666">Centter</text>
+        <text x="75" y="52" font-family="Poppins" font-size="9" font-weight="400" fill="#999" letter-spacing="1">CLÍNICAS ODONTOLÓGICAS</text>
+      </svg>
+    </div>
+  </div>
+
+  <!-- ===== PÁGINA 5 - OBRIGADO ===== -->
+  <div class="page obrigado">
+    <!-- Logo Circular Azul -->
+    <svg class="obrigado-logo" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="100" cy="100" r="90" fill="none" stroke="#2563A8" stroke-width="12"/>
+      <path d="M 60 110 Q 100 145 140 110" fill="none" stroke="#2563A8" stroke-width="12" stroke-linecap="round"/>
+    </svg>
+
+    <h1 class="obrigado-text">OBRIGADO!</h1>
+  </div>
+
+</body>
+</html>

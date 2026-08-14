@@ -1,0 +1,18 @@
+{
+  "name": "insightflow-reporter",
+  "version": "1.0.0",
+  "description": "Plataforma de relatórios de Meta Ads e Google Ads",
+  "main": "index.html",
+  "scripts": {
+    "dev": "vercel dev",
+    "build": "echo 'Build completed'",
+    "deploy": "vercel --prod"
+  },
+  "keywords": ["meta-ads", "google-ads", "reports", "analytics"],
+  "author": "Thiago",
+  "license": "MIT",
+  "dependencies": {
+    "@sendgrid/mail": "^7.7.0",
+    "node-fetch": "^2.6.7"
+  }
+}

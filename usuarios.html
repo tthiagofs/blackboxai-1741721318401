@@ -1,0 +1,761 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerenciar Usuários - Insightflow</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-gray-50 min-h-screen font-sans m-0 p-0">
+    <!-- Proteção de Auth (apenas admin) -->
+    <script type="module">
+        import { auth, db } from './config/firebase.js';
+        import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+        import { doc, getDoc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+        
+        console.log('⏳ [Usuários] Aguardando Firebase verificar autenticação...');
+        
+        onAuthStateChanged(auth, async (user) => {
+            console.log('🔔 [Usuários] onAuthStateChanged disparado - user:', user?.email || 'null');
+            
+            if (!user) {
+                console.warn('⚠️ [Usuários] Usuário NÃO autenticado - redirecionando para login');
+                window.location.href = '/login.html';
+                return;
+            }
+            
+            // Verificar se é admin
+            const userDoc = await getDoc(doc(db, 'users', user.uid));
+            if (!userDoc.exists() || userDoc.data().role !== 'admin') {
+                console.warn('⚠️ [Usuários] Usuário não é admin - redirecionando para dashboard');
+                alert('Acesso negado! Apenas administradores podem acessar esta página.');
+                window.location.href = '/home.html';
+                return;
+            }
+            
+            console.log('✅ [Usuários] Admin autenticado:', user.email);
+        });
+    </script>
+
+    <!-- Container Principal -->
+    <div class="flex min-h-screen w-full bg-gray-50">
+        <!-- Sidebar Unificada -->
+        <div id="app-sidebar"></div>
+
+        <!-- Conteúdo Principal -->
+        <main class="flex-1 p-10">
+            <!-- Header -->
+            <div class="mb-8 flex items-center justify-between">
+                <div>
+                    <h2 class="text-2xl font-bold text-gray-900 mb-1">Gerenciar Usuários</h2>
+                    <p class="text-sm text-gray-600">Gerencie usuários e convites pendentes</p>
+                </div>
+                <button 
+                    id="sendInviteBtn"
+                    class="bg-blue-600 text-white px-4 py-2 rounded text-sm font-medium hover:bg-blue-700 transition-all flex items-center"
+                >
+                    <i class="fas fa-plus mr-2"></i>
+                    Convidar Novos Usuários
+                </button>
+            </div>
+
+            <!-- Tabs -->
+            <div class="mb-6 border-b border-gray-200">
+                <nav class="flex space-x-8">
+                    <button 
+                        id="usersTab"
+                        class="tab-btn active pb-3 px-1 border-b-2 border-blue-600 text-blue-600 font-medium transition-all text-sm"
+                    >
+                        Usuários (3)
+                    </button>
+                    <button 
+                        id="invitesTab"
+                        class="tab-btn pb-3 px-1 border-b-2 border-transparent text-gray-500 hover:text-gray-700 font-medium transition-all text-sm"
+                    >
+                        Convites Pendentes (2)
+                    </button>
+                </nav>
+            </div>
+
+            <!-- Usuários Tab -->
+            <div id="usersContent" class="tab-content">
+                <!-- Lista de Usuários -->
+                <div class="bg-white border border-gray-200 rounded-lg overflow-hidden">
+                    <table class="w-full">
+                        <thead class="bg-gray-50 border-b border-gray-200">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">
+                                    Nome
+                                </th>
+                                <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">
+                                    Email
+                                </th>
+                                <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">
+                                    Tipo de Conta
+                                </th>
+                                <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">
+                                    Data de Cadastro
+                                </th>
+                                <th class="px-6 py-3 text-right text-xs font-semibold text-gray-600 uppercase">
+                                    Ações
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody id="usersTableBody" class="divide-y divide-gray-200">
+                            <!-- Loading State -->
+                            <tr id="usersLoading">
+                                <td colspan="5" class="px-6 py-12 text-center">
+                                    <div class="flex flex-col items-center">
+                                        <div class="animate-spin rounded-full h-12 w-12 border-b-4 border-blue-600 mb-4"></div>
+                                        <p class="text-gray-600">Carregando usuários...</p>
+                                    </div>
+                                </td>
+                            </tr>
+                            <!-- Empty State -->
+                            <tr id="usersEmpty" class="hidden">
+                                <td colspan="5" class="px-6 py-12 text-center">
+                                    <i class="fas fa-users text-5xl text-gray-300 mb-4"></i>
+                                    <p class="text-gray-600">Nenhum usuário encontrado</p>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Convites Tab -->
+            <div id="invitesContent" class="tab-content hidden">
+                <!-- Lista de Convites -->
+                <div class="bg-white border border-gray-200 rounded-lg overflow-hidden">
+                    <table class="w-full">
+                        <thead class="bg-gray-50 border-b border-gray-200">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">
+                                    Email
+                                </th>
+                                <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">
+                                    Enviado em
+                                </th>
+                                <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">
+                                    Expira em
+                                </th>
+                                <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">
+                                    Status
+                                </th>
+                                <th class="px-6 py-3 text-right text-xs font-semibold text-gray-600 uppercase">
+                                    Ações
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody id="invitesTableBody" class="divide-y divide-gray-200">
+                            <!-- Loading State -->
+                            <tr id="invitesLoading">
+                                <td colspan="5" class="px-6 py-12 text-center">
+                                    <div class="flex flex-col items-center">
+                                        <div class="animate-spin rounded-full h-12 w-12 border-b-4 border-blue-600 mb-4"></div>
+                                        <p class="text-gray-600">Carregando convites...</p>
+                                    </div>
+                                </td>
+                            </tr>
+                            <!-- Empty State -->
+                            <tr id="invitesEmpty" class="hidden">
+                                <td colspan="5" class="px-6 py-12 text-center">
+                                    <i class="fas fa-envelope text-5xl text-gray-300 mb-4"></i>
+                                    <p class="text-gray-600">Nenhum convite pendente</p>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modal Enviar Convite -->
+    <div id="inviteModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-xl shadow-2xl max-w-md w-full">
+            <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+                <h3 class="text-xl font-bold text-gray-900">
+                    Enviar Convite
+                </h3>
+                <button id="closeInviteModal" class="text-gray-500 hover:text-gray-700">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            
+            <form id="inviteForm" class="p-6 space-y-4">
+                <div>
+                    <label for="inviteEmail" class="block text-sm font-semibold text-gray-700 mb-2">
+                        Email do Convidado
+                    </label>
+                    <input 
+                        type="email" 
+                        id="inviteEmail" 
+                        class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                        placeholder="exemplo@email.com"
+                        required
+                    >
+                </div>
+
+                <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <h4 class="font-semibold text-blue-900 mb-2 text-sm">
+                        <i class="fas fa-info-circle mr-2"></i>
+                        Informações do Convite
+                    </h4>
+                    <ul class="text-xs text-blue-800 space-y-1">
+                        <li>• O link expira em <strong>24 horas</strong></li>
+                        <li>• O usuário criará sua própria senha</li>
+                        <li>• Um email será enviado automaticamente</li>
+                    </ul>
+                </div>
+
+                <div class="flex items-center space-x-3 pt-4">
+                    <button 
+                        type="button"
+                        id="cancelInviteBtn"
+                        class="flex-1 px-4 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 text-sm font-medium"
+                    >
+                        Cancelar
+                    </button>
+                    <button 
+                        type="submit"
+                        id="sendInviteSubmitBtn"
+                        class="flex-1 px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium"
+                    >
+                        <i class="fas fa-paper-plane mr-2"></i>
+                        Enviar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script type="module">
+        import { auth, db } from './config/firebase.js';
+        import { collection, query, getDocs, deleteDoc, doc, addDoc, where, orderBy } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+        import { authService } from './services/authService.js?v=1.4';
+
+        // Elements
+        const usersTab = document.getElementById('usersTab');
+        const invitesTab = document.getElementById('invitesTab');
+        const usersContent = document.getElementById('usersContent');
+        const invitesContent = document.getElementById('invitesContent');
+        const usersTableBody = document.getElementById('usersTableBody');
+        const invitesTableBody = document.getElementById('invitesTableBody');
+        
+        // Modal
+        const inviteModal = document.getElementById('inviteModal');
+        const sendInviteBtn = document.getElementById('sendInviteBtn');
+        const closeInviteModal = document.getElementById('closeInviteModal');
+        const cancelInviteBtn = document.getElementById('cancelInviteBtn');
+        const inviteForm = document.getElementById('inviteForm');
+
+        let allUsers = [];
+
+        async function sendInviteEmail(email, inviteLink) {
+            const response = await fetch('/api/send-invite', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ email, inviteLink }),
+            });
+
+            let responseData = null;
+            try {
+                responseData = await response.json();
+            } catch (_) {
+                responseData = null;
+            }
+
+            if (!response.ok) {
+                const errorMessage = responseData?.details || responseData?.error || `HTTP ${response.status}`;
+                throw new Error(errorMessage);
+            }
+
+            return responseData;
+        }
+
+        // Tabs
+        usersTab.addEventListener('click', () => {
+            switchTab('users');
+        });
+
+        invitesTab.addEventListener('click', () => {
+            switchTab('invites');
+            loadInvites();
+        });
+
+        function switchTab(tab) {
+            if (tab === 'users') {
+                usersTab.classList.add('active', 'border-blue-600', 'text-blue-600');
+                usersTab.classList.remove('border-transparent', 'text-gray-500');
+                invitesTab.classList.remove('active', 'border-blue-600', 'text-blue-600');
+                invitesTab.classList.add('border-transparent', 'text-gray-500');
+                usersContent.classList.remove('hidden');
+                invitesContent.classList.add('hidden');
+            } else {
+                invitesTab.classList.add('active', 'border-blue-600', 'text-blue-600');
+                invitesTab.classList.remove('border-transparent', 'text-gray-500');
+                usersTab.classList.remove('active', 'border-blue-600', 'text-blue-600');
+                usersTab.classList.add('border-transparent', 'text-gray-500');
+                invitesContent.classList.remove('hidden');
+                usersContent.classList.add('hidden');
+            }
+        }
+
+        // Carregar usuários
+        async function loadUsers() {
+            try {
+                console.log('🔍 [Usuários] Iniciando carregamento...');
+                const usersQuery = query(collection(db, 'users'), orderBy('createdAt', 'desc'));
+                const snapshot = await getDocs(usersQuery);
+                
+                console.log('📊 [Usuários] Documentos encontrados:', snapshot.size);
+                
+                allUsers = snapshot.docs.map(doc => {
+                    const data = doc.data();
+                    console.log('👤 [Usuário]', doc.id, ':', data);
+                    return {
+                        id: doc.id,
+                        ...data
+                    };
+                });
+
+                console.log('✅ [Usuários] Total de usuários:', allUsers.length);
+                renderUsers(allUsers);
+                
+                // Atualizar contador na aba
+                usersTab.innerHTML = `Usuários (${allUsers.length})`;
+            } catch (error) {
+                console.error('❌ [Usuários] Erro ao carregar:', error);
+                document.getElementById('usersLoading').classList.add('hidden');
+                document.getElementById('usersEmpty').classList.remove('hidden');
+            }
+        }
+
+        function renderUsers(users) {
+            console.log('🎨 [renderUsers] Renderizando', users.length, 'usuários');
+            document.getElementById('usersLoading').classList.add('hidden');
+            
+            if (users.length === 0) {
+                console.log('⚠️ [renderUsers] Nenhum usuário para renderizar');
+                document.getElementById('usersEmpty').classList.remove('hidden');
+                usersTableBody.innerHTML = '';
+                return;
+            }
+
+            document.getElementById('usersEmpty').classList.add('hidden');
+            
+            const rowsHTML = users.map(user => {
+                console.log('🔧 [renderUsers] Processando usuário:', user.email);
+                
+                // Converter createdAt para data
+                let date = 'N/A';
+                if (user.createdAt) {
+                    try {
+                        // Se for Timestamp do Firestore
+                        if (user.createdAt.toDate) {
+                            date = user.createdAt.toDate().toLocaleDateString('pt-BR');
+                        } 
+                        // Se for string ISO
+                        else if (typeof user.createdAt === 'string') {
+                            date = new Date(user.createdAt).toLocaleDateString('pt-BR');
+                        }
+                        // Se for número (timestamp)
+                        else if (typeof user.createdAt === 'number') {
+                            date = new Date(user.createdAt).toLocaleDateString('pt-BR');
+                        }
+                    } catch (error) {
+                        console.error('❌ Erro ao converter data:', error, user.createdAt);
+                    }
+                }
+                
+                const roleClass = user.role === 'admin' ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800';
+                const roleText = user.role === 'admin' ? 'Administrador' : 'Usuário';
+                
+                // Verificar se é o admin (não pode ser deletado)
+                const isAdmin = user.email === 'thiagofelipefreire0810@gmail.com';
+                const deleteButton = isAdmin ? 
+                    `<span class="text-gray-400 text-sm italic">Protegido</span>` :
+                    `<button 
+                        onclick="deleteUser('${user.id}', '${user.email.replace(/'/g, "\\'")}')"
+                        class="text-red-600 hover:text-red-800 transition-colors"
+                        title="Excluir usuário"
+                    >
+                        <i class="fas fa-trash"></i>
+                    </button>`;
+
+                return `
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-6 py-3">
+                            <div class="flex items-center">
+                                <div class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 mr-3">
+                                    <i class="fas fa-user text-xs"></i>
+                                </div>
+                                <div class="font-medium text-gray-900 text-sm">${user.name || 'Sem nome'}</div>
+                            </div>
+                        </td>
+                        <td class="px-6 py-3 text-gray-700 text-sm">
+                            ${user.email}
+                        </td>
+                        <td class="px-6 py-3">
+                            <span class="px-2.5 py-1 rounded text-xs font-medium ${roleClass}">
+                                ${roleText}
+                            </span>
+                        </td>
+                        <td class="px-6 py-3 text-gray-700 text-sm">
+                            ${date}
+                        </td>
+                        <td class="px-6 py-3 text-right">
+                            ${deleteButton}
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+            
+            console.log('✅ [renderUsers] HTML gerado com sucesso');
+            usersTableBody.innerHTML = rowsHTML;
+        }
+
+        // Carregar convites
+        async function loadInvites() {
+            try {
+                const invitesQuery = query(collection(db, 'invites'), orderBy('createdAt', 'desc'));
+                const snapshot = await getDocs(invitesQuery);
+                
+                const invites = snapshot.docs.map(doc => ({
+                    id: doc.id,
+                    ...doc.data()
+                }));
+
+                renderInvites(invites);
+                
+                // Atualizar contador na aba
+                invitesTab.innerHTML = `Convites Pendentes (${invites.length})`;
+            } catch (error) {
+                console.error('Erro ao carregar convites:', error);
+                document.getElementById('invitesLoading').classList.add('hidden');
+                document.getElementById('invitesEmpty').classList.remove('hidden');
+            }
+        }
+
+        function renderInvites(invites) {
+            const loadingEl = document.getElementById('invitesLoading');
+            const emptyEl = document.getElementById('invitesEmpty');
+            
+            if (loadingEl) loadingEl.classList.add('hidden');
+            
+            if (invites.length === 0) {
+                if (emptyEl) emptyEl.classList.remove('hidden');
+                invitesTableBody.innerHTML = '';
+                return;
+            }
+
+            if (emptyEl) emptyEl.classList.add('hidden');
+            
+            invitesTableBody.innerHTML = invites.map(invite => {
+                const createdAt = new Date(invite.createdAt).toLocaleString('pt-BR');
+                const expiresAt = new Date(invite.expiresAt).toLocaleString('pt-BR');
+                const isExpired = new Date() > new Date(invite.expiresAt);
+
+                return `
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-6 py-3 text-gray-900 text-sm">
+                            ${invite.email}
+                        </td>
+                        <td class="px-6 py-3 text-gray-700 text-sm">
+                            ${createdAt}
+                        </td>
+                        <td class="px-6 py-3 text-gray-700 text-sm">
+                            ${expiresAt}
+                        </td>
+                        <td class="px-6 py-3">
+                            <span class="px-2.5 py-1 rounded text-xs font-medium ${isExpired ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'}">
+                                ${isExpired ? 'Expirado' : 'Ativo'}
+                            </span>
+                        </td>
+                        <td class="px-6 py-3 text-right">
+                            <div class="flex items-center justify-end gap-2">
+                                ${isExpired ? `
+                                    <button 
+                                        onclick="resendInvite('${invite.id}', '${invite.email.replace(/'/g, "\\'")}')"
+                                        class="text-blue-600 hover:text-blue-800 transition-colors"
+                                        title="Reenviar convite"
+                                    >
+                                        <i class="fas fa-redo"></i>
+                                    </button>
+                                ` : ''}
+                                <button 
+                                    onclick="deleteInvite('${invite.id}')"
+                                    class="text-red-600 hover:text-red-800 transition-colors"
+                                    title="Excluir convite"
+                                >
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        // Deletar convite
+        window.deleteInvite = async (inviteId) => {
+            if (!confirm('Tem certeza que deseja excluir este convite?')) {
+                return;
+            }
+
+            try {
+                await deleteDoc(doc(db, 'invites', inviteId));
+                alert('Convite excluído com sucesso!');
+                loadInvites();
+            } catch (error) {
+                console.error('Erro ao excluir convite:', error);
+                alert('Erro ao excluir convite. Tente novamente.');
+            }
+        };
+
+        // Reenviar convite
+        window.resendInvite = async (inviteId, email) => {
+            if (!confirm(`Deseja reenviar o convite para ${email}?\n\nO convite antigo será substituído por um novo com validade de 24 horas.`)) {
+                return;
+            }
+
+            try {
+                // 1. Deletar o convite antigo
+                await deleteDoc(doc(db, 'invites', inviteId));
+                
+                // 2. Criar novo convite
+                const expiresAt = new Date();
+                expiresAt.setHours(expiresAt.getHours() + 24);
+
+                await addDoc(collection(db, 'invites'), {
+                    email: email,
+                    createdAt: new Date().toISOString(),
+                    expiresAt: expiresAt.toISOString(),
+                    createdBy: auth.currentUser.uid
+                });
+
+                // 3. Enviar email
+                const inviteLink = `${window.location.origin}/cadastro.html?email=${encodeURIComponent(email)}`;
+                
+                try {
+                    await sendInviteEmail(email, inviteLink);
+                    console.log('✅ Email de convite reenviado');
+                    alert(`✅ Convite reenviado com sucesso para ${email}!`);
+                } catch (emailError) {
+                    console.warn('⚠️ Erro ao enviar email:', emailError);
+                    alert(`⚠️ Convite recriado, mas o e-mail não foi enviado.\n\nMotivo: ${emailError.message}\n\nVerifique SENDGRID_FROM_EMAIL (remetente verificado) e SENDGRID_API_KEY no Vercel.`);
+                }
+                loadInvites();
+                
+            } catch (error) {
+                console.error('Erro ao reenviar convite:', error);
+                alert('Erro ao reenviar convite. Tente novamente.');
+            }
+        };
+
+        // Modal
+        sendInviteBtn.addEventListener('click', () => {
+            inviteModal.classList.remove('hidden');
+        });
+
+        closeInviteModal.addEventListener('click', () => {
+            inviteModal.classList.add('hidden');
+            inviteForm.reset();
+        });
+
+        cancelInviteBtn.addEventListener('click', () => {
+            inviteModal.classList.add('hidden');
+            inviteForm.reset();
+        });
+
+        // Enviar convite
+        inviteForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const email = document.getElementById('inviteEmail').value.trim();
+            const submitBtn = document.getElementById('sendInviteSubmitBtn');
+
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Enviando...';
+
+            try {
+                // Verificar se já existe usuário com este email
+                const usersQuery = query(collection(db, 'users'), where('email', '==', email));
+                const usersSnapshot = await getDocs(usersQuery);
+                
+                if (!usersSnapshot.empty) {
+                    alert('Já existe um usuário com este email!');
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = '<i class="fas fa-paper-plane mr-2"></i>Enviar';
+                    return;
+                }
+
+                // Verificar se já existe convite pendente
+                const invitesQuery = query(collection(db, 'invites'), where('email', '==', email));
+                const invitesSnapshot = await getDocs(invitesQuery);
+                
+                if (!invitesSnapshot.empty) {
+                    alert('Já existe um convite pendente para este email!');
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = '<i class="fas fa-paper-plane mr-2"></i>Enviar';
+                    return;
+                }
+
+                // Criar convite
+                const expiresAt = new Date();
+                expiresAt.setHours(expiresAt.getHours() + 24);
+
+                await addDoc(collection(db, 'invites'), {
+                    email: email,
+                    createdAt: new Date().toISOString(),
+                    expiresAt: expiresAt.toISOString(),
+                    createdBy: auth.currentUser.uid
+                });
+
+                // Enviar email
+                const inviteLink = `${window.location.origin}/cadastro.html?email=${encodeURIComponent(email)}`;
+                
+                try {
+                    await sendInviteEmail(email, inviteLink);
+                    console.log('✅ Email de convite enviado');
+                    alert('Convite criado com sucesso! Um email foi enviado para ' + email);
+                } catch (emailError) {
+                    console.warn('⚠️ Erro ao enviar email:', emailError);
+                    alert(`⚠️ Convite criado, mas o e-mail não foi enviado.\n\nMotivo: ${emailError.message}\n\nVerifique SENDGRID_FROM_EMAIL (remetente verificado) e SENDGRID_API_KEY no Vercel.`);
+                }
+                inviteModal.classList.add('hidden');
+                inviteForm.reset();
+                
+                // Se estiver na aba de convites, recarregar
+                if (!invitesContent.classList.contains('hidden')) {
+                    loadInvites();
+                }
+
+            } catch (error) {
+                console.error('Erro ao enviar convite:', error);
+                alert('Erro ao enviar convite. Tente novamente.');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="fas fa-paper-plane mr-2"></i>Enviar';
+            }
+        });
+
+        // Deletar usuário
+        window.deleteUser = async (userId, userEmail) => {
+            console.log('🗑️ [deleteUser] Iniciando exclusão:', userId, userEmail);
+            
+            // Confirmação dupla
+            if (!confirm(`⚠️ ATENÇÃO!\n\nVocê está prestes a EXCLUIR permanentemente o usuário:\n\n📧 ${userEmail}\n\nEsta ação irá:\n• Deletar todos os projetos do usuário\n• Deletar todos os relatórios salvos\n• Deletar todas as análises pré-definidas\n• Remover a conta do sistema\n\nEsta ação NÃO PODE ser desfeita!\n\nDeseja continuar?`)) {
+                return;
+            }
+            
+            // Segunda confirmação
+            if (!confirm(`Confirme novamente: deseja realmente excluir ${userEmail}?`)) {
+                return;
+            }
+
+            try {
+                console.log('🔄 [deleteUser] Iniciando processo de exclusão...');
+                
+                // 1. Buscar todos os projetos do usuário
+                try {
+                    console.log('📁 [deleteUser] Buscando projetos do usuário...');
+                    const projectsQuery = query(
+                        collection(db, 'projects'), 
+                        where('ownerId', '==', userId)
+                    );
+                    const projectsSnapshot = await getDocs(projectsQuery);
+                    
+                    console.log(`📊 [deleteUser] Encontrados ${projectsSnapshot.size} projetos`);
+                    
+                    // 2. Deletar cada projeto e seus relatórios
+                    for (const projectDoc of projectsSnapshot.docs) {
+                        const projectId = projectDoc.id;
+                        console.log(`🗑️ [deleteUser] Deletando projeto: ${projectId}`);
+                        
+                        try {
+                            // 2.1. Deletar relatórios do projeto
+                            const reportsQuery = query(collection(db, `projects/${projectId}/reports`));
+                            const reportsSnapshot = await getDocs(reportsQuery);
+                            
+                            console.log(`  📄 [deleteUser] Deletando ${reportsSnapshot.size} relatórios do projeto`);
+                            
+                            for (const reportDoc of reportsSnapshot.docs) {
+                                try {
+                                    await deleteDoc(doc(db, `projects/${projectId}/reports/${reportDoc.id}`));
+                                    console.log(`    ✅ Relatório ${reportDoc.id} deletado`);
+                                } catch (reportError) {
+                                    console.error(`    ❌ Erro ao deletar relatório ${reportDoc.id}:`, reportError.message);
+                                    throw reportError;
+                                }
+                            }
+                            
+                            // 2.2. Deletar o projeto
+                            await deleteDoc(doc(db, 'projects', projectId));
+                            console.log(`  ✅ Projeto ${projectId} deletado`);
+                        } catch (projectError) {
+                            console.error(`  ❌ Erro ao deletar projeto ${projectId}:`, projectError.message);
+                            throw projectError;
+                        }
+                    }
+                } catch (projectsError) {
+                    console.error('❌ [deleteUser] Erro ao processar projetos:', projectsError.message);
+                    throw projectsError;
+                }
+                
+                // 3. Deletar templates de análise do usuário
+                try {
+                    console.log('💬 [deleteUser] Deletando templates de análise...');
+                    const templatesQuery = query(collection(db, `users/${userId}/analysisTemplates`));
+                    const templatesSnapshot = await getDocs(templatesQuery);
+                    
+                    console.log(`  📝 [deleteUser] Deletando ${templatesSnapshot.size} templates`);
+                    
+                    for (const templateDoc of templatesSnapshot.docs) {
+                        await deleteDoc(doc(db, `users/${userId}/analysisTemplates/${templateDoc.id}`));
+                    }
+                    console.log('  ✅ Templates deletados');
+                } catch (templatesError) {
+                    console.error('❌ [deleteUser] Erro ao deletar templates:', templatesError.message);
+                    throw templatesError;
+                }
+                
+                // 4. Deletar o documento do usuário
+                try {
+                    console.log('👤 [deleteUser] Deletando documento do usuário...');
+                    await deleteDoc(doc(db, 'users', userId));
+                    console.log('  ✅ Usuário deletado');
+                } catch (userError) {
+                    console.error('❌ [deleteUser] Erro ao deletar usuário:', userError.message);
+                    throw userError;
+                }
+                
+                console.log('✅ [deleteUser] Usuário excluído com sucesso!');
+                alert(`✅ Usuário ${userEmail} foi excluído com sucesso do Firestore!\n\n⚠️ ATENÇÃO IMPORTANTE:\nPara que este email possa ser usado novamente, você precisa deletar a conta do Firebase Authentication manualmente:\n\n1. Acesse: https://console.firebase.google.com\n2. Vá em Authentication → Users\n3. Encontre ${userEmail}\n4. Clique nos 3 pontinhos → Delete account\n\nSem isso, o email continuará "em uso" no sistema.`);
+                
+                // Recarregar lista de usuários
+                loadUsers();
+                
+            } catch (error) {
+                console.error('❌ [deleteUser] Erro ao excluir usuário:', error);
+                console.error('❌ [deleteUser] Stack:', error.stack);
+                alert(`❌ Erro ao excluir usuário:\n\n${error.message}\n\nVerifique o console para mais detalhes.`);
+            }
+        };
+
+        // Carregar usuários ao iniciar
+        loadUsers();
+    </script>
+
+    <!-- Inicializar Sidebar Unificada -->
+    <script type="module">
+        import { initSidebar } from './components/sidebar.js';
+        initSidebar('usuarios');
+    </script>
+</body>
+</html>

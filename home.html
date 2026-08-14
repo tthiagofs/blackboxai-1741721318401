@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Insightflow</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-gray-50 min-h-screen font-sans m-0 p-0">
+    <!-- Container Principal -->
+    <div class="flex min-h-screen w-full bg-gray-50">
+        <!-- Sidebar Unificada -->
+        <div id="app-sidebar"></div>
+
+        <!-- Conteúdo Principal -->
+        <main class="flex-1 p-10">
+            <!-- Header -->
+            <div class="mb-8 flex items-center justify-between">
+                <h2 class="text-2xl font-bold text-gray-900">Meus Projetos</h2>
+                <button id="newProjectBtn" class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-all flex items-center text-sm font-medium">
+                    <i class="fas fa-plus mr-2"></i>
+                    Criar Novo Projeto
+                </button>
+            </div>
+
+            <!-- Projetos -->
+            <div class="mb-8">
+                </div>
+
+            <!-- Grid de Projetos -->
+            <div id="projectsGrid" class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <!-- Loading State -->
+                <div id="projectsLoading" class="col-span-full flex items-center justify-center py-12">
+                    <div class="text-center">
+                        <div class="animate-spin rounded-full h-12 w-12 border-b-4 border-blue-600 mx-auto mb-4"></div>
+                        <p class="text-gray-600">Carregando projetos...</p>
+                    </div>
+                </div>
+
+                <!-- Empty State (será mostrado via JS se não houver projetos) -->
+                <div id="projectsEmpty" class="hidden col-span-full text-center py-12">
+                    <div class="bg-gray-50 rounded-xl p-12 border border-gray-200">
+                        <i class="fas fa-folder-open text-6xl text-gray-300 mb-4"></i>
+                        <h4 class="text-xl font-bold text-gray-800 mb-2">Nenhum projeto ainda</h4>
+                        <p class="text-gray-600 mb-6">Crie seu primeiro projeto para começar a gerar relatórios</p>
+                        <button onclick="document.getElementById('newProjectBtn').click()" class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-all">
+                            <i class="fas fa-plus mr-2"></i>
+                            Criar Primeiro Projeto
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modal Novo Projeto -->
+    <div id="newProjectModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div class="bg-white rounded-2xl p-8 max-w-md w-full mx-4 shadow-2xl">
+            <div class="flex items-center justify-between mb-6">
+                <h3 class="text-2xl font-bold text-gray-800">Novo Projeto</h3>
+                <button id="closeModalBtn" class="text-gray-500 hover:text-gray-700 transition-colors">
+                    <i class="fas fa-times text-2xl"></i>
+                </button>
+            </div>
+
+            <form id="newProjectForm">
+                <div class="mb-6">
+                    <label for="projectName" class="block text-sm font-semibold text-gray-700 mb-2">
+                        <i class="fas fa-folder text-blue-600 mr-2"></i>Nome do Projeto
+                    </label>
+                    <input 
+                        type="text" 
+                        id="projectName" 
+                        required
+                        placeholder="Ex: Campanha Black Friday 2025"
+                        class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-600 focus:outline-none transition-colors"
+                    >
+                </div>
+
+                <div class="flex gap-3">
+                    <button 
+                        type="button" 
+                        id="cancelProjectBtn"
+                        class="flex-1 px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-all"
+                    >
+                        Cancelar
+                    </button>
+                    <button 
+                        type="submit" 
+                        id="createProjectBtn"
+                        class="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-6 py-3 rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all disabled:opacity-50"
+                    >
+                        <i class="fas fa-check mr-2"></i>
+                        Criar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script type="module">
+        import { auth, db } from './config/firebase.js';
+        import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+        import { collection, getDocs } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+        import { authService } from './services/authService.js?v=1.3';
+        import { projectsService } from './services/projects.js?v=1.3';
+        import { connectionService } from './services/connectionService.js?v=1.0';
+
+        // Aguardar Firebase estar pronto antes de verificar autenticação
+        console.log('⏳ Aguardando Firebase verificar autenticação...');
+        
+        onAuthStateChanged(auth, async (user) => {
+            console.log('🔔 onAuthStateChanged disparado - user:', user?.email || 'null');
+            
+            if (!user) {
+                console.warn('⚠️ Usuário NÃO autenticado - redirecionando para login');
+                window.location.href = '/login.html';
+                return;
+            }
+            
+            console.log('✅ Usuário autenticado no dashboard:', user.email);
+            
+            // Carregar conexões salvas
+            try {
+                await connectionService.initialize();
+                console.log('✅ ConnectionService inicializado');
+            } catch (error) {
+                console.warn('⚠️ Erro ao inicializar ConnectionService:', error);
+            }
+            
+            initDashboard();
+        });
+
+        function initDashboard() {
+            console.log('🎯 Inicializando dashboard...');
+
+        // Elementos do DOM
+        const newProjectBtn = document.getElementById('newProjectBtn');
+        const newProjectModal = document.getElementById('newProjectModal');
+        const closeModalBtn = document.getElementById('closeModalBtn');
+        const cancelProjectBtn = document.getElementById('cancelProjectBtn');
+        const newProjectForm = document.getElementById('newProjectForm');
+        const projectNameInput = document.getElementById('projectName');
+        const projectsGrid = document.getElementById('projectsGrid');
+        const projectsLoading = document.getElementById('projectsLoading');
+        const projectsEmpty = document.getElementById('projectsEmpty');
+
+        // Carregar dados do usuário (admin check já é feito pela sidebar)
+        async function loadUserData() {
+            // Não precisa mais fazer nada aqui
+        }
+
+        // Modal Novo Projeto
+        newProjectBtn.addEventListener('click', () => {
+            newProjectModal.classList.remove('hidden');
+            projectNameInput.focus();
+        });
+
+        closeModalBtn.addEventListener('click', () => {
+            newProjectModal.classList.add('hidden');
+            projectNameInput.value = '';
+        });
+
+        cancelProjectBtn.addEventListener('click', () => {
+            newProjectModal.classList.add('hidden');
+            projectNameInput.value = '';
+        });
+
+        // Criar novo projeto
+        newProjectForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const projectName = projectNameInput.value.trim();
+            
+            if (!projectName) {
+                alert('Por favor, digite um nome para o projeto');
+                return;
+            }
+
+            const createBtn = document.getElementById('createProjectBtn');
+            createBtn.disabled = true;
+            createBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Criando...';
+
+            try {
+                const result = await projectsService.createProject(projectName);
+                
+                if (result.success) {
+                    newProjectModal.classList.add('hidden');
+                    projectNameInput.value = '';
+                    await loadProjects();
+                } else {
+                    alert('Erro ao criar projeto: ' + result.error);
+                }
+            } catch (error) {
+                console.error('Erro ao criar projeto:', error);
+                alert('Erro ao criar projeto. Tente novamente.');
+            } finally {
+                createBtn.disabled = false;
+                createBtn.innerHTML = '<i class="fas fa-check mr-2"></i>Criar';
+            }
+        });
+
+        // Carregar projetos
+        async function loadProjects() {
+            projectsLoading.classList.remove('hidden');
+            projectsEmpty.classList.add('hidden');
+            
+            // Limpar projetos existentes
+            const existingProjects = projectsGrid.querySelectorAll('.project-card');
+            existingProjects.forEach(card => card.remove());
+
+            try {
+                const projects = await projectsService.listProjects();
+                
+                projectsLoading.classList.add('hidden');
+                
+                if (projects.length === 0) {
+                    projectsEmpty.classList.remove('hidden');
+                } else {
+                    projects.forEach(project => {
+                        const projectCard = createProjectCard(project);
+                        projectsGrid.appendChild(projectCard);
+                    });
+                }
+            } catch (error) {
+                console.error('❌ Erro ao carregar projetos:', error);
+                console.error('Detalhes:', error.message);
+                projectsLoading.classList.add('hidden');
+                
+                // Mostrar mensagem de erro mas NÃO redirecionar
+                projectsEmpty.classList.remove('hidden');
+                const emptyDiv = document.getElementById('projectsEmpty');
+                emptyDiv.innerHTML = `
+                    <div class="col-span-full text-center py-12">
+                        <div class="bg-red-50 rounded-2xl p-12 shadow-md border-2 border-red-200">
+                            <i class="fas fa-exclamation-triangle text-6xl text-red-400 mb-4"></i>
+                            <h4 class="text-xl font-bold text-gray-800 mb-2">Erro ao carregar projetos</h4>
+                            <p class="text-gray-600 mb-4">${error.message || 'Erro desconhecido'}</p>
+                            <button onclick="location.reload()" class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-all">
+                                <i class="fas fa-sync mr-2"></i>
+                                Tentar Novamente
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        // Criar card de projeto
+        function createProjectCard(project) {
+            const card = document.createElement('div');
+            card.className = 'project-card bg-gradient-to-br from-white to-blue-50 rounded-xl p-6 border-2 border-blue-200 hover:shadow-xl hover:scale-102 transition-all cursor-pointer group relative';
+            
+            const date = project.createdAt?.toDate ? project.createdAt.toDate() : new Date(project.createdAt);
+            const formattedDate = date.toLocaleDateString('pt-BR', { day: 'numeric', month: 'long', year: 'numeric' });
+            
+            card.innerHTML = `
+                <!-- Botão Excluir (canto superior direito) -->
+                <button 
+                    onclick="deleteProject('${project.id}', event)" 
+                    class="absolute top-2 right-2 w-8 h-8 bg-red-100 text-red-600 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-200 flex items-center justify-center z-10"
+                    title="Excluir projeto">
+                    <i class="fas fa-trash text-xs"></i>
+                </button>
+                
+                <div class="mb-4" onclick="openProject('${project.id}')">
+                    <!-- Logo / Ícone -->
+                    <div class="w-16 h-16 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center mb-3 shadow-md overflow-hidden">
+                        ${project.logoUrl ? 
+                            `<img src="${project.logoUrl}" alt="${project.name}" class="w-full h-full object-cover">` :
+                            `<i class="fas fa-chart-line text-3xl text-white"></i>`
+                        }
+                    </div>
+                    
+                    <!-- Nome do Projeto -->
+                    <h4 class="text-xl font-bold text-gray-900 mb-2">${project.name}</h4>
+                    
+                    <!-- Data -->
+                    <div class="flex items-center gap-2 text-gray-600 mb-3">
+                        <i class="fas fa-calendar-alt text-xs"></i>
+                        <p class="text-xs">Criado em ${formattedDate}</p>
+                    </div>
+                    
+                    <!-- Informações Rápidas -->
+                    <div class="grid grid-cols-2 gap-2 mb-4">
+                        <div class="bg-white bg-opacity-60 rounded-lg p-2 backdrop-blur-sm">
+                            <div class="flex items-center gap-1 mb-1">
+                                <i class="fas fa-file-alt text-blue-600 text-xs"></i>
+                                <span class="text-xs text-gray-600">Relatórios</span>
+                            </div>
+                            <p class="text-base font-bold text-gray-900" id="reports-${project.id}">
+                                <i class="fas fa-spinner fa-spin text-gray-400"></i>
+                            </p>
+                        </div>
+                        <div class="bg-white bg-opacity-60 rounded-lg p-2 backdrop-blur-sm">
+                            <div class="flex items-center gap-1 mb-1">
+                                <i class="fas fa-building text-purple-600 text-xs"></i>
+                                <span class="text-xs text-gray-600">Unidades</span>
+                            </div>
+                            <p class="text-base font-bold text-gray-900" id="units-${project.id}">
+                                <i class="fas fa-spinner fa-spin text-gray-400"></i>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Botão Acessar -->
+                <button 
+                    onclick="openProject('${project.id}')" 
+                    class="w-full flex items-center justify-center bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-4 py-2.5 rounded-lg text-sm font-semibold hover:from-blue-700 hover:to-indigo-700 transition-all shadow-md">
+                    <i class="fas fa-arrow-right mr-2"></i>
+                    Acessar Projeto
+                </button>
+            `;
+            
+            // Buscar contagens de relatórios e unidades
+            loadProjectCounts(project.id);
+            
+            return card;
+        }
+
+        // Buscar contagens de relatórios e unidades
+        async function loadProjectCounts(projectId) {
+            try {
+                // Buscar unidades
+                const unitsSnapshot = await getDocs(collection(db, `projects/${projectId}/units`));
+                const unitsCount = unitsSnapshot.size;
+                
+                // Buscar relatórios
+                const reportsSnapshot = await getDocs(collection(db, `projects/${projectId}/reports`));
+                const reportsCount = reportsSnapshot.size;
+                
+                // Atualizar UI
+                const reportsEl = document.getElementById(`reports-${projectId}`);
+                const unitsEl = document.getElementById(`units-${projectId}`);
+                
+                if (reportsEl) reportsEl.textContent = reportsCount;
+                if (unitsEl) unitsEl.textContent = unitsCount;
+                
+            } catch (error) {
+                console.error('Erro ao buscar contagens:', error);
+                const reportsEl = document.getElementById(`reports-${projectId}`);
+                const unitsEl = document.getElementById(`units-${projectId}`);
+                if (reportsEl) reportsEl.textContent = '-';
+                if (unitsEl) unitsEl.textContent = '-';
+            }
+        }
+
+        // Abrir projeto
+        window.openProject = (projectId) => {
+            console.log('Abrindo projeto:', projectId);
+            localStorage.setItem('currentProject', projectId);
+            window.location.href = `/projeto.html?id=${projectId}`;
+        };
+
+        // Deletar projeto
+        window.deleteProject = async (projectId, event) => {
+            event.stopPropagation();
+            
+            if (confirm('Tem certeza que deseja excluir este projeto?')) {
+                try {
+                    await projectsService.deleteProject(projectId);
+                    await loadProjects();
+                } catch (error) {
+                    console.error('Erro ao deletar projeto:', error);
+                    alert('Erro ao deletar projeto');
+                }
+            }
+        };
+
+        // Inicializar
+        loadUserData();
+        loadProjects();
+        }
+    </script>
+    <script type="module">
+        import { initSidebar } from './components/sidebar.js';
+        initSidebar('home');
+    </script>
+</body>
+</html>
+

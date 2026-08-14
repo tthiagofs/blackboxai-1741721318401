@@ -14,18 +14,10 @@
         import { auth } from './config/firebase.js';
         import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
         
-        console.log('⏳ [Conexões] Aguardando Firebase verificar autenticação...');
-        
         onAuthStateChanged(auth, (user) => {
-            console.log('🔔 [Conexões] onAuthStateChanged disparado - user:', user?.email || 'null');
-            
             if (!user) {
-                console.warn('⚠️ [Conexões] Usuário NÃO autenticado - redirecionando para login');
                 window.location.href = '/login.html';
-                return;
             }
-            
-            console.log('✅ [Conexões] Usuário autenticado:', user.email);
         });
     </script>
 
@@ -111,27 +103,11 @@
                         </div>
                     </div>
 
-                    <!-- MCC input -->
-                    <div class="mb-4">
-                        <label class="block text-xs text-gray-600 mb-1">MCC (opcional)</label>
-                        <div class="flex gap-2">
-                            <input id="googleMccInput" type="text" placeholder="Ex: 123-456-7890 ou 1234567890" class="flex-1 border rounded px-2 py-1 text-sm" />
-                            <button id="saveMccBtn" class="bg-gray-200 text-gray-800 px-3 rounded text-sm">Salvar</button>
-                        </div>
-                        <p id="googleMccHint" class="text-xs text-gray-500 mt-2">Se informado, as contas serão listadas usando esse MCC como `login-customer-id`.</p>
-                    </div>
-
                     <button 
                         id="googleLoginBtn" 
                         class="w-full bg-blue-600 text-white py-2 px-4 rounded text-sm font-medium hover:bg-blue-700 transition-all flex items-center justify-center"
                     >
                         <span>Conectar Google Ads</span>
-                    </button>
-                    <button
-                        id="googleReconnectBtn"
-                        class="w-full mt-3 bg-yellow-600 text-white py-2 px-4 rounded text-sm font-medium hover:bg-yellow-700 transition-all flex items-center justify-center"
-                    >
-                        <span>Reconectar / Selecionar conta</span>
                     </button>
                 </div>
             </div>
@@ -149,28 +125,14 @@
         </main>
     </div>
 
-    <!-- Debug area para usuários leigos: mostrar contas Google retornadas -->
-    <div id="debugArea" class="fixed bottom-4 left-4 p-4 bg-white border rounded shadow-lg max-w-lg w-96 hidden z-50">
-        <div class="flex items-center justify-between mb-2">
-            <strong>Logs Google Ads</strong>
-            <div>
-                <button id="closeDebugBtn" class="text-sm text-gray-500 hover:text-gray-800 mr-2">Fechar</button>
-                <button id="downloadDebugBtn" class="bg-blue-600 text-white px-2 py-1 rounded text-sm">Baixar</button>
-            </div>
-        </div>
-        <div style="max-height:320px; overflow:auto; font-size:12px;" id="debugContent"></div>
-    </div>
-    <button id="showDebugBtn" style="position:fixed;bottom:16px;left:16px;z-index:60" class="bg-gray-800 text-white px-3 py-2 rounded text-sm">Mostrar detalhes Google</button>
-
     <!-- Scripts -->
     <script async defer crossorigin="anonymous" src="https://connect.facebook.net/en_US/sdk.js"></script>
     <script type="module">
         import { auth } from './config/firebase.js';
         import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
-        import { fbAuth } from './auth.js?v=2.11';
-        import { googleAuth } from './authGoogle.js?v=2.11';
-        import { connectionService } from './services/connectionService.js?v=1.1';
-        import { authService } from './services/authService.js?v=1.4';
+        import { fbAuth } from './auth.js';
+        import { googleAuth } from './authGoogle.js';
+        import { connectionService } from './services/connectionService.js';
 
         const loginBtn = document.getElementById('loginBtn');
         const googleLoginBtn = document.getElementById('googleLoginBtn');
@@ -180,37 +142,20 @@
         // Inicializar Google Auth
         await googleAuth.initialize().catch(err => console.error('Erro ao inicializar Google Auth:', err));
 
-        // Expor instâncias úteis globalmente para scripts não-module (campo MCC, etc.)
-        window.googleAuth = googleAuth;
-        window.updateConnectionStatus = updateConnectionStatus;
-
         // Verificar se veio de um erro de token expirado
         const urlParams = new URLSearchParams(window.location.search);
         if (urlParams.get('tokenExpired') === 'true') {
-            const alert = document.getElementById('tokenExpiredAlert');
-            if (alert) {
-                alert.classList.remove('hidden');
-                // Scroll suave até o alerta
-                setTimeout(() => {
-                    alert.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                }, 300);
-            }
+            document.getElementById('tokenExpiredAlert')?.classList.remove('hidden');
         }
 
-        // Verificar status de login ao carregar
+        // Verificar status de conexões
         async function updateConnectionStatus() {
             try {
-                // Aguardar Firebase autenticar
                 const user = auth.currentUser;
-                if (!user) {
-                    console.log('⏳ Aguardando autenticação do Firebase...');
-                    return;
-                }
+                if (!user) return;
 
                 await connectionService.initialize();
                 const status = connectionService.getConnectionStatus();
-                
-                console.log('📊 Status das conexões:', status);
 
                 // Status do Meta
                 if (status.meta.connected) {
@@ -221,8 +166,8 @@
                         </div>
                     `;
                     loginBtn.innerHTML = '<span>Reconectar</span>';
-                    loginBtn.classList.remove('bg-blue-600', 'hover:bg-blue-700');
-                    loginBtn.classList.add('bg-green-600', 'hover:bg-green-700');
+                    loginBtn.classList.replace('bg-blue-600', 'bg-green-600');
+                    loginBtn.classList.replace('hover:bg-blue-700', 'hover:bg-green-700');
                 }
 
                 // Status do Google
@@ -234,22 +179,21 @@
                         </div>
                     `;
                     googleLoginBtn.innerHTML = '<span>Reconectar</span>';
-                    googleLoginBtn.classList.remove('bg-blue-600', 'hover:bg-blue-700');
-                    googleLoginBtn.classList.add('bg-green-600', 'hover:bg-green-700');
+                    googleLoginBtn.classList.replace('bg-blue-600', 'bg-green-600');
+                    googleLoginBtn.classList.replace('hover:bg-blue-700', 'hover:bg-green-700');
                 }
             } catch (error) {
-                console.warn('⚠️ Erro ao verificar status de conexões:', error);
+                console.warn('Erro ao verificar status de conexões:', error);
             }
         }
 
         // Mostrar mensagem de erro
         function showErrorMessage(platform, message) {
-            // Tratamento especial para erros específicos
             let displayMessage = message;
             let isWarning = false;
             
             if (message.includes('DEVELOPER_TOKEN_INVALID') || message.includes('developer token')) {
-                displayMessage = 'O Developer Token do Google Ads está configurado para produção. Este é o ambiente de desenvolvimento/testes. Use o ambiente de produção para conectar ao Google Ads.';
+                displayMessage = 'O Developer Token do Google Ads está configurado para produção. Use o ambiente de produção para conectar ao Google Ads.';
                 isWarning = true;
             }
             
@@ -264,7 +208,6 @@
                     <div class="flex-1">
                         <h3 class="font-semibold text-${colorClass}-900">${isWarning ? 'Aviso' : 'Erro'} ao conectar ${platform}</h3>
                         <p class="text-sm text-${colorClass}-700 mt-1">${displayMessage}</p>
-                        ${!isWarning ? '<p class="text-xs text-' + colorClass + '-600 mt-2">Verifique o console para mais detalhes (F12)</p>' : ''}
                     </div>
                     <button onclick="this.parentElement.parentElement.remove()" class="text-${colorClass}-400 hover:text-${colorClass}-600">
                         <i class="fas fa-times"></i>
@@ -272,189 +215,46 @@
                 </div>
             `;
             document.body.appendChild(errorDiv);
-            
-            // Remover automaticamente após 15 segundos
-            setTimeout(() => {
-                errorDiv.remove();
-            }, 15000);
+            setTimeout(() => errorDiv.remove(), 15000);
         }
 
-        // Event listeners
+        // Meta Ads
         loginBtn.addEventListener('click', async () => {
             loginBtn.disabled = true;
             loginBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i><span>Conectando...</span>';
-            
             try {
                 await fbAuth.login();
-                console.log('✅ Login Meta realizado com sucesso');
                 await updateConnectionStatus();
             } catch (error) {
-                console.error('❌ Erro no login Meta:', error);
-                console.error('Detalhes:', error.message, error.stack);
+                console.error('Erro no login Meta:', error);
                 showErrorMessage('Meta Ads', error.message || 'Erro desconhecido');
             } finally {
                 loginBtn.disabled = false;
             }
         });
 
+        // Google Ads
         googleLoginBtn.addEventListener('click', async () => {
             googleLoginBtn.disabled = true;
             googleLoginBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i><span>Conectando...</span>';
-            
             try {
                 await googleAuth.login();
-                // Usar MCC salvo (se fornecido) ao buscar contas
-                const mcc = localStorage.getItem('google_ads_mcc') || null;
-                await googleAuth.fetchAccessibleAccounts(mcc);
-                console.log('✅ Login Google realizado com sucesso');
+                await googleAuth.fetchAccessibleAccounts();
                 await updateConnectionStatus();
             } catch (error) {
-                console.error('❌ Erro no login Google:', error);
-                console.error('Detalhes:', error.message, error.stack);
+                console.error('Erro no login Google:', error);
                 showErrorMessage('Google Ads', error.message || 'Erro desconhecido');
             } finally {
                 googleLoginBtn.disabled = false;
+                googleLoginBtn.innerHTML = '<span>Reconectar</span>';
             }
         });
 
-        // Reconectar e forçar seleção de conta (MCC)
-        const googleReconnectBtn = document.getElementById('googleReconnectBtn');
-        if (googleReconnectBtn) {
-            googleReconnectBtn.addEventListener('click', async () => {
-                googleReconnectBtn.disabled = true;
-                googleReconnectBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i><span>Reconectando...</span>';
-                try {
-                    // Forçar seleção de conta
-                    await googleAuth.loginWithAccount();
-                    const mcc = localStorage.getItem('google_ads_mcc') || null;
-                    await googleAuth.fetchAccessibleAccounts(mcc);
-                    await updateConnectionStatus();
-                } catch (err) {
-                    console.error('Erro ao reconectar/selecionar conta:', err);
-                    showErrorMessage('Google Ads', err.message || String(err));
-                } finally {
-                    googleReconnectBtn.disabled = false;
-                    googleReconnectBtn.innerHTML = '<span>Reconectar / Selecionar conta</span>';
-                }
-            });
-        }
-
-        // Carregar dados do usuário
-        async function loadUserData() {
-            // Função mantida para compatibilidade
-        }
-
-        // Aguardar autenticação antes de verificar status
+        // Carregar status ao autenticar
         onAuthStateChanged(auth, async (user) => {
             if (user) {
-                console.log('✅ Usuário autenticado, verificando conexões...');
-                await loadUserData();
                 await updateConnectionStatus();
             }
-        });
-    </script>
-
-    <script>
-        // Preencher input MCC com valor salvo
-        (function() {
-            try {
-                const input = document.getElementById('googleMccInput');
-                const saveBtn = document.getElementById('saveMccBtn');
-                const hint = document.getElementById('googleMccHint');
-                if (!input || !saveBtn) return;
-
-                const saved = localStorage.getItem('google_ads_mcc');
-                if (saved) input.value = saved;
-
-                saveBtn.addEventListener('click', async () => {
-                    const val = (input.value || '').toString().replace(/-/g, '').trim();
-                    if (!val) {
-                        localStorage.removeItem('google_ads_mcc');
-                        hint.textContent = 'MCC removido. Refaça a conexão para atualizar a lista.';
-                        return;
-                    }
-
-                    localStorage.setItem('google_ads_mcc', val);
-                    hint.textContent = 'MCC salvo. Refaça a conexão para listar contas via esse MCC.';
-
-                    // Tentar atualizar contas imediatamente se já autenticado
-                    try {
-                        if (window.googleAuth && window.googleAuth.fetchAccessibleAccounts) {
-                            await window.googleAuth.fetchAccessibleAccounts(val);
-                            // Atualizar status exibido
-                            if (typeof updateConnectionStatus === 'function') {
-                                await updateConnectionStatus();
-                            }
-                        }
-                    } catch (err) {
-                        console.warn('Erro ao recarregar contas com MCC salvo:', err);
-                    }
-                });
-            } catch (e) {
-                console.error('Erro ao inicializar MCC input:', e);
-            }
-        })();
-    </script>
-
-    <script>
-        // Funções para mostrar/baixar logs sem usar console
-        function formatJSON(v) {
-            try { return JSON.stringify(v, null, 2); } catch (e) { return String(v); }
-        }
-
-        async function buildDebugText() {
-            const out = [];
-            out.push('--- google_ads_accounts (localStorage) ---');
-            try {
-                const acc = JSON.parse(localStorage.getItem('google_ads_accounts') || 'null');
-                out.push(formatJSON(acc));
-            } catch (e) { out.push('Erro ao parsear google_ads_accounts: ' + e.message); }
-
-            out.push('\n--- google_ads_mcc (localStorage) ---');
-            out.push(localStorage.getItem('google_ads_mcc') || '(vazio)');
-
-            out.push('\n--- google_ads_access_token (existência) ---');
-            out.push(localStorage.getItem('google_ads_access_token') ? 'presente' : 'ausente');
-
-            out.push('\n--- connectionService (conexão salvo no Firestore) ---');
-            try {
-                const conn = JSON.parse(localStorage.getItem('connection_service_state') || 'null');
-                out.push(formatJSON(conn));
-            } catch (e) { out.push('(nenhum estado salvo localmente)'); }
-
-            out.push('\n--- google_ads_raw_response (API) ---');
-            try {
-                const raw = JSON.parse(localStorage.getItem('google_ads_raw_response') || 'null');
-                out.push(formatJSON(raw));
-            } catch (e) { out.push('(nenhum raw response salvo)'); }
-
-            return out.join('\n');
-        }
-
-        document.getElementById('showDebugBtn').addEventListener('click', async () => {
-            const area = document.getElementById('debugArea');
-            const content = document.getElementById('debugContent');
-            area.classList.remove('hidden');
-            content.textContent = 'Carregando...';
-            const txt = await buildDebugText();
-            content.textContent = txt;
-        });
-
-        document.getElementById('closeDebugBtn').addEventListener('click', () => {
-            document.getElementById('debugArea').classList.add('hidden');
-        });
-
-        document.getElementById('downloadDebugBtn').addEventListener('click', async () => {
-            const txt = await buildDebugText();
-            const blob = new Blob([txt], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'insightflow-google-ads-debug.txt';
-            document.body.appendChild(a);
-            a.click();
-            a.remove();
-            URL.revokeObjectURL(url);
         });
     </script>
 

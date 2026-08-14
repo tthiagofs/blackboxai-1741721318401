@@ -131,24 +131,17 @@ class GoogleAuthService {
     }
 
     // Buscar contas acessíveis via backend
-    async fetchAccessibleAccounts(loginCustomerId = null) {
+    async fetchAccessibleAccounts() {
         const token = await this.getAccessToken();
         if (!token) throw new Error('Não autenticado. Faça login primeiro.');
-
-        const mcc = loginCustomerId || localStorage.getItem('google_ads_mcc') || null;
 
         const res = await fetch('/api/google-ads', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ action: 'listAccounts', accessToken: token, loginCustomerId: mcc }),
+            body: JSON.stringify({ action: 'listAccounts', accessToken: token }),
         });
 
         const data = await res.json();
-        try {
-            localStorage.setItem('google_ads_raw_response', JSON.stringify(data));
-        } catch (e) {
-            console.warn('Não foi possível salvar resposta bruta:', e);
-        }
 
         if (!res.ok) throw new Error(data.error || 'Erro ao listar contas');
 

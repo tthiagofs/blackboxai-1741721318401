@@ -83,6 +83,7 @@ export default async function handler(req, res) {
 
 // Listar contas Google Ads acessíveis (diretas + filhas via MCC)
 async function listAccounts(accessToken, res) {
+  const debug = []; // Diagnóstico detalhado para retornar ao frontend
   try {
     if (!accessToken) {
       throw new Error('Access token é obrigatório para listar contas');
@@ -108,6 +109,7 @@ async function listAccounts(accessToken, res) {
 
     const data = await response.json();
     const customerIds = (data.resourceNames || []).map((name) => name.split('/').pop());
+    debug.push({ step: 'listAccessibleCustomers', ids: customerIds });
     console.log(`📋 ${customerIds.length} IDs acessíveis: ${customerIds.join(', ')}`);
 
     const allAccounts = [];
@@ -120,15 +122,15 @@ async function listAccounts(accessToken, res) {
     };
 
     // 2. Para cada ID: adicionar conta direta E sempre tentar expandir como MCC
-    //    Não dependemos de isManager — tentamos expansão em todos, pois customer_client
-    //    retorna vazio para contas que não são MCC (seguro e robusto)
     for (const customerId of customerIds) {
       // 2a. Obter info básica da conta
       let info = null;
       try {
         info = await getAccountInfo(customerId, accessToken);
+        debug.push({ step: 'getAccountInfo', id: customerId, name: info.name, isManager: info.isManager });
         console.log(`   • ${info.customerId} — ${info.name}${info.isManager ? ' (MCC)' : ' (conta de anúncio)'}`);
       } catch (error) {
+        debug.push({ step: 'getAccountInfo', id: customerId, error: error.message });
         console.warn(`⚠️ Não foi possível obter info de ${customerId}:`, error.message);
         info = { customerId, name: `Conta ${customerId}`, currency: 'BRL', isManager: null };
       }
@@ -142,37 +144,25 @@ async function listAccounts(accessToken, res) {
       }
 
       // 2c. SEMPRE tentar expandir via customer_client com esse ID como login-customer-id
-      //     Isso funciona para MCCs e retorna vazio (sem erro) para contas normais
-      console.log(`🔍 Tentando expansão MCC de ${customerId}...`);
-      try {
-        const children = await getAllClientsFromMCC(customerId, accessToken);
-        if (children.length > 0) {
-          console.log(`📂 ${customerId}: ${children.length} contas filhas encontradas`);
-          children.forEach(addAccount);
-        } else {
-          console.log(`ℹ️ ${customerId}: nenhuma conta filha (não é MCC ou sem permissão)`);
-        }
-      } catch (err) {
-        console.warn(`⚠️ Expansão de ${customerId} falhou:`, err.message);
+      const expansion = await getAllClientsFromMCC(customerId, accessToken, debug);
+      if (expansion.length > 0) {
+        console.log(`📂 ${customerId}: ${expansion.length} contas filhas encontradas`);
+        expansion.forEach(addAccount);
       }
     }
 
     console.log(`✅ Total: ${allAccounts.length} contas de anúncio`);
-    return res.status(200).json({ accounts: allAccounts });
+    return res.status(200).json({ accounts: allAccounts, debug });
   } catch (error) {
     console.error('❌ Erro ao listar contas:', error.message);
-    throw error;
+    return res.status(500).json({ error: error.message, debug });
   }
 }
 
 /**
  * Busca TODOS os clientes não-manager de uma MCC em uma única query plana.
- * Usa o próprio ID da MCC como login-customer-id.
- * A query customer_client retorna todos os descendentes (incluindo sub-MCC e seus filhos).
- * Filtramos level > 0 para excluir a própria MCC, e manager = false para excluir sub-MCCs.
  */
-async function getAllClientsFromMCC(mccCustomerId, accessToken) {
-  // Query plana: pega TODOS os clientes não-MCC sob essa conta, em qualquer nível
+async function getAllClientsFromMCC(mccCustomerId, accessToken, debug = []) {
   const query = `
     SELECT
       customer_client.id,
@@ -183,48 +173,70 @@ async function getAllClientsFromMCC(mccCustomerId, accessToken) {
       customer_client.status
     FROM customer_client
     WHERE customer_client.status IN ('ENABLED', 'PAUSED')
-      AND customer_client.level > 0
   `;
 
-  const response = await fetch(
-    `${GOOGLE_ADS_BASE}/customers/${mccCustomerId}/googleAds:searchStream`,
-    {
-      method: 'POST',
-      // CRÍTICO: usar o ID da MCC como login-customer-id
-      headers: buildGoogleAdsHeaders(accessToken, mccCustomerId),
-      body: JSON.stringify({ query })
-    }
-  );
+  try {
+    const response = await fetch(
+      `${GOOGLE_ADS_BASE}/customers/${mccCustomerId}/googleAds:searchStream`,
+      {
+        method: 'POST',
+        headers: buildGoogleAdsHeaders(accessToken, mccCustomerId),
+        body: JSON.stringify({ query })
+      }
+    );
 
-  if (!response.ok) {
-    const errorText = await response.text();
-    // 403 = não é MCC ou sem permissão — retornar vazio silenciosamente
-    if (response.status === 403) {
-      console.log(`ℹ️ ${mccCustomerId} sem permissão de MCC (403) — pulando`);
+    if (!response.ok) {
+      const errorBody = await response.text();
+      debug.push({
+        step: 'getAllClientsFromMCC',
+        id: mccCustomerId,
+        status: response.status,
+        error: errorBody.substring(0, 500)
+      });
+      console.error(`❌ getAllClientsFromMCC ${mccCustomerId}: HTTP ${response.status} — ${errorBody.substring(0, 400)}`);
       return [];
     }
-    // Outros erros: logar e retornar vazio para não quebrar o fluxo
-    console.error(`❌ getAllClientsFromMCC ${mccCustomerId}: ${response.status} — ${errorText.substring(0, 300)}`);
+
+    const data = await response.json();
+    const rows = flattenSearchStreamResults(data);
+
+    debug.push({
+      step: 'getAllClientsFromMCC',
+      id: mccCustomerId,
+      status: 200,
+      totalRows: rows.length,
+      sample: rows.slice(0, 3).map(r => ({
+        id: r.customerClient?.id,
+        name: r.customerClient?.descriptiveName,
+        manager: r.customerClient?.manager,
+        level: r.customerClient?.level
+      }))
+    });
+
+    console.log(`✅ customer_client de ${mccCustomerId}: ${rows.length} registros`);
+
+    return rows
+      .filter(row => {
+        const cc = row.customerClient;
+        if (!cc?.id) return false;
+        if (String(cc.id) === String(mccCustomerId)) return false;
+        if (cc.manager === true) return false;
+        return true;
+      })
+      .map(row => ({
+        customerId: String(row.customerClient.id),
+        name: row.customerClient.descriptiveName || `Conta ${row.customerClient.id}`,
+        currency: row.customerClient.currencyCode || 'BRL',
+        managedBy: String(mccCustomerId),
+        isManager: false
+      }));
+
+  } catch (err) {
+    debug.push({ step: 'getAllClientsFromMCC', id: mccCustomerId, exception: err.message });
+    console.error(`❌ getAllClientsFromMCC exception ${mccCustomerId}:`, err.message);
     return [];
   }
-
-  const data = await response.json();
-  const rows = flattenSearchStreamResults(data);
-  console.log(`✅ customer_client de ${mccCustomerId}: ${rows.length} registros`);
-
-  // Filtrar: só contas de anúncio (não MCCs)
-  return rows
-    .filter(row => row.customerClient?.id && row.customerClient.manager !== true)
-    .map(row => ({
-      customerId: String(row.customerClient.id),
-      name: row.customerClient.descriptiveName || `Conta ${row.customerClient.id}`,
-      currency: row.customerClient.currencyCode || 'BRL',
-      managedBy: String(mccCustomerId),
-      isManager: false
-    }));
 }
-
-
 
 // Buscar informações de uma conta específica
 async function getAccountInfo(customerId, accessToken, loginCustomerId = null) {
@@ -270,6 +282,7 @@ async function getAccountInfo(customerId, accessToken, loginCustomerId = null) {
     name: `Conta ${customerId}`,
     currency: 'BRL',
     isManager: false
+
   };
 }
 

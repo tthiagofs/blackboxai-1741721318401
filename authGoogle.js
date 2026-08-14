@@ -143,6 +143,23 @@ class GoogleAuthService {
 
         const data = await res.json();
 
+        // ▼ LOG DE DIAGNÓSTICO — abra F12 > Console para ver os detalhes
+        if (data.debug) {
+            console.group('🔍 [Google Ads] Diagnóstico da listagem de contas');
+            console.log('IDs acessíveis:', data.debug.find(d => d.step === 'listAccessibleCustomers')?.ids);
+            console.table(data.debug.filter(d => d.step === 'getAccountInfo'));
+            console.log('Expansões MCC:');
+            data.debug.filter(d => d.step === 'getAllClientsFromMCC').forEach(d => {
+                if (d.error || d.exception) {
+                    console.warn(`  ❌ ID ${d.id} HTTP ${d.status}:`, d.error || d.exception);
+                } else {
+                    console.log(`  ✅ ID ${d.id}: ${d.totalRows} registros raw | sample:`, d.sample);
+                }
+            });
+            console.log('Resultado final:', data.accounts?.length, 'contas');
+            console.groupEnd();
+        }
+
         if (!res.ok) throw new Error(data.error || 'Erro ao listar contas');
 
         if (Array.isArray(data.accounts) && data.accounts.length) {
@@ -159,6 +176,7 @@ class GoogleAuthService {
 
         return data.accounts || [];
     }
+
 
     getStoredAccounts() {
         try {

@@ -361,49 +361,39 @@ export function matchesTrafficRules(row, trafficSources, customKeywords) {
     return matchesPlatform || matchesCustom;
 }
 
-const MAINTENANCE_TERMS = [
-    'manutenção aparelho móvel',
-    'manutenção aparelho ortodôntico autoligado',
-    'manutenção aparelho ortodôntico safira',
-    'manutenção ortodôntica mensal',
-    'manutenção ortodôntica'
-];
+function isMaintenanceProcedureText(text, value) {
+    const procedure = (text || '').toString().trim().toLowerCase();
+    const val = Number(value || 0);
 
-function isMaintenanceProcedureText(text) {
-    const colH = (text || '').toString().trim();
-    const colHLower = colH.toLowerCase();
-
-    const hasMaintenance = MAINTENANCE_TERMS.some((term) => colHLower.includes(term));
-    if (!hasMaintenance) return false;
-    if (colH.includes(',')) return false;
-
-    return MAINTENANCE_TERMS.some((term) => {
-        const cleanedH = colHLower.replace(/\s+/g, ' ').trim();
-        const cleanedTerm = term.replace(/\s+/g, ' ').trim();
-        return cleanedH === cleanedTerm;
-    });
+    const hasKeyword = ['manutenção', 'manutencao', 'aparelho'].some((term) => procedure.includes(term));
+    
+    // Se possui a palavra-chave e o valor for menor que 180 reais, classifica como manutenção
+    return hasKeyword && val < 180;
 }
 
 function isMaintenanceProcedure(row) {
-    return isMaintenanceProcedureText((row.H || '').toString());
+    const val = parseMoney(row.J || row.value || 0);
+    return isMaintenanceProcedureText((row.H || '').toString(), val);
 }
 
 function isMaintenanceProcedureOc(row) {
+    const val = parseMoney(row.value || 0);
     return (
-        isMaintenanceProcedureText((row.J || '').toString()) ||
-        isMaintenanceProcedureText((row.K || '').toString())
+        isMaintenanceProcedureText((row.J || '').toString(), val) ||
+        isMaintenanceProcedureText((row.K || '').toString(), val)
     );
 }
 
 /** Linha já normalizada (Firestore) ou linha bruta da planilha OC. */
 export function isMaintenanceBudgetRow(row, isOc = false) {
+    const val = Number(row.value || 0);
     if (isOc) {
         return (
-            isMaintenanceProcedureText(row.procedure) ||
-            isMaintenanceProcedureText(row.procedurePending)
+            isMaintenanceProcedureText(row.procedure, val) ||
+            isMaintenanceProcedureText(row.procedurePending, val)
         );
     }
-    return isMaintenanceProcedureText(row.procedure || row.H);
+    return isMaintenanceProcedureText(row.procedure || row.H, val);
 }
 
 /** Detecta colunas pelo cabeçalho (exportações OC podem deslocar letras). */
@@ -572,10 +562,7 @@ function processSistemaOcRows(rows, fileName, trafficSources, customKeywords, ex
         allData.push(rowData);
 
         if (matchesTrafficRules(rowData, trafficSources, customKeywords)) {
-            if (
-                excludeMaintenance &&
-                (isMaintenanceProcedureText(procedure) || isMaintenanceProcedureText(procedurePending))
-            ) {
+            if (excludeMaintenance && isMaintenanceBudgetRow(rowData, true)) {
                 return;
             }
             rawData.push(rowData);

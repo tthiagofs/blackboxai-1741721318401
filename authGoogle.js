@@ -92,6 +92,33 @@ class GoogleAuthService {
         });
     }
 
+    // Forçar seleção de conta (útil para conectar com MCC diferente)
+    async loginWithAccount() {
+        if (!this.isInitialized) {
+            await this.initialize();
+        }
+
+        return new Promise((resolve, reject) => {
+            const originalCallback = this.tokenClient.callback;
+            this.tokenClient.callback = (response) => {
+                this.tokenClient.callback = originalCallback;
+                if (response.error) {
+                    reject(response);
+                    return;
+                }
+                this.accessToken = response.access_token;
+                this.saveToken(response.access_token);
+                resolve(response.access_token);
+            };
+
+            try {
+                this.tokenClient.requestAccessToken({ prompt: 'select_account' });
+            } catch (err) {
+                reject(err);
+            }
+        });
+    }
+
     // Salvar token no localStorage
     saveToken(token) {
         try {

@@ -190,6 +190,7 @@ async function generateDashboard() {
         messages: plan.messages,
         cpa: cpa,
         sales: plan.sales,
+        budgets: plan.budgets,
         revenue: plan.revenue,
         roi: roi
       };
@@ -199,9 +200,10 @@ async function generateDashboard() {
       units: a.units + 1, 
       invested: a.invested + r.invested,
       messages: a.messages + r.messages,
-      sales: a.sales + r.sales, 
+      sales: a.sales + r.sales,
+      budgets: a.budgets + r.budgets,
       revenue: a.revenue + r.revenue 
-    }), { units: 0, invested: 0, messages: 0, sales: 0, revenue: 0 });
+    }), { units: 0, invested: 0, messages: 0, sales: 0, budgets: 0, revenue: 0 });
     
     // Calcula ROI geral
     totals.roi = 0;
@@ -479,6 +481,7 @@ async function computeUnitMetricsFromSpreadsheet(unit, startDate, endDate) {
     invested: invested,
     messages: messages,
     sales: sales,
+    budgets: filteredData.totalBudgets || 0,
     revenue: revenue
   };
 }
@@ -554,6 +557,7 @@ function renderTable(rows) {
       <td class="px-6 py-3 text-sm text-right text-gray-900">${r.messages}</td>
       <td class="px-6 py-3 text-sm text-right text-gray-900">${formatCurrency(r.cpa)}</td>
       <td class="px-6 py-3 text-sm text-right text-gray-900">${r.sales}</td>
+      <td class="px-6 py-3 text-sm text-right text-gray-900">${r.budgets ?? 0}</td>
       <td class="px-6 py-3 text-sm text-right text-gray-900">${formatCurrency(r.revenue)}</td>
       <td class="px-6 py-3 text-sm text-right font-semibold ${roiClass}">${r.roi > 0 ? r.roi.toFixed(2) + 'x' : '0x'}</td>`; 
     tbody.appendChild(tr); 
@@ -642,6 +646,7 @@ window.exportToExcel = function() {
       'Mensagens': row.messages,
       'CPA (R$)': row.cpa,
       'Vendas': row.sales,
+      'Orçamentos': row.budgets ?? 0,
       'Faturamento (R$)': row.revenue,
       'ROI': row.roi > 0 ? `${row.roi.toFixed(2)}x` : '0x'
     }));
@@ -657,6 +662,7 @@ window.exportToExcel = function() {
       { wch: 12 }, // Mensagens
       { wch: 12 }, // CPA
       { wch: 10 }, // Vendas
+      { wch: 12 }, // Orçamentos
       { wch: 15 }, // Faturamento
       { wch: 10 }  // ROI
     ];

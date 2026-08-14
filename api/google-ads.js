@@ -206,6 +206,30 @@ async function listAccounts(accessToken, res, loginCustomerId = null) {
 
     console.log(`✅ Total: ${allAccounts.length} contas de anúncio (MCCs filtradas)`);
 
+    // ===== Varredura agressiva: tentar expandir MCCs mesmo quando não detectados explicitamente
+    try {
+      console.log('🔎 Iniciando varredura agressiva por MCCs (limitado) ...');
+      const scanLimit = 30;
+      const scanned = new Set();
+      for (const cid of customerIds.slice(0, scanLimit)) {
+        if (scanned.has(cid)) continue;
+        scanned.add(cid);
+        try {
+          console.log(`🔍 [aggressivo] tentando expandir ${cid}...`);
+          const more = await collectManagedClientAccounts(cid, cid, accessToken, seenIds);
+          if (more && more.length) {
+            console.log(`📂 [aggressivo] ${cid}: ${more.length} contas filhas encontradas`);
+            more.forEach(addAccount);
+          }
+        } catch (err) {
+          console.warn(`⚠️ [aggressivo] falha expandindo ${cid}:`, err.message || err);
+        }
+      }
+      console.log(`🔎 Varredura agressiva finalizada. Total agora: ${allAccounts.length}`);
+    } catch (err) {
+      console.warn('⚠️ Erro durante varredura agressiva:', err.message || err);
+    }
+
     return res.status(200).json({ accounts: allAccounts });
   } catch (error) {
     console.error('❌ Erro ao listar contas:', error.message);

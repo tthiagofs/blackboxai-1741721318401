@@ -400,11 +400,11 @@ export function isMaintenanceBudgetRow(row, isOc = false) {
     return isMaintenanceProcedureText(row.procedure || row.H, val);
 }
 
-/** Detecta colunas pelo cabeçalho (exportações OC podem deslocar letras). */
 function detectOcColumnMap(headerRow) {
     const map = {
         date: 'A',
         approval: 'B',
+        patient: 'C',
         valueApproved: 'E',
         procedureApproved: 'J',
         procedurePending: 'K',
@@ -419,6 +419,7 @@ function detectOcColumnMap(headerRow) {
         if (label.includes('data') && label.includes('orc')) map.date = col;
         else if (label.includes('data') && (label.includes('apro') || label.includes('aprov')))
             map.approval = col;
+        else if (label.includes('paciente') || label.includes('cliente')) map.patient = col;
         else if (label.includes('valor') && label.includes('aprov')) map.valueApproved = col;
         else if (label.includes('proced') && (label.includes('aprov') || label.includes('apro')) && !label.includes('não') && !label.includes('nao'))
             map.procedureApproved = col;
@@ -558,6 +559,7 @@ function processSistemaOcRows(rows, fileName, trafficSources, customKeywords, ex
         const source = (row[cols.source] ?? '').toString().trim();
         const procedure = (row[cols.procedureApproved] ?? '').toString().trim();
         const procedurePending = (row[cols.procedurePending] ?? '').toString().trim();
+        const patient = (row[cols.patient] ?? '').toString().trim();
 
         const rowData = {
             date: dateStr,
@@ -567,7 +569,8 @@ function processSistemaOcRows(rows, fileName, trafficSources, customKeywords, ex
             source,
             observations: '',
             procedure,
-            procedurePending
+            procedurePending,
+            patient
         };
 
         allData.push(rowData);
@@ -669,6 +672,19 @@ export async function processSpreadsheet(
 /**
  * Mesclar dados novos com existentes
  */
+function getRowIdentityKey(item) {
+    if (item.patient) {
+        // Para Sistema OC, o nome do paciente + data + procedimento representa a identidade única
+        const patientClean = item.patient.toLowerCase().trim();
+        const procClean = (item.procedure || item.procedurePending || '').toLowerCase().trim();
+        return `oc_${patientClean}_${item.date}_${procClean}`;
+    }
+    // Para Clinicorp / Legado, usamos a combinação de data, valor, canal e procedimento
+    const procClean = (item.procedure || '').toLowerCase().trim();
+    const sourceClean = (item.source || '').toLowerCase().trim();
+    return `legado_${item.date}_${item.value}_${sourceClean}_${procClean}`;
+}
+
 export function mergeSpreadsheetData(existingData, newData) {
     console.log('🔄 [mergeSpreadsheetData] Iniciando mesclagem...');
     console.log('📊 Dados existentes:', existingData?.rawData?.length || 0, 'linhas de tráfego');
@@ -696,63 +712,100 @@ export function mergeSpreadsheetData(existingData, newData) {
         return newData;
     }
 
-    const existingMap = new Map();
+    // 1. Mesclar rawData (dados com canais de tráfego mapeados)
+    const existingRawMap = new Map();
     existingData.rawData.forEach((item) => {
-        const key = `${item.date}_${item.status}_${item.value}`;
-        existingMap.set(key, item);
+        existingRawMap.set(getRowIdentityKey(item), item);
     });
 
     const mergedRawData = [...existingData.rawData];
-    let addedCount = 0;
-    let updatedCount = 0;
+    let rawAddedCount = 0;
+    let rawUpdatedCount = 0;
 
     newData.rawData.forEach((newItem) => {
-        const key = `${newItem.date}_${newItem.status}_${newItem.value}`;
+        const key = getRowIdentityKey(newItem);
 
-        if (existingMap.has(key)) {
+        if (existingRawMap.has(key)) {
+            // Registro idêntico já existe, ignoramos
             return;
         }
 
-        const existingIndex = mergedRawData.findIndex((item) => item.date === newItem.date);
+        // Buscar se existe o mesmo registro pendente para atualizar para aprovado
+        // Criar chave simulada com status OPEN do mesmo paciente/linha
+        const openKey = newItem.patient 
+            ? `oc_${newItem.patient.toLowerCase().trim()}_${newItem.date}_${(newItem.procedure || newItem.procedurePending || '').toLowerCase().trim()}`
+            : null;
+            
+        let updated = false;
+        if (openKey && newItem.status === 'APPROVED') {
+            for (let i = 0; i < mergedRawData.length; i++) {
+                const existingItem = mergedRawData[i];
+                if (getRowIdentityKey(existingItem) === openKey && existingItem.status === 'OPEN') {
+                    mergedRawData[i] = {
+                        ...existingItem,
+                        status: 'APPROVED',
+                        value: newItem.value,
+                        approvalDate: newItem.approvalDate,
+                        procedure: newItem.procedure || existingItem.procedure
+                    };
+                    rawUpdatedCount++;
+                    updated = true;
+                    break;
+                }
+            }
+        }
 
-        if (existingIndex >= 0) {
-            mergedRawData[existingIndex] = newItem;
-            updatedCount++;
-        } else {
+        if (!updated) {
             mergedRawData.push(newItem);
-            addedCount++;
+            rawAddedCount++;
         }
     });
 
     mergedRawData.sort((a, b) => a.date.localeCompare(b.date));
 
+    // 2. Mesclar allData (todos os registros brutos da planilha)
     const existingAllMap = new Map();
     (existingData.allData || []).forEach((item) => {
-        const key = `${item.date}_${item.status}_${item.value}_${item.source}`;
-        existingAllMap.set(key, item);
+        existingAllMap.set(getRowIdentityKey(item), item);
     });
 
     const mergedAllData = [...(existingData.allData || [])];
+    let allAddedCount = 0;
+    let allUpdatedCount = 0;
 
     (newData.allData || []).forEach((newItem) => {
-        const key = `${newItem.date}_${newItem.status}_${newItem.value}_${newItem.source}`;
+        const key = getRowIdentityKey(newItem);
 
         if (existingAllMap.has(key)) {
             return;
         }
 
-        const existingIndex = mergedAllData.findIndex(
-            (item) =>
-                item.date === newItem.date &&
-                item.status === newItem.status &&
-                item.value === newItem.value &&
-                item.source === newItem.source
-        );
+        const openKey = newItem.patient 
+            ? `oc_${newItem.patient.toLowerCase().trim()}_${newItem.date}_${(newItem.procedure || newItem.procedurePending || '').toLowerCase().trim()}`
+            : null;
+            
+        let updated = false;
+        if (openKey && newItem.status === 'APPROVED') {
+            for (let i = 0; i < mergedAllData.length; i++) {
+                const existingItem = mergedAllData[i];
+                if (getRowIdentityKey(existingItem) === openKey && existingItem.status === 'OPEN') {
+                    mergedAllData[i] = {
+                        ...existingItem,
+                        status: 'APPROVED',
+                        value: newItem.value,
+                        approvalDate: newItem.approvalDate,
+                        procedure: newItem.procedure || existingItem.procedure
+                    };
+                    allUpdatedCount++;
+                    updated = true;
+                    break;
+                }
+            }
+        }
 
-        if (existingIndex >= 0) {
-            mergedAllData[existingIndex] = newItem;
-        } else {
+        if (!updated) {
             mergedAllData.push(newItem);
+            allAddedCount++;
         }
     });
 
@@ -767,9 +820,9 @@ export function mergeSpreadsheetData(existingData, newData) {
         .filter((r) => r.status === 'APPROVED')
         .reduce((sum, r) => sum + Number(r.value || 0), 0);
 
-    console.log('✅ Mesclagem concluída:');
-    console.log(`   📊 Tráfego: ${mergedRawData.length} linhas`);
-    console.log(`   📊 Total geral: ${mergedAllData.length} linhas`);
+    console.log('✅ [mergeSpreadsheetData] Mesclagem concluída:');
+    console.log(`   📊 Tráfego: Adicionados: ${rawAddedCount}, Atualizados: ${rawUpdatedCount} | Total: ${mergedRawData.length} linhas`);
+    console.log(`   📊 Total geral: Adicionados: ${allAddedCount}, Atualizados: ${allUpdatedCount} | Total: ${mergedAllData.length} linhas`);
 
     return {
         fileName: newData.fileName,

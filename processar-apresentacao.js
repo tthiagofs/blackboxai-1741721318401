@@ -4,7 +4,7 @@
  * e gerar o HTML da apresentação
  */
 
-import { matchesTrafficRules, isMaintenanceBudgetRow } from './services/spreadsheetProcessor.js?v=2.0';
+import { matchesTrafficRules, isMaintenanceBudgetRow } from './services/spreadsheetProcessor.js?v=2.3';
 
 /**
  * Filtrar dados da planilha por fonte de tráfego (Meta ou Google)

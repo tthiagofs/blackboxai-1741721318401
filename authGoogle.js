@@ -100,6 +100,7 @@ class GoogleAuthService {
     // Limpar token e dados locais
     async clearToken() {
         localStorage.removeItem('google_ads_access_token');
+        localStorage.removeItem('googleAccessToken');
         localStorage.removeItem('google_ads_token_time');
         localStorage.removeItem('google_ads_accounts');
         this.accessToken = null;
@@ -113,27 +114,32 @@ class GoogleAuthService {
         }
     }
 
-    // Indica se há um token (não garante validade contra Google)
+    // Indica se há um token válido (não expirado)
     async isAuthenticated() {
-        if (this.accessToken) return true;
         const t = this._loadTokenFromStorage();
         if (t) {
             this.accessToken = t;
             return true;
         }
+        this.accessToken = null;
         return false;
     }
 
-    // Retorna token atual (carrega do storage se necessário)
+    // Retorna token atual (carrega do storage e verifica expiração)
     async getAccessToken() {
-        if (!this.accessToken) this.accessToken = this._loadTokenFromStorage();
+        const t = this._loadTokenFromStorage();
+        if (!t) {
+            this.accessToken = null;
+            return null;
+        }
+        this.accessToken = t;
         return this.accessToken;
     }
 
     // Buscar contas acessíveis via backend
     async fetchAccessibleAccounts() {
         const token = await this.getAccessToken();
-        if (!token) throw new Error('Não autenticado. Faça login primeiro.');
+        if (!token) throw new Error('Sessão do Google Ads expirada ou não autenticada. Faça login novamente.');
 
         const res = await fetch('/api/google-ads', {
             method: 'POST',
@@ -160,7 +166,13 @@ class GoogleAuthService {
             console.groupEnd();
         }
 
-        if (!res.ok) throw new Error(data.error || 'Erro ao listar contas');
+        if (!res.ok) {
+            if (res.status === 401 || data.error?.includes('401') || data.error?.includes('UNAUTHENTICATED') || data.error?.includes('invalid authentication credentials')) {
+                await this.clearToken();
+                throw new Error('Sessão do Google Ads expirada (401). Reconecte a conta em Conexões.');
+            }
+            throw new Error(data.error || 'Erro ao listar contas');
+        }
 
         if (Array.isArray(data.accounts) && data.accounts.length) {
             this.adAccounts = data.accounts;
@@ -191,6 +203,7 @@ class GoogleAuthService {
     _saveTokenToStorage(token) {
         try {
             localStorage.setItem('google_ads_access_token', token);
+            localStorage.setItem('googleAccessToken', token);
             localStorage.setItem('google_ads_token_time', Date.now().toString());
         } catch (e) {
             console.warn('Erro ao salvar token:', e);
@@ -199,7 +212,24 @@ class GoogleAuthService {
 
     _loadTokenFromStorage() {
         try {
-            return localStorage.getItem('google_ads_access_token');
+            const token = localStorage.getItem('google_ads_access_token') || localStorage.getItem('googleAccessToken');
+            const tokenTime = localStorage.getItem('google_ads_token_time');
+
+            if (!token) return null;
+
+            // Verificar se o token tem mais de 50 minutos (3000000 ms)
+            if (tokenTime) {
+                const age = Date.now() - parseInt(tokenTime, 10);
+                if (age > 50 * 60 * 1000) {
+                    console.warn(`⚠️ [GoogleAuth] Token em localStorage expirou (${Math.round(age / 60000)} minutos). Limpando...`);
+                    localStorage.removeItem('google_ads_access_token');
+                    localStorage.removeItem('googleAccessToken');
+                    localStorage.removeItem('google_ads_token_time');
+                    this.accessToken = null;
+                    return null;
+                }
+            }
+            return token;
         } catch (e) {
             return null;
         }
@@ -207,4 +237,5 @@ class GoogleAuthService {
 }
 
 export const googleAuth = new GoogleAuthService();
+
 

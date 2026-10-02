@@ -74,8 +74,13 @@ export default async function handler(req, res) {
     }
   } catch (error) {
     console.error('❌ Erro na função:', error);
-    return res.status(500).json({ 
+    const isAuthError = error.message?.includes('401') || 
+                        error.message?.includes('UNAUTHENTICATED') || 
+                        error.message?.includes('invalid authentication credentials');
+    const statusCode = isAuthError ? 401 : 500;
+    return res.status(statusCode).json({ 
       error: error.message,
+      code: statusCode,
       details: error.stack 
     });
   }

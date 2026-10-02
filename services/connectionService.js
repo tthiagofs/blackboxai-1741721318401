@@ -64,10 +64,18 @@ class ConnectionService {
                     
                     if (this.connections.google.connected) {
                         localStorage.setItem('googleAccessToken', this.connections.google.accessToken);
+                        localStorage.setItem('google_ads_access_token', this.connections.google.accessToken);
+                        if (this.connections.google.lastUpdate) {
+                            const lastTime = new Date(this.connections.google.lastUpdate).getTime();
+                            localStorage.setItem('google_ads_token_time', lastTime.toString());
+                        }
                         if (this.connections.google.refreshToken) {
                             localStorage.setItem('googleRefreshToken', this.connections.google.refreshToken);
                         }
                         localStorage.setItem('googleAdAccounts', JSON.stringify(this.connections.google.adAccounts));
+                        if (this.connections.google.adAccounts) {
+                            localStorage.setItem('google_ads_accounts', JSON.stringify(this.connections.google.adAccounts));
+                        }
                     }
                 } else {
                     console.log('ℹ️ [ConnectionService] Nenhuma conexão salva encontrada');
@@ -113,6 +121,10 @@ class ConnectionService {
                 adAccounts: adAccounts,
                 lastUpdate: new Date().toISOString()
             };
+
+            localStorage.setItem('googleAccessToken', accessToken);
+            localStorage.setItem('google_ads_access_token', accessToken);
+            localStorage.setItem('google_ads_token_time', Date.now().toString());
 
             await this.saveToFirestore();
             

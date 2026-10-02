@@ -598,9 +598,13 @@ async function loadGoogleAdsAccounts() {
         googleAdsAccountSelect.disabled = false;
         
         // Se erro de autenticação, solicitar login novamente
-        if (error.message.includes('autenticado')) {
+        const isAuthErr = error.message.includes('autentic') || 
+                           error.message.includes('401') || 
+                           error.message.includes('UNAUTHENTICATED') || 
+                           error.message.includes('expirada');
+        if (isAuthErr) {
             googleAuth.clearToken();
-            googleAdsAccountSelect.innerHTML = '<option value="">Faça login com Google primeiro</option>';
+            googleAdsAccountSelect.innerHTML = '<option value="">Sessão expirada. Reconecte em Conexões</option>';
             googleAdsAccountSelect.disabled = true;
         }
     }
@@ -1419,6 +1423,13 @@ async function generateCompleteReport() {
                 const googleService = new GoogleAdsService(googleAccountId, accessToken, managedBy);
                 const googleInsights = await googleService.getAccountInsights(startDate, endDate);
                 console.log(`📊 Google Insights recebidos:`, googleInsights);
+                if (googleInsights.error) {
+                    console.warn('⚠️ [Google Ads] Erro retornado ao buscar métricas:', googleInsights.error);
+                    if (googleInsights.isUnauthenticated || googleInsights.error.includes('401') || googleInsights.error.includes('UNAUTHENTICATED')) {
+                        await googleAuth.clearToken();
+                        alert('⚠️ A sua sessão do Google Ads expirou. Por favor, acesse "Conexões" no menu e clique em "Reconectar" para atualizar o acesso da conta do Google Ads.');
+                    }
+                }
                 
                 // ⭐ Calcular métricas formatadas
                 googleMetrics = googleService.calculateMetrics(googleInsights);
@@ -1436,7 +1447,12 @@ async function generateCompleteReport() {
             } catch (error) {
                 console.error('Erro ao carregar Google Ads:', error);
                 console.error('Detalhes do erro:', error.message, error.stack);
-                alert('Erro ao carregar dados do Google Ads. Verifique sua autenticação.');
+                if (error.message?.includes('401') || error.message?.includes('UNAUTHENTICATED')) {
+                    await googleAuth.clearToken();
+                    alert('⚠️ A sua sessão do Google Ads expirou. Por favor, acesse "Conexões" e reconecte sua conta do Google Ads.');
+                } else {
+                    alert('Erro ao carregar dados do Google Ads. Verifique sua autenticação.');
+                }
             }
         } else if (googleAccountId && !(await googleAuth.isAuthenticated())) {
             alert('Faça login com Google Ads para gerar o relatório.');

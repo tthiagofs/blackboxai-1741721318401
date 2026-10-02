@@ -44,7 +44,11 @@ export class GoogleAdsService {
                 } catch {
                     error = { error: errorText };
                 }
-                throw new Error(error.error || `Erro na requisição: ${response.status}`);
+                const errMsg = error.error || `Erro na requisição: ${response.status}`;
+                if (response.status === 401 || errMsg.includes('401') || errMsg.includes('UNAUTHENTICATED') || errMsg.includes('invalid authentication credentials')) {
+                    import('../authGoogle.js').then(m => m.googleAuth.clearToken()).catch(() => {});
+                }
+                throw new Error(errMsg);
             }
 
             const data = await response.json();
@@ -83,6 +87,9 @@ export class GoogleAdsService {
         } catch (error) {
             console.error('❌ [getAccountInsights] Erro ao buscar insights do Google:', error);
             console.error('❌ [getAccountInsights] Stack:', error.stack);
+            const isUnauthenticated = error.message?.includes('401') || 
+                                     error.message?.includes('UNAUTHENTICATED') || 
+                                     error.message?.includes('invalid authentication credentials');
             // Retornar objeto de erro para que o dashboard saiba que houve problema
             return {
                 impressions: 0,
@@ -90,7 +97,8 @@ export class GoogleAdsService {
                 conversions: 0,
                 cost: 0,
                 costPerConversion: 0,
-                error: error.message // Adicionar mensagem de erro para debug
+                error: error.message, // Adicionar mensagem de erro para debug
+                isUnauthenticated
             };
         }
     }

@@ -281,6 +281,8 @@
         import { WhatsAppService } from './services/whatsappService.js';
         import { ProjectsService } from './services/projects.js';
         import { listUnits } from './services/unitsService.js';
+        import { auth } from './config/firebase.js';
+        import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
 
         initSidebar('alertas-whatsapp');
 
@@ -303,6 +305,14 @@
         const projectsService = new ProjectsService();
         let loadedProjects = [];
         let currentAlertId = null;
+
+        // Aguardar autenticação carregar para então listar projetos e alertas
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                loadProjects();
+                loadSavedAlerts();
+            }
+        });
 
         // Toggle do segundo horário
         schedule2Toggle.addEventListener('change', () => {
@@ -517,10 +527,6 @@
                 });
             });
         }
-
-        // Inicializar
-        loadProjects();
-        loadSavedAlerts();
     </script>
 </body>
 </html>

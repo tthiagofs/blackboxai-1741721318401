@@ -121,8 +121,19 @@ function renderSidebar(currentPage) {
           <i class="fas fa-comments mr-3 text-sm"></i>
           <span class="text-sm">Análises Pré-Definidas</span>
         </a>
+
+        <!-- Insights & Alertas WhatsApp (Para todos os gestores) -->
+        <a href="/alertas-whatsapp.html" class="flex items-center px-3 py-2.5 mb-1 border-l-4 ${currentPage === 'alertas-whatsapp' ? 'border-green-600 bg-green-50 text-green-700 font-semibold' : 'border-transparent text-gray-700 hover:bg-gray-50'} transition-all">
+          <i class="fab fa-whatsapp mr-3 text-sm text-green-600"></i>
+          <span class="text-sm">Alertas WhatsApp</span>
+        </a>
         
         ${isAdmin ? `
+        <a href="/whatsapp-admin.html" class="flex items-center px-3 py-2.5 mb-1 border-l-4 ${currentPage === 'whatsapp-admin' ? 'border-green-600 bg-green-50 text-green-700 font-semibold' : 'border-transparent text-gray-700 hover:bg-gray-50'} transition-all">
+          <i class="fas fa-robot mr-3 text-sm text-green-600"></i>
+          <span class="text-sm">Robô WhatsApp (Admin)</span>
+        </a>
+
         <a href="/usuarios.html" class="flex items-center px-3 py-2.5 mb-1 border-l-4 ${currentPage === 'usuarios' ? 'border-blue-600 bg-blue-50 text-blue-600' : 'border-transparent text-gray-700 hover:bg-gray-50'} transition-all">
           <i class="fas fa-users-cog mr-3 text-sm"></i>
           <span class="text-sm">Usuários</span>

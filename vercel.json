@@ -35,6 +35,12 @@
         { "key": "Expires", "value": "0" }
       ]
     }
+  ],
+  "crons": [
+    {
+      "path": "/api/cron-daily-insights",
+      "schedule": "0 11 * * *"
+    }
   ]
 }
 

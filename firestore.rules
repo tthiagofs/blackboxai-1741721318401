@@ -121,6 +121,26 @@ service cloud.firestore {
       allow update: if request.auth != null && 
                       resource.data.userId == request.auth.uid;
     }
+
+    // Regras para configurações do robô WhatsApp (Admin gerencia a conexão do robô disparador)
+    match /whatsapp_config/{configId} {
+      function isAdmin() {
+        return request.auth != null && 
+               request.auth.token.email == 'thiagofelipefreire0810@gmail.com';
+      }
+      // Qualquer usuário autenticado pode ler para saber se o serviço WhatsApp está online
+      allow read: if request.auth != null;
+      // Apenas admin pode alterar/gravar as credenciais e status da conexão
+      allow write, update, delete: if isAdmin();
+    }
+
+    // Regras para os alertas de insights de cada usuário
+    match /whatsapp_alerts/{alertId} {
+      // O usuário pode ler/criar/atualizar/deletar suas próprias configurações de alerta
+      allow read, write, update, delete: if request.auth != null && 
+        (resource == null || resource.data.userId == request.auth.uid || request.resource.data.userId == request.auth.uid);
+      allow list: if request.auth != null;
+    }
   }
 }
 

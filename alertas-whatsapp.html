@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Alertas e Insights WhatsApp - Insightflow</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-gray-50 min-h-screen font-sans m-0 p-0">
+    <!-- Proteção de Auth -->
+    <script type="module">
+        import { auth } from './config/firebase.js';
+        import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+        
+        onAuthStateChanged(auth, (user) => {
+            if (!user) {
+                window.location.href = '/login.html';
+            }
+        });
+    </script>
+
+    <!-- Container Principal -->
+    <div class="flex min-h-screen w-full bg-gray-50">
+        <!-- Sidebar Unificada -->
+        <div id="app-sidebar"></div>
+
+        <!-- Conteúdo Principal -->
+        <main class="flex-1 p-8 lg:p-10 max-w-6xl">
+            <!-- Header -->
+            <div class="mb-8 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                <div>
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 bg-green-100 rounded-xl flex items-center justify-center text-green-600">
+                            <i class="fab fa-whatsapp text-2xl"></i>
+                        </div>
+                        <div>
+                            <h2 class="text-2xl font-bold text-gray-900">Alertas & Briefings de Tráfego via WhatsApp</h2>
+                            <p class="text-sm text-gray-600">Receba mini-relatórios diários, previsão de término de saldo e melhores anúncios direto no seu celular</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-2">
+                    <span id="serviceStatusPill" class="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-600">
+                        <span class="w-2 h-2 rounded-full bg-green-500 mr-2 animate-pulse"></span>
+                        Serviço WhatsApp Ativo
+                    </span>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <!-- Formulário de Configuração (2 colunas) -->
+                <div class="lg:col-span-2 space-y-6">
+                    <form id="alertConfigForm" class="bg-white border border-gray-200 rounded-2xl p-6 sm:p-8 shadow-sm space-y-6">
+                        <!-- 1. WhatsApp de Destino -->
+                        <div>
+                            <h3 class="text-base font-bold text-gray-900 mb-1 flex items-center gap-2">
+                                <span class="w-6 h-6 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xs font-bold">1</span>
+                                WhatsApp de Destino
+                            </h3>
+                            <p class="text-xs text-gray-500 mb-3">O número do gestor ou cliente onde as notificações serão entregues.</p>
+                            
+                            <div class="flex flex-col sm:flex-row gap-3">
+                                <div class="relative flex-1">
+                                    <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400 text-sm">
+                                        <i class="fab fa-whatsapp text-green-500"></i>
+                                    </span>
+                                    <input type="text" id="targetPhoneInput" required placeholder="(11) 99999-9999" class="w-full pl-9 pr-3.5 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none">
+                                </div>
+                                <button type="button" id="testPhoneBtn" class="px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-lg text-xs transition-all flex items-center justify-center gap-2">
+                                    <i class="fas fa-paper-plane text-green-600"></i> Testar Envio
+                                </button>
+                            </div>
+                            <div id="phoneTestFeedback" class="mt-2 text-xs hidden"></div>
+                        </div>
+
+                        <hr class="border-gray-100">
+
+                        <!-- 2. Seleção de Projeto e Unidades -->
+                        <div>
+                            <h3 class="text-base font-bold text-gray-900 mb-1 flex items-center gap-2">
+                                <span class="w-6 h-6 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xs font-bold">2</span>
+                                Projeto e Unidades Monitoradas
+                            </h3>
+                            <p class="text-xs text-gray-500 mb-3">Selecione o projeto e quais unidades com contas de anúncio você deseja acompanhar.</p>
+
+                            <div class="mb-4">
+                                <label class="block text-xs font-semibold text-gray-700 mb-1">Projeto</label>
+                                <select id="projectSelect" required class="w-full px-3.5 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-white">
+                                    <option value="">Carregando projetos...</option>
+                                </select>
+                            </div>
+
+                            <!-- Lista de Unidades Detectadas -->
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-700 mb-2">Unidades com Contas Vinculadas</label>
+                                <div id="unitsContainer" class="space-y-2 border border-gray-200 rounded-xl p-4 bg-gray-50 max-h-56 overflow-y-auto">
+                                    <p class="text-xs text-gray-400 text-center py-2">Selecione um projeto para listar as unidades</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <hr class="border-gray-100">
+
+                        <!-- 3. Horários de Envio (Regra Anti-Bloqueio: Max 2) -->
+                        <div>
+                            <div class="flex items-center justify-between mb-1">
+                                <h3 class="text-base font-bold text-gray-900 flex items-center gap-2">
+                                    <span class="w-6 h-6 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xs font-bold">3</span>
+                                    Horários dos Disparos
+                                </h3>
+                                <span class="text-[11px] bg-yellow-50 text-yellow-700 font-semibold px-2 py-0.5 rounded-full border border-yellow-200">
+                                    🛡️ Limite máx: 2 horários/dia (Anti-bloqueio)
+                                </span>
+                            </div>
+                            <p class="text-xs text-gray-500 mb-3">Defina em quais horários você quer receber as notificações no WhatsApp.</p>
+
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div class="p-3 border border-gray-200 rounded-xl bg-gray-50">
+                                    <div class="flex items-center justify-between mb-1">
+                                        <span class="text-xs font-bold text-gray-700">1º Horário (Principal - Matinal)</span>
+                                        <span class="text-[10px] text-green-600 font-bold bg-green-100 px-1.5 py-0.5 rounded">Ativo</span>
+                                    </div>
+                                    <input type="time" id="schedule1Input" value="08:00" class="w-full mt-1 px-3 py-1.5 bg-white border border-gray-300 rounded-lg text-sm font-semibold outline-none focus:ring-2 focus:ring-green-500">
+                                    <span class="text-[11px] text-gray-500 mt-1 block">Ideal para conferir o resumo de ontem logo cedo.</span>
+                                </div>
+
+                                <div class="p-3 border border-gray-200 rounded-xl bg-gray-50">
+                                    <div class="flex items-center justify-between mb-1">
+                                        <span class="text-xs font-bold text-gray-700">2º Horário (Opcional - Noturno)</span>
+                                        <label class="inline-flex items-center cursor-pointer">
+                                            <input type="checkbox" id="schedule2Toggle" class="sr-only peer">
+                                            <div class="w-7 h-4 bg-gray-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-green-600"></div>
+                                        </label>
+                                    </div>
+                                    <input type="time" id="schedule2Input" value="18:30" disabled class="w-full mt-1 px-3 py-1.5 bg-gray-100 border border-gray-300 rounded-lg text-sm font-semibold outline-none focus:ring-2 focus:ring-green-500 disabled:opacity-50">
+                                    <span class="text-[11px] text-gray-500 mt-1 block">Fechamento do dia ou conferência de saldo final.</span>
+                                </div>
+                            </div>
+
+                            <!-- Seletor de Dias da Semana -->
+                            <div class="mt-4 pt-3 border-t border-gray-200">
+                                <label class="block text-xs font-bold text-gray-700 mb-1.5">📅 Dias de Recebimento</label>
+                                <div class="flex flex-wrap gap-2 mb-2">
+                                    <button type="button" id="btnWeekdaysOnly" class="px-2.5 py-1 bg-green-50 text-green-700 border border-green-300 rounded-md text-xs font-semibold hover:bg-green-100">
+                                        Segunda a Sexta (Padrão)
+                                    </button>
+                                    <button type="button" id="btnAllDays" class="px-2.5 py-1 bg-gray-100 text-gray-700 border border-gray-300 rounded-md text-xs font-medium hover:bg-gray-200">
+                                        Todos os Dias
+                                    </button>
+                                </div>
+                                <div class="flex flex-wrap gap-2 text-xs">
+                                    <label class="flex items-center gap-1 bg-white border px-2.5 py-1.5 rounded-lg cursor-pointer hover:bg-gray-50">
+                                        <input type="checkbox" name="weekDay" value="1" checked class="w-3.5 h-3.5 text-green-600 rounded"> Seg
+                                    </label>
+                                    <label class="flex items-center gap-1 bg-white border px-2.5 py-1.5 rounded-lg cursor-pointer hover:bg-gray-50">
+                                        <input type="checkbox" name="weekDay" value="2" checked class="w-3.5 h-3.5 text-green-600 rounded"> Ter
+                                    </label>
+                                    <label class="flex items-center gap-1 bg-white border px-2.5 py-1.5 rounded-lg cursor-pointer hover:bg-gray-50">
+                                        <input type="checkbox" name="weekDay" value="3" checked class="w-3.5 h-3.5 text-green-600 rounded"> Qua
+                                    </label>
+                                    <label class="flex items-center gap-1 bg-white border px-2.5 py-1.5 rounded-lg cursor-pointer hover:bg-gray-50">
+                                        <input type="checkbox" name="weekDay" value="4" checked class="w-3.5 h-3.5 text-green-600 rounded"> Qui
+                                    </label>
+                                    <label class="flex items-center gap-1 bg-white border px-2.5 py-1.5 rounded-lg cursor-pointer hover:bg-gray-50">
+                                        <input type="checkbox" name="weekDay" value="5" checked class="w-3.5 h-3.5 text-green-600 rounded"> Sex
+                                    </label>
+                                    <label class="flex items-center gap-1 bg-white border px-2.5 py-1.5 rounded-lg cursor-pointer hover:bg-gray-50">
+                                        <input type="checkbox" name="weekDay" value="6" class="w-3.5 h-3.5 text-green-600 rounded"> Sáb
+                                    </label>
+                                    <label class="flex items-center gap-1 bg-white border px-2.5 py-1.5 rounded-lg cursor-pointer hover:bg-gray-50">
+                                        <input type="checkbox" name="weekDay" value="0" class="w-3.5 h-3.5 text-green-600 rounded"> Dom
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <hr class="border-gray-100">
+
+                        <!-- 4. O Que Você Quer Receber (Módulos) -->
+                        <div>
+                            <h3 class="text-base font-bold text-gray-900 mb-1 flex items-center gap-2">
+                                <span class="w-6 h-6 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xs font-bold">4</span>
+                                O Que Incluir na Mensagem
+                            </h3>
+                            <p class="text-xs text-gray-500 mb-3">Ative ou desative os blocos de métricas conforme o seu interesse.</p>
+
+                            <div class="space-y-3">
+                                <!-- Módulo 1 -->
+                                <label class="flex items-start gap-3 p-3 border border-gray-200 rounded-xl hover:bg-gray-50 cursor-pointer transition-all">
+                                    <input type="checkbox" id="modDailyReport" checked class="mt-1 w-4 h-4 text-green-600 rounded border-gray-300 focus:ring-green-500">
+                                    <div>
+                                        <p class="text-xs font-bold text-gray-800">📊 Mini-Relatório do Dia Anterior (Ontem)</p>
+                                        <p class="text-[11px] text-gray-500">Inclui: Investimento total, leads gerados, Custo por Lead (CPL) e Custo por Clique (CPC).</p>
+                                    </div>
+                                </label>
+
+                                <!-- Módulo 2 -->
+                                <label class="flex items-start gap-3 p-3 border border-gray-200 rounded-xl hover:bg-gray-50 cursor-pointer transition-all">
+                                    <input type="checkbox" id="modTopAd" checked class="mt-1 w-4 h-4 text-green-600 rounded border-gray-300 focus:ring-green-500">
+                                    <div>
+                                        <p class="text-xs font-bold text-gray-800">🏆 Top Criativo do Dia</p>
+                                        <p class="text-[11px] text-gray-500">Aponta qual anúncio gerou mais resultados na unidade no dia anterior.</p>
+                                    </div>
+                                </label>
+
+                                <!-- Módulo 3 -->
+                                <label class="flex items-start gap-3 p-3 border border-gray-200 rounded-xl hover:bg-gray-50 cursor-pointer transition-all">
+                                    <input type="checkbox" id="modBalance" checked class="mt-1 w-4 h-4 text-green-600 rounded border-gray-300 focus:ring-green-500">
+                                    <div>
+                                        <p class="text-xs font-bold text-gray-800">💳 Termômetro de Saldo & Previsão de Término</p>
+                                        <p class="text-[11px] text-gray-500">Calcula a média de gasto dos últimos 3 dias e alerta quantos dias de verba ainda restam antes do anúncio pausar.</p>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Botão Salvar -->
+                        <div class="pt-4 flex items-center justify-between">
+                            <span id="saveStatus" class="text-xs text-gray-500"></span>
+                            <button type="submit" id="saveAlertBtn" class="bg-green-600 hover:bg-green-700 text-white font-medium px-6 py-2.5 rounded-lg text-sm transition-all flex items-center gap-2 shadow-sm">
+                                <i class="fas fa-check"></i> Salvar Configuração de Alertas
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Preview Visual da Mensagem (1 coluna) -->
+                <div class="space-y-6">
+                    <div class="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
+                        <div class="flex items-center justify-between mb-4 border-b pb-3">
+                            <h3 class="text-sm font-bold text-gray-900 flex items-center gap-2">
+                                <i class="fas fa-eye text-blue-500"></i> Pré-Visualização
+                            </h3>
+                            <span class="text-[10px] text-gray-400">Tempo Real</span>
+                        </div>
+
+                        <!-- Simulação Balão WhatsApp -->
+                        <div class="bg-[#e5ddd5] p-3.5 rounded-2xl shadow-inner font-sans">
+                            <div class="bg-white rounded-xl p-3.5 shadow-sm text-xs text-gray-800 space-y-2 whitespace-pre-wrap leading-relaxed font-mono">📊 *INSIGHTFLOW - BRIEFING DIÁRIO*
+📅 *Dados de ontem:* 22/10 | ⏰ *Envio:* 08:00h
+📁 *Projeto:* <span id="previewProjectName">Oral Centter</span>
+
+━━━━━━━━━━━━━━━━━━━━
+🏢 *UNIDADE JAÍBA*
+💰 *Gasto:* R$ 142,50
+🎯 *Leads:* 11 | *CPL:* R$ 12,95
+🖱️ *CPC:* R$ 0,84
+🏆 *Top Criativo:* "Vídeo Depoimento #02" (7 leads)
+💳 *Saldo Atual:* R$ 380,00 
+⏳ *Previsão de Saldo:* ~2,6 dias restantes (🚨 Recarga Necessária!)
+
+━━━━━━━━━━━━━━━━━━━━
+📈 *TOTAL CONSOLIDADO:*
+💰 *Investimento:* R$ 142,50 | 🎯 *Leads:* 11</div>
+                            <div class="text-[10px] text-right text-gray-500 mt-1">08:00 ✓✓</div>
+                        </div>
+
+                        <div class="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-xl text-xs text-blue-800">
+                            <i class="fas fa-info-circle mr-1"></i> <strong>Dica do Gestor:</strong> Os dados de ontem são calculados e consolidados exatamente no fuso horário do Brasil às 08:00h.
+                        </div>
+                    </div>
+
+                    <!-- Card com Alertas Salvos do Usuário -->
+                    <div class="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
+                        <h3 class="text-sm font-bold text-gray-900 mb-3">Seus Alertas Ativos</h3>
+                        <div id="savedAlertsList" class="space-y-3">
+                            <p class="text-xs text-gray-400">Carregando seus alertas...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Script de Lógica -->
+    <script type="module">
+        import { initSidebar } from './components/sidebar.js';
+        import { WhatsAppService } from './services/whatsappService.js';
+        import { ProjectsService } from './services/projects.js';
+        import { listUnits } from './services/unitsService.js';
+
+        initSidebar('alertas-whatsapp');
+
+        const projectSelect = document.getElementById('projectSelect');
+        const unitsContainer = document.getElementById('unitsContainer');
+        const targetPhoneInput = document.getElementById('targetPhoneInput');
+        const testPhoneBtn = document.getElementById('testPhoneBtn');
+        const phoneTestFeedback = document.getElementById('phoneTestFeedback');
+        const schedule1Input = document.getElementById('schedule1Input');
+        const schedule2Input = document.getElementById('schedule2Input');
+        const schedule2Toggle = document.getElementById('schedule2Toggle');
+        const modDailyReport = document.getElementById('modDailyReport');
+        const modTopAd = document.getElementById('modTopAd');
+        const modBalance = document.getElementById('modBalance');
+        const alertConfigForm = document.getElementById('alertConfigForm');
+        const saveStatus = document.getElementById('saveStatus');
+        const savedAlertsList = document.getElementById('savedAlertsList');
+        const previewProjectName = document.getElementById('previewProjectName');
+
+        const projectsService = new ProjectsService();
+        let loadedProjects = [];
+        let currentAlertId = null;
+
+        // Toggle do segundo horário
+        schedule2Toggle.addEventListener('change', () => {
+            schedule2Input.disabled = !schedule2Toggle.checked;
+        });
+
+        // Carregar Projetos
+        async function loadProjects() {
+            try {
+                const res = await projectsService.listProjects();
+                if (res.success && res.projects) {
+                    loadedProjects = res.projects;
+                    projectSelect.innerHTML = '<option value="">Selecione um projeto...</option>' + 
+                        res.projects.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+                } else {
+                    projectSelect.innerHTML = '<option value="">Nenhum projeto encontrado</option>';
+                }
+            } catch (err) {
+                console.error('Erro ao listar projetos:', err);
+                projectSelect.innerHTML = '<option value="">Erro ao carregar projetos</option>';
+            }
+        }
+
+        // Ações rápidas dos dias da semana
+        const btnWeekdaysOnly = document.getElementById('btnWeekdaysOnly');
+        const btnAllDays = document.getElementById('btnAllDays');
+        const weekDayCheckboxes = document.querySelectorAll('input[name="weekDay"]');
+
+        btnWeekdaysOnly.addEventListener('click', () => {
+            weekDayCheckboxes.forEach(cb => {
+                const val = parseInt(cb.value);
+                cb.checked = (val >= 1 && val <= 5); // 1 (Seg) até 5 (Sex)
+            });
+            btnWeekdaysOnly.className = 'px-2.5 py-1 bg-green-50 text-green-700 border border-green-300 rounded-md text-xs font-semibold hover:bg-green-100';
+            btnAllDays.className = 'px-2.5 py-1 bg-gray-100 text-gray-700 border border-gray-300 rounded-md text-xs font-medium hover:bg-gray-200';
+        });
+
+        btnAllDays.addEventListener('click', () => {
+            weekDayCheckboxes.forEach(cb => cb.checked = true);
+            btnAllDays.className = 'px-2.5 py-1 bg-green-50 text-green-700 border border-green-300 rounded-md text-xs font-semibold hover:bg-green-100';
+            btnWeekdaysOnly.className = 'px-2.5 py-1 bg-gray-100 text-gray-700 border border-gray-300 rounded-md text-xs font-medium hover:bg-gray-200';
+        });
+
+        // Quando seleciona um projeto, buscar as unidades com contas de anúncios vinculadas
+        projectSelect.addEventListener('change', async () => {
+            const projectId = projectSelect.value;
+            const project = loadedProjects.find(p => p.id === projectId);
+            if (project) {
+                previewProjectName.textContent = project.name;
+            }
+
+            if (!projectId) {
+                unitsContainer.innerHTML = '<p class="text-xs text-gray-400 text-center py-2">Selecione um projeto para listar as unidades</p>';
+                return;
+            }
+
+            unitsContainer.innerHTML = '<p class="text-xs text-gray-500 text-center py-2"><i class="fas fa-spinner fa-spin mr-1"></i> Carregando unidades vinculadas...</p>';
+
+            try {
+                const units = await listUnits(projectId);
+                // Filtrar unidades que tenham conta de anúncio conectada
+                const eligibleUnits = units.filter(u => u.linkedAccounts?.meta?.id || u.linkedAccounts?.google?.id);
+
+                if (eligibleUnits.length === 0) {
+                    unitsContainer.innerHTML = `
+                        <div class="text-center py-3 text-xs text-yellow-700 bg-yellow-50 rounded-lg p-2">
+                            <i class="fas fa-info-circle mr-1"></i> Nenhuma unidade deste projeto possui conta de anúncio vinculada ainda. Vincule no menu <strong>Unidades</strong>.
+                        </div>
+                    `;
+                    return;
+                }
+
+                unitsContainer.innerHTML = eligibleUnits.map(unit => {
+                    const hasMeta = !!unit.linkedAccounts?.meta?.id;
+                    const hasGoogle = !!unit.linkedAccounts?.google?.id;
+
+                    return `
+                        <label class="flex items-center justify-between p-2.5 bg-white border border-gray-200 rounded-lg cursor-pointer hover:border-green-400 transition-all">
+                            <div class="flex items-center gap-2">
+                                <input type="checkbox" name="selectedUnit" value="${unit.id}" checked class="w-4 h-4 text-green-600 rounded">
+                                <span class="text-xs font-semibold text-gray-800">${unit.name}</span>
+                            </div>
+                            <div class="flex items-center gap-1.5">
+                                ${hasMeta ? '<span class="text-[10px] bg-blue-100 text-blue-700 font-bold px-2 py-0.5 rounded">Meta Ads</span>' : ''}
+                                ${hasGoogle ? '<span class="text-[10px] bg-red-100 text-red-700 font-bold px-2 py-0.5 rounded">Google Ads</span>' : ''}
+                            </div>
+                        </label>
+                    `;
+                }).join('');
+
+            } catch (err) {
+                console.error(err);
+                unitsContainer.innerHTML = '<p class="text-xs text-red-500 text-center py-2">Erro ao carregar unidades.</p>';
+            }
+        });
+
+        // Testar envio de WhatsApp
+        testPhoneBtn.addEventListener('click', async () => {
+            const phone = targetPhoneInput.value.trim();
+            if (!phone) {
+                alert('Digite o seu número de WhatsApp com DDD primeiro!');
+                return;
+            }
+
+            testPhoneBtn.disabled = true;
+            testPhoneBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Testando...';
+            phoneTestFeedback.className = 'mt-2 text-xs text-gray-500';
+            phoneTestFeedback.textContent = 'Enviando teste para ' + phone + '...';
+            phoneTestFeedback.classList.remove('hidden');
+
+            const res = await WhatsAppService.sendMessage({
+                phone,
+                message: `👋 *Olá do Insightflow!*\n\nSeu WhatsApp foi validado com sucesso! Você receberá aqui seus briefings matinais e alertas financeiros das contas de anúncio.`
+            });
+
+            if (res.success) {
+                phoneTestFeedback.className = 'mt-2 text-xs text-green-700 bg-green-50 p-2 rounded border border-green-200';
+                phoneTestFeedback.innerHTML = '✅ <strong>Validado!</strong> Mensagem de teste enviada com sucesso no seu WhatsApp.';
+            } else {
+                phoneTestFeedback.className = 'mt-2 text-xs text-red-700 bg-red-50 p-2 rounded border border-red-200';
+                phoneTestFeedback.innerHTML = '❌ <strong>Aviso:</strong> O robô de WhatsApp ainda não foi conectado pelo Administrador ou o número é inválido.';
+            }
+
+            testPhoneBtn.disabled = false;
+            testPhoneBtn.innerHTML = '<i class="fas fa-paper-plane text-green-600"></i> Testar Envio';
+        });
+
+        // Salvar Alerta
+        alertConfigForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const selectedUnits = Array.from(document.querySelectorAll('input[name="selectedUnit"]:checked')).map(el => el.value);
+
+            if (selectedUnits.length === 0) {
+                alert('Selecione pelo menos uma unidade para monitorar!');
+                return;
+            }
+
+            const schedules = [schedule1Input.value];
+            if (schedule2Toggle.checked && schedule2Input.value) {
+                schedules.push(schedule2Input.value);
+            }
+
+            const selectedDays = Array.from(document.querySelectorAll('input[name="weekDay"]:checked')).map(el => parseInt(el.value));
+            if (selectedDays.length === 0) {
+                alert('Selecione pelo menos um dia da semana para receber os alertas!');
+                return;
+            }
+
+            const project = loadedProjects.find(p => p.id === projectSelect.value);
+
+            const payload = {
+                id: currentAlertId,
+                phone: targetPhoneInput.value.trim(),
+                projectId: projectSelect.value,
+                projectName: project ? project.name : '',
+                active: true,
+                schedules,
+                daysOfWeek: selectedDays,
+                modules: {
+                    dailyReport: modDailyReport.checked,
+                    topAd: modTopAd.checked,
+                    balanceForecast: modBalance.checked
+                },
+                selectedUnits
+            };
+
+            const btn = document.getElementById('saveAlertBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Salvando...';
+
+            const result = await WhatsAppService.saveUserAlert(payload);
+            if (result.success) {
+                alert('✅ Configuração de Alertas do WhatsApp salva com sucesso!');
+                loadSavedAlerts();
+            } else {
+                alert('Erro ao salvar: ' + result.error);
+            }
+
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-check"></i> Salvar Configuração de Alertas';
+        });
+
+        // Carregar alertas existentes do usuário
+        async function loadSavedAlerts() {
+            const alerts = await WhatsAppService.getUserAlerts();
+            if (alerts.length === 0) {
+                savedAlertsList.innerHTML = '<p class="text-xs text-gray-400">Nenhum alerta cadastrado ainda.</p>';
+                return;
+            }
+
+            savedAlertsList.innerHTML = alerts.map(a => `
+                <div class="p-3 bg-gray-50 border border-gray-200 rounded-xl flex items-center justify-between">
+                    <div>
+                        <p class="text-xs font-bold text-gray-900">${a.projectName || 'Projeto'}</p>
+                        <p class="text-[11px] text-gray-500 font-mono">📱 ${a.phone} | ⏰ ${a.schedules.join(', ')}</p>
+                    </div>
+                    <button class="delete-alert-btn text-red-500 hover:text-red-700 text-xs px-2 py-1 rounded hover:bg-red-50 transition-all" data-id="${a.id}">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            `).join('');
+
+            // Adicionar evento de deletar
+            document.querySelectorAll('.delete-alert-btn').forEach(btn => {
+                btn.addEventListener('click', async (e) => {
+                    const id = e.currentTarget.getAttribute('data-id');
+                    if (confirm('Deseja realmente remover este alerta?')) {
+                        await WhatsAppService.deleteUserAlert(id);
+                        loadSavedAlerts();
+                    }
+                });
+            });
+        }
+
+        // Inicializar
+        loadProjects();
+        loadSavedAlerts();
+    </script>
+</body>
+</html>

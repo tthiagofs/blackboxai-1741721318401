@@ -27,8 +27,12 @@ export default async function handler(req, res) {
       cleanPhone = `55${cleanPhone}`;
     }
 
-    // Provedor configurado: Evolution API (100% grátis) ou Z-API
-    const evolutionUrl = process.env.EVOLUTION_API_URL; // Ex: https://sua-evolution.railway.app
+    // Provedores: WppConnect (Mais simples e grátis), Evolution API ou Z-API
+    const wppConnectUrl = process.env.WPPCONNECT_URL; // Ex: https://whatsapp-bot-xxxx.onrender.com
+    const wppConnectSecretKey = process.env.WPPCONNECT_SECRET_KEY || 'THISISMYSECURETOKEN';
+    const wppConnectSession = process.env.WPPCONNECT_SESSION || 'insightflow';
+
+    const evolutionUrl = process.env.EVOLUTION_API_URL;
     const evolutionApiKey = process.env.EVOLUTION_API_KEY;
     const evolutionInstance = process.env.EVOLUTION_INSTANCE_NAME || 'insightflow';
 
@@ -40,8 +44,17 @@ export default async function handler(req, res) {
     let headers = { 'Content-Type': 'application/json' };
     let bodyPayload = {};
 
-    if (evolutionUrl && evolutionApiKey) {
-      // Formato da Evolution API (Open Source e Grátis)
+    if (wppConnectUrl) {
+      // Formato do WppConnect Server (Grátis e sem necessidade de banco de dados)
+      endpoint = `${wppConnectUrl.replace(/\/$/, '')}/api/${wppConnectSession}/send-message`;
+      headers['Authorization'] = `Bearer ${wppConnectSecretKey}`;
+      bodyPayload = {
+        phone: cleanPhone,
+        message: message,
+        isGroup: false
+      };
+    } else if (evolutionUrl && evolutionApiKey) {
+      // Formato da Evolution API
       endpoint = `${evolutionUrl.replace(/\/$/, '')}/message/sendText/${evolutionInstance}`;
       headers['apikey'] = evolutionApiKey;
       bodyPayload = {
@@ -59,7 +72,7 @@ export default async function handler(req, res) {
     } else {
       return res.status(400).json({
         error: 'Instância WhatsApp não configurada',
-        details: 'Configure Evolution API (gratuita) ou Z-API no painel de Robô WhatsApp Admin.'
+        details: 'Configure WPPCONNECT_URL nas variáveis da Vercel.'
       });
     }
 

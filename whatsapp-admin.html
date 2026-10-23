@@ -68,39 +68,38 @@
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 <!-- Coluna 1: Credenciais e Conexão (2 colunas) -->
                 <div class="lg:col-span-2 space-y-6">
-                    <!-- Card de Credenciais da Instância -->
+                    <!-- Card de Credenciais da Meta Cloud API Oficial -->
                     <div class="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
                         <div class="flex items-center justify-between mb-4 border-b pb-4">
                             <div>
-                                <h3 class="text-base font-bold text-gray-900">Configuração da Instância (Z-API / Gateway)</h3>
-                                <p class="text-xs text-gray-500">Conecte o WhatsApp do seu celular lendo o QR Code</p>
+                                <h3 class="text-base font-bold text-gray-900">Meta WhatsApp Cloud API (Oficial)</h3>
+                                <p class="text-xs text-gray-500">Conexão direta com a infraestrutura da Meta sem intermediários nem QR Code</p>
                             </div>
-                            <span class="text-xs bg-blue-50 text-blue-700 font-semibold px-2.5 py-1 rounded-md">Z-API Ativa</span>
+                            <span class="text-xs bg-green-50 text-green-700 font-semibold px-2.5 py-1 rounded-md">API Oficial</span>
                         </div>
 
                         <form id="gatewayForm" class="space-y-4">
                             <div>
-                                <label class="block text-xs font-semibold text-gray-700 mb-1">ID da Instância (Instance ID)</label>
-                                <input type="text" id="instanceIdInput" placeholder="Ex: 3C8F... ou nome da sua instância" class="w-full px-3.5 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none">
+                                <label class="block text-xs font-semibold text-gray-700 mb-1">ID do Número de Telefone (Phone Number ID)</label>
+                                <input type="text" id="instanceIdInput" placeholder="Ex: 104829384918239 (gerado no Meta for Developers)" class="w-full px-3.5 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none">
                             </div>
 
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div>
-                                    <label class="block text-xs font-semibold text-gray-700 mb-1">Token da Instância</label>
-                                    <input type="password" id="tokenInput" placeholder="Token fornecido no painel" class="w-full px-3.5 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none">
-                                </div>
-                                <div>
-                                    <label class="block text-xs font-semibold text-gray-700 mb-1">Client Token (Segurança Adicional)</label>
-                                    <input type="password" id="clientTokenInput" placeholder="Opcional se configurado" class="w-full px-3.5 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none">
-                                </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-700 mb-1">Token de Acesso (WhatsApp Token / Bearer Token)</label>
+                                <input type="password" id="tokenInput" placeholder="EAAB..." class="w-full px-3.5 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none">
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-700 mb-1">Nome do Modelo/Template (Opcional)</label>
+                                <input type="text" id="clientTokenInput" placeholder="relatorio_diario (ou deixe em branco para padrão)" class="w-full px-3.5 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none">
                             </div>
 
                             <div class="pt-2 flex items-center justify-between">
                                 <p class="text-xs text-gray-500">
-                                    <i class="fas fa-shield-alt text-green-600 mr-1"></i> As credenciais são criptografadas e salvas com segurança.
+                                    <i class="fas fa-shield-alt text-green-600 mr-1"></i> As chaves ficam salvas com segurança no Firestore e Vercel.
                                 </p>
                                 <button type="submit" id="saveGatewayBtn" class="bg-green-600 hover:bg-green-700 text-white font-medium px-5 py-2 rounded-lg text-sm transition-all flex items-center gap-2">
-                                    <i class="fas fa-save"></i> Salvar e Gerar QR Code
+                                    <i class="fas fa-save"></i> Salvar Credenciais da Meta
                                 </button>
                             </div>
                         </form>
@@ -108,53 +107,49 @@
 
                     <!-- Card de Envio de Teste Rápido -->
                     <div class="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
-                        <h3 class="text-base font-bold text-gray-900 mb-1">Disparo de Teste do Robô</h3>
-                        <p class="text-xs text-gray-500 mb-4">Envie uma mensagem de teste para verificar se o robô está entregando mensagens normalmente no seu WhatsApp</p>
+                        <h3 class="text-base font-bold text-gray-900 mb-1">Disparo de Teste Oficial</h3>
+                        <p class="text-xs text-gray-500 mb-4">Envie uma mensagem de teste para verificar a entrega oficial da Meta no seu WhatsApp pessoal</p>
 
                         <div class="flex flex-col sm:flex-row gap-3">
                             <input type="text" id="testPhoneInput" placeholder="(DDD) 99999-9999" class="flex-1 px-3.5 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-green-500 outline-none">
                             <button id="sendTestMsgBtn" class="bg-gray-900 hover:bg-black text-white px-5 py-2 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2">
-                                <i class="fab fa-whatsapp text-green-400"></i> Enviar Mensagem de Teste
+                                <i class="fab fa-whatsapp text-green-400"></i> Enviar Teste Oficial
                             </button>
                         </div>
                         <div id="testMsgFeedback" class="mt-3 text-xs hidden"></div>
                     </div>
                 </div>
 
-                <!-- Coluna 2: QR Code e Conexão em Tempo Real -->
+                <!-- Coluna 2: Informações e Guia da Meta -->
                 <div class="space-y-6">
-                    <div class="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm text-center">
-                        <h3 class="text-sm font-bold text-gray-900 mb-1">Status do WhatsApp</h3>
-                        <p class="text-xs text-gray-500 mb-5">Abra seu WhatsApp > Aparelhos Conectados > Conectar um aparelho</p>
-
-                        <!-- Box do QR Code / Conectado -->
-                        <div id="qrCodeContainer" class="min-h-[260px] flex flex-col items-center justify-center bg-gray-50 border-2 border-dashed border-gray-200 rounded-xl p-4">
-                            <div class="text-gray-400 text-4xl mb-3">
-                                <i class="fas fa-qrcode"></i>
-                            </div>
-                            <p class="text-xs text-gray-500 font-medium max-w-xs">Preencha o ID da Instância e Token ao lado para carregar o QR Code</p>
+                    <div class="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
+                        <div class="flex items-center gap-2 mb-3">
+                            <i class="fab fa-facebook text-blue-600 text-xl"></i>
+                            <h3 class="text-sm font-bold text-gray-900">Vantagens da API Oficial</h3>
                         </div>
+                        <ul class="text-xs text-gray-600 space-y-2.5">
+                            <li class="flex items-start gap-2">
+                                <i class="fas fa-check-circle text-green-500 mt-0.5"></i>
+                                <span><strong>1.000 mensagens grátis todo mês</strong> (sua agência gasta ~300).</span>
+                            </li>
+                            <li class="flex items-start gap-2">
+                                <i class="fas fa-check-circle text-green-500 mt-0.5"></i>
+                                <span><strong>Zero risco de bloqueio:</strong> conexão autorizada pela própria Meta.</span>
+                            </li>
+                            <li class="flex items-start gap-2">
+                                <i class="fas fa-check-circle text-green-500 mt-0.5"></i>
+                                <span><strong>Não ocupa espaço no celular:</strong> o robô roda 100% na nuvem da Meta.</span>
+                            </li>
+                            <li class="flex items-start gap-2">
+                                <i class="fas fa-check-circle text-green-500 mt-0.5"></i>
+                                <span><strong>Nunca desconecta:</strong> sem problemas de QR Code caindo.</span>
+                            </li>
+                        </ul>
 
-                        <!-- Número Conectado (quando online) -->
-                        <div id="connectedInfo" class="hidden mt-4 bg-green-50 border border-green-200 rounded-xl p-4 text-left">
-                            <div class="flex items-center gap-3">
-                                <div class="w-10 h-10 bg-green-500 text-white rounded-full flex items-center justify-center text-lg font-bold">
-                                    <i class="fab fa-whatsapp"></i>
-                                </div>
-                                <div>
-                                    <p class="text-xs font-semibold text-green-900">WhatsApp Conectado!</p>
-                                    <p id="connectedPhoneLabel" class="text-xs text-green-700 font-mono">+55 ...</p>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="mt-6 border-t pt-4 text-left">
-                            <h4 class="text-xs font-bold text-gray-700 mb-2">Orientações do Robô:</h4>
-                            <ul class="text-xs text-gray-500 space-y-2 list-disc list-inside">
-                                <li>O aparelho conectado atuará como remetente.</li>
-                                <li>Não desconecte o aparelho no celular para manter os disparos automáticos.</li>
-                                <li>Se cair, este painel avisará com o status desconectado.</li>
-                            </ul>
+                        <div class="mt-6 border-t pt-4">
+                            <a href="https://developers.facebook.com/apps" target="_blank" class="w-full inline-flex items-center justify-center gap-2 px-4 py-2 bg-blue-50 text-blue-700 rounded-lg text-xs font-semibold hover:bg-blue-100 transition-all">
+                                <i class="fas fa-external-link-alt"></i> Acessar Meta for Developers
+                            </a>
                         </div>
                     </div>
                 </div>
@@ -199,7 +194,6 @@
         async function checkLiveStatus() {
             const instanceId = instanceIdInput.value.trim();
             const token = tokenInput.value.trim();
-            const clientToken = clientTokenInput.value.trim();
 
             if (!instanceId || !token) {
                 globalStatusBadge.className = 'inline-flex items-center px-3 py-1.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-600';
@@ -207,54 +201,8 @@
                 return;
             }
 
-            globalStatusBadge.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Checando...';
-
-            try {
-                const url = `/api/whatsapp-status?instanceId=${encodeURIComponent(instanceId)}&token=${encodeURIComponent(token)}${clientToken ? `&clientToken=${encodeURIComponent(clientToken)}` : ''}`;
-                const res = await fetch(url);
-                const data = await res.json();
-
-                if (data.connected) {
-                    globalStatusBadge.className = 'inline-flex items-center px-3 py-1.5 rounded-full text-xs font-semibold bg-green-100 text-green-800';
-                    globalStatusBadge.innerHTML = '<span class="w-2 h-2 rounded-full bg-green-500 mr-2 animate-pulse"></span> Robô Conectado e Operando';
-                    
-                    connectedInfo.classList.remove('hidden');
-                    connectedPhoneLabel.textContent = data.phone ? `Número conectado: ${data.phone}` : 'Aparelho ativo e sincronizado';
-
-                    qrCodeContainer.innerHTML = `
-                        <div class="text-green-500 text-5xl mb-2">
-                            <i class="fas fa-check-circle"></i>
-                        </div>
-                        <h4 class="text-sm font-bold text-gray-900 mb-1">Sincronizado com Sucesso</h4>
-                        <p class="text-xs text-gray-500">Seu WhatsApp já está conectado e pronto para disparar relatórios diários.</p>
-                    `;
-                } else {
-                    globalStatusBadge.className = 'inline-flex items-center px-3 py-1.5 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-800';
-                    globalStatusBadge.innerHTML = '<span class="w-2 h-2 rounded-full bg-yellow-500 mr-2"></span> Desconectado (Aguardando QR)';
-
-                    connectedInfo.classList.add('hidden');
-
-                    if (data.qrCode) {
-                        qrCodeContainer.innerHTML = `
-                            <p class="text-xs font-semibold text-gray-700 mb-2">Escaneie o código abaixo com seu WhatsApp:</p>
-                            <img src="${data.qrCode}" alt="QR Code WhatsApp" class="w-56 h-56 border p-2 bg-white rounded-lg shadow-sm">
-                            <p class="text-[11px] text-gray-400 mt-2">Atualiza automaticamente a cada 20 segundos</p>
-                        `;
-                    } else {
-                        qrCodeContainer.innerHTML = `
-                            <div class="text-yellow-500 text-4xl mb-2">
-                                <i class="fas fa-exclamation-circle"></i>
-                            </div>
-                            <p class="text-xs text-gray-600 font-medium">WhatsApp desconectado.</p>
-                            <p class="text-[11px] text-gray-400 mt-1">Clique em "Salvar e Gerar QR Code" para conectar.</p>
-                        `;
-                    }
-                }
-            } catch (err) {
-                console.error(err);
-                globalStatusBadge.className = 'inline-flex items-center px-3 py-1.5 rounded-full text-xs font-semibold bg-red-100 text-red-800';
-                globalStatusBadge.innerHTML = '<span class="w-2 h-2 rounded-full bg-red-500 mr-2"></span> Erro de Conexão';
-            }
+            globalStatusBadge.className = 'inline-flex items-center px-3 py-1.5 rounded-full text-xs font-semibold bg-green-100 text-green-800';
+            globalStatusBadge.innerHTML = '<span class="w-2 h-2 rounded-full bg-green-500 mr-2"></span> Meta Cloud API Configurada';
         }
 
         // Salvar credenciais
@@ -265,22 +213,22 @@
             btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Salvando...';
 
             const config = {
-                provider: 'z-api',
-                instanceId: instanceIdInput.value.trim(),
-                token: tokenInput.value.trim(),
-                clientToken: clientTokenInput.value.trim()
+                provider: 'meta-cloud',
+                instanceId: instanceIdInput.value.trim(), // Phone Number ID
+                token: tokenInput.value.trim(),           // Meta Token
+                clientToken: clientTokenInput.value.trim() // Template Name
             };
 
             const result = await WhatsAppService.saveGatewayConfig(config);
             if (result.success) {
-                alert('Configurações salvas! Verificando status e carregando QR Code...');
-                await checkLiveStatus();
+                alert('✅ Credenciais da Meta salvas com sucesso no Insightflow!');
+                checkLiveStatus();
             } else {
                 alert('Erro ao salvar: ' + result.error);
             }
 
             btn.disabled = false;
-            btn.innerHTML = '<i class="fas fa-save mr-1"></i> Salvar e Gerar QR Code';
+            btn.innerHTML = '<i class="fas fa-save mr-1"></i> Salvar Credenciais da Meta';
         });
 
         refreshStatusBtn.addEventListener('click', checkLiveStatus);

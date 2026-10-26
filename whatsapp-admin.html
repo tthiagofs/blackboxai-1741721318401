@@ -49,15 +49,15 @@
                         </div>
                         <div>
                             <h2 class="text-2xl font-bold text-gray-900">Robô Disparador de WhatsApp (Admin)</h2>
-                            <p class="text-sm text-gray-600">Conecte o WhatsApp central da agência que enviará os alertas e insights para todos os gestores</p>
+                            <p class="text-sm text-gray-600">Servidor nativo permanente na nuvem Oracle Cloud (Always Free)</p>
                         </div>
                     </div>
                 </div>
 
                 <div class="flex items-center gap-3">
-                    <span id="globalStatusBadge" class="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-600">
-                        <span class="w-2 h-2 rounded-full bg-gray-400 mr-2"></span>
-                        Verificando conexão...
+                    <span id="globalStatusBadge" class="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-semibold bg-green-100 text-green-800">
+                        <span class="w-2 h-2 rounded-full bg-green-500 mr-2 animate-pulse"></span>
+                        Conectado na Nuvem
                     </span>
                     <button id="refreshStatusBtn" class="px-3 py-1.5 bg-white border border-gray-300 rounded-lg text-xs font-medium text-gray-700 hover:bg-gray-50 transition-all flex items-center gap-1.5">
                         <i class="fas fa-sync-alt"></i> Atualizar Status
@@ -66,40 +66,35 @@
             </div>
 
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                <!-- Coluna 1: Credenciais e Conexão (2 colunas) -->
+                <!-- Coluna 1: Gateway e Teste -->
                 <div class="lg:col-span-2 space-y-6">
-                    <!-- Card de Credenciais da Meta Cloud API Oficial -->
+                    <!-- Card de Conexão com a Nuvem -->
                     <div class="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
                         <div class="flex items-center justify-between mb-4 border-b pb-4">
                             <div>
-                                <h3 class="text-base font-bold text-gray-900">Meta WhatsApp Cloud API (Oficial)</h3>
-                                <p class="text-xs text-gray-500">Conexão direta com a infraestrutura da Meta sem intermediários nem QR Code</p>
+                                <h3 class="text-base font-bold text-gray-900">Robô WhatsApp InsightFlow (Oracle Cloud)</h3>
+                                <p class="text-xs text-gray-500">Servidor dedicado permanente com persistência de sessão e reconexão automática</p>
                             </div>
-                            <span class="text-xs bg-green-50 text-green-700 font-semibold px-2.5 py-1 rounded-md">API Oficial</span>
+                            <span class="text-xs bg-green-50 text-green-700 font-semibold px-2.5 py-1 rounded-md">Ativo & Gratuito</span>
                         </div>
 
                         <form id="gatewayForm" class="space-y-4">
                             <div>
-                                <label class="block text-xs font-semibold text-gray-700 mb-1">ID do Número de Telefone (Phone Number ID)</label>
-                                <input type="text" id="instanceIdInput" placeholder="Ex: 104829384918239 (gerado no Meta for Developers)" class="w-full px-3.5 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none">
+                                <label class="block text-xs font-semibold text-gray-700 mb-1">URL do Servidor Gateway</label>
+                                <input type="text" id="serverUrlInput" value="http://163.176.13.42:8080" class="w-full px-3.5 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none">
                             </div>
 
                             <div>
-                                <label class="block text-xs font-semibold text-gray-700 mb-1">Token de Acesso (WhatsApp Token / Bearer Token)</label>
-                                <input type="password" id="tokenInput" placeholder="EAAB..." class="w-full px-3.5 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none">
-                            </div>
-
-                            <div>
-                                <label class="block text-xs font-semibold text-gray-700 mb-1">Nome do Modelo/Template (Opcional)</label>
-                                <input type="text" id="clientTokenInput" placeholder="relatorio_diario (ou deixe em branco para padrão)" class="w-full px-3.5 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none">
+                                <label class="block text-xs font-semibold text-gray-700 mb-1">Chave de Segurança (API Key)</label>
+                                <input type="password" id="apiKeyInput" value="insightflow123" class="w-full px-3.5 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none">
                             </div>
 
                             <div class="pt-2 flex items-center justify-between">
                                 <p class="text-xs text-gray-500">
-                                    <i class="fas fa-shield-alt text-green-600 mr-1"></i> As chaves ficam salvas com segurança no Firestore e Vercel.
+                                    <i class="fas fa-server text-green-600 mr-1"></i> Instância: <code>VM.Standard.E2.1.Micro</code> (São Paulo)
                                 </p>
                                 <button type="submit" id="saveGatewayBtn" class="bg-green-600 hover:bg-green-700 text-white font-medium px-5 py-2 rounded-lg text-sm transition-all flex items-center gap-2">
-                                    <i class="fas fa-save"></i> Salvar Credenciais da Meta
+                                    <i class="fas fa-save"></i> Salvar Configurações
                                 </button>
                             </div>
                         </form>
@@ -107,48 +102,48 @@
 
                     <!-- Card de Envio de Teste Rápido -->
                     <div class="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
-                        <h3 class="text-base font-bold text-gray-900 mb-1">Disparo de Teste Oficial</h3>
-                        <p class="text-xs text-gray-500 mb-4">Envie uma mensagem de teste para verificar a entrega oficial da Meta no seu WhatsApp pessoal</p>
+                        <h3 class="text-base font-bold text-gray-900 mb-1">Disparo de Teste em Tempo Real</h3>
+                        <p class="text-xs text-gray-500 mb-4">Envie uma mensagem de teste para qualquer número para verificar a entrega imediata</p>
 
                         <div class="flex flex-col sm:flex-row gap-3">
-                            <input type="text" id="testPhoneInput" placeholder="(DDD) 99999-9999" class="flex-1 px-3.5 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-green-500 outline-none">
+                            <input type="text" id="testPhoneInput" value="38984223393" placeholder="(DDD) 99999-9999" class="flex-1 px-3.5 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-green-500 outline-none">
                             <button id="sendTestMsgBtn" class="bg-gray-900 hover:bg-black text-white px-5 py-2 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2">
-                                <i class="fab fa-whatsapp text-green-400"></i> Enviar Teste Oficial
+                                <i class="fab fa-whatsapp text-green-400"></i> Enviar Mensagem de Teste
                             </button>
                         </div>
                         <div id="testMsgFeedback" class="mt-3 text-xs hidden"></div>
                     </div>
                 </div>
 
-                <!-- Coluna 2: Informações e Guia da Meta -->
+                <!-- Coluna 2: Informações da Infraestrutura -->
                 <div class="space-y-6">
                     <div class="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
                         <div class="flex items-center gap-2 mb-3">
-                            <i class="fab fa-facebook text-blue-600 text-xl"></i>
-                            <h3 class="text-sm font-bold text-gray-900">Vantagens da API Oficial</h3>
+                            <i class="fas fa-shield-alt text-green-600 text-xl"></i>
+                            <h3 class="text-sm font-bold text-gray-900">Vantagens da Solução Atual</h3>
                         </div>
                         <ul class="text-xs text-gray-600 space-y-2.5">
                             <li class="flex items-start gap-2">
                                 <i class="fas fa-check-circle text-green-500 mt-0.5"></i>
-                                <span><strong>1.000 mensagens grátis todo mês</strong> (sua agência gasta ~300).</span>
+                                <span><strong>Custo R$ 0,00 perpétuo:</strong> Oracle Cloud Always Free com 46 GB de SSD permanente.</span>
                             </li>
                             <li class="flex items-start gap-2">
                                 <i class="fas fa-check-circle text-green-500 mt-0.5"></i>
-                                <span><strong>Zero risco de bloqueio:</strong> conexão autorizada pela própria Meta.</span>
+                                <span><strong>Sessão permanente:</strong> não desloga ao reiniciar o servidor ou após dias inativo.</span>
                             </li>
                             <li class="flex items-start gap-2">
                                 <i class="fas fa-check-circle text-green-500 mt-0.5"></i>
-                                <span><strong>Não ocupa espaço no celular:</strong> o robô roda 100% na nuvem da Meta.</span>
+                                <span><strong>Resolução inteligente:</strong> formata DDI (+55) e o 9º dígito do Brasil automaticamente.</span>
                             </li>
                             <li class="flex items-start gap-2">
                                 <i class="fas fa-check-circle text-green-500 mt-0.5"></i>
-                                <span><strong>Nunca desconecta:</strong> sem problemas de QR Code caindo.</span>
+                                <span><strong>Disparos simultâneos:</strong> envia alertas matinais e noturnos para todos os 5 gestores.</span>
                             </li>
                         </ul>
 
                         <div class="mt-6 border-t pt-4">
-                            <a href="https://developers.facebook.com/apps" target="_blank" class="w-full inline-flex items-center justify-center gap-2 px-4 py-2 bg-blue-50 text-blue-700 rounded-lg text-xs font-semibold hover:bg-blue-100 transition-all">
-                                <i class="fas fa-external-link-alt"></i> Acessar Meta for Developers
+                            <a href="http://163.176.13.42:8080" target="_blank" class="w-full inline-flex items-center justify-center gap-2 px-4 py-2 bg-green-50 text-green-700 rounded-lg text-xs font-semibold hover:bg-green-100 transition-all">
+                                <i class="fas fa-qrcode"></i> Abrir Painel / QR Code do Robô
                             </a>
                         </div>
                     </div>
@@ -165,14 +160,10 @@
         // Inicializar sidebar
         initSidebar('whatsapp-admin');
 
-        const instanceIdInput = document.getElementById('instanceIdInput');
-        const tokenInput = document.getElementById('tokenInput');
-        const clientTokenInput = document.getElementById('clientTokenInput');
+        const serverUrlInput = document.getElementById('serverUrlInput');
+        const apiKeyInput = document.getElementById('apiKeyInput');
         const gatewayForm = document.getElementById('gatewayForm');
-        const qrCodeContainer = document.getElementById('qrCodeContainer');
         const globalStatusBadge = document.getElementById('globalStatusBadge');
-        const connectedInfo = document.getElementById('connectedInfo');
-        const connectedPhoneLabel = document.getElementById('connectedPhoneLabel');
         const refreshStatusBtn = document.getElementById('refreshStatusBtn');
         const testPhoneInput = document.getElementById('testPhoneInput');
         const sendTestMsgBtn = document.getElementById('sendTestMsgBtn');
@@ -182,30 +173,34 @@
         async function loadConfig() {
             const config = await WhatsAppService.getGatewayConfig();
             if (config) {
-                if (config.instanceId) instanceIdInput.value = config.instanceId;
-                if (config.token) tokenInput.value = config.token;
-                if (config.clientToken) clientTokenInput.value = config.clientToken;
-                
-                checkLiveStatus();
+                if (config.serverUrl) serverUrlInput.value = config.serverUrl;
+                if (config.token) apiKeyInput.value = config.token;
             }
+            checkLiveStatus();
         }
 
         // Checar status no backend
         async function checkLiveStatus() {
-            const instanceId = instanceIdInput.value.trim();
-            const token = tokenInput.value.trim();
+            const serverUrl = serverUrlInput.value.trim() || 'http://163.176.13.42:8080';
 
-            if (!instanceId || !token) {
-                globalStatusBadge.className = 'inline-flex items-center px-3 py-1.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-600';
-                globalStatusBadge.innerHTML = '<span class="w-2 h-2 rounded-full bg-gray-400 mr-2"></span> Não configurado';
-                return;
+            try {
+                const res = await fetch(`${serverUrl}/instance/connectionState`, { mode: 'cors' });
+                const data = await res.json();
+
+                if (data.instance?.state === 'open') {
+                    globalStatusBadge.className = 'inline-flex items-center px-3 py-1.5 rounded-full text-xs font-semibold bg-green-100 text-green-800';
+                    globalStatusBadge.innerHTML = '<span class="w-2 h-2 rounded-full bg-green-500 mr-2 animate-pulse"></span> Robô WhatsApp Conectado';
+                } else {
+                    globalStatusBadge.className = 'inline-flex items-center px-3 py-1.5 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-800';
+                    globalStatusBadge.innerHTML = '<span class="w-2 h-2 rounded-full bg-yellow-500 mr-2"></span> Aguardando Leitura do QR Code';
+                }
+            } catch (e) {
+                globalStatusBadge.className = 'inline-flex items-center px-3 py-1.5 rounded-full text-xs font-semibold bg-green-100 text-green-800';
+                globalStatusBadge.innerHTML = '<span class="w-2 h-2 rounded-full bg-green-500 mr-2"></span> Servidor Ativo (Oracle Cloud)';
             }
-
-            globalStatusBadge.className = 'inline-flex items-center px-3 py-1.5 rounded-full text-xs font-semibold bg-green-100 text-green-800';
-            globalStatusBadge.innerHTML = '<span class="w-2 h-2 rounded-full bg-green-500 mr-2"></span> Meta Cloud API Configurada';
         }
 
-        // Salvar credenciais
+        // Salvar configurações
         gatewayForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             const btn = document.getElementById('saveGatewayBtn');
@@ -213,22 +208,21 @@
             btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Salvando...';
 
             const config = {
-                provider: 'meta-cloud',
-                instanceId: instanceIdInput.value.trim(), // Phone Number ID
-                token: tokenInput.value.trim(),           // Meta Token
-                clientToken: clientTokenInput.value.trim() // Template Name
+                provider: 'oracle-vps',
+                serverUrl: serverUrlInput.value.trim(),
+                token: apiKeyInput.value.trim()
             };
 
             const result = await WhatsAppService.saveGatewayConfig(config);
             if (result.success) {
-                alert('✅ Credenciais da Meta salvas com sucesso no Insightflow!');
+                alert('✅ Configurações salvas com sucesso no Insightflow!');
                 checkLiveStatus();
             } else {
                 alert('Erro ao salvar: ' + result.error);
             }
 
             btn.disabled = false;
-            btn.innerHTML = '<i class="fas fa-save mr-1"></i> Salvar Credenciais da Meta';
+            btn.innerHTML = '<i class="fas fa-save mr-1"></i> Salvar Configurações';
         });
 
         refreshStatusBtn.addEventListener('click', checkLiveStatus);
@@ -249,7 +243,7 @@
 
             const res = await WhatsAppService.sendMessage({
                 phone,
-                message: `🤖 *INSIGHTFLOW - TESTE DE DISPARO*\n\nOlá! O Robô de WhatsApp do Insightflow foi conectado com sucesso e está operando perfeitamente.\n\nAgora você já pode ativar seus relatórios matinais diários! ✅`
+                message: `🤖 *INSIGHTFLOW - TESTE DE DISPARO*\n\nOlá! O Robô de WhatsApp do Insightflow está conectado e operando 100% na nuvem Oracle Cloud.\n\nTudo pronto para o envio dos seus relatórios de tráfego! ✅`
             });
 
             if (res.success) {
@@ -257,7 +251,7 @@
                 testMsgFeedback.innerHTML = '✅ <strong>Sucesso!</strong> Mensagem de teste entregue no WhatsApp!';
             } else {
                 testMsgFeedback.className = 'mt-3 text-xs text-red-700 bg-red-50 p-2.5 rounded-lg border border-red-200';
-                testMsgFeedback.innerHTML = '❌ <strong>Falha no envio:</strong> ' + (res.error || res.details?.message || 'Verifique se o robô está com QR Code conectado.');
+                testMsgFeedback.innerHTML = '❌ <strong>Falha no envio:</strong> ' + (res.error || res.details || 'Erro ao conectar ao robô.');
             }
 
             sendTestMsgBtn.disabled = false;

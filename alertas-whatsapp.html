@@ -994,19 +994,23 @@
 
                         // Saldo da Conta (Bruto Nominal Sem Desconto)
                         if (metaBalance.checked) {
-                            const accUrl = `https://graph.facebook.com/v21.0/${actId}?fields=balance,spend_cap,amount_spent,currency&access_token=${metaToken}`;
+                            const accUrl = `https://graph.facebook.com/v21.0/${actId}?fields=balance,spend_cap,amount_spent,currency,is_prepay_account&access_token=${metaToken}`;
                             const accRes = await fetch(accUrl);
                             const accData = await accRes.json();
 
                             let rawBal = null;
-                            if (accData.balance) {
+                            const spendCap = parseFloat(accData.spend_cap || 0);
+                            const amountSpent = parseFloat(accData.amount_spent || 0);
+
+                            // Prioridade 1: spend_cap - amount_spent (Fórmula oficial do Meta para saldo pré-pago disponível)
+                            if (spendCap > 0 && spendCap > amountSpent) {
+                                rawBal = (spendCap - amountSpent) / 100;
+                            } else if (accData.is_prepay_account && parseFloat(accData.balance || 0) > 0) {
                                 rawBal = parseFloat(accData.balance) / 100;
-                            } else if (accData.spend_cap && accData.amount_spent) {
-                                rawBal = (parseFloat(accData.spend_cap) - parseFloat(accData.amount_spent)) / 100;
                             }
 
                             if (rawBal !== null && rawBal > 0) {
-                                // Reverter retenção fiscal de 11.765% para mostrar o saldo nominal bruto idêntico ao painel
+                                // Reverter retenção fiscal de 11.765% para mostrar o saldo nominal bruto idêntico ao painel do Meta
                                 metaBalanceVal = Math.round((rawBal / (1 - 0.11765)) * 100) / 100;
 
                                 // Média de 3 dias
@@ -1023,7 +1027,7 @@
                                     if (avgDaily > 0) {
                                         metaDaysLeftVal = (metaBalanceVal / avgDaily).toFixed(1);
                                         if (parseFloat(metaDaysLeftVal) <= 3) {
-                                            lowBalanceUnits.push({ name: unitName, balance: metaBalanceVal, daysLeft: metaDaysLeftVal });
+                                            lowBalanceUnits.push({ name: `${unitName} (Meta Ads)`, balance: metaBalanceVal, daysLeft: metaDaysLeftVal });
                                         }
                                     }
                                 }
@@ -1053,7 +1057,7 @@
                             reportMsg += `💳 *Saldo Atual:* ${formatBRL(metaBalanceVal)}\n`;
                             reportMsg += `⏳ *Previsão de Saldo:* ~${metaDaysLeftVal || 'N/A'} dias restantes\n`;
                         } else {
-                            reportMsg += `💳 *Saldo Atual:* Não disponível / Pós-pago\n`;
+                            reportMsg += `💳 *Saldo Atual:* Pós-pago / Cartão de Crédito\n`;
                         }
                     }
                 }

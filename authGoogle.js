@@ -125,13 +125,41 @@ class GoogleAuthService {
         return false;
     }
 
-    // Retorna token atual (carrega do storage e verifica expiração)
+    // Retorna token atual (carrega do storage, renova silenciosamente se necessário ou restaura do Firestore)
     async getAccessToken() {
-        const t = this._loadTokenFromStorage();
-        if (!t) {
-            this.accessToken = null;
-            return null;
+        let t = this._loadTokenFromStorage();
+        
+        const tokenTime = localStorage.getItem('google_ads_token_time');
+        const isExpiring = tokenTime && (Date.now() - parseInt(tokenTime, 10) > 45 * 60 * 1000);
+
+        if (!t || isExpiring) {
+            try {
+                // Tentar renovação silenciosa via Google Identity Services
+                console.log('🔄 [GoogleAuth] Renovando token Google Ads silenciosamente...');
+                const refreshed = await this.refreshToken();
+                if (refreshed) {
+                    this.accessToken = refreshed;
+                    return refreshed;
+                }
+            } catch (err) {
+                console.warn('⚠️ [GoogleAuth] Renovação silenciosa indisponível sem interação.');
+            }
+
+            // Se ainda não tiver token, tentar restaurar do Firestore
+            if (!t) {
+                try {
+                    await connectionService.initialize();
+                    if (connectionService.connections?.google?.accessToken) {
+                        t = connectionService.connections.google.accessToken;
+                        this._saveTokenToStorage(t);
+                        console.log('✅ [GoogleAuth] Token restaurado do Firestore');
+                    }
+                } catch (e) {
+                    console.warn('Erro ao restaurar token Google do Firestore:', e);
+                }
+            }
         }
+
         this.accessToken = t;
         return this.accessToken;
     }
@@ -213,23 +241,7 @@ class GoogleAuthService {
     _loadTokenFromStorage() {
         try {
             const token = localStorage.getItem('google_ads_access_token') || localStorage.getItem('googleAccessToken');
-            const tokenTime = localStorage.getItem('google_ads_token_time');
-
-            if (!token) return null;
-
-            // Verificar se o token tem mais de 50 minutos (3000000 ms)
-            if (tokenTime) {
-                const age = Date.now() - parseInt(tokenTime, 10);
-                if (age > 50 * 60 * 1000) {
-                    console.warn(`⚠️ [GoogleAuth] Token em localStorage expirou (${Math.round(age / 60000)} minutos). Limpando...`);
-                    localStorage.removeItem('google_ads_access_token');
-                    localStorage.removeItem('googleAccessToken');
-                    localStorage.removeItem('google_ads_token_time');
-                    this.accessToken = null;
-                    return null;
-                }
-            }
-            return token;
+            return token || null;
         } catch (e) {
             return null;
         }

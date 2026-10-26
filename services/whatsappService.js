@@ -116,6 +116,7 @@ export class WhatsAppService {
                 projectName: alertData.projectName || '',
                 active: alertData.active ?? true,
                 schedules: alertData.schedules || ['08:00'],
+                reportPeriod: alertData.reportPeriod || 'yesterday',
                 daysOfWeek: alertData.daysOfWeek || [1, 2, 3, 4, 5],
                 modules: alertData.modules || {},
                 selectedUnits: alertData.selectedUnits || [],

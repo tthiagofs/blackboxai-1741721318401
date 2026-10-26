@@ -53,41 +53,57 @@ class FacebookAuth {
     // Verificar token via API e renovar se necessário
     async verifyAndRefreshToken() {
         try {
-            await this.initializeFacebookSDK();
-            
-            // Verificar status atual do login
-            const statusResponse = await new Promise((resolve) => {
-                FB.getLoginStatus((response) => resolve(response));
-            });
-            
-            if (statusResponse.status === 'connected') {
-                // Token ainda válido, atualizar
-                const newToken = statusResponse.authResponse.accessToken;
-                const expiresIn = statusResponse.authResponse.expiresIn || 5184000; // 60 dias em segundos (padrão)
-                
-                if (newToken !== this.accessToken) {
-                    console.log('✅ Token Meta atualizado automaticamente');
-                    this.accessToken = newToken;
-                    localStorage.setItem('fbAccessToken', newToken);
-                    
-                    // Calcular data de expiração
-                    const expiryDate = new Date(Date.now() + (expiresIn * 1000));
-                    this.tokenExpiry = expiryDate.toISOString();
-                    localStorage.setItem('fbTokenExpiry', this.tokenExpiry);
+            // 1. Se não tiver token em memória/localStorage, tentar restaurar do Firestore
+            if (!this.accessToken) {
+                try {
+                    await connectionService.initialize();
+                    if (connectionService.connections?.meta?.accessToken) {
+                        this.accessToken = connectionService.connections.meta.accessToken;
+                        localStorage.setItem('fbAccessToken', this.accessToken);
+                        console.log('✅ Token Meta restaurado do Firestore');
+                    }
+                } catch (e) {
+                    console.warn('Erro ao restaurar token Meta do Firestore:', e);
                 }
-                
-                return true;
-            } else {
-                // Token inválido ou expirado
-                console.warn('⚠️ Token Meta não está mais válido');
-                this.accessToken = null;
-                localStorage.removeItem('fbAccessToken');
-                localStorage.removeItem('fbTokenExpiry');
-                return false;
             }
+
+            if (!this.accessToken) return false;
+
+            // 2. Testar validade real do token com uma chamada direta à Graph API
+            try {
+                const testRes = await fetch(`https://graph.facebook.com/v22.0/me?access_token=${this.accessToken}`);
+                const testData = await testRes.json();
+                
+                if (testData.id) {
+                    // Token está 100% ativo e funcional no Graph API!
+                    return true;
+                } else if (testData.error?.code === 190) {
+                    console.warn('⚠️ Token Meta expirou (code 190).');
+                    // Tentar se o Firestore tem um token mais recente
+                    try {
+                        await connectionService.initialize();
+                        const firestoreToken = connectionService.connections?.meta?.accessToken;
+                        if (firestoreToken && firestoreToken !== this.accessToken) {
+                            this.accessToken = firestoreToken;
+                            localStorage.setItem('fbAccessToken', this.accessToken);
+                            return true;
+                        }
+                    } catch (e) {}
+
+                    this.accessToken = null;
+                    localStorage.removeItem('fbAccessToken');
+                    localStorage.removeItem('fbTokenExpiry');
+                    return false;
+                }
+            } catch (netErr) {
+                // Falha de rede ou timeout: manter o token existente
+                console.warn('⚠️ Não foi possível verificar token Meta via rede. Mantendo token existente.');
+                return !!this.accessToken;
+            }
+
+            return true;
         } catch (error) {
             console.warn('⚠️ Erro ao verificar token Meta:', error);
-            // Se falhar na verificação, manter token atual (pode ser válido)
             return !!this.accessToken;
         }
     }

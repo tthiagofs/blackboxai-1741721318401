@@ -82,34 +82,49 @@
 
                         <form id="alertConfigForm" class="bg-white border border-gray-200 rounded-2xl p-6 sm:p-8 shadow-sm space-y-6">
                             
-                            <!-- 1. WhatsApp de Destino & Teste com Dados Reais -->
+                            <!-- 1. WhatsApp de Destino & Teste Imediato -->
                             <div>
                                 <h3 class="text-base font-bold text-gray-900 mb-1 flex items-center gap-2">
                                     <span class="w-6 h-6 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xs font-bold">1</span>
-                                    WhatsApp de Destino & Teste em Tempo Real
+                                    WhatsApp de Destino & Teste Imediato
                                 </h3>
                                 <p class="text-xs text-gray-500 mb-3">O número onde as notificações e os testes serão entregues.</p>
                                 
-                                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                                    <div class="sm:col-span-2 relative">
-                                        <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400 text-sm">
-                                            <i class="fab fa-whatsapp text-green-500"></i>
-                                        </span>
-                                        <input type="text" id="targetPhoneInput" required placeholder="(38) 98422-3393" class="w-full pl-9 pr-3.5 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none">
-                                    </div>
-                                    <div>
-                                        <input type="date" id="testDateInput" title="Data do relatório para teste" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-xs font-medium outline-none focus:ring-2 focus:ring-green-500">
-                                    </div>
-                                </div>
-                                <div class="mt-2.5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                                    <span class="text-[11px] text-gray-500">
-                                        <i class="fas fa-info-circle text-blue-500 mr-1"></i> Escolha a data (hoje para trás) para testar os dados reais das unidades selecionadas.
+                                <div class="relative">
+                                    <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400 text-sm">
+                                        <i class="fab fa-whatsapp text-green-500"></i>
                                     </span>
-                                    <button type="button" id="testPhoneBtn" class="px-4 py-2 bg-green-50 hover:bg-green-100 text-green-700 border border-green-300 font-bold rounded-lg text-xs transition-all flex items-center gap-1.5 shrink-0 shadow-sm">
-                                        <i class="fas fa-paper-plane text-green-600"></i> Disparar Teste Real
-                                    </button>
+                                    <input type="text" id="targetPhoneInput" required placeholder="(38) 98422-3393" class="w-full pl-9 pr-3.5 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none">
                                 </div>
-                                <div id="phoneTestFeedback" class="mt-2 text-xs hidden p-2.5 rounded-lg"></div>
+
+                                <!-- Card Dedicado de Teste Imediato com Dados Reais -->
+                                <div class="mt-4 p-4 bg-gray-50 border border-gray-200 rounded-xl space-y-3">
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-xs font-bold text-gray-800 flex items-center gap-1.5">
+                                            <i class="fas fa-vial text-green-600"></i> Disparar Teste Real Agora
+                                        </span>
+                                        <span class="text-[11px] text-gray-500">Consulta dados reais ao vivo</span>
+                                    </div>
+                                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                                        <div class="sm:col-span-1">
+                                            <label class="block text-[11px] text-gray-600 font-medium mb-1">Data base:</label>
+                                            <input type="date" id="testDateInput" title="Data do relatório para teste" class="w-full px-2.5 py-1.5 bg-white border border-gray-300 rounded-lg text-xs font-semibold outline-none focus:ring-2 focus:ring-green-500">
+                                        </div>
+                                        <div class="sm:col-span-1">
+                                            <label class="block text-[11px] text-gray-600 font-medium mb-1">Período do teste:</label>
+                                            <select id="testPeriodRange" class="w-full px-2.5 py-1.5 bg-white border border-gray-300 rounded-lg text-xs font-semibold outline-none focus:ring-2 focus:ring-green-500">
+                                                <option value="single_day">Somente este dia</option>
+                                                <option value="last_7_days">Últimos 7 dias até a data</option>
+                                            </select>
+                                        </div>
+                                        <div class="sm:col-span-1 flex items-end">
+                                            <button type="button" id="testPhoneBtn" class="w-full py-1.5 bg-green-600 hover:bg-green-700 text-white font-bold rounded-lg text-xs transition-all flex items-center justify-center gap-1.5 shadow-sm">
+                                                <i class="fas fa-paper-plane"></i> Disparar Teste
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div id="phoneTestFeedback" class="mt-2 text-xs hidden p-2.5 rounded-lg"></div>
+                                </div>
                             </div>
 
                             <hr class="border-gray-100">
@@ -147,18 +162,39 @@
 
                             <hr class="border-gray-100">
 
-                            <!-- 3. Horário do Envio Programado -->
+                            <!-- 3. Horário do Envio & Período dos Dados -->
                             <div>
                                 <div class="flex items-center justify-between mb-1">
                                     <h3 class="text-base font-bold text-gray-900 flex items-center gap-2">
                                         <span class="w-6 h-6 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xs font-bold">3</span>
-                                        Horário do Disparo & Dias
+                                        Horário do Disparo & Período dos Dados
                                     </h3>
                                     <span class="text-[11px] bg-yellow-50 text-yellow-700 font-semibold px-2 py-0.5 rounded-full border border-yellow-200">
                                         🛡️ Limite máx: 2 envios/dia
                                     </span>
                                 </div>
-                                <p class="text-xs text-gray-500 mb-3">Defina o horário em que este relatório será enviado para o WhatsApp.</p>
+                                <p class="text-xs text-gray-500 mb-3">Defina o período dos dados e o horário em que o relatório será enviado.</p>
+
+                                <!-- Seletor de Período dos Dados (Ontem vs Últimos 7 Dias) -->
+                                <div class="mb-4">
+                                    <label class="block text-xs font-bold text-gray-800 mb-2">📊 Período dos Dados a Enviar</label>
+                                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                        <label class="flex items-start gap-3 p-3 bg-white border-2 border-green-500 rounded-xl cursor-pointer transition-all period-radio-card" id="periodCardYesterday">
+                                            <input type="radio" name="reportPeriod" value="yesterday" checked class="mt-0.5 text-green-600 focus:ring-green-500">
+                                            <div>
+                                                <span class="text-xs font-bold text-gray-900 block">📅 Dia Anterior (D-1 / Ontem)</span>
+                                                <span class="text-[11px] text-gray-500 block mt-0.5">Disparo diário trazendo o resumo de ontem (ex: no dia 25 recebe os dados do dia 24).</span>
+                                            </div>
+                                        </label>
+                                        <label class="flex items-start gap-3 p-3 bg-white border border-gray-200 rounded-xl cursor-pointer transition-all period-radio-card hover:border-gray-300" id="periodCardLast7Days">
+                                            <input type="radio" name="reportPeriod" value="last_7_days" class="mt-0.5 text-green-600 focus:ring-green-500">
+                                            <div>
+                                                <span class="text-xs font-bold text-gray-900 block">📆 Últimos 7 Dias (Semanal)</span>
+                                                <span class="text-[11px] text-gray-500 block mt-0.5">Ideal para rodar na sexta-feira ou fechamento semanal, puxando os últimos 7 dias fechados.</span>
+                                            </div>
+                                        </label>
+                                    </div>
+                                </div>
 
                                 <div class="p-3.5 border border-gray-200 rounded-xl bg-gray-50 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                                     <div class="flex items-center gap-2">
@@ -375,10 +411,13 @@
 
         const targetPhoneInput = document.getElementById('targetPhoneInput');
         const testDateInput = document.getElementById('testDateInput');
+        const testPeriodRange = document.getElementById('testPeriodRange');
         const testPhoneBtn = document.getElementById('testPhoneBtn');
         const phoneTestFeedback = document.getElementById('phoneTestFeedback');
 
         const scheduleTimeInput = document.getElementById('scheduleTimeInput');
+        const periodCardYesterday = document.getElementById('periodCardYesterday');
+        const periodCardLast7Days = document.getElementById('periodCardLast7Days');
         const btnWeekdaysOnly = document.getElementById('btnWeekdaysOnly');
         const btnAllDays = document.getElementById('btnAllDays');
         const weekDayCheckboxes = document.querySelectorAll('input[name="weekDay"]');
@@ -466,6 +505,21 @@
             switchTab('alerts');
         });
 
+        // Seleção visual do período dos dados
+        document.querySelectorAll('input[name="reportPeriod"]').forEach(radio => {
+            radio.addEventListener('change', () => {
+                const val = document.querySelector('input[name="reportPeriod"]:checked')?.value;
+                if (val === 'yesterday') {
+                    periodCardYesterday.className = 'flex items-start gap-3 p-3 bg-white border-2 border-green-500 rounded-xl cursor-pointer transition-all period-radio-card';
+                    periodCardLast7Days.className = 'flex items-start gap-3 p-3 bg-white border border-gray-200 rounded-xl cursor-pointer transition-all period-radio-card hover:border-gray-300';
+                } else {
+                    periodCardLast7Days.className = 'flex items-start gap-3 p-3 bg-white border-2 border-green-500 rounded-xl cursor-pointer transition-all period-radio-card';
+                    periodCardYesterday.className = 'flex items-start gap-3 p-3 bg-white border border-gray-200 rounded-xl cursor-pointer transition-all period-radio-card hover:border-gray-300';
+                }
+                updateDynamicPreview();
+            });
+        });
+
         // Ações rápidas dos dias da semana
         btnWeekdaysOnly.addEventListener('click', () => {
             weekDayCheckboxes.forEach(cb => {
@@ -498,11 +552,14 @@
             const project = loadedProjects.find(p => p.id === projectSelect.value);
             const projName = project ? project.name : 'Oral Centter';
             const timeStr = scheduleTimeInput.value || '08:00';
+            const periodVal = document.querySelector('input[name="reportPeriod"]:checked')?.value || 'yesterday';
+            const periodLabel = periodVal === 'last_7_days' ? 'Últimos 7 dias (Semanal)' : 'Dados de ontem (D-1)';
+
             previewTimestamp.textContent = `${timeStr} ✓✓`;
 
             let msg = `*${currentUserName}*, segue o relatório diário das suas unidades.\n\n`;
             msg += `📊 *INSIGHTFLOW - BRIEFING DIÁRIO*\n`;
-            msg += `📅 *Dados de ontem* | ⏰ *Envio:* ${timeStr}h\n`;
+            msg += `📅 *Período:* ${periodLabel} | ⏰ *Envio:* ${timeStr}h\n`;
             msg += `📁 *Projeto:* ${projName}\n\n`;
 
             const checkedUnitLabels = Array.from(document.querySelectorAll('input[name="selectedUnit"]:checked'))
@@ -576,7 +633,6 @@
             const activeAlerts = existingAlerts.filter(a => a.active !== false);
             alertsCountBadge.textContent = `${activeAlerts.length}/2`;
 
-            // Se estiver em modo de edição, o próprio alerta não conta como slot novo
             const isEditing = !!currentAlertId;
             const otherActiveCount = existingAlerts.filter(a => a.active !== false && a.id !== currentAlertId).length;
 
@@ -593,11 +649,23 @@
             }
         }
 
-        // Resetar o formulário
+        // Resetar o formulário completamente para permitir nova configuração limpa
         function resetConfigForm() {
             currentAlertId = null;
             btnCancelEdit.classList.add('hidden');
             scheduleTimeInput.value = '08:00';
+            
+            // Período default: ontem
+            const radioYest = document.querySelector('input[name="reportPeriod"][value="yesterday"]');
+            if (radioYest) {
+                radioYest.checked = true;
+                periodCardYesterday.className = 'flex items-start gap-3 p-3 bg-white border-2 border-green-500 rounded-xl cursor-pointer transition-all period-radio-card';
+                periodCardLast7Days.className = 'flex items-start gap-3 p-3 bg-white border border-gray-200 rounded-xl cursor-pointer transition-all period-radio-card hover:border-gray-300';
+            }
+
+            // Desmarcar unidades
+            document.querySelectorAll('input[name="selectedUnit"]').forEach(cb => cb.checked = false);
+
             metaSpend.checked = true;
             metaMessages.checked = true;
             metaCpl.checked = true;
@@ -718,7 +786,7 @@
             }
         }
 
-        // Obter Token Meta
+        // Obter Token Meta (garantindo persistência)
         async function getMetaAccessToken() {
             let token = localStorage.getItem('fbAccessToken');
             if (token) return token;
@@ -740,7 +808,7 @@
             return null;
         }
 
-        // Obter Token Google
+        // Obter Token Google (garantindo persistência)
         async function getGoogleAccessToken() {
             let token = localStorage.getItem('google_ads_access_token') || localStorage.getItem('googleAccessToken');
             if (token) return token;
@@ -751,6 +819,7 @@
                         const conn = userSnap.data().connections;
                         if (conn?.google?.accessToken) {
                             token = conn.google.accessToken;
+                            localStorage.setItem('google_ads_access_token', token);
                             return token;
                         }
                     }
@@ -764,14 +833,12 @@
         // Extrair Leads do Meta com Precisão (evitando duplicar first_reply ou lead)
         function extractExactMetaLeads(actions) {
             if (!actions || !Array.isArray(actions)) return 0;
-            // Métrica primária oficial de conversas iniciadas no WhatsApp:
             const convAction = actions.find(a => 
                 a.action_type === 'onsite_conversion.messaging_conversation_started_7d'
             );
             if (convAction && convAction.value) {
                 return parseInt(convAction.value, 10) || 0;
             }
-            // Fallback para campanhas de cadastro direto (lead):
             const leadAction = actions.find(a => 
                 a.action_type === 'lead' || a.action_type === 'onsite_conversion.lead_grouped'
             );
@@ -787,7 +854,7 @@
             return (val || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
         }
 
-        // TESTE DE ENVIO COM DADOS REAIS POR DATA
+        // TESTE DE ENVIO COM DADOS REAIS POR DATA / PERÍODO
         testPhoneBtn.addEventListener('click', async () => {
             const rawPhone = targetPhoneInput.value.replace(/\D/g, '');
             if (!rawPhone || rawPhone.length < 10) {
@@ -803,12 +870,23 @@
             }
 
             const chosenDate = testDateInput.value || yesterday.toISOString().split('T')[0];
-            const dateFormatted = chosenDate.split('-').reverse().join('/');
+            const is7Days = testPeriodRange.value === 'last_7_days';
+
+            let startDate = chosenDate;
+            let endDate = chosenDate;
+            let dateTitle = chosenDate.split('-').reverse().join('/');
+
+            if (is7Days) {
+                const d = new Date(chosenDate);
+                d.setDate(d.getDate() - 6);
+                startDate = d.toISOString().split('T')[0];
+                dateTitle = `${startDate.split('-').reverse().join('/')} a ${endDate.split('-').reverse().join('/')} (Últimos 7 dias)`;
+            }
 
             testPhoneBtn.disabled = true;
-            testPhoneBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Consultando Métricas...';
+            testPhoneBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Consultando...';
             phoneTestFeedback.className = 'mt-2 text-xs text-blue-700 bg-blue-50 border border-blue-200 p-2.5 rounded-lg';
-            phoneTestFeedback.textContent = `Consultando dados reais do dia ${dateFormatted} nas contas vinculadas...`;
+            phoneTestFeedback.textContent = `Consultando dados reais de ${dateTitle} nas contas vinculadas...`;
             phoneTestFeedback.classList.remove('hidden');
 
             const project = loadedProjects.find(p => p.id === projectSelect.value);
@@ -821,7 +899,7 @@
             // Cabeçalho da Mensagem
             let reportMsg = `*${currentUserName}*, segue o relatório diário das suas unidades.\n\n`;
             reportMsg += `📊 *INSIGHTFLOW - BRIEFING DIÁRIO*\n`;
-            reportMsg += `📅 *Dados de:* ${dateFormatted} | ⏰ *Envio Teste*\n`;
+            reportMsg += `📅 *Dados:* ${dateTitle} | ⏰ *Envio Teste*\n`;
             reportMsg += `📁 *Projeto:* ${projName}\n\n`;
 
             const lowBalanceUnits = [];
@@ -851,7 +929,7 @@
                     let metaDaysLeftVal = null;
 
                     try {
-                        const timeRange = encodeURIComponent(JSON.stringify({ since: chosenDate, until: chosenDate }));
+                        const timeRange = encodeURIComponent(JSON.stringify({ since: startDate, until: endDate }));
                         const insUrl = `https://graph.facebook.com/v21.0/${actId}/insights?fields=spend,impressions,clicks,cpc,actions&time_range=${timeRange}&access_token=${metaToken}`;
                         const insRes = await fetch(insUrl);
                         const insData = await insRes.json();
@@ -904,10 +982,10 @@
                                 metaBalanceVal = Math.round((rawBal / (1 - 0.11765)) * 100) / 100;
 
                                 // Média de 3 dias
-                                const d = new Date(chosenDate);
+                                const d = new Date(endDate);
                                 d.setDate(d.getDate() - 3);
                                 const since3d = d.toISOString().split('T')[0];
-                                const tr3 = encodeURIComponent(JSON.stringify({ since: since3d, until: chosenDate }));
+                                const tr3 = encodeURIComponent(JSON.stringify({ since: since3d, until: endDate }));
                                 const ins3Url = `https://graph.facebook.com/v21.0/${actId}/insights?fields=spend&time_range=${tr3}&access_token=${metaToken}`;
                                 const ins3Res = await fetch(ins3Url);
                                 const ins3Data = await ins3Res.json();
@@ -966,8 +1044,8 @@
                             body: JSON.stringify({
                                 action: 'getAccountInsights',
                                 customerId: custId,
-                                startDate: chosenDate,
-                                endDate: chosenDate,
+                                startDate: startDate,
+                                endDate: endDate,
                                 accessToken: googleToken
                             })
                         });
@@ -1015,14 +1093,14 @@
 
             if (res.success) {
                 phoneTestFeedback.className = 'mt-2 text-xs text-green-700 bg-green-50 p-2.5 rounded-lg border border-green-200';
-                phoneTestFeedback.innerHTML = `✅ <strong>Sucesso!</strong> Relatório real do dia <strong>${dateFormatted}</strong> enviado para seu WhatsApp!`;
+                phoneTestFeedback.innerHTML = `✅ <strong>Sucesso!</strong> Relatório real de <strong>${dateTitle}</strong> enviado para seu WhatsApp!`;
             } else {
                 phoneTestFeedback.className = 'mt-2 text-xs text-red-700 bg-red-50 p-2.5 rounded-lg border border-red-200';
                 phoneTestFeedback.innerHTML = '❌ <strong>Falha no envio:</strong> ' + (res.error || res.details || 'Verifique o número e o robô de WhatsApp.');
             }
 
             testPhoneBtn.disabled = false;
-            testPhoneBtn.innerHTML = '<i class="fas fa-paper-plane text-green-600"></i> Disparar Teste Real';
+            testPhoneBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Disparar Teste';
         });
 
         // SALVAR E PROGRAMAR ENVIO (Limite de 2 Horários)
@@ -1043,6 +1121,7 @@
             }
 
             const timeValue = scheduleTimeInput.value || '08:00';
+            const periodValue = document.querySelector('input[name="reportPeriod"]:checked')?.value || 'yesterday';
             const selectedDays = Array.from(document.querySelectorAll('input[name="weekDay"]:checked')).map(el => parseInt(el.value));
             if (selectedDays.length === 0) {
                 alert('Selecione pelo menos um dia da semana para receber os alertas!');
@@ -1058,6 +1137,7 @@
                 projectName: project ? project.name : '',
                 active: true,
                 schedules: [timeValue],
+                reportPeriod: periodValue,
                 daysOfWeek: selectedDays,
                 modules: {
                     meta: {
@@ -1083,7 +1163,7 @@
 
             const result = await WhatsAppService.saveUserAlert(payload);
             if (result.success) {
-                alert('✅ Envio programado com sucesso! Ele foi adicionado à lista de Envios Programados.');
+                alert('✅ Envio programado com sucesso! A tela de configuração foi limpa para você cadastrar o próximo se desejar.');
                 resetConfigForm();
                 await loadSavedAlerts();
                 switchTab('alerts');
@@ -1117,6 +1197,20 @@
 
             if (alert.schedules && alert.schedules.length > 0) {
                 scheduleTimeInput.value = alert.schedules[0];
+            }
+
+            // Período
+            const periodVal = alert.reportPeriod || 'yesterday';
+            const radioEl = document.querySelector(`input[name="reportPeriod"][value="${periodVal}"]`);
+            if (radioEl) {
+                radioEl.checked = true;
+                if (periodVal === 'yesterday') {
+                    periodCardYesterday.className = 'flex items-start gap-3 p-3 bg-white border-2 border-green-500 rounded-xl cursor-pointer transition-all period-radio-card';
+                    periodCardLast7Days.className = 'flex items-start gap-3 p-3 bg-white border border-gray-200 rounded-xl cursor-pointer transition-all period-radio-card hover:border-gray-300';
+                } else {
+                    periodCardLast7Days.className = 'flex items-start gap-3 p-3 bg-white border-2 border-green-500 rounded-xl cursor-pointer transition-all period-radio-card';
+                    periodCardYesterday.className = 'flex items-start gap-3 p-3 bg-white border border-gray-200 rounded-xl cursor-pointer transition-all period-radio-card hover:border-gray-300';
+                }
             }
 
             if (alert.daysOfWeek && Array.isArray(alert.daysOfWeek)) {
@@ -1157,7 +1251,7 @@
                     <div class="col-span-full text-center py-10 bg-gray-50 border border-dashed border-gray-300 rounded-xl">
                         <i class="fab fa-whatsapp text-gray-400 text-3xl mb-2"></i>
                         <p class="text-sm font-semibold text-gray-700">Nenhum envio programado ainda</p>
-                        <p class="text-xs text-gray-500 mt-1">Configure na aba <strong>1. Configurar & Testar</strong> para programar seus envios diários.</p>
+                        <p class="text-xs text-gray-500 mt-1">Configure na aba <strong>1. Configurar & Testar</strong> para programar seus envios diários ou semanais.</p>
                     </div>
                 `;
                 checkScheduleSlots();
@@ -1171,6 +1265,7 @@
                 const formattedDays = (a.daysOfWeek || []).map(d => dayNames[d] || d).join(', ') || 'Seg a Sex';
                 const timeLabel = (a.schedules || []).length > 0 ? (a.schedules || []).join(', ') + 'h' : 'Sem horário';
                 const unitsCount = (a.selectedUnits || []).length;
+                const periodBadge = a.reportPeriod === 'last_7_days' ? '📆 Últimos 7 Dias (Semanal)' : '📅 Dia Anterior (D-1)';
 
                 return `
                 <div class="p-5 bg-white border ${isActive ? 'border-green-300 shadow-sm' : 'border-gray-200 opacity-80'} rounded-2xl transition-all relative space-y-4">
@@ -1200,6 +1295,10 @@
                         <p class="flex items-center justify-between">
                             <span class="text-gray-500"><i class="far fa-clock mr-1 text-blue-500"></i> Horário Programado:</span>
                             <strong class="text-gray-800 text-sm font-mono text-green-700">${timeLabel}</strong>
+                        </p>
+                        <p class="flex items-center justify-between">
+                            <span class="text-gray-500"><i class="far fa-calendar-check mr-1 text-blue-500"></i> Período:</span>
+                            <span class="font-bold text-gray-700">${periodBadge}</span>
                         </p>
                         <p class="flex items-center justify-between">
                             <span class="text-gray-500"><i class="far fa-calendar-alt mr-1 text-blue-500"></i> Dias:</span>

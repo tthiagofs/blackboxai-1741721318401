@@ -142,6 +142,18 @@ export class GoogleAdsService {
         }
     }
 
+    // Buscar saldo e orçamento da conta Google Ads
+    async getAccountBudget() {
+        try {
+            console.log(`💳 [GoogleAdsService] Buscando saldo/orçamento para ${this.customerId}`);
+            const data = await this._call('getAccountBudget');
+            return data;
+        } catch (error) {
+            console.warn('⚠️ [GoogleAdsService] Erro ao buscar saldo/orçamento:', error);
+            return { budget: null, isPostpaid: true };
+        }
+    }
+
     // Calcular métricas formatadas
     calculateMetrics(insights) {
         const cost = parseFloat(insights.cost || 0);

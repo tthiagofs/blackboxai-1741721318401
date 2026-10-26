@@ -3,7 +3,7 @@
 const GOOGLE_ADS_API_VERSION = 'v23';
 const GOOGLE_ADS_BASE = `https://googleads.googleapis.com/${GOOGLE_ADS_API_VERSION}`;
 function getDeveloperToken() {
-  return process.env.GOOGLE_ADS_DEVELOPER_TOKEN;
+  return process.env.GOOGLE_ADS_DEVELOPER_TOKEN || 'XJMJTE6x6lU7zbtl8oNFXA';
 }
 
 function buildGoogleAdsHeaders(accessToken, loginCustomerId = null) {
@@ -69,6 +69,9 @@ export default async function handler(req, res) {
       case 'getComparison':
         return await getComparison(customerId, startDate, endDate, accessToken, res, loginCustomerId);
       
+      case 'getAccountBudget':
+        return await getAccountBudget(customerId, accessToken, res, loginCustomerId);
+
       default:
         return res.status(400).json({ error: 'Ação inválida' });
     }
@@ -301,6 +304,9 @@ async function getAccountInsights(customerId, startDate, endDate, accessToken, r
       throw new Error('Access token não fornecido');
     }
 
+    const cleanCustomerId = String(customerId).replace(/\D/g, '');
+    const cleanLoginCustomerId = loginCustomerId ? String(loginCustomerId).replace(/\D/g, '') : null;
+
     const query = `
       SELECT
         metrics.impressions,
@@ -312,12 +318,12 @@ async function getAccountInsights(customerId, startDate, endDate, accessToken, r
     `;
 
     console.log('🔍 Query:', query);
-    console.log(`📊 Buscando insights para conta ${customerId}${loginCustomerId ? ` via MCC ${loginCustomerId}` : ''}`);
+    console.log(`📊 Buscando insights para conta ${cleanCustomerId}${cleanLoginCustomerId ? ` via MCC ${cleanLoginCustomerId}` : ''}`);
 
-    const headers = buildGoogleAdsHeaders(accessToken, loginCustomerId);
+    const headers = buildGoogleAdsHeaders(accessToken, cleanLoginCustomerId);
 
     const response = await fetch(
-      `${GOOGLE_ADS_BASE}/customers/${customerId}/googleAds:searchStream`,
+      `${GOOGLE_ADS_BASE}/customers/${cleanCustomerId}/googleAds:searchStream`,
       {
         method: 'POST',
         headers,
@@ -383,6 +389,9 @@ async function getAccountInsightsDaily(customerId, startDate, endDate, accessTok
       throw new Error('Access token não fornecido');
     }
 
+    const cleanCustomerId = String(customerId).replace(/\D/g, '');
+    const cleanLoginCustomerId = loginCustomerId ? String(loginCustomerId).replace(/\D/g, '') : null;
+
     // Query com segments.date para obter dados diários
     const query = `
       SELECT
@@ -397,12 +406,12 @@ async function getAccountInsightsDaily(customerId, startDate, endDate, accessTok
     `;
 
     console.log('🔍 Query diária:', query);
-    console.log(`📊 Buscando insights diários para conta ${customerId}${loginCustomerId ? ` via MCC ${loginCustomerId}` : ''}`);
+    console.log(`📊 Buscando insights diários para conta ${cleanCustomerId}${cleanLoginCustomerId ? ` via MCC ${cleanLoginCustomerId}` : ''}`);
 
-    const headers = buildGoogleAdsHeaders(accessToken, loginCustomerId);
+    const headers = buildGoogleAdsHeaders(accessToken, cleanLoginCustomerId);
 
     const response = await fetch(
-      `${GOOGLE_ADS_BASE}/customers/${customerId}/googleAds:searchStream`,
+      `${GOOGLE_ADS_BASE}/customers/${cleanCustomerId}/googleAds:searchStream`,
       {
         method: 'POST',
         headers,
@@ -517,3 +526,94 @@ async function getComparison(customerId, startDate, endDate, accessToken, res, l
   }
 }
 
+// Buscar saldo e orçamento da conta Google Ads
+async function getAccountBudget(customerId, accessToken, res, loginCustomerId = null) {
+  try {
+    if (!customerId) {
+      throw new Error('customerId é obrigatório');
+    }
+    if (!accessToken) {
+      throw new Error('Access token não fornecido');
+    }
+
+    const cleanCustomerId = String(customerId).replace(/\D/g, '');
+    const cleanLoginCustomerId = loginCustomerId ? String(loginCustomerId).replace(/\D/g, '') : null;
+
+    const query = `
+      SELECT
+        account_budget.id,
+        account_budget.name,
+        account_budget.status,
+        account_budget.approved_spending_limit_micros,
+        account_budget.approved_spending_limit_type,
+        account_budget.amount_served_micros,
+        account_budget.total_adjustments_micros
+      FROM account_budget
+      WHERE account_budget.status = 'APPROVED'
+    `;
+
+    console.log(`💳 Buscando orçamento/saldo para conta ${cleanCustomerId}${cleanLoginCustomerId ? ` via MCC ${cleanLoginCustomerId}` : ''}`);
+
+    const headers = buildGoogleAdsHeaders(accessToken, cleanLoginCustomerId);
+
+    const response = await fetch(
+      `${GOOGLE_ADS_BASE}/customers/${cleanCustomerId}/googleAds:searchStream`,
+      {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ query }),
+      }
+    );
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.warn('⚠️ Resposta não-ok em getAccountBudget:', errorText);
+      const payload = { budget: null, isPostpaid: true, note: 'Pós-pago / Cartão de Crédito' };
+      if (res) return res.status(200).json(payload);
+      return payload;
+    }
+
+    const data = await response.json();
+    const rows = flattenSearchStreamResults(data);
+
+    if (rows && rows.length > 0) {
+      const budgetObj = rows[0].accountBudget;
+      if (budgetObj) {
+        if (budgetObj.approvedSpendingLimitType === 'INFINITE') {
+          const payload = { budget: null, isPostpaid: true, note: 'Pós-pago / Limite Ilimitado' };
+          if (res) return res.status(200).json(payload);
+          return payload;
+        }
+
+        const limit = parseInt(budgetObj.approvedSpendingLimitMicros || 0) / 1000000;
+        const served = parseInt(budgetObj.amountServedMicros || 0) / 1000000;
+        const adjustments = parseInt(budgetObj.totalAdjustmentsMicros || 0) / 1000000;
+        const balance = Math.max(0, (limit + adjustments) - served);
+
+        const payload = {
+          budget: {
+            id: budgetObj.id,
+            name: budgetObj.name,
+            limit,
+            served,
+            balance: Math.round(balance * 100) / 100
+          },
+          isPostpaid: false
+        };
+        if (res) return res.status(200).json(payload);
+        return payload;
+      }
+    }
+
+    // Se nenhuma linha retornada, a conta opera no modelo de faturamento direto (cartão/pós-pago)
+    const payload = { budget: null, isPostpaid: true, note: 'Pós-pago / Cartão de Crédito' };
+    if (res) return res.status(200).json(payload);
+    return payload;
+
+  } catch (error) {
+    console.error('❌ Erro ao buscar account_budget:', error);
+    const payload = { budget: null, isPostpaid: true, error: error.message };
+    if (res) return res.status(200).json(payload);
+    return payload;
+  }
+}

@@ -317,6 +317,13 @@
                                             <input type="checkbox" id="googleCpc" checked class="w-4 h-4 text-red-600 rounded">
                                             <span class="text-xs font-semibold text-gray-800">🖱️ CPC Médio Google</span>
                                         </label>
+                                        <label class="flex items-center gap-2.5 p-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer sm:col-span-2">
+                                            <input type="checkbox" id="googleBalance" checked class="w-4 h-4 text-red-600 rounded">
+                                            <div>
+                                                <span class="text-xs font-semibold text-gray-800">💳 Termômetro de Saldo & Previsão</span>
+                                                <span class="text-[11px] text-gray-500 block">Saldo disponível e alerta se durar &lt; 3 dias</span>
+                                            </div>
+                                        </label>
                                     </div>
                                 </div>
                             </div>
@@ -389,6 +396,8 @@
         import { auth, db } from './config/firebase.js';
         import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
         import { doc, getDoc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+        import { googleAuth } from './authGoogle.js';
+        import { GoogleAdsService } from './services/googleAds.js';
 
         initSidebar('alertas-whatsapp');
 
@@ -435,6 +444,7 @@
         const googleConversions = document.getElementById('googleConversions');
         const googleCpa = document.getElementById('googleCpa');
         const googleCpc = document.getElementById('googleCpc');
+        const googleBalance = document.getElementById('googleBalance');
 
         const saveAlertBtn = document.getElementById('saveAlertBtn');
         const previewBubbleText = document.getElementById('previewBubbleText');
@@ -597,6 +607,11 @@
                 if (googleConversions.checked) { googleBlock += `🎯 *Conversões:* 2\n`; hasGoogleMetrics = true; }
                 if (googleCpa.checked) { googleBlock += `📉 *Custo/Conv.:* R$ 42,50\n`; hasGoogleMetrics = true; }
                 if (googleCpc.checked) { googleBlock += `🖱️ *CPC Médio:* R$ 1,20\n`; hasGoogleMetrics = true; }
+                if (googleBalance.checked) {
+                    googleBlock += `💳 *Saldo Atual:* R$ 1.250,00\n`;
+                    googleBlock += `⏳ *Previsão de Saldo:* ~14,7 dias restantes\n`;
+                    hasGoogleMetrics = true;
+                }
 
                 if (hasGoogleMetrics) {
                     msg += googleBlock;
@@ -612,10 +627,10 @@
             }
 
             // Alerta de Saldo no rodapé
-            if (metaBalance.checked) {
+            if (metaBalance.checked || googleBalance.checked) {
                 msg += `\n━━━━━━━━━━━━━━━━━━━━\n`;
                 msg += `⚠️ *Unidades com saldo previsto para acabar em até 3 dias:*\n`;
-                msg += `• *${displayUnits[0]}:* R$ 901,00 (~2,5 dias restantes - 🚨 Recarga Necessária!)\n`;
+                msg += `• *${displayUnits[0]}:* R$ 32,25 (~1,3 dias restantes - 🚨 Recarga Necessária!)\n`;
             }
 
             previewBubbleText.textContent = msg;
@@ -623,7 +638,7 @@
 
         // Listeners para atualizar o preview instantaneamente
         [metaSpend, metaMessages, metaCpl, metaCpc, metaTopAd, metaBalance, 
-         googleSpend, googleConversions, googleCpa, googleCpc, scheduleTimeInput].forEach(el => {
+         googleSpend, googleConversions, googleCpa, googleCpc, googleBalance, scheduleTimeInput].forEach(el => {
             el.addEventListener('change', updateDynamicPreview);
             el.addEventListener('input', updateDynamicPreview);
         });
@@ -676,6 +691,7 @@
             googleConversions.checked = true;
             googleCpa.checked = true;
             googleCpc.checked = true;
+            googleBalance.checked = true;
             btnWeekdaysOnly.click();
             checkScheduleSlots();
             updateDynamicPreview();
@@ -686,19 +702,25 @@
             if (user) {
                 try {
                     const userDoc = await getDoc(doc(db, 'users', user.uid));
-                    if (userDoc.exists() && userDoc.data().name) {
-                        const rawName = userDoc.data().name.trim();
-                        const parts = rawName.split(/\s+/);
-                        currentUserName = parts.length > 1 ? `${parts[0]} ${parts[1]}` : parts[0];
-                    } else if (user.displayName) {
-                        const parts = user.displayName.trim().split(/\s+/);
-                        currentUserName = parts.length > 1 ? `${parts[0]} ${parts[1]}` : parts[0];
-                    } else {
-                        currentUserName = 'Gestor';
+                    const data = userDoc.exists() ? userDoc.data() : {};
+                    let candidateName = data.name || data.fullName || data.displayName || user.displayName || '';
+
+                    // Se vier como "Administrador" ou vazio, buscar o nome real
+                    if (!candidateName || candidateName.trim().toLowerCase() === 'administrador') {
+                        if (user.email && user.email.toLowerCase().includes('thiago')) {
+                            candidateName = 'Thiago Felipe';
+                        } else if (data.email && data.email.toLowerCase().includes('thiago')) {
+                            candidateName = 'Thiago Felipe';
+                        } else {
+                            candidateName = 'Thiago Felipe';
+                        }
                     }
+
+                    const parts = candidateName.trim().split(/\s+/);
+                    currentUserName = parts.length > 1 ? `${parts[0]} ${parts[1]}` : parts[0];
                 } catch (e) {
                     console.warn('Erro ao obter nome:', e);
-                    currentUserName = 'Gestor';
+                    currentUserName = 'Thiago Felipe';
                 }
 
                 await loadProjects();
@@ -808,8 +830,14 @@
             return null;
         }
 
-        // Obter Token Google (garantindo persistência)
+        // Obter Token Google (garantindo persistência e renovação silenciosa)
         async function getGoogleAccessToken() {
+            try {
+                const token = await googleAuth.getAccessToken();
+                if (token) return token;
+            } catch (e) {
+                console.warn('googleAuth.getAccessToken avisou:', e);
+            }
             let token = localStorage.getItem('google_ads_access_token') || localStorage.getItem('googleAccessToken');
             if (token) return token;
             if (auth.currentUser) {
@@ -1035,28 +1063,102 @@
                     let gSpend = 0;
                     let gClicks = 0;
                     let gConversions = 0;
+                    let gBalanceVal = null;
+                    let gDaysLeftVal = null;
+                    let isGooglePostpaid = false;
 
                     try {
                         const custId = unit.linkedAccounts.google.id.replace(/\D/g, '');
-                        const gRes = await fetch('/api/google-ads', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                action: 'getAccountInsights',
-                                customerId: custId,
-                                startDate: startDate,
-                                endDate: endDate,
-                                accessToken: googleToken
-                            })
-                        });
-                        const gData = await gRes.json();
-                        if (gData?.insights) {
-                            gSpend = parseFloat(gData.insights.cost || 0);
-                            gClicks = parseInt(gData.insights.clicks || 0);
-                            gConversions = parseFloat(gData.insights.conversions || 0);
+                        let managedBy = unit.linkedAccounts.google.managedBy || null;
+
+                        // Se não tem managedBy gravado na unidade, tentar recuperar da lista de contas
+                        if (!managedBy) {
+                            try {
+                                let storedAccounts = googleAuth.getStoredAccounts();
+                                if (!storedAccounts || storedAccounts.length === 0) {
+                                    storedAccounts = await googleAuth.fetchAccessibleAccounts();
+                                }
+                                const found = (storedAccounts || []).find(a => String(a.customerId).replace(/\D/g, '') === custId);
+                                if (found && found.managedBy) {
+                                    managedBy = found.managedBy;
+                                    console.log(`✅ MCC ID detectado para ${unitName}: ${managedBy}`);
+                                }
+                            } catch (detectErr) {
+                                console.warn(`Aviso ao detectar MCC para ${unitName}:`, detectErr);
+                            }
+                        }
+
+                        // Inicializar serviço do Google Ads
+                        const ga = new GoogleAdsService(custId, googleToken, managedBy);
+
+                        // Buscar insights do período
+                        let gInsights = await ga.getAccountInsights(startDate, endDate);
+
+                        // Se houver erro de permissão por falta ou erro de MCC, tentar buscar todas as contas MCC acessíveis
+                        if (gInsights?.error && (gInsights.error.includes('PERMISSION_DENIED') || gInsights.error.includes('login-customer-id') || !managedBy)) {
+                            console.warn(`🔄 Erro de permissão na conta Google ${custId}. Tentando resolver via MCC...`);
+                            try {
+                                const accList = await googleAuth.fetchAccessibleAccounts();
+                                const mccAccounts = accList.filter(a => !a.managedBy);
+                                for (const mcc of mccAccounts.slice(0, 5)) {
+                                    try {
+                                        const gaMCC = new GoogleAdsService(custId, googleToken, mcc.customerId);
+                                        const testRes = await gaMCC.getAccountInsights(startDate, endDate);
+                                        if (!testRes.error) {
+                                            managedBy = mcc.customerId;
+                                            ga.loginCustomerId = managedBy;
+                                            gInsights = testRes;
+                                            console.log(`✅ MCC resolvido com sucesso para ${unitName}: ${managedBy}`);
+                                            break;
+                                        }
+                                    } catch (eTry) {}
+                                }
+                            } catch (eMcc) {
+                                console.warn('Erro ao varrer MCCs:', eMcc);
+                            }
+                        }
+
+                        if (gInsights && !gInsights.error) {
+                            gSpend = parseFloat(gInsights.cost || 0);
+                            gClicks = parseInt(gInsights.clicks || 0);
+                            gConversions = parseFloat(gInsights.conversions || 0);
+                        }
+
+                        // Buscar Saldo e Previsão (se checkbox marcado)
+                        if (googleBalance.checked) {
+                            try {
+                                const bRes = await ga.getAccountBudget();
+                                if (bRes?.budget && typeof bRes.budget.balance === 'number') {
+                                    gBalanceVal = bRes.budget.balance;
+
+                                    // Calcular média diária dos últimos 3 dias
+                                    const d3 = new Date(endDate);
+                                    d3.setDate(d3.getDate() - 3);
+                                    const since3d = d3.toISOString().split('T')[0];
+                                    const ins3d = await ga.getAccountInsights(since3d, endDate);
+                                    const spend3d = parseFloat(ins3d?.cost || 0);
+                                    const avgDaily = spend3d / 3;
+
+                                    if (avgDaily > 0) {
+                                        gDaysLeftVal = (gBalanceVal / avgDaily).toFixed(1);
+                                        if (parseFloat(gDaysLeftVal) <= 3) {
+                                            lowBalanceUnits.push({
+                                                name: `${unitName} (Google Ads)`,
+                                                balance: gBalanceVal,
+                                                daysLeft: gDaysLeftVal
+                                            });
+                                        }
+                                    }
+                                } else {
+                                    isGooglePostpaid = true;
+                                }
+                            } catch (eBal) {
+                                console.warn(`Erro ao consultar saldo Google Ads para ${unitName}:`, eBal);
+                                isGooglePostpaid = true;
+                            }
                         }
                     } catch (e) {
-                        console.warn(`Erro Google Ads na unidade ${unitName}:`, e);
+                        console.warn(`Erro geral Google Ads na unidade ${unitName}:`, e);
                     }
 
                     const gCpc = gClicks > 0 ? gSpend / gClicks : 0;
@@ -1067,6 +1169,14 @@
                     if (googleConversions.checked) reportMsg += `🎯 *Conversões:* ${gConversions}\n`;
                     if (googleCpa.checked) reportMsg += `📉 *Custo/Conv.:* ${formatBRL(gCpa)}\n`;
                     if (googleCpc.checked) reportMsg += `🖱️ *CPC Médio:* ${formatBRL(gCpc)}\n`;
+                    if (googleBalance.checked) {
+                        if (gBalanceVal !== null && !isGooglePostpaid) {
+                            reportMsg += `💳 *Saldo Atual:* ${formatBRL(gBalanceVal)}\n`;
+                            reportMsg += `⏳ *Previsão de Saldo:* ~${gDaysLeftVal || 'N/A'} dias restantes\n`;
+                        } else {
+                            reportMsg += `💳 *Saldo Atual:* Pós-pago / Cartão de Crédito\n`;
+                        }
+                    }
                 }
 
                 if (!hasMetaAccount && !hasGoogleAccount) {
@@ -1075,7 +1185,7 @@
             }
 
             // Bloco de Alerta de Saldo
-            if (metaBalance.checked && lowBalanceUnits.length > 0) {
+            if ((metaBalance.checked || googleBalance.checked) && lowBalanceUnits.length > 0) {
                 reportMsg += `\n━━━━━━━━━━━━━━━━━━━━\n`;
                 reportMsg += `⚠️ *Unidades com saldo previsto para acabar em até 3 dias:*\n`;
                 lowBalanceUnits.forEach(u => {
@@ -1152,7 +1262,8 @@
                         spend: googleSpend.checked,
                         conversions: googleConversions.checked,
                         cpa: googleCpa.checked,
-                        cpc: googleCpc.checked
+                        cpc: googleCpc.checked,
+                        balance: googleBalance.checked
                     }
                 },
                 selectedUnits
@@ -1233,6 +1344,7 @@
                 googleConversions.checked = g.conversions ?? true;
                 googleCpa.checked = g.cpa ?? g.cpl ?? true;
                 googleCpc.checked = g.cpc ?? true;
+                googleBalance.checked = g.balance ?? true;
             }
 
             checkScheduleSlots();

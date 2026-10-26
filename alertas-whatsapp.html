@@ -179,39 +179,48 @@
 
                         <hr class="border-gray-100">
 
-                        <!-- 4. O Que Você Quer Receber (Módulos) -->
+                        <!-- 4. O Que Você Quer Receber (Métricas Personalizadas) -->
                         <div>
                             <h3 class="text-base font-bold text-gray-900 mb-1 flex items-center gap-2">
                                 <span class="w-6 h-6 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xs font-bold">4</span>
                                 O Que Incluir na Mensagem
                             </h3>
-                            <p class="text-xs text-gray-500 mb-3">Ative ou desative os blocos de métricas conforme o seu interesse.</p>
+                            <p class="text-xs text-gray-500 mb-3">Escolha exatamente quais métricas você deseja no relatório diário:</p>
 
-                            <div class="space-y-3">
-                                <!-- Módulo 1 -->
-                                <label class="flex items-start gap-3 p-3 border border-gray-200 rounded-xl hover:bg-gray-50 cursor-pointer transition-all">
-                                    <input type="checkbox" id="modDailyReport" checked class="mt-1 w-4 h-4 text-green-600 rounded border-gray-300 focus:ring-green-500">
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                                <label class="flex items-center gap-2.5 p-2.5 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer transition-all">
+                                    <input type="checkbox" id="metricSpend" checked class="w-4 h-4 text-green-600 rounded border-gray-300">
+                                    <span class="text-xs font-semibold text-gray-800">💰 Gasto / Investimento</span>
+                                </label>
+
+                                <label class="flex items-center gap-2.5 p-2.5 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer transition-all">
+                                    <input type="checkbox" id="metricMessages" checked class="w-4 h-4 text-green-600 rounded border-gray-300">
+                                    <span class="text-xs font-semibold text-gray-800">🎯 Mensagens (Leads)</span>
+                                </label>
+
+                                <label class="flex items-center gap-2.5 p-2.5 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer transition-all">
+                                    <input type="checkbox" id="metricCpl" checked class="w-4 h-4 text-green-600 rounded border-gray-300">
+                                    <span class="text-xs font-semibold text-gray-800">📉 Custo por Lead (CPL)</span>
+                                </label>
+
+                                <label class="flex items-center gap-2.5 p-2.5 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer transition-all">
+                                    <input type="checkbox" id="metricCpc" checked class="w-4 h-4 text-green-600 rounded border-gray-300">
+                                    <span class="text-xs font-semibold text-gray-800">🖱️ Custo por Clique (CPC)</span>
+                                </label>
+
+                                <label class="flex items-center gap-2.5 p-2.5 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer transition-all sm:col-span-2">
+                                    <input type="checkbox" id="modTopAd" checked class="w-4 h-4 text-green-600 rounded border-gray-300">
                                     <div>
-                                        <p class="text-xs font-bold text-gray-800">📊 Mini-Relatório do Dia Anterior (Ontem)</p>
-                                        <p class="text-[11px] text-gray-500">Inclui: Investimento total, leads gerados, Custo por Lead (CPL) e Custo por Clique (CPC).</p>
+                                        <span class="text-xs font-semibold text-gray-800">🏆 Criativo Destaque</span>
+                                        <span class="text-[11px] text-gray-500 block">Identifica o melhor anúncio gerador de conversas do dia</span>
                                     </div>
                                 </label>
 
-                                <!-- Módulo 2 -->
-                                <label class="flex items-start gap-3 p-3 border border-gray-200 rounded-xl hover:bg-gray-50 cursor-pointer transition-all">
-                                    <input type="checkbox" id="modTopAd" checked class="mt-1 w-4 h-4 text-green-600 rounded border-gray-300 focus:ring-green-500">
+                                <label class="flex items-center gap-2.5 p-2.5 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer transition-all sm:col-span-2">
+                                    <input type="checkbox" id="modBalance" checked class="w-4 h-4 text-green-600 rounded border-gray-300">
                                     <div>
-                                        <p class="text-xs font-bold text-gray-800">🏆 Top Criativo do Dia</p>
-                                        <p class="text-[11px] text-gray-500">Aponta qual anúncio gerou mais resultados na unidade no dia anterior.</p>
-                                    </div>
-                                </label>
-
-                                <!-- Módulo 3 -->
-                                <label class="flex items-start gap-3 p-3 border border-gray-200 rounded-xl hover:bg-gray-50 cursor-pointer transition-all">
-                                    <input type="checkbox" id="modBalance" checked class="mt-1 w-4 h-4 text-green-600 rounded border-gray-300 focus:ring-green-500">
-                                    <div>
-                                        <p class="text-xs font-bold text-gray-800">💳 Termômetro de Saldo & Previsão de Término</p>
-                                        <p class="text-[11px] text-gray-500">Calcula a média de gasto dos últimos 3 dias e alerta quantos dias de verba ainda restam antes do anúncio pausar.</p>
+                                        <span class="text-xs font-semibold text-gray-800">💳 Termômetro de Saldo & Previsão</span>
+                                        <span class="text-[11px] text-gray-500 block">Calcula a média de 3 dias e alerta se o saldo for durar &lt; 3 dias</span>
                                     </div>
                                 </label>
                             </div>
@@ -234,32 +243,17 @@
                             <h3 class="text-sm font-bold text-gray-900 flex items-center gap-2">
                                 <i class="fas fa-eye text-blue-500"></i> Pré-Visualização
                             </h3>
-                            <span class="text-[10px] text-gray-400">Tempo Real</span>
+                            <span class="text-[10px] text-green-600 font-bold bg-green-50 px-2 py-0.5 rounded-full border border-green-200">Interativa</span>
                         </div>
 
                         <!-- Simulação Balão WhatsApp -->
                         <div class="bg-[#e5ddd5] p-3.5 rounded-2xl shadow-inner font-sans">
-                            <div class="bg-white rounded-xl p-3.5 shadow-sm text-xs text-gray-800 space-y-2 whitespace-pre-wrap leading-relaxed font-mono">📊 *INSIGHTFLOW - BRIEFING DIÁRIO*
-📅 *Dados de ontem:* 22/10 | ⏰ *Envio:* 08:00h
-📁 *Projeto:* <span id="previewProjectName">Oral Centter</span>
-
-━━━━━━━━━━━━━━━━━━━━
-🏢 *UNIDADE JAÍBA*
-💰 *Gasto:* R$ 142,50
-🎯 *Leads:* 11 | *CPL:* R$ 12,95
-🖱️ *CPC:* R$ 0,84
-🏆 *Top Criativo:* "Vídeo Depoimento #02" (7 leads)
-💳 *Saldo Atual:* R$ 380,00 
-⏳ *Previsão de Saldo:* ~2,6 dias restantes (🚨 Recarga Necessária!)
-
-━━━━━━━━━━━━━━━━━━━━
-📈 *TOTAL CONSOLIDADO:*
-💰 *Investimento:* R$ 142,50 | 🎯 *Leads:* 11</div>
-                            <div class="text-[10px] text-right text-gray-500 mt-1">08:00 ✓✓</div>
+                            <div id="previewBubbleText" class="bg-white rounded-xl p-3.5 shadow-sm text-xs text-gray-800 space-y-2 whitespace-pre-wrap leading-relaxed font-mono"></div>
+                            <div id="previewTimestamp" class="text-[10px] text-right text-gray-500 mt-1">08:00 ✓✓</div>
                         </div>
 
                         <div class="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-xl text-xs text-blue-800">
-                            <i class="fas fa-info-circle mr-1"></i> <strong>Dica do Gestor:</strong> Os dados de ontem são calculados e consolidados exatamente no fuso horário do Brasil às 08:00h.
+                            <i class="fas fa-info-circle mr-1"></i> <strong>Anti-bloqueio WhatsApp:</strong> A mensagem começa chamando o gestor pelo nome, gerando engajamento humanizado e evitando filtros de spam.
                         </div>
                     </div>
 
@@ -294,24 +288,90 @@
         const schedule1Input = document.getElementById('schedule1Input');
         const schedule2Input = document.getElementById('schedule2Input');
         const schedule2Toggle = document.getElementById('schedule2Toggle');
-        const modDailyReport = document.getElementById('modDailyReport');
+        const metricSpend = document.getElementById('metricSpend');
+        const metricMessages = document.getElementById('metricMessages');
+        const metricCpl = document.getElementById('metricCpl');
+        const metricCpc = document.getElementById('metricCpc');
         const modTopAd = document.getElementById('modTopAd');
         const modBalance = document.getElementById('modBalance');
-        const alertConfigForm = document.getElementById('alertConfigForm');
-        const saveStatus = document.getElementById('saveStatus');
-        const savedAlertsList = document.getElementById('savedAlertsList');
-        const previewProjectName = document.getElementById('previewProjectName');
+        const previewBubbleText = document.getElementById('previewBubbleText');
+        const previewTimestamp = document.getElementById('previewTimestamp');
 
         const projectsService = new ProjectsService();
         let loadedProjects = [];
         let currentAlertId = null;
+        let currentUserName = 'Gestor';
+
+        // Atualizar Pré-visualização Dinâmica Interativa
+        function updateDynamicPreview() {
+            const project = loadedProjects.find(p => p.id === projectSelect.value);
+            const projName = project ? project.name : 'Oral Centter';
+            const time = schedule1Input.value || '08:00';
+            previewTimestamp.textContent = `${time} ✓✓`;
+
+            let msg = `Olá *${currentUserName}*, segue o relatório diário das suas unidades.\n\n`;
+            msg += `📊 *INSIGHTFLOW - BRIEFING DIÁRIO*\n`;
+            msg += `📅 *Dados de ontem* | ⏰ *Envio:* ${time}h\n`;
+            msg += `📁 *Projeto:* ${projName}\n\n`;
+            msg += `━━━━━━━━━━━━━━━━━━━━\n`;
+            msg += `🏢 *UNIDADE JAÍBA*\n`;
+
+            let hasMetrics = false;
+            if (metricSpend.checked) {
+                msg += `💰 *Gasto:* R$ 142,50\n`;
+                hasMetrics = true;
+            }
+            if (metricMessages.checked) {
+                msg += `🎯 *Mensagens (Leads):* 11\n`;
+                hasMetrics = true;
+            }
+            if (metricCpl.checked) {
+                msg += `📉 *CPL:* R$ 12,95\n`;
+                hasMetrics = true;
+            }
+            if (metricCpc.checked) {
+                msg += `🖱️ *CPC:* R$ 0,84\n`;
+                hasMetrics = true;
+            }
+            if (modTopAd.checked) {
+                msg += `🏆 *Criativo Destaque:* "Vídeo Depoimento #02" (7 mensagens)\n`;
+                hasMetrics = true;
+            }
+            if (modBalance.checked) {
+                msg += `💳 *Saldo Atual:* R$ 380,00\n`;
+                msg += `⏳ *Previsão de Saldo:* ~2,6 dias restantes (🚨 Recarga Necessária!)\n`;
+                hasMetrics = true;
+            }
+
+            if (!hasMetrics) {
+                msg += `_(Nenhuma métrica selecionada)_\n`;
+            }
+
+            msg += `\n━━━━━━━━━━━━━━━━━━━━\n`;
+            msg += `📈 *TOTAL CONSOLIDADO:*\n`;
+            let cons = [];
+            if (metricSpend.checked) cons.push(`💰 *Total Gasto:* R$ 142,50`);
+            if (metricMessages.checked) cons.push(`🎯 *Total Mensagens:* 11`);
+            msg += cons.length > 0 ? cons.join(' | ') : `Visão Geral Ativa`;
+
+            previewBubbleText.textContent = msg;
+        }
 
         // Aguardar autenticação carregar para então listar projetos e alertas
-        onAuthStateChanged(auth, (user) => {
+        onAuthStateChanged(auth, async (user) => {
             if (user) {
-                loadProjects();
-                loadSavedAlerts();
+                currentUserName = user.displayName || user.email?.split('@')[0] || 'Gestor';
+                currentUserName = currentUserName.charAt(0).toUpperCase() + currentUserName.slice(1);
+                await loadProjects();
+                await loadSavedAlerts();
+                updateDynamicPreview();
             }
+        });
+
+        // Listeners para atualizar o preview instantaneamente
+        [metricSpend, metricMessages, metricCpl, metricCpc, modTopAd, modBalance, schedule1Input].forEach(el => {
+            el.addEventListener('change', updateDynamicPreview);
+            el.addEventListener('input', updateDynamicPreview);
         });
 
         // Toggle do segundo horário
@@ -323,10 +383,12 @@
         async function loadProjects() {
             try {
                 const res = await projectsService.listProjects();
-                if (res.success && res.projects) {
-                    loadedProjects = res.projects;
+                const list = Array.isArray(res) ? res : (res?.projects || []);
+                loadedProjects = list;
+
+                if (list.length > 0) {
                     projectSelect.innerHTML = '<option value="">Selecione um projeto...</option>' + 
-                        res.projects.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+                        list.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
                 } else {
                     projectSelect.innerHTML = '<option value="">Nenhum projeto encontrado</option>';
                 }
@@ -357,12 +419,9 @@
         });
 
         // Quando seleciona um projeto, buscar as unidades com contas de anúncios vinculadas
-        projectSelect.addEventListener('change', async () => {
+            projectSelect.addEventListener('change', async () => {
             const projectId = projectSelect.value;
-            const project = loadedProjects.find(p => p.id === projectId);
-            if (project) {
-                previewProjectName.textContent = project.name;
-            }
+            updateDynamicPreview();
 
             if (!projectId) {
                 unitsContainer.innerHTML = '<p class="text-xs text-gray-400 text-center py-2">Selecione um projeto para listar as unidades</p>';
@@ -473,7 +532,10 @@
                 schedules,
                 daysOfWeek: selectedDays,
                 modules: {
-                    dailyReport: modDailyReport.checked,
+                    spend: metricSpend.checked,
+                    messages: metricMessages.checked,
+                    cpl: metricCpl.checked,
+                    cpc: metricCpc.checked,
                     topAd: modTopAd.checked,
                     balanceForecast: modBalance.checked
                 },

@@ -57,7 +57,7 @@
                         <i class="fas fa-sliders-h"></i> 1. Configurar & Testar
                     </button>
                     <button id="tabAlertsBtn" type="button" class="tab-btn pb-3 px-1 border-b-2 border-transparent text-gray-500 hover:text-gray-700 font-medium transition-all text-sm flex items-center gap-2">
-                        <i class="fas fa-calendar-check"></i> 2. Envios Programados <span id="alertsCountBadge" class="bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full text-xs">0</span>
+                        <i class="fas fa-calendar-check"></i> 2. Envios Programados <span id="alertsCountBadge" class="bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full text-xs">0/2</span>
                     </button>
                 </nav>
             </div>
@@ -67,33 +67,26 @@
                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
                     <!-- Formulário de Configuração (2 colunas) -->
                     <div class="lg:col-span-2 space-y-6">
+                        <!-- Banner de Limite de Horários (se atingir 2) -->
+                        <div id="scheduleLimitNotice" class="hidden p-4 bg-amber-50 border border-amber-200 rounded-2xl flex items-start gap-3">
+                            <i class="fas fa-exclamation-triangle text-amber-500 text-base mt-0.5"></i>
+                            <div>
+                                <h4 class="text-xs font-bold text-amber-900">Limite de 2 envios diários atingido</h4>
+                                <p class="text-xs text-amber-700 mt-0.5">
+                                    Para proteger seu WhatsApp de bloqueios, o sistema permite no máximo 2 envios programados por dia.
+                                    Para cadastrar um novo horário, desative, edite ou exclua um dos envios na aba 
+                                    <button type="button" id="linkToAlertsTab" class="font-bold underline text-amber-900">2. Envios Programados</button>.
+                                </p>
+                            </div>
+                        </div>
+
                         <form id="alertConfigForm" class="bg-white border border-gray-200 rounded-2xl p-6 sm:p-8 shadow-sm space-y-6">
                             
-                            <!-- Banner de Ativação / Pausa do Envio Programado -->
-                            <div class="p-4 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center justify-between">
-                                <div class="flex items-center gap-3">
-                                    <div class="w-9 h-9 rounded-lg bg-emerald-100 text-emerald-600 flex items-center justify-center text-lg">
-                                        <i class="fas fa-robot"></i>
-                                    </div>
-                                    <div>
-                                        <div class="flex items-center gap-2">
-                                            <span class="text-sm font-bold text-gray-900">Programação de Envio Automático</span>
-                                            <span id="masterActiveBadge" class="text-[10px] bg-green-100 text-green-800 font-bold px-2 py-0.5 rounded-full">Ativado</span>
-                                        </div>
-                                        <p class="text-xs text-gray-600 mt-0.5" id="masterActiveDesc">Os relatórios programados serão disparados automaticamente nos horários definidos.</p>
-                                    </div>
-                                </div>
-                                <label class="relative inline-flex items-center cursor-pointer ml-3 shrink-0" title="Ativar ou pausar a programação deste envio">
-                                    <input type="checkbox" id="masterActiveToggle" checked class="sr-only peer">
-                                    <div class="w-11 h-6 bg-gray-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600"></div>
-                                </label>
-                            </div>
-
                             <!-- 1. WhatsApp de Destino & Teste com Dados Reais -->
                             <div>
                                 <h3 class="text-base font-bold text-gray-900 mb-1 flex items-center gap-2">
                                     <span class="w-6 h-6 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xs font-bold">1</span>
-                                    WhatsApp de Destino & Teste com Dados Reais
+                                    WhatsApp de Destino & Teste em Tempo Real
                                 </h3>
                                 <p class="text-xs text-gray-500 mb-3">O número onde as notificações e os testes serão entregues.</p>
                                 
@@ -110,7 +103,7 @@
                                 </div>
                                 <div class="mt-2.5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                                     <span class="text-[11px] text-gray-500">
-                                        <i class="fas fa-info-circle text-blue-500 mr-1"></i> Escolha qualquer data (hoje para trás) para testar os dados reais das unidades selecionadas.
+                                        <i class="fas fa-info-circle text-blue-500 mr-1"></i> Escolha a data (hoje para trás) para testar os dados reais das unidades selecionadas.
                                     </span>
                                     <button type="button" id="testPhoneBtn" class="px-4 py-2 bg-green-50 hover:bg-green-100 text-green-700 border border-green-300 font-bold rounded-lg text-xs transition-all flex items-center gap-1.5 shrink-0 shadow-sm">
                                         <i class="fas fa-paper-plane text-green-600"></i> Disparar Teste Real
@@ -127,7 +120,7 @@
                                     <span class="w-6 h-6 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xs font-bold">2</span>
                                     Projeto e Unidades Monitoradas
                                 </h3>
-                                <p class="text-xs text-gray-500 mb-3">Selecione o projeto e quais unidades com contas de anúncio você deseja acompanhar.</p>
+                                <p class="text-xs text-gray-500 mb-3">Selecione o projeto e quais unidades você deseja incluir no envio programado.</p>
 
                                 <div class="mb-4">
                                     <label class="block text-xs font-semibold text-gray-700 mb-1">Projeto</label>
@@ -154,49 +147,28 @@
 
                             <hr class="border-gray-100">
 
-                            <!-- 3. Horários dos Disparos (Regra: Máximo 2 - Manhã e/ou Tarde, ou Nenhum) -->
+                            <!-- 3. Horário do Envio Programado -->
                             <div>
                                 <div class="flex items-center justify-between mb-1">
                                     <h3 class="text-base font-bold text-gray-900 flex items-center gap-2">
                                         <span class="w-6 h-6 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xs font-bold">3</span>
-                                        Horários dos Disparos
+                                        Horário do Disparo & Dias
                                     </h3>
                                     <span class="text-[11px] bg-yellow-50 text-yellow-700 font-semibold px-2 py-0.5 rounded-full border border-yellow-200">
-                                        🛡️ Limite máx: 2 horários/dia (Anti-bloqueio)
+                                        🛡️ Limite máx: 2 envios/dia
                                     </span>
                                 </div>
-                                <p class="text-xs text-gray-500 mb-3">Defina até 2 disparos diários (1 de manhã e/ou 1 de tarde, apenas um deles, ou nenhum).</p>
+                                <p class="text-xs text-gray-500 mb-3">Defina o horário em que este relatório será enviado para o WhatsApp.</p>
 
-                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                    <!-- 1º Horário: Manhã -->
-                                    <div class="p-3.5 border border-gray-200 rounded-xl bg-gray-50 space-y-2">
-                                        <div class="flex items-center justify-between">
-                                            <span class="text-xs font-bold text-gray-800 flex items-center gap-1.5">
-                                                <span>🌅</span> 1º Horário (Manhã / Matinal)
-                                            </span>
-                                            <label class="relative inline-flex items-center cursor-pointer">
-                                                <input type="checkbox" id="schedule1Toggle" checked class="sr-only peer">
-                                                <div class="w-7 h-4 bg-gray-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-green-600"></div>
-                                            </label>
+                                <div class="p-3.5 border border-gray-200 rounded-xl bg-gray-50 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                                    <div class="flex items-center gap-2">
+                                        <span class="text-lg">⏰</span>
+                                        <div>
+                                            <label class="block text-xs font-bold text-gray-800">Horário do Disparo</label>
+                                            <span class="text-[11px] text-gray-500">Escolha qualquer horário desejado.</span>
                                         </div>
-                                        <input type="time" id="schedule1Input" value="08:00" class="w-full px-3 py-1.5 bg-white border border-gray-300 rounded-lg text-sm font-semibold outline-none focus:ring-2 focus:ring-green-500">
-                                        <span class="text-[11px] text-gray-500 block">Ideal para conferir o resumo do dia anterior logo cedo.</span>
                                     </div>
-
-                                    <!-- 2º Horário: Tarde / Noturno -->
-                                    <div class="p-3.5 border border-gray-200 rounded-xl bg-gray-50 space-y-2">
-                                        <div class="flex items-center justify-between">
-                                            <span class="text-xs font-bold text-gray-800 flex items-center gap-1.5">
-                                                <span>🌇</span> 2º Horário (Tarde / Noturno)
-                                            </span>
-                                            <label class="relative inline-flex items-center cursor-pointer">
-                                                <input type="checkbox" id="schedule2Toggle" class="sr-only peer">
-                                                <div class="w-7 h-4 bg-gray-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-green-600"></div>
-                                            </label>
-                                        </div>
-                                        <input type="time" id="schedule2Input" value="18:30" disabled class="w-full px-3 py-1.5 bg-gray-100 border border-gray-300 rounded-lg text-sm font-semibold outline-none focus:ring-2 focus:ring-green-500 disabled:opacity-50">
-                                        <span class="text-[11px] text-gray-500 block">Fechamento do dia ou conferência de saldo final.</span>
-                                    </div>
+                                    <input type="time" id="scheduleTimeInput" value="08:00" required class="w-full sm:w-36 px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm font-bold outline-none focus:ring-2 focus:ring-green-500">
                                 </div>
 
                                 <!-- Seletor de Dias da Semana -->
@@ -238,50 +210,78 @@
 
                             <hr class="border-gray-100">
 
-                            <!-- 4. O Que Você Quer Receber (Métricas Personalizadas) -->
-                            <div>
-                                <h3 class="text-base font-bold text-gray-900 mb-1 flex items-center gap-2">
-                                    <span class="w-6 h-6 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xs font-bold">4</span>
-                                    O Que Incluir na Mensagem
-                                </h3>
-                                <p class="text-xs text-gray-500 mb-3">Escolha exatamente quais métricas você deseja no relatório diário:</p>
+                            <!-- 4. O Que Incluir na Mensagem (Separado por Plataforma) -->
+                            <div class="space-y-4">
+                                <div>
+                                    <h3 class="text-base font-bold text-gray-900 mb-1 flex items-center gap-2">
+                                        <span class="w-6 h-6 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xs font-bold">4</span>
+                                        O Que Incluir na Mensagem (Meta Ads & Google Ads)
+                                    </h3>
+                                    <p class="text-xs text-gray-500">Selecione quais métricas você deseja ver separadas para cada plataforma:</p>
+                                </div>
 
-                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                                    <label class="flex items-center gap-2.5 p-2.5 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer transition-all">
-                                        <input type="checkbox" id="metricSpend" checked class="w-4 h-4 text-green-600 rounded border-gray-300">
-                                        <span class="text-xs font-semibold text-gray-800">💰 Gasto / Investimento</span>
-                                    </label>
+                                <!-- Bloco Meta Ads -->
+                                <div class="p-4 border border-blue-200 rounded-xl bg-blue-50/40">
+                                    <span class="text-xs font-bold text-blue-800 flex items-center gap-1.5 mb-2.5">
+                                        <i class="fab fa-facebook text-blue-600"></i> Métricas Meta Ads
+                                    </span>
+                                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                                        <label class="flex items-center gap-2.5 p-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+                                            <input type="checkbox" id="metaSpend" checked class="w-4 h-4 text-blue-600 rounded">
+                                            <span class="text-xs font-semibold text-gray-800">💰 Gasto Meta</span>
+                                        </label>
+                                        <label class="flex items-center gap-2.5 p-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+                                            <input type="checkbox" id="metaMessages" checked class="w-4 h-4 text-blue-600 rounded">
+                                            <span class="text-xs font-semibold text-gray-800">🎯 Mensagens (Leads)</span>
+                                        </label>
+                                        <label class="flex items-center gap-2.5 p-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+                                            <input type="checkbox" id="metaCpl" checked class="w-4 h-4 text-blue-600 rounded">
+                                            <span class="text-xs font-semibold text-gray-800">📉 CPL (Custo/Lead)</span>
+                                        </label>
+                                        <label class="flex items-center gap-2.5 p-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+                                            <input type="checkbox" id="metaCpc" checked class="w-4 h-4 text-blue-600 rounded">
+                                            <span class="text-xs font-semibold text-gray-800">🖱️ CPC (Custo/Clique)</span>
+                                        </label>
+                                        <label class="flex items-center gap-2.5 p-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer sm:col-span-2">
+                                            <input type="checkbox" id="metaTopAd" checked class="w-4 h-4 text-blue-600 rounded">
+                                            <div>
+                                                <span class="text-xs font-semibold text-gray-800">🏆 Criativo Destaque</span>
+                                                <span class="text-[11px] text-gray-500 block">Melhor anúncio gerador de conversas do dia</span>
+                                            </div>
+                                        </label>
+                                        <label class="flex items-center gap-2.5 p-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer sm:col-span-2">
+                                            <input type="checkbox" id="metaBalance" checked class="w-4 h-4 text-blue-600 rounded">
+                                            <div>
+                                                <span class="text-xs font-semibold text-gray-800">💳 Termômetro de Saldo & Previsão</span>
+                                                <span class="text-[11px] text-gray-500 block">Saldo bruto nominal e alerta se durar &lt; 3 dias</span>
+                                            </div>
+                                        </label>
+                                    </div>
+                                </div>
 
-                                    <label class="flex items-center gap-2.5 p-2.5 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer transition-all">
-                                        <input type="checkbox" id="metricMessages" checked class="w-4 h-4 text-green-600 rounded border-gray-300">
-                                        <span class="text-xs font-semibold text-gray-800">🎯 Mensagens (Leads)</span>
-                                    </label>
-
-                                    <label class="flex items-center gap-2.5 p-2.5 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer transition-all">
-                                        <input type="checkbox" id="metricCpl" checked class="w-4 h-4 text-green-600 rounded border-gray-300">
-                                        <span class="text-xs font-semibold text-gray-800">📉 Custo por Lead (CPL)</span>
-                                    </label>
-
-                                    <label class="flex items-center gap-2.5 p-2.5 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer transition-all">
-                                        <input type="checkbox" id="metricCpc" checked class="w-4 h-4 text-green-600 rounded border-gray-300">
-                                        <span class="text-xs font-semibold text-gray-800">🖱️ Custo por Clique (CPC)</span>
-                                    </label>
-
-                                    <label class="flex items-center gap-2.5 p-2.5 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer transition-all sm:col-span-2">
-                                        <input type="checkbox" id="modTopAd" checked class="w-4 h-4 text-green-600 rounded border-gray-300">
-                                        <div>
-                                            <span class="text-xs font-semibold text-gray-800">🏆 Criativo Destaque</span>
-                                            <span class="text-[11px] text-gray-500 block">Identifica o melhor anúncio gerador de conversas do dia</span>
-                                        </div>
-                                    </label>
-
-                                    <label class="flex items-center gap-2.5 p-2.5 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer transition-all sm:col-span-2">
-                                        <input type="checkbox" id="modBalance" checked class="w-4 h-4 text-green-600 rounded border-gray-300">
-                                        <div>
-                                            <span class="text-xs font-semibold text-gray-800">💳 Termômetro de Saldo & Previsão</span>
-                                            <span class="text-[11px] text-gray-500 block">Calcula a média de 3 dias e alerta se o saldo for durar &lt; 3 dias</span>
-                                        </div>
-                                    </label>
+                                <!-- Bloco Google Ads -->
+                                <div class="p-4 border border-red-200 rounded-xl bg-red-50/40">
+                                    <span class="text-xs font-bold text-red-800 flex items-center gap-1.5 mb-2.5">
+                                        <i class="fab fa-google text-red-600"></i> Métricas Google Ads
+                                    </span>
+                                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                                        <label class="flex items-center gap-2.5 p-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+                                            <input type="checkbox" id="googleSpend" checked class="w-4 h-4 text-red-600 rounded">
+                                            <span class="text-xs font-semibold text-gray-800">💰 Gasto Google</span>
+                                        </label>
+                                        <label class="flex items-center gap-2.5 p-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+                                            <input type="checkbox" id="googleConversions" checked class="w-4 h-4 text-red-600 rounded">
+                                            <span class="text-xs font-semibold text-gray-800">🎯 Conversões Google</span>
+                                        </label>
+                                        <label class="flex items-center gap-2.5 p-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+                                            <input type="checkbox" id="googleCpa" checked class="w-4 h-4 text-red-600 rounded">
+                                            <span class="text-xs font-semibold text-gray-800">📉 Custo / Conversão</span>
+                                        </label>
+                                        <label class="flex items-center gap-2.5 p-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+                                            <input type="checkbox" id="googleCpc" checked class="w-4 h-4 text-red-600 rounded">
+                                            <span class="text-xs font-semibold text-gray-800">🖱️ CPC Médio Google</span>
+                                        </label>
+                                    </div>
                                 </div>
                             </div>
 
@@ -291,7 +291,7 @@
                                     <i class="fas fa-times mr-1"></i> Cancelar Edição
                                 </button>
                                 <button type="submit" id="saveAlertBtn" class="ml-auto bg-green-600 hover:bg-green-700 text-white font-medium px-6 py-2.5 rounded-lg text-sm transition-all flex items-center gap-2 shadow-sm">
-                                    <i class="fas fa-check"></i> Salvar Envio Programado
+                                    <i class="fas fa-calendar-plus"></i> Salvar e Programar Envio
                                 </button>
                             </div>
                         </form>
@@ -350,7 +350,6 @@
         import { WhatsAppService } from './services/whatsappService.js';
         import { ProjectsService } from './services/projects.js';
         import { listUnits } from './services/unitsService.js';
-        import { extractAllMessagesAndLeads } from './utils/messagesExtractor.js';
         import { auth, db } from './config/firebase.js';
         import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
         import { doc, getDoc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
@@ -365,12 +364,10 @@
         const alertsCountBadge = document.getElementById('alertsCountBadge');
         const btnGoToNewAlert = document.getElementById('btnGoToNewAlert');
         const btnCancelEdit = document.getElementById('btnCancelEdit');
+        const scheduleLimitNotice = document.getElementById('scheduleLimitNotice');
+        const linkToAlertsTab = document.getElementById('linkToAlertsTab');
 
         const alertConfigForm = document.getElementById('alertConfigForm');
-        const masterActiveToggle = document.getElementById('masterActiveToggle');
-        const masterActiveBadge = document.getElementById('masterActiveBadge');
-        const masterActiveDesc = document.getElementById('masterActiveDesc');
-
         const projectSelect = document.getElementById('projectSelect');
         const unitsContainer = document.getElementById('unitsContainer');
         const selectAllUnitsBtn = document.getElementById('selectAllUnitsBtn');
@@ -381,21 +378,24 @@
         const testPhoneBtn = document.getElementById('testPhoneBtn');
         const phoneTestFeedback = document.getElementById('phoneTestFeedback');
 
-        const schedule1Toggle = document.getElementById('schedule1Toggle');
-        const schedule1Input = document.getElementById('schedule1Input');
-        const schedule2Toggle = document.getElementById('schedule2Toggle');
-        const schedule2Input = document.getElementById('schedule2Input');
-
+        const scheduleTimeInput = document.getElementById('scheduleTimeInput');
         const btnWeekdaysOnly = document.getElementById('btnWeekdaysOnly');
         const btnAllDays = document.getElementById('btnAllDays');
         const weekDayCheckboxes = document.querySelectorAll('input[name="weekDay"]');
 
-        const metricSpend = document.getElementById('metricSpend');
-        const metricMessages = document.getElementById('metricMessages');
-        const metricCpl = document.getElementById('metricCpl');
-        const metricCpc = document.getElementById('metricCpc');
-        const modTopAd = document.getElementById('modTopAd');
-        const modBalance = document.getElementById('modBalance');
+        // Métricas Meta
+        const metaSpend = document.getElementById('metaSpend');
+        const metaMessages = document.getElementById('metaMessages');
+        const metaCpl = document.getElementById('metaCpl');
+        const metaCpc = document.getElementById('metaCpc');
+        const metaTopAd = document.getElementById('metaTopAd');
+        const metaBalance = document.getElementById('metaBalance');
+
+        // Métricas Google
+        const googleSpend = document.getElementById('googleSpend');
+        const googleConversions = document.getElementById('googleConversions');
+        const googleCpa = document.getElementById('googleCpa');
+        const googleCpc = document.getElementById('googleCpc');
 
         const saveAlertBtn = document.getElementById('saveAlertBtn');
         const previewBubbleText = document.getElementById('previewBubbleText');
@@ -407,6 +407,7 @@
         let loadedUnits = [];
         let currentAlertId = null;
         let currentUserName = 'Gestor';
+        let existingAlerts = [];
 
         // Definir ontem como padrão no campo de data de teste
         const yesterday = new Date();
@@ -436,6 +437,7 @@
                 tabAlertsBtn.className = 'tab-btn pb-3 px-1 border-b-2 border-transparent text-gray-500 hover:text-gray-700 font-medium transition-all text-sm flex items-center gap-2';
                 tabConfigContent.classList.remove('hidden');
                 tabAlertsContent.classList.add('hidden');
+                checkScheduleSlots();
             } else {
                 tabAlertsBtn.className = 'tab-btn pb-3 px-1 border-b-2 border-green-600 text-green-600 font-bold transition-all text-sm flex items-center gap-2';
                 tabConfigBtn.className = 'tab-btn pb-3 px-1 border-b-2 border-transparent text-gray-500 hover:text-gray-700 font-medium transition-all text-sm flex items-center gap-2';
@@ -447,8 +449,14 @@
 
         tabConfigBtn.addEventListener('click', () => switchTab('config'));
         tabAlertsBtn.addEventListener('click', () => switchTab('alerts'));
+        linkToAlertsTab.addEventListener('click', () => switchTab('alerts'));
 
         btnGoToNewAlert.addEventListener('click', () => {
+            const activeCount = existingAlerts.filter(a => a.active !== false).length;
+            if (activeCount >= 2) {
+                alert('Você já possui 2 envios ativos programados. Para criar um novo, pause, edite ou exclua um existente.');
+                return;
+            }
             resetConfigForm();
             switchTab('config');
         });
@@ -456,33 +464,6 @@
         btnCancelEdit.addEventListener('click', () => {
             resetConfigForm();
             switchTab('alerts');
-        });
-
-        // Toggle Geral de Envio Programado
-        masterActiveToggle.addEventListener('change', () => {
-            const isChecked = masterActiveToggle.checked;
-            masterActiveBadge.textContent = isChecked ? 'Ativado' : 'Pausado';
-            masterActiveBadge.className = isChecked 
-                ? 'text-[10px] bg-green-100 text-green-800 font-bold px-2 py-0.5 rounded-full'
-                : 'text-[10px] bg-gray-200 text-gray-700 font-bold px-2 py-0.5 rounded-full';
-            masterActiveDesc.textContent = isChecked
-                ? 'Os relatórios programados serão disparados automaticamente nos horários definidos.'
-                : 'Disparos automáticos pausados temporariamente para esta configuração.';
-        });
-
-        // Toggles de Horários (Manhã e Tarde)
-        schedule1Toggle.addEventListener('change', () => {
-            schedule1Input.disabled = !schedule1Toggle.checked;
-            if (schedule1Toggle.checked) schedule1Input.classList.remove('opacity-50');
-            else schedule1Input.classList.add('opacity-50');
-            updateDynamicPreview();
-        });
-
-        schedule2Toggle.addEventListener('change', () => {
-            schedule2Input.disabled = !schedule2Toggle.checked;
-            if (schedule2Toggle.checked) schedule2Input.classList.remove('opacity-50');
-            else schedule2Input.classList.add('opacity-50');
-            updateDynamicPreview();
         });
 
         // Ações rápidas dos dias da semana
@@ -516,13 +497,7 @@
         function updateDynamicPreview() {
             const project = loadedProjects.find(p => p.id === projectSelect.value);
             const projName = project ? project.name : 'Oral Centter';
-            
-            let timeStr = '08:00';
-            if (schedule1Toggle.checked && schedule1Input.value) {
-                timeStr = schedule1Input.value;
-            } else if (schedule2Toggle.checked && schedule2Input.value) {
-                timeStr = schedule2Input.value;
-            }
+            const timeStr = scheduleTimeInput.value || '08:00';
             previewTimestamp.textContent = `${timeStr} ✓✓`;
 
             let msg = `*${currentUserName}*, segue o relatório diário das suas unidades.\n\n`;
@@ -534,38 +509,43 @@
                 .map(el => el.closest('label')?.querySelector('span')?.textContent?.trim())
                 .filter(Boolean);
 
-            const displayUnits = checkedUnitLabels.length > 0 ? checkedUnitLabels.slice(0, 2) : ['UNIDADE EXEMPLO'];
+            const displayUnits = checkedUnitLabels.length > 0 ? checkedUnitLabels.slice(0, 2) : ['UNIDADE JAÍBA'];
 
             displayUnits.forEach(uName => {
                 msg += `━━━━━━━━━━━━━━━━━━━━\n`;
                 msg += `🏢 *${uName.toUpperCase()}*\n`;
-                let hasUnitMetrics = false;
-                if (metricSpend.checked) {
-                    msg += `💰 *Gasto:* R$ 142,50\n`;
-                    hasUnitMetrics = true;
+
+                // Bloco Meta
+                let hasMetaMetrics = false;
+                let metaBlock = `\n🔹 *Meta Ads:*\n`;
+                if (metaSpend.checked) { metaBlock += `💰 *Gasto:* R$ 142,50\n`; hasMetaMetrics = true; }
+                if (metaMessages.checked) { metaBlock += `🎯 *Mensagens (Leads):* 4\n`; hasMetaMetrics = true; }
+                if (metaCpl.checked) { metaBlock += `📉 *CPL:* R$ 35,62\n`; hasMetaMetrics = true; }
+                if (metaCpc.checked) { metaBlock += `🖱️ *CPC:* R$ 0,84\n`; hasMetaMetrics = true; }
+                if (metaTopAd.checked) { metaBlock += `🏆 *Criativo Destaque:* "Vídeo Depoimento #02" (3 mensagens)\n`; hasMetaMetrics = true; }
+                if (metaBalance.checked) { 
+                    metaBlock += `💳 *Saldo Atual:* R$ 901,00\n`; 
+                    metaBlock += `⏳ *Previsão de Saldo:* ~6,3 dias restantes\n`; 
+                    hasMetaMetrics = true; 
                 }
-                if (metricMessages.checked) {
-                    msg += `🎯 *Mensagens (Leads):* 11\n`;
-                    hasUnitMetrics = true;
+
+                if (hasMetaMetrics) {
+                    msg += metaBlock;
                 }
-                if (metricCpl.checked) {
-                    msg += `📉 *CPL:* R$ 12,95\n`;
-                    hasUnitMetrics = true;
+
+                // Bloco Google
+                let hasGoogleMetrics = false;
+                let googleBlock = `\n🔸 *Google Ads:*\n`;
+                if (googleSpend.checked) { googleBlock += `💰 *Gasto:* R$ 85,00\n`; hasGoogleMetrics = true; }
+                if (googleConversions.checked) { googleBlock += `🎯 *Conversões:* 2\n`; hasGoogleMetrics = true; }
+                if (googleCpa.checked) { googleBlock += `📉 *Custo/Conv.:* R$ 42,50\n`; hasGoogleMetrics = true; }
+                if (googleCpc.checked) { googleBlock += `🖱️ *CPC Médio:* R$ 1,20\n`; hasGoogleMetrics = true; }
+
+                if (hasGoogleMetrics) {
+                    msg += googleBlock;
                 }
-                if (metricCpc.checked) {
-                    msg += `🖱️ *CPC:* R$ 0,84\n`;
-                    hasUnitMetrics = true;
-                }
-                if (modTopAd.checked) {
-                    msg += `🏆 *Criativo Destaque:* "Vídeo Depoimento #02" (7 mensagens)\n`;
-                    hasUnitMetrics = true;
-                }
-                if (modBalance.checked) {
-                    msg += `💳 *Saldo Atual:* R$ 380,00\n`;
-                    msg += `⏳ *Previsão de Saldo:* ~2,6 dias restantes\n`;
-                    hasUnitMetrics = true;
-                }
-                if (!hasUnitMetrics) {
+
+                if (!hasMetaMetrics && !hasGoogleMetrics) {
                     msg += `_(Nenhuma métrica selecionada)_\n`;
                 }
             });
@@ -575,40 +555,61 @@
             }
 
             // Alerta de Saldo no rodapé
-            if (modBalance.checked) {
+            if (metaBalance.checked) {
                 msg += `\n━━━━━━━━━━━━━━━━━━━━\n`;
                 msg += `⚠️ *Unidades com saldo previsto para acabar em até 3 dias:*\n`;
-                msg += `• *${displayUnits[0]}:* R$ 380,00 (~2,6 dias restantes - 🚨 Recarga Necessária!)\n`;
+                msg += `• *${displayUnits[0]}:* R$ 901,00 (~2,5 dias restantes - 🚨 Recarga Necessária!)\n`;
             }
 
             previewBubbleText.textContent = msg;
         }
 
         // Listeners para atualizar o preview instantaneamente
-        [metricSpend, metricMessages, metricCpl, metricCpc, modTopAd, modBalance, schedule1Input, schedule2Input].forEach(el => {
+        [metaSpend, metaMessages, metaCpl, metaCpc, metaTopAd, metaBalance, 
+         googleSpend, googleConversions, googleCpa, googleCpc, scheduleTimeInput].forEach(el => {
             el.addEventListener('change', updateDynamicPreview);
             el.addEventListener('input', updateDynamicPreview);
         });
 
+        // Verificar disponibilidade de vagas de horários (máx 2)
+        function checkScheduleSlots() {
+            const activeAlerts = existingAlerts.filter(a => a.active !== false);
+            alertsCountBadge.textContent = `${activeAlerts.length}/2`;
+
+            // Se estiver em modo de edição, o próprio alerta não conta como slot novo
+            const isEditing = !!currentAlertId;
+            const otherActiveCount = existingAlerts.filter(a => a.active !== false && a.id !== currentAlertId).length;
+
+            if (otherActiveCount >= 2 && !isEditing) {
+                scheduleLimitNotice.classList.remove('hidden');
+                saveAlertBtn.disabled = true;
+                saveAlertBtn.className = 'ml-auto bg-gray-400 text-white font-medium px-6 py-2.5 rounded-lg text-sm transition-all flex items-center gap-2 cursor-not-allowed';
+                saveAlertBtn.innerHTML = '<i class="fas fa-lock"></i> Limite de 2 Envios Atingido';
+            } else {
+                scheduleLimitNotice.classList.add('hidden');
+                saveAlertBtn.disabled = false;
+                saveAlertBtn.className = 'ml-auto bg-green-600 hover:bg-green-700 text-white font-medium px-6 py-2.5 rounded-lg text-sm transition-all flex items-center gap-2 shadow-sm';
+                saveAlertBtn.innerHTML = isEditing ? '<i class="fas fa-check"></i> Atualizar Envio Programado' : '<i class="fas fa-calendar-plus"></i> Salvar e Programar Envio';
+            }
+        }
+
         // Resetar o formulário
         function resetConfigForm() {
             currentAlertId = null;
-            saveAlertBtn.innerHTML = '<i class="fas fa-check"></i> Salvar Envio Programado';
             btnCancelEdit.classList.add('hidden');
-            masterActiveToggle.checked = true;
-            schedule1Toggle.checked = true;
-            schedule1Input.disabled = false;
-            schedule1Input.value = '08:00';
-            schedule2Toggle.checked = false;
-            schedule2Input.disabled = true;
-            schedule2Input.value = '18:30';
-            metricSpend.checked = true;
-            metricMessages.checked = true;
-            metricCpl.checked = true;
-            metricCpc.checked = true;
-            modTopAd.checked = true;
-            modBalance.checked = true;
+            scheduleTimeInput.value = '08:00';
+            metaSpend.checked = true;
+            metaMessages.checked = true;
+            metaCpl.checked = true;
+            metaCpc.checked = true;
+            metaTopAd.checked = true;
+            metaBalance.checked = true;
+            googleSpend.checked = true;
+            googleConversions.checked = true;
+            googleCpa.checked = true;
+            googleCpc.checked = true;
             btnWeekdaysOnly.click();
+            checkScheduleSlots();
             updateDynamicPreview();
         }
 
@@ -633,12 +634,8 @@
                 }
 
                 await loadProjects();
-                const savedAlerts = await loadSavedAlerts();
-                
-                // Se o usuário já tiver um alerta salvo, carregar no formulário
-                if (savedAlerts && savedAlerts.length > 0) {
-                    populateAlertIntoForm(savedAlerts[0]);
-                }
+                await loadSavedAlerts();
+                checkScheduleSlots();
                 updateDynamicPreview();
             }
         });
@@ -710,7 +707,7 @@
                     `;
                 }).join('');
 
-                // Adicionar listener aos novos checkboxes
+                // Adicionar listener aos checkboxes
                 unitsContainer.querySelectorAll('input[name="selectedUnit"]').forEach(cb => {
                     cb.addEventListener('change', updateDynamicPreview);
                 });
@@ -721,7 +718,7 @@
             }
         }
 
-        // Obter Token do Meta
+        // Obter Token Meta
         async function getMetaAccessToken() {
             let token = localStorage.getItem('fbAccessToken');
             if (token) return token;
@@ -737,10 +734,52 @@
                         }
                     }
                 } catch (e) {
-                    console.warn('Erro ao obter token do Firestore:', e);
+                    console.warn('Erro ao obter token Meta:', e);
                 }
             }
             return null;
+        }
+
+        // Obter Token Google
+        async function getGoogleAccessToken() {
+            let token = localStorage.getItem('google_ads_access_token') || localStorage.getItem('googleAccessToken');
+            if (token) return token;
+            if (auth.currentUser) {
+                try {
+                    const userSnap = await getDoc(doc(db, 'users', auth.currentUser.uid));
+                    if (userSnap.exists()) {
+                        const conn = userSnap.data().connections;
+                        if (conn?.google?.accessToken) {
+                            token = conn.google.accessToken;
+                            return token;
+                        }
+                    }
+                } catch (e) {
+                    console.warn('Erro ao obter token Google:', e);
+                }
+            }
+            return null;
+        }
+
+        // Extrair Leads do Meta com Precisão (evitando duplicar first_reply ou lead)
+        function extractExactMetaLeads(actions) {
+            if (!actions || !Array.isArray(actions)) return 0;
+            // Métrica primária oficial de conversas iniciadas no WhatsApp:
+            const convAction = actions.find(a => 
+                a.action_type === 'onsite_conversion.messaging_conversation_started_7d'
+            );
+            if (convAction && convAction.value) {
+                return parseInt(convAction.value, 10) || 0;
+            }
+            // Fallback para campanhas de cadastro direto (lead):
+            const leadAction = actions.find(a => 
+                a.action_type === 'lead' || a.action_type === 'onsite_conversion.lead_grouped'
+            );
+            if (leadAction && leadAction.value) {
+                return parseInt(leadAction.value, 10) || 0;
+            }
+            const altAction = actions.find(a => a.action_type === 'messaging_conversation_started_7d');
+            return altAction ? (parseInt(altAction.value, 10) || 0) : 0;
         }
 
         // Formatar Moeda
@@ -748,7 +787,7 @@
             return (val || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
         }
 
-        // TESTE DE ENVIO COM DADOS REAIS DA DATA ESCOLHIDA
+        // TESTE DE ENVIO COM DADOS REAIS POR DATA
         testPhoneBtn.addEventListener('click', async () => {
             const rawPhone = targetPhoneInput.value.replace(/\D/g, '');
             if (!rawPhone || rawPhone.length < 10) {
@@ -769,16 +808,17 @@
             testPhoneBtn.disabled = true;
             testPhoneBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Consultando Métricas...';
             phoneTestFeedback.className = 'mt-2 text-xs text-blue-700 bg-blue-50 border border-blue-200 p-2.5 rounded-lg';
-            phoneTestFeedback.textContent = `Consultando dados reais do dia ${dateFormatted} nas contas conectadas...`;
+            phoneTestFeedback.textContent = `Consultando dados reais do dia ${dateFormatted} nas contas vinculadas...`;
             phoneTestFeedback.classList.remove('hidden');
 
             const project = loadedProjects.find(p => p.id === projectSelect.value);
             const projName = project ? project.name : 'Oral Centter';
 
             const metaToken = await getMetaAccessToken();
+            const googleToken = await getGoogleAccessToken();
             const selectedUnitIds = checkedUnitEls.map(el => el.value);
 
-            // Montar Cabeçalho da Mensagem
+            // Cabeçalho da Mensagem
             let reportMsg = `*${currentUserName}*, segue o relatório diário das suas unidades.\n\n`;
             reportMsg += `📊 *INSIGHTFLOW - BRIEFING DIÁRIO*\n`;
             reportMsg += `📅 *Dados de:* ${dateFormatted} | ⏰ *Envio Teste*\n`;
@@ -786,25 +826,31 @@
 
             const lowBalanceUnits = [];
 
-            // Buscar métricas reais para cada unidade selecionada
+            // Buscar métricas reais de cada unidade
             for (const unitId of selectedUnitIds) {
                 const unit = loadedUnits.find(u => u.id === unitId);
                 const unitName = unit ? unit.name : 'Unidade';
 
-                let unitSpend = 0;
-                let unitMessages = 0;
-                let unitClicks = 0;
-                let unitTopAd = null;
-                let unitBalance = null;
-                let unitDaysLeft = null;
+                reportMsg += `━━━━━━━━━━━━━━━━━━━━\n`;
+                reportMsg += `🏢 *${unitName.toUpperCase()}*\n`;
 
-                if (unit?.linkedAccounts?.meta?.id && metaToken) {
+                const hasMetaAccount = !!unit?.linkedAccounts?.meta?.id;
+                const hasGoogleAccount = !!unit?.linkedAccounts?.google?.id;
+
+                // 1. PROCESSAR META ADS
+                if (hasMetaAccount && metaToken) {
                     const actId = unit.linkedAccounts.meta.id.startsWith('act_') 
                         ? unit.linkedAccounts.meta.id 
                         : `act_${unit.linkedAccounts.meta.id}`;
                     
+                    let metaSpendVal = 0;
+                    let metaLeadsVal = 0;
+                    let metaClicksVal = 0;
+                    let metaTopAdVal = null;
+                    let metaBalanceVal = null;
+                    let metaDaysLeftVal = null;
+
                     try {
-                        // 1. Insights do dia
                         const timeRange = encodeURIComponent(JSON.stringify({ since: chosenDate, until: chosenDate }));
                         const insUrl = `https://graph.facebook.com/v21.0/${actId}/insights?fields=spend,impressions,clicks,cpc,actions&time_range=${timeRange}&access_token=${metaToken}`;
                         const insRes = await fetch(insUrl);
@@ -812,49 +858,51 @@
 
                         if (insData?.data && insData.data.length > 0) {
                             const r = insData.data[0];
-                            unitSpend += parseFloat(r.spend || 0);
-                            unitClicks += parseInt(r.clicks || 0);
+                            metaSpendVal = parseFloat(r.spend || 0);
+                            metaClicksVal = parseInt(r.clicks || 0);
                             if (r.actions) {
-                                unitMessages += extractAllMessagesAndLeads(r.actions);
+                                metaLeadsVal = extractExactMetaLeads(r.actions);
                             }
                         }
 
-                        // 2. Criativo destaque
-                        if (modTopAd.checked) {
-                            const adsUrl = `https://graph.facebook.com/v21.0/${actId}/insights?fields=ad_name,spend,actions&time_range=${timeRange}&level=ad&limit=20&access_token=${metaToken}`;
+                        // Criativo Destaque
+                        if (metaTopAd.checked) {
+                            const adsUrl = `https://graph.facebook.com/v21.0/${actId}/insights?fields=ad_name,spend,actions&time_range=${timeRange}&level=ad&limit=25&access_token=${metaToken}`;
                             const adsRes = await fetch(adsUrl);
                             const adsData = await adsRes.json();
                             if (adsData?.data && Array.isArray(adsData.data)) {
-                                let bestAd = null;
-                                let maxM = -1;
+                                let best = null;
+                                let bestM = -1;
                                 adsData.data.forEach(ad => {
-                                    const m = extractAllMessagesAndLeads(ad.actions);
-                                    if (m > maxM) {
-                                        maxM = m;
-                                        bestAd = { name: ad.ad_name, messages: m };
+                                    const m = extractExactMetaLeads(ad.actions);
+                                    if (m > bestM) {
+                                        bestM = m;
+                                        best = { name: ad.ad_name, messages: m };
                                     }
                                 });
-                                if (bestAd && bestAd.messages > 0) {
-                                    unitTopAd = bestAd;
+                                if (best && best.messages > 0) {
+                                    metaTopAdVal = best;
                                 }
                             }
                         }
 
-                        // 3. Saldo da Conta & Previsão
-                        if (modBalance.checked) {
+                        // Saldo da Conta (Bruto Nominal Sem Desconto)
+                        if (metaBalance.checked) {
                             const accUrl = `https://graph.facebook.com/v21.0/${actId}?fields=balance,spend_cap,amount_spent,currency&access_token=${metaToken}`;
                             const accRes = await fetch(accUrl);
                             const accData = await accRes.json();
 
-                            let rawBal = 0;
-                            if (accData.spend_cap && accData.amount_spent) {
-                                rawBal = (parseFloat(accData.spend_cap) - parseFloat(accData.amount_spent)) / 100;
-                            } else if (accData.balance) {
+                            let rawBal = null;
+                            if (accData.balance) {
                                 rawBal = parseFloat(accData.balance) / 100;
+                            } else if (accData.spend_cap && accData.amount_spent) {
+                                rawBal = (parseFloat(accData.spend_cap) - parseFloat(accData.amount_spent)) / 100;
                             }
 
-                            if (rawBal > 0) {
-                                unitBalance = rawBal;
+                            if (rawBal !== null && rawBal > 0) {
+                                // Reverter retenção fiscal de 11.765% para mostrar o saldo nominal bruto idêntico ao painel
+                                metaBalanceVal = Math.round((rawBal / (1 - 0.11765)) * 100) / 100;
+
                                 // Média de 3 dias
                                 const d = new Date(chosenDate);
                                 d.setDate(d.getDate() - 3);
@@ -867,48 +915,89 @@
                                     const sp3 = parseFloat(ins3Data.data[0].spend || 0);
                                     const avgDaily = sp3 / 3;
                                     if (avgDaily > 0) {
-                                        unitDaysLeft = (unitBalance / avgDaily).toFixed(1);
-                                        if (parseFloat(unitDaysLeft) <= 3) {
-                                            lowBalanceUnits.push({ name: unitName, balance: unitBalance, daysLeft: unitDaysLeft });
+                                        metaDaysLeftVal = (metaBalanceVal / avgDaily).toFixed(1);
+                                        if (parseFloat(metaDaysLeftVal) <= 3) {
+                                            lowBalanceUnits.push({ name: unitName, balance: metaBalanceVal, daysLeft: metaDaysLeftVal });
                                         }
                                     }
                                 }
                             }
                         }
                     } catch (e) {
-                        console.warn(`Erro na consulta Meta para ${unitName}:`, e);
+                        console.warn(`Erro Meta na unidade ${unitName}:`, e);
+                    }
+
+                    const cpl = metaLeadsVal > 0 ? metaSpendVal / metaLeadsVal : 0;
+                    const cpc = metaClicksVal > 0 ? metaSpendVal / metaClicksVal : 0;
+
+                    reportMsg += `\n🔹 *Meta Ads:*\n`;
+                    if (metaSpend.checked) reportMsg += `💰 *Gasto:* ${formatBRL(metaSpendVal)}\n`;
+                    if (metaMessages.checked) reportMsg += `🎯 *Mensagens (Leads):* ${metaLeadsVal}\n`;
+                    if (metaCpl.checked) reportMsg += `📉 *CPL:* ${formatBRL(cpl)}\n`;
+                    if (metaCpc.checked) reportMsg += `🖱️ *CPC:* ${formatBRL(cpc)}\n`;
+                    if (metaTopAd.checked) {
+                        if (metaTopAdVal) {
+                            reportMsg += `🏆 *Criativo Destaque:* "${metaTopAdVal.name}" (${metaTopAdVal.messages} mensagens)\n`;
+                        } else {
+                            reportMsg += `🏆 *Criativo Destaque:* Sem mensagens registradas nesta data\n`;
+                        }
+                    }
+                    if (metaBalance.checked) {
+                        if (metaBalanceVal !== null) {
+                            reportMsg += `💳 *Saldo Atual:* ${formatBRL(metaBalanceVal)}\n`;
+                            reportMsg += `⏳ *Previsão de Saldo:* ~${metaDaysLeftVal || 'N/A'} dias restantes\n`;
+                        } else {
+                            reportMsg += `💳 *Saldo Atual:* Não disponível / Pós-pago\n`;
+                        }
                     }
                 }
 
-                // Fallbacks elegantes se conta estiver sem movimentação ou sem token
-                const cpl = unitMessages > 0 ? unitSpend / unitMessages : 0;
-                const cpc = unitClicks > 0 ? unitSpend / unitClicks : 0;
+                // 2. PROCESSAR GOOGLE ADS
+                if (hasGoogleAccount && googleToken) {
+                    let gSpend = 0;
+                    let gClicks = 0;
+                    let gConversions = 0;
 
-                reportMsg += `━━━━━━━━━━━━━━━━━━━━\n`;
-                reportMsg += `🏢 *${unitName.toUpperCase()}*\n`;
-                if (metricSpend.checked) reportMsg += `💰 *Gasto:* ${formatBRL(unitSpend)}\n`;
-                if (metricMessages.checked) reportMsg += `🎯 *Mensagens (Leads):* ${unitMessages}\n`;
-                if (metricCpl.checked) reportMsg += `📉 *CPL:* ${formatBRL(cpl)}\n`;
-                if (metricCpc.checked) reportMsg += `🖱️ *CPC:* ${formatBRL(cpc)}\n`;
-                if (modTopAd.checked) {
-                    if (unitTopAd) {
-                        reportMsg += `🏆 *Criativo Destaque:* "${unitTopAd.name}" (${unitTopAd.messages} mensagens)\n`;
-                    } else {
-                        reportMsg += `🏆 *Criativo Destaque:* Sem conversas registradas nesta data\n`;
+                    try {
+                        const custId = unit.linkedAccounts.google.id.replace(/\D/g, '');
+                        const gRes = await fetch('/api/google-ads', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                action: 'getAccountInsights',
+                                customerId: custId,
+                                startDate: chosenDate,
+                                endDate: chosenDate,
+                                accessToken: googleToken
+                            })
+                        });
+                        const gData = await gRes.json();
+                        if (gData?.insights) {
+                            gSpend = parseFloat(gData.insights.cost || 0);
+                            gClicks = parseInt(gData.insights.clicks || 0);
+                            gConversions = parseFloat(gData.insights.conversions || 0);
+                        }
+                    } catch (e) {
+                        console.warn(`Erro Google Ads na unidade ${unitName}:`, e);
                     }
+
+                    const gCpc = gClicks > 0 ? gSpend / gClicks : 0;
+                    const gCpa = gConversions > 0 ? gSpend / gConversions : 0;
+
+                    reportMsg += `\n🔸 *Google Ads:*\n`;
+                    if (googleSpend.checked) reportMsg += `💰 *Gasto:* ${formatBRL(gSpend)}\n`;
+                    if (googleConversions.checked) reportMsg += `🎯 *Conversões:* ${gConversions}\n`;
+                    if (googleCpa.checked) reportMsg += `📉 *Custo/Conv.:* ${formatBRL(gCpa)}\n`;
+                    if (googleCpc.checked) reportMsg += `🖱️ *CPC Médio:* ${formatBRL(gCpc)}\n`;
                 }
-                if (modBalance.checked) {
-                    if (unitBalance !== null) {
-                        reportMsg += `💳 *Saldo Atual:* ${formatBRL(unitBalance)}\n`;
-                        reportMsg += `⏳ *Previsão de Saldo:* ~${unitDaysLeft || 'N/A'} dias restantes\n`;
-                    } else {
-                        reportMsg += `💳 *Saldo Atual:* Não disponível / Pós-pago\n`;
-                    }
+
+                if (!hasMetaAccount && !hasGoogleAccount) {
+                    reportMsg += `_(Nenhuma conta vinculada nesta unidade)_\n`;
                 }
             }
 
-            // Bloco de Alerta de Saldo se houver unidades com saldo para acabar em até 3 dias
-            if (modBalance.checked && lowBalanceUnits.length > 0) {
+            // Bloco de Alerta de Saldo
+            if (metaBalance.checked && lowBalanceUnits.length > 0) {
                 reportMsg += `\n━━━━━━━━━━━━━━━━━━━━\n`;
                 reportMsg += `⚠️ *Unidades com saldo previsto para acabar em até 3 dias:*\n`;
                 lowBalanceUnits.forEach(u => {
@@ -936,9 +1025,16 @@
             testPhoneBtn.innerHTML = '<i class="fas fa-paper-plane text-green-600"></i> Disparar Teste Real';
         });
 
-        // SALVAR ALERTA PROGRAMADO (Limite Máximo de 2 Horários)
+        // SALVAR E PROGRAMAR ENVIO (Limite de 2 Horários)
         alertConfigForm.addEventListener('submit', async (e) => {
             e.preventDefault();
+
+            // Verificar se já atingiu o limite de 2 envios ativos
+            const activeAlerts = existingAlerts.filter(a => a.active !== false && a.id !== currentAlertId);
+            if (activeAlerts.length >= 2) {
+                alert('Limite atingido! Você já possui 2 envios ativos programados. Desative, edite ou exclua um existente na aba "2. Envios Programados".');
+                return;
+            }
 
             const selectedUnits = Array.from(document.querySelectorAll('input[name="selectedUnit"]:checked')).map(el => el.value);
             if (selectedUnits.length === 0) {
@@ -946,15 +1042,7 @@
                 return;
             }
 
-            // Validar horários: Máximo 2 (1 de manhã e/ou 1 de tarde, ou nenhum)
-            const schedules = [];
-            if (schedule1Toggle.checked && schedule1Input.value) {
-                schedules.push(schedule1Input.value);
-            }
-            if (schedule2Toggle.checked && schedule2Input.value) {
-                schedules.push(schedule2Input.value);
-            }
-
+            const timeValue = scheduleTimeInput.value || '08:00';
             const selectedDays = Array.from(document.querySelectorAll('input[name="weekDay"]:checked')).map(el => parseInt(el.value));
             if (selectedDays.length === 0) {
                 alert('Selecione pelo menos um dia da semana para receber os alertas!');
@@ -968,16 +1056,24 @@
                 phone: targetPhoneInput.value.trim(),
                 projectId: projectSelect.value,
                 projectName: project ? project.name : '',
-                active: masterActiveToggle.checked,
-                schedules,
+                active: true,
+                schedules: [timeValue],
                 daysOfWeek: selectedDays,
                 modules: {
-                    spend: metricSpend.checked,
-                    messages: metricMessages.checked,
-                    cpl: metricCpl.checked,
-                    cpc: metricCpc.checked,
-                    topAd: modTopAd.checked,
-                    balanceForecast: modBalance.checked
+                    meta: {
+                        spend: metaSpend.checked,
+                        messages: metaMessages.checked,
+                        cpl: metaCpl.checked,
+                        cpc: metaCpc.checked,
+                        topAd: metaTopAd.checked,
+                        balance: metaBalance.checked
+                    },
+                    google: {
+                        spend: googleSpend.checked,
+                        conversions: googleConversions.checked,
+                        cpa: googleCpa.checked,
+                        cpc: googleCpc.checked
+                    }
                 },
                 selectedUnits
             };
@@ -987,7 +1083,8 @@
 
             const result = await WhatsAppService.saveUserAlert(payload);
             if (result.success) {
-                alert('✅ Envio programado salvo com sucesso! Os relatórios rodarão automaticamente nos horários definidos.');
+                alert('✅ Envio programado com sucesso! Ele foi adicionado à lista de Envios Programados.');
+                resetConfigForm();
                 await loadSavedAlerts();
                 switchTab('alerts');
             } else {
@@ -995,10 +1092,10 @@
             }
 
             saveAlertBtn.disabled = false;
-            saveAlertBtn.innerHTML = currentAlertId ? '<i class="fas fa-check"></i> Atualizar Envio Programado' : '<i class="fas fa-check"></i> Salvar Envio Programado';
+            checkScheduleSlots();
         });
 
-        // Preencher o Formulário a partir de um alerta existente
+        // Preencher formulário em modo de edição
         function populateAlertIntoForm(alert) {
             currentAlertId = alert.id;
             saveAlertBtn.innerHTML = '<i class="fas fa-check"></i> Atualizar Envio Programado';
@@ -1013,67 +1110,57 @@
                 }
             }
 
-            masterActiveToggle.checked = alert.active !== false;
-            masterActiveToggle.dispatchEvent(new Event('change'));
-
             if (alert.projectId) {
                 projectSelect.value = alert.projectId;
                 loadProjectUnits(alert.projectId, alert.selectedUnits || []);
             }
 
-            // Horários
             if (alert.schedules && alert.schedules.length > 0) {
-                schedule1Toggle.checked = true;
-                schedule1Input.disabled = false;
-                schedule1Input.value = alert.schedules[0];
-                if (alert.schedules.length > 1) {
-                    schedule2Toggle.checked = true;
-                    schedule2Input.disabled = false;
-                    schedule2Input.value = alert.schedules[1];
-                } else {
-                    schedule2Toggle.checked = false;
-                    schedule2Input.disabled = true;
-                }
-            } else {
-                schedule1Toggle.checked = false;
-                schedule1Input.disabled = true;
-                schedule2Toggle.checked = false;
-                schedule2Input.disabled = true;
+                scheduleTimeInput.value = alert.schedules[0];
             }
 
-            // Dias da semana
             if (alert.daysOfWeek && Array.isArray(alert.daysOfWeek)) {
                 weekDayCheckboxes.forEach(cb => {
                     cb.checked = alert.daysOfWeek.includes(parseInt(cb.value));
                 });
             }
 
-            // Métricas
             if (alert.modules) {
-                metricSpend.checked = alert.modules.spend ?? true;
-                metricMessages.checked = alert.modules.messages ?? true;
-                metricCpl.checked = alert.modules.cpl ?? true;
-                metricCpc.checked = alert.modules.cpc ?? true;
-                modTopAd.checked = alert.modules.topAd ?? true;
-                modBalance.checked = alert.modules.balanceForecast ?? true;
+                const m = alert.modules.meta || alert.modules;
+                const g = alert.modules.google || alert.modules;
+                metaSpend.checked = m.spend ?? true;
+                metaMessages.checked = m.messages ?? true;
+                metaCpl.checked = m.cpl ?? true;
+                metaCpc.checked = m.cpc ?? true;
+                metaTopAd.checked = m.topAd ?? true;
+                metaBalance.checked = m.balance ?? m.balanceForecast ?? true;
+
+                googleSpend.checked = g.spend ?? true;
+                googleConversions.checked = g.conversions ?? true;
+                googleCpa.checked = g.cpa ?? g.cpl ?? true;
+                googleCpc.checked = g.cpc ?? true;
             }
 
+            checkScheduleSlots();
             updateDynamicPreview();
         }
 
         // CARREGAR ALERTAS DA ABA 2
         async function loadSavedAlerts() {
             const alerts = await WhatsAppService.getUserAlerts();
-            alertsCountBadge.textContent = alerts.length;
+            existingAlerts = alerts;
+            const activeAlerts = alerts.filter(a => a.active !== false);
+            alertsCountBadge.textContent = `${activeAlerts.length}/2`;
 
             if (alerts.length === 0) {
                 savedAlertsList.innerHTML = `
                     <div class="col-span-full text-center py-10 bg-gray-50 border border-dashed border-gray-300 rounded-xl">
                         <i class="fab fa-whatsapp text-gray-400 text-3xl mb-2"></i>
                         <p class="text-sm font-semibold text-gray-700">Nenhum envio programado ainda</p>
-                        <p class="text-xs text-gray-500 mt-1">Configure na aba <strong>1. Configurar & Testar</strong> para ativar os relatórios automáticos.</p>
+                        <p class="text-xs text-gray-500 mt-1">Configure na aba <strong>1. Configurar & Testar</strong> para programar seus envios diários.</p>
                     </div>
                 `;
+                checkScheduleSlots();
                 return [];
             }
 
@@ -1082,7 +1169,7 @@
             savedAlertsList.innerHTML = alerts.map(a => {
                 const isActive = a.active !== false;
                 const formattedDays = (a.daysOfWeek || []).map(d => dayNames[d] || d).join(', ') || 'Seg a Sex';
-                const formattedTimes = (a.schedules || []).length > 0 ? (a.schedules || []).join(' e ') + 'h' : 'Sem horário';
+                const timeLabel = (a.schedules || []).length > 0 ? (a.schedules || []).join(', ') + 'h' : 'Sem horário';
                 const unitsCount = (a.selectedUnits || []).length;
 
                 return `
@@ -1101,7 +1188,7 @@
 
                         <!-- Toggle Ativar / Desativar Programação -->
                         <div class="flex items-center gap-2">
-                            <label class="relative inline-flex items-center cursor-pointer" title="${isActive ? 'Clique para desativar' : 'Clique para ativar'}">
+                            <label class="relative inline-flex items-center cursor-pointer" title="${isActive ? 'Clique para pausar (libera vaga)' : 'Clique para ativar'}">
                                 <input type="checkbox" class="sr-only peer toggle-alert-active-btn" data-id="${a.id}" ${isActive ? 'checked' : ''}>
                                 <div class="w-10 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-green-600"></div>
                             </label>
@@ -1111,8 +1198,8 @@
                     <!-- Detalhes do Alerta -->
                     <div class="space-y-1.5 text-xs text-gray-600 bg-gray-50 p-3 rounded-xl border border-gray-100">
                         <p class="flex items-center justify-between">
-                            <span class="text-gray-500"><i class="far fa-clock mr-1 text-blue-500"></i> Horário(s):</span>
-                            <strong class="text-gray-800">${formattedTimes}</strong>
+                            <span class="text-gray-500"><i class="far fa-clock mr-1 text-blue-500"></i> Horário Programado:</span>
+                            <strong class="text-gray-800 text-sm font-mono text-green-700">${timeLabel}</strong>
                         </p>
                         <p class="flex items-center justify-between">
                             <span class="text-gray-500"><i class="far fa-calendar-alt mr-1 text-blue-500"></i> Dias:</span>
@@ -1171,6 +1258,7 @@
                 });
             });
 
+            checkScheduleSlots();
             return alerts;
         }
     </script>

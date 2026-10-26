@@ -160,6 +160,23 @@ export class WhatsAppService {
     }
 
     /**
+     * Alternar status de ativação do alerta (ativo/inativo)
+     */
+    static async toggleUserAlertStatus(alertId, active) {
+        try {
+            const docRef = doc(db, 'whatsapp_alerts', alertId);
+            await updateDoc(docRef, {
+                active,
+                updatedAt: serverTimestamp()
+            });
+            return { success: true };
+        } catch (error) {
+            console.error('❌ Erro ao alternar status do alerta:', error);
+            return { success: false, error: error.message };
+        }
+    }
+
+    /**
      * Deletar alerta
      */
     static async deleteUserAlert(alertId) {

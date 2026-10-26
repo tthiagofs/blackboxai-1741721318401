@@ -108,16 +108,19 @@ export class WhatsAppService {
             const payload = {
                 userId: user.uid,
                 userEmail: user.email,
-                phone: alertData.phone.replace(/\D/g, ''),
-                projectId: alertData.projectId,
-                projectName: alertData.projectName,
+                phone: (alertData.phone || '').replace(/\D/g, ''),
+                projectId: alertData.projectId || '',
+                projectName: alertData.projectName || '',
                 active: alertData.active ?? true,
                 schedules: alertData.schedules || ['08:00'],
+                daysOfWeek: alertData.daysOfWeek || [1, 2, 3, 4, 5],
                 modules: {
-                    dailyReport: alertData.modules?.dailyReport ?? true,
-                    balanceForecast: alertData.modules?.balanceForecast ?? true,
+                    spend: alertData.modules?.spend ?? true,
+                    messages: alertData.modules?.messages ?? true,
+                    cpl: alertData.modules?.cpl ?? true,
+                    cpc: alertData.modules?.cpc ?? true,
                     topAd: alertData.modules?.topAd ?? true,
-                    statusAlerts: alertData.modules?.statusAlerts ?? false
+                    balanceForecast: alertData.modules?.balanceForecast ?? true
                 },
                 selectedUnits: alertData.selectedUnits || [],
                 updatedAt: serverTimestamp()

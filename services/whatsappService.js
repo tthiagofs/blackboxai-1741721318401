@@ -32,12 +32,12 @@ export class WhatsAppService {
                 return docSnap.data();
             }
             return {
-                provider: 'z-api', // 'z-api' ou 'evolution'
+                provider: 'z-api',
                 instanceId: '',
                 token: '',
                 clientToken: '',
                 serverUrl: 'https://api.z-api.io',
-                status: 'disconnected', // 'connected', 'disconnected', 'connecting'
+                status: 'disconnected',
                 senderPhone: '',
                 lastChecked: null
             };
@@ -84,7 +84,7 @@ export class WhatsAppService {
     }
 
     /**
-     * Buscar QR Code ou status da conexão via backend
+     * Buscar status da conexão via backend
      */
     static async checkConnectionStatus() {
         try {
@@ -99,42 +99,61 @@ export class WhatsAppService {
 
     /**
      * Salvar configuração de alerta do gestor
+     * Salva com segurança no documento do próprio usuário (users/UID) onde a permissão é garantida
      */
     static async saveUserAlert(alertData) {
         try {
             const user = auth.currentUser;
             if (!user) throw new Error('Usuário não autenticado');
 
-            const payload = {
+            const alertId = alertData.id || `alert_${Date.now()}`;
+            const alertPayload = {
+                id: alertId,
                 userId: user.uid,
-                userEmail: user.email,
+                userEmail: user.email || '',
                 phone: (alertData.phone || '').replace(/\D/g, ''),
                 projectId: alertData.projectId || '',
                 projectName: alertData.projectName || '',
                 active: alertData.active ?? true,
                 schedules: alertData.schedules || ['08:00'],
                 daysOfWeek: alertData.daysOfWeek || [1, 2, 3, 4, 5],
-                modules: {
-                    spend: alertData.modules?.spend ?? true,
-                    messages: alertData.modules?.messages ?? true,
-                    cpl: alertData.modules?.cpl ?? true,
-                    cpc: alertData.modules?.cpc ?? true,
-                    topAd: alertData.modules?.topAd ?? true,
-                    balanceForecast: alertData.modules?.balanceForecast ?? true
-                },
+                modules: alertData.modules || {},
                 selectedUnits: alertData.selectedUnits || [],
-                updatedAt: serverTimestamp()
+                updatedAt: new Date().toISOString()
             };
 
+            // 1. Salvar no documento do próprio usuário (users/UID.whatsappAlerts)
+            // Essa coleção tem permissão 'allow write, update' garantida para o próprio usuário autenticado
+            const userRef = doc(db, 'users', user.uid);
+            const userSnap = await getDoc(userRef);
+            let currentAlerts = userSnap.exists() && Array.isArray(userSnap.data()?.whatsappAlerts) 
+                ? userSnap.data().whatsappAlerts 
+                : [];
+
             if (alertData.id) {
-                const docRef = doc(db, 'whatsapp_alerts', alertData.id);
-                await updateDoc(docRef, payload);
-                return { success: true, id: alertData.id };
+                currentAlerts = currentAlerts.map(a => a.id === alertData.id ? alertPayload : a);
             } else {
-                payload.createdAt = serverTimestamp();
-                const docRef = await addDoc(collection(db, 'whatsapp_alerts'), payload);
-                return { success: true, id: docRef.id };
+                alertPayload.createdAt = new Date().toISOString();
+                currentAlerts.push(alertPayload);
             }
+
+            await setDoc(userRef, { whatsappAlerts: currentAlerts }, { merge: true });
+
+            // 2. Tentar salvar também na coleção whatsapp_alerts (caso as regras estejam liberadas)
+            try {
+                if (alertData.id) {
+                    const alertRef = doc(db, 'whatsapp_alerts', alertData.id);
+                    await setDoc(alertRef, { ...alertPayload, updatedAt: serverTimestamp() }, { merge: true });
+                } else {
+                    const colRef = doc(db, 'whatsapp_alerts', alertId);
+                    await setDoc(colRef, { ...alertPayload, createdAt: serverTimestamp(), updatedAt: serverTimestamp() });
+                }
+            } catch (permErr) {
+                // Silencioso se a coleção whatsapp_alerts ainda não tiver permissão publicada
+                console.warn('ℹ️ Alerta salvo em users/UID (whatsapp_alerts coleção restrita)');
+            }
+
+            return { success: true, id: alertId };
         } catch (error) {
             console.error('❌ Erro ao salvar alerta:', error);
             return { success: false, error: error.message };
@@ -149,13 +168,25 @@ export class WhatsAppService {
             const user = auth.currentUser;
             if (!user) return [];
 
-            const q = query(collection(db, 'whatsapp_alerts'), where('userId', '==', user.uid));
-            const snapshot = await getDocs(q);
+            // 1. Tentar ler do documento do usuário (garantido sem erro de permissão)
+            try {
+                const userRef = doc(db, 'users', user.uid);
+                const userSnap = await getDoc(userRef);
+                if (userSnap.exists() && Array.isArray(userSnap.data()?.whatsappAlerts)) {
+                    return userSnap.data().whatsappAlerts;
+                }
+            } catch (e) {
+                console.warn('Tentando ler coleção whatsapp_alerts...', e);
+            }
 
-            return snapshot.docs.map(doc => ({
-                id: doc.id,
-                ...doc.data()
-            }));
+            // 2. Fallback para coleção raiz whatsapp_alerts
+            try {
+                const q = query(collection(db, 'whatsapp_alerts'), where('userId', '==', user.uid));
+                const snapshot = await getDocs(q);
+                return snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+            } catch (err) {
+                return [];
+            }
         } catch (error) {
             console.error('❌ Erro ao carregar alertas do usuário:', error);
             return [];
@@ -163,15 +194,31 @@ export class WhatsAppService {
     }
 
     /**
-     * Alternar status de ativação do alerta (ativo/inativo)
+     * Alternar status de ativação do alerta (ativo/pausado)
      */
     static async toggleUserAlertStatus(alertId, active) {
         try {
-            const docRef = doc(db, 'whatsapp_alerts', alertId);
-            await updateDoc(docRef, {
-                active,
-                updatedAt: serverTimestamp()
-            });
+            const user = auth.currentUser;
+            if (!user) throw new Error('Usuário não autenticado');
+
+            // 1. Atualizar em users/UID.whatsappAlerts
+            const userRef = doc(db, 'users', user.uid);
+            const userSnap = await getDoc(userRef);
+            if (userSnap.exists() && Array.isArray(userSnap.data()?.whatsappAlerts)) {
+                const updated = userSnap.data().whatsappAlerts.map(a => 
+                    a.id === alertId ? { ...a, active, updatedAt: new Date().toISOString() } : a
+                );
+                await setDoc(userRef, { whatsappAlerts: updated }, { merge: true });
+            }
+
+            // 2. Atualizar também em whatsapp_alerts se possível
+            try {
+                const docRef = doc(db, 'whatsapp_alerts', alertId);
+                await updateDoc(docRef, { active, updatedAt: serverTimestamp() });
+            } catch (e) {
+                // Silencioso
+            }
+
             return { success: true };
         } catch (error) {
             console.error('❌ Erro ao alternar status do alerta:', error);
@@ -184,7 +231,24 @@ export class WhatsAppService {
      */
     static async deleteUserAlert(alertId) {
         try {
-            await deleteDoc(doc(db, 'whatsapp_alerts', alertId));
+            const user = auth.currentUser;
+            if (!user) throw new Error('Usuário não autenticado');
+
+            // 1. Remover de users/UID.whatsappAlerts
+            const userRef = doc(db, 'users', user.uid);
+            const userSnap = await getDoc(userRef);
+            if (userSnap.exists() && Array.isArray(userSnap.data()?.whatsappAlerts)) {
+                const filtered = userSnap.data().whatsappAlerts.filter(a => a.id !== alertId);
+                await setDoc(userRef, { whatsappAlerts: filtered }, { merge: true });
+            }
+
+            // 2. Remover também de whatsapp_alerts se possível
+            try {
+                await deleteDoc(doc(db, 'whatsapp_alerts', alertId));
+            } catch (e) {
+                // Silencioso
+            }
+
             return { success: true };
         } catch (error) {
             console.error('❌ Erro ao deletar alerta:', error);

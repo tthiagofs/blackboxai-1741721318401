@@ -187,36 +187,29 @@ class FacebookAuth {
             // Set access token and load accounts after successful login/status check
             this.accessToken = response.authResponse.accessToken;
             
-            // ⭐ Salvar data de expiração do token
-            const expiresIn = response.authResponse.expiresIn || 5184000; // 60 dias em segundos (padrão para long-lived)
-            const expiryDate = new Date(Date.now() + (expiresIn * 1000));
-            this.tokenExpiry = expiryDate.toISOString();
-            
-            // ⭐ Tentar obter/verificar long-lived token via API
+            // ⭐ Tentar trocar por Long-Lived Token (60 dias) via backend
             try {
-                console.log('🔄 Verificando se token é long-lived...');
-                // Verificar informações do token via API
-                const tokenInfo = await new Promise((resolve, reject) => {
-                    FB.api('/me', { fields: 'id' }, (response) => {
-                        if (response.error) {
-                            reject(response.error);
-                        } else {
-                            resolve(response);
-                        }
-                    });
+                console.log('🔄 Obtendo Long-Lived Token oficial (60 dias)...');
+                const exchRes = await fetch('/api/exchange-token', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        platform: 'meta',
+                        shortLivedToken: this.accessToken
+                    })
                 });
-                
-                // Se chegou aqui, token está válido
-                // O Facebook SDK automaticamente gerencia long-lived tokens quando há sessão ativa
-                console.log('✅ Token Meta válido e ativo');
-                
-                // Se expiresIn não foi fornecido, assumir que é long-lived (60 dias)
-                if (expiresIn >= 5184000) {
-                    console.log('✅ Token é long-lived (válido por ~60 dias)');
+                const exchData = await exchRes.json();
+                if (exchRes.ok && exchData.accessToken) {
+                    this.accessToken = exchData.accessToken;
+                    const days = Math.round((exchData.expiresIn || 5184000) / 86400);
+                    console.log(`✅ Long-Lived Token Meta obtido! Válido por ~${days} dias`);
+                    const expiryDate = new Date(Date.now() + ((exchData.expiresIn || 5184000) * 1000));
+                    this.tokenExpiry = expiryDate.toISOString();
                 }
-            } catch (error) {
-                console.warn('⚠️ Erro ao verificar token, mas continuando:', error);
-                // Continuar mesmo se verificação falhar
+            } catch (err) {
+                console.warn('⚠️ Não foi possível trocar por Long-Lived Token via backend:', err);
+                const expiryDate = new Date(Date.now() + (5184000 * 1000));
+                this.tokenExpiry = expiryDate.toISOString();
             }
             
             localStorage.setItem('fbAccessToken', this.accessToken);

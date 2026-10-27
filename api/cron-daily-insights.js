@@ -54,9 +54,48 @@ export default async function handler(req, res) {
       const firebaseApiKey = process.env.FIREBASE_API_KEY || 'AIzaSyB3-n3WIdEOhCxvpbigs_ogse7b3tggGGU';
       const projectId = process.env.FIREBASE_PROJECT_ID || 'insightflow-82cc4';
 
+      // 1. Tentar buscar da coleção whatsapp_alerts (com autenticação)
       try {
-        const firestoreUrl = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/users?key=${firebaseApiKey}&pageSize=100`;
-        const fRes = await fetch(firestoreUrl);
+        let authHeaders = {};
+        try {
+          const authRes = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${firebaseApiKey}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              email: 'cron.bot@insightflow.internal',
+              password: 'CronPass123!@#',
+              returnSecureToken: true
+            })
+          });
+          if (authRes.ok) {
+            const authData = await authRes.json();
+            if (authData.idToken) {
+              authHeaders = { Authorization: `Bearer ${authData.idToken}` };
+            }
+          }
+        } catch (eAuth) {}
+
+        const alertsUrl = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/whatsapp_alerts?key=${firebaseApiKey}&pageSize=100`;
+        const aRes = await fetch(alertsUrl, { headers: authHeaders });
+        if (aRes.ok) {
+          const aData = await aRes.json();
+          const docs = aData.documents || [];
+          for (const doc of docs) {
+            const alertObj = parseFirestoreMap(doc.fields || {});
+            if (alertObj && (alertObj.active !== false)) {
+              alertsToProcess.push(alertObj);
+            }
+          }
+        }
+      } catch (errAlerts) {
+        console.warn('⚠️ Erro ao consultar whatsapp_alerts:', errAlerts.message);
+      }
+
+      // 2. Fallback: tentar listar users
+      if (alertsToProcess.length === 0) {
+        try {
+          const firestoreUrl = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/users?key=${firebaseApiKey}&pageSize=100`;
+          const fRes = await fetch(firestoreUrl);
         if (fRes.ok) {
           const fData = await fRes.json();
           const documents = fData.documents || [];

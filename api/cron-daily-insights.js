@@ -404,23 +404,22 @@ export default async function handler(req, res) {
         if (hasGoogle && googleToken) {
           const gRawId = unit.linkedAccounts.google.id;
           const gCustId = String(gRawId).replace(/\D/g, '');
-          const gLoginCustId = unit.linkedAccounts.google.loginCustomerId 
-            ? String(unit.linkedAccounts.google.loginCustomerId).replace(/\D/g, '')
-            : null;
+          const gRawLoginId = unit.linkedAccounts.google.managedBy || unit.linkedAccounts.google.loginCustomerId;
+          const gLoginCustId = gRawLoginId ? String(gRawLoginId).replace(/\D/g, '') : null;
 
           let gSpend = 0;
           let gClicks = 0;
           let gConversions = 0;
 
-          try {
+          const tryQueryGoogle = async (loginId) => {
             const devToken = process.env.GOOGLE_ADS_DEVELOPER_TOKEN || 'XJMJTE6x6lU7zbtl8oNFXA';
             const gHeaders = {
               Authorization: `Bearer ${googleToken}`,
               'developer-token': devToken,
               'Content-Type': 'application/json'
             };
-            if (gLoginCustId) {
-              gHeaders['login-customer-id'] = gLoginCustId;
+            if (loginId) {
+              gHeaders['login-customer-id'] = loginId;
             }
 
             const gQuery = `
@@ -440,15 +439,38 @@ export default async function handler(req, res) {
               timeout: 4500
             });
 
-            if (gRes.ok) {
-              const gData = await gRes.json();
-              const gRows = flattenSearchStreamResults(gData);
-              for (const row of gRows) {
-                if (row.metrics) {
-                  gSpend += (parseFloat(row.metrics.costMicros || 0) / 1000000);
-                  gClicks += parseInt(row.metrics.clicks || 0, 10);
-                  gConversions += parseFloat(row.metrics.conversions || 0);
+            if (!gRes.ok) {
+              const errTxt = await gRes.text();
+              throw new Error(`Google Ads HTTP ${gRes.status}: ${errTxt}`);
+            }
+
+            const gData = await gRes.json();
+            return flattenSearchStreamResults(gData);
+          };
+
+          try {
+            let gRows = [];
+            try {
+              gRows = await tryQueryGoogle(gLoginCustId);
+            } catch (firstErr) {
+              // Se falhou e tem o MCC padrão Oral Centter (1872453947), tenta com ele
+              const defaultMcc = '1872453947';
+              if (gLoginCustId !== defaultMcc) {
+                try {
+                  gRows = await tryQueryGoogle(defaultMcc);
+                } catch (secErr) {
+                  throw firstErr;
                 }
+              } else {
+                throw firstErr;
+              }
+            }
+
+            for (const row of gRows) {
+              if (row.metrics) {
+                gSpend += (parseFloat(row.metrics.costMicros || 0) / 1000000);
+                gClicks += parseInt(row.metrics.clicks || 0, 10);
+                gConversions += parseFloat(row.metrics.conversions || 0);
               }
             }
           } catch (gErr) {

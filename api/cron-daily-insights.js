@@ -304,10 +304,26 @@ export default async function handler(req, res) {
         const unitName = unit.name || 'Unidade';
         let unitText = `━━━━━━━━━━━━━━━━━━━━\n🏢 *${unitName.toUpperCase()}*\n`;
         const unitLowBalances = [];
+        const unitZeroBalances = [];
+        const unitRejectedAds = [];
         let histMetaSpend = 0;
         let histMetaLeads = 0;
         let histGoogleSpend = 0;
         let histGoogleConversions = 0;
+
+        let metaSpend = 0;
+        let metaLeads = 0;
+        let metaClicks = 0;
+        let metaTopAd = null;
+        let metaBalanceVal = null;
+        let metaDaysLeft = null;
+
+        let gSpend = 0;
+        let gClicks = 0;
+        let gConversions = 0;
+        let gBalanceVal = null;
+        let gDaysLeftVal = null;
+        let isGooglePostpaid = false;
 
         const hasMeta = !!unit?.linkedAccounts?.meta?.id;
         const hasGoogle = !!unit?.linkedAccounts?.google?.id;
@@ -317,13 +333,6 @@ export default async function handler(req, res) {
           const actId = unit.linkedAccounts.meta.id.startsWith('act_') 
             ? unit.linkedAccounts.meta.id 
             : `act_${unit.linkedAccounts.meta.id}`;
-          
-          let metaSpend = 0;
-          let metaLeads = 0;
-          let metaClicks = 0;
-          let metaTopAd = null;
-          let metaBalanceVal = null;
-          let metaDaysLeft = null;
 
           try {
             const timeRange = encodeURIComponent(JSON.stringify({ since: startDate, until: endDate }));
@@ -367,7 +376,13 @@ export default async function handler(req, res) {
               promises.push(Promise.resolve(null));
             }
 
-            const [insData, adsData, accData, histData] = await Promise.all(promises);
+            // Checar anúncios reprovados / rejeitados no Meta Ads
+            promises.push(
+              fetchWithTimeout(`https://graph.facebook.com/v22.0/${actId}/ads?fields=name,effective_status,issues_info&limit=30&access_token=${metaToken}`, { timeout: 4000 })
+                .then(r => r.json()).catch(() => null)
+            );
+
+            const [insData, adsData, accData, histData, rejData] = await Promise.all(promises);
 
             // Processar métricas gerais
             if (insData?.data && insData.data.length > 0) {
@@ -414,6 +429,19 @@ export default async function handler(req, res) {
               });
             }
 
+            // Processar Anúncios Rejeitados do Meta
+            if (rejData?.data && Array.isArray(rejData.data)) {
+              const disapproved = rejData.data.filter(a => a.effective_status === 'DISAPPROVED' || a.effective_status === 'WITH_ISSUES');
+              if (disapproved.length > 0) {
+                unitRejectedAds.push({
+                  unitName,
+                  platform: 'Meta Ads',
+                  count: disapproved.length,
+                  ads: disapproved.map(a => `"${a.name || 'Criativo'}"`)
+                });
+              }
+            }
+
             // Processar Saldo
             if (accData) {
               let rawBal = null;
@@ -434,6 +462,8 @@ export default async function handler(req, res) {
                     unitLowBalances.push({ name: `${unitName} (Meta Ads)`, balance: metaBalanceVal, daysLeft: metaDaysLeft });
                   }
                 }
+              } else if ((spendCap > 0 && spendCap <= amountSpent) || (accData.is_prepay_account && parseFloat(accData.balance || 0) <= 0)) {
+                unitZeroBalances.push({ name: `${unitName} (Meta Ads)`, balance: 0 });
               }
             }
 
@@ -470,7 +500,7 @@ export default async function handler(req, res) {
           let gClicks = 0;
           let gConversions = 0;
 
-          const tryQueryGoogle = async (loginId, qStart = startDate, qEnd = endDate) => {
+          const tryQueryGoogle = async (loginId, qStart = startDate, qEnd = endDate, customQuery = null) => {
             const devToken = process.env.GOOGLE_ADS_DEVELOPER_TOKEN || 'XJMJTE6x6lU7zbtl8oNFXA';
             const gHeaders = {
               Authorization: `Bearer ${googleToken}`,
@@ -481,7 +511,7 @@ export default async function handler(req, res) {
               gHeaders['login-customer-id'] = loginId;
             }
 
-            const gQuery = `
+            const gQuery = customQuery || `
               SELECT
                 metrics.impressions,
                 metrics.clicks,
@@ -557,15 +587,42 @@ export default async function handler(req, res) {
                 }
               } catch (eGHist) {}
             }
+
+            // Checar anúncios reprovados / rejeitados no Google Ads
+            try {
+              const qRej = `
+                SELECT
+                  ad_group_ad.ad.name,
+                  ad_group_ad.policy_summary.approval_status
+                FROM ad_group_ad
+                WHERE ad_group_ad.status = 'ENABLED'
+                  AND ad_group_ad.policy_summary.approval_status = 'DISAPPROVED'
+                LIMIT 5
+              `;
+              let gRejRows = [];
+              try {
+                gRejRows = await tryQueryGoogle(gLoginCustId, null, null, qRej);
+              } catch (eR1) {
+                const defaultMcc = '1872453947';
+                if (gLoginCustId !== defaultMcc) {
+                  try { gRejRows = await tryQueryGoogle(defaultMcc, null, null, qRej); } catch (eR2) {}
+                }
+              }
+              if (gRejRows && gRejRows.length > 0) {
+                unitRejectedAds.push({
+                  unitName,
+                  platform: 'Google Ads',
+                  count: gRejRows.length,
+                  ads: gRejRows.map(r => `"${r.adGroupAd?.ad?.name || 'Anúncio Google'}"`)
+                });
+              }
+            } catch (eGRej) {}
+
           } catch (gErr) {
             console.warn(`Erro Google Ads ${unitName}:`, gErr.message);
           }
 
           // Consultar saldo/orçamento da conta Google (account_budget)
-          let gBalanceVal = null;
-          let gDaysLeftVal = null;
-          let isGooglePostpaid = false;
-
           if (googleMod.balance !== false) {
             const bQuery = `
               SELECT
@@ -627,7 +684,7 @@ export default async function handler(req, res) {
                     const served = parseInt(bObj.amountServedMicros || 0, 10) / 1000000;
                     const adjustments = parseInt(bObj.totalAdjustmentsMicros || 0, 10) / 1000000;
                     const bal = (limit + adjustments) - served;
-                    if (bal >= 0) {
+                    if (bal > 0) {
                       gBalanceVal = Math.round(bal * 100) / 100;
                       if (gSpend > 0) {
                         gDaysLeftVal = (gBalanceVal / gSpend).toFixed(1);
@@ -639,6 +696,11 @@ export default async function handler(req, res) {
                           });
                         }
                       }
+                    } else {
+                      unitZeroBalances.push({
+                        name: `${unitName} (Google Ads)`,
+                        balance: 0
+                      });
                     }
                   }
                 }
@@ -709,47 +771,141 @@ export default async function handler(req, res) {
           }
         }
 
+        // Checagem de gasto R$ 0,00 e Termômetro de Saldo
+        const totalUnitSpend = metaSpend + gSpend;
+        const isZeroSpend = (hasMeta || hasGoogle) && (totalUnitSpend === 0);
+
+        const thermometerItem = {
+          unitName,
+          metaText: metaBalanceVal !== null ? `${formatBRL(metaBalanceVal)} (~${metaDaysLeft || 'N/A'} dias restantes)` : (hasMeta ? 'Pós-pago / Cartão de Crédito' : null),
+          googleText: gBalanceVal !== null ? `${formatBRL(gBalanceVal)} (~${gDaysLeftVal || 'N/A'} dias restantes)` : (isGooglePostpaid ? 'Pós-pago (Recarga automática ativada)' : (hasGoogle ? 'Pós-pago / Cartão de Crédito' : null))
+        };
+
         return { 
+          unitName,
           text: unitText, 
+          thermometer: (hasMeta || hasGoogle) ? thermometerItem : null,
           lowBalances: unitLowBalances,
+          zeroBalances: unitZeroBalances,
+          zeroSpend: isZeroSpend ? { unitName } : null,
+          rejectedAds: unitRejectedAds,
           optAlert: unitOptWarnings.length > 0 ? { unitName, warnings: unitOptWarnings } : null
         };
       }));
 
       // Consolidar resultados das unidades
+      const allUnitTexts = [];
+      const allThermometerItems = [];
+      const allLowBalances = [];
+      const allZeroBalances = [];
+      const allZeroSpend = [];
+      const allRejectedAds = [];
       const allOptAlerts = [];
+
       for (const res of unitResults) {
-        reportMsg += res.text;
-        lowBalanceUnits.push(...res.lowBalances);
-        if (res.optAlert) {
-          allOptAlerts.push(res.optAlert);
-        }
+        if (res.text) allUnitTexts.push(res.text);
+        if (res.thermometer) allThermometerItems.push(res.thermometer);
+        if (res.lowBalances && res.lowBalances.length > 0) allLowBalances.push(...res.lowBalances);
+        if (res.zeroBalances && res.zeroBalances.length > 0) allZeroBalances.push(...res.zeroBalances);
+        if (res.zeroSpend) allZeroSpend.push(res.zeroSpend);
+        if (res.rejectedAds && res.rejectedAds.length > 0) allRejectedAds.push(...res.rejectedAds);
+        if (res.optAlert) allOptAlerts.push(res.optAlert);
       }
 
-      // Alerta de Saldo Geral
-      if (lowBalanceUnits.length > 0) {
-        reportMsg += `\n━━━━━━━━━━━━━━━━━━━━\n`;
-        reportMsg += `⚠️ *Unidades com saldo previsto para acabar em até 3 dias:*\n`;
-        lowBalanceUnits.forEach(u => {
-          reportMsg += `• *${u.name}:* ${formatBRL(u.balance)} (~${u.daysLeft} dias restantes - 🚨 Recarga Necessária!)\n`;
-        });
-      }
+      // Mapeador dinâmico de blocos baseado na ordem e ativação escolhida pelo usuário
+      const blockContentMap = {
+        metrics_meta_google: () => {
+          return allUnitTexts.join('');
+        },
 
-      // Alerta de Otimização (Semáforo de Metas Inteligente)
-      if (alert.optimizationRules && alert.optimizationRules.enabled) {
-        reportMsg += `\n━━━━━━━━━━━━━━━━━━━━\n`;
-        if (allOptAlerts.length > 0) {
-          reportMsg += `🚨 *ALERTA DE OTIMIZAÇÃO (SEMÁFORO DE METAS):*\n`;
-          allOptAlerts.forEach(item => {
-            reportMsg += `• *${item.unitName.toUpperCase()}:*\n`;
-            item.warnings.forEach(w => {
-              reportMsg += `  ⚠️ ${w}\n`;
-            });
+        balance_thermometer: () => {
+          if (allThermometerItems.length === 0) return '';
+          let text = `━━━━━━━━━━━━━━━━━━━━\n💳 *TERMÔMETRO DE SALDO & PREVISÃO:*\n`;
+          allThermometerItems.forEach(t => {
+            text += `• *${t.unitName.toUpperCase()}:*\n`;
+            if (t.metaText) text += `  🔹 Meta: ${t.metaText}\n`;
+            if (t.googleText) text += `  🔸 Google: ${t.googleText}\n`;
           });
-        } else {
-          reportMsg += `🟢 *SEMÁFORO DE METAS:* Todas as unidades monitoradas estão dentro das metas de volume e CPL!\n`;
+          return text;
+        },
+
+        low_balance: () => {
+          if (allLowBalances.length === 0) return '';
+          let text = `━━━━━━━━━━━━━━━━━━━━\n⚠️ *ALERTA DE SALDO BAIXO (< 3 DIAS):*\n`;
+          allLowBalances.forEach(u => {
+            text += `• *${u.name}:* ${formatBRL(u.balance)} (~${u.daysLeft} dias restantes - 🚨 Recarga Necessária!)\n`;
+          });
+          return text;
+        },
+
+        zero_balance: () => {
+          if (allZeroBalances.length === 0) return '';
+          let text = `━━━━━━━━━━━━━━━━━━━━\n🛑 *ALERTA DE FALTA DE SALDO (SALDO ZERADO):*\n`;
+          allZeroBalances.forEach(u => {
+            text += `• *${u.name}:* Saldo esgotado (R$ 0,00) - Anúncios prestes a pausar!\n`;
+          });
+          return text;
+        },
+
+        optimization: () => {
+          if (!alert.optimizationRules?.enabled) return '';
+          let text = `━━━━━━━━━━━━━━━━━━━━\n`;
+          if (allOptAlerts.length > 0) {
+            text += `🚨 *ALERTA DE OTIMIZAÇÃO (SEMÁFORO DE METAS):*\n`;
+            allOptAlerts.forEach(item => {
+              text += `• *${item.unitName.toUpperCase()}:*\n`;
+              item.warnings.forEach(w => {
+                text += `  ⚠️ ${w}\n`;
+              });
+            });
+          } else {
+            text += `🟢 *SEMÁFORO DE METAS:* Todas as unidades monitoradas estão dentro das metas de volume e CPL!\n`;
+          }
+          return text;
+        },
+
+        zero_spend: () => {
+          if (allZeroSpend.length === 0) return '';
+          let text = `━━━━━━━━━━━━━━━━━━━━\n❄️ *ALERTA DE CONTA PARADA (GASTO R$ 0,00):*\n`;
+          allZeroSpend.forEach(u => {
+            text += `• *${u.unitName}:* Gasto total de R$ 0,00 no período! Verifique se as campanhas foram pausadas ou o saldo esgotou.\n`;
+          });
+          return text;
+        },
+
+        rejected_ads: () => {
+          if (allRejectedAds.length === 0) return '';
+          let text = `━━━━━━━━━━━━━━━━━━━━\n🚫 *ALERTA DE ANÚNCIO REJEITADO / REPROVADO:*\n`;
+          allRejectedAds.forEach(item => {
+            text += `• *${item.unitName}:* ${item.count} anúncio(s) reprovado(s) no ${item.platform} (${item.ads.join(', ')})\n`;
+          });
+          return text;
         }
-      }
+      };
+
+      const defaultBlocksOrder = [
+        { id: 'metrics_meta_google', enabled: true },
+        { id: 'balance_thermometer', enabled: true },
+        { id: 'low_balance', enabled: true },
+        { id: 'zero_balance', enabled: true },
+        { id: 'optimization', enabled: true },
+        { id: 'zero_spend', enabled: true },
+        { id: 'rejected_ads', enabled: true }
+      ];
+
+      const activeOrder = (alert.blockOrder && Array.isArray(alert.blockOrder) && alert.blockOrder.length > 0)
+        ? alert.blockOrder
+        : defaultBlocksOrder;
+
+      activeOrder.forEach(b => {
+        if (b.enabled !== false && blockContentMap[b.id]) {
+          const content = blockContentMap[b.id]();
+          if (content) {
+            reportMsg += content;
+            if (!content.endsWith('\n')) reportMsg += '\n';
+          }
+        }
+      });
 
       // Enviar via Gateway WhatsApp da Oracle Cloud
       try {
@@ -892,6 +1048,8 @@ function parseFirestoreMap(mapFields) {
       result[key] = (valObj.arrayValue.values || []).map(item => {
         if (item.stringValue !== undefined) return item.stringValue;
         if (item.integerValue !== undefined) return parseInt(item.integerValue, 10);
+        if (item.booleanValue !== undefined) return item.booleanValue;
+        if (item.doubleValue !== undefined) return parseFloat(item.doubleValue);
         if (item.mapValue !== undefined) return parseFirestoreMap(item.mapValue.fields || {});
         return null;
       });

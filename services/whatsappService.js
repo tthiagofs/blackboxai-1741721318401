@@ -122,6 +122,7 @@ export class WhatsAppService {
                 includeToday: !!alertData.includeToday,
                 startActivationDate: alertData.startActivationDate || null,
                 optimizationRules: alertData.optimizationRules || null,
+                blockOrder: alertData.blockOrder || null,
                 daysOfWeek: alertData.daysOfWeek || [1, 2, 3, 4, 5],
                 modules: alertData.modules || {},
                 selectedUnits: alertData.selectedUnits || [],

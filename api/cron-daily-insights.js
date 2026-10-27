@@ -477,6 +477,95 @@ export default async function handler(req, res) {
             console.warn(`Erro Google Ads ${unitName}:`, gErr.message);
           }
 
+          // Consultar saldo/orçamento da conta Google (account_budget)
+          let gBalanceVal = null;
+          let gDaysLeftVal = null;
+          let isGooglePostpaid = false;
+
+          if (googleMod.balance !== false) {
+            const bQuery = `
+              SELECT
+                account_budget.id,
+                account_budget.name,
+                account_budget.status,
+                account_budget.approved_spending_limit_micros,
+                account_budget.approved_spending_limit_type,
+                account_budget.amount_served_micros,
+                account_budget.total_adjustments_micros
+              FROM account_budget
+              WHERE account_budget.status = 'APPROVED'
+            `;
+
+            const tryQueryBudget = async (loginId) => {
+              const devToken = process.env.GOOGLE_ADS_DEVELOPER_TOKEN || 'XJMJTE6x6lU7zbtl8oNFXA';
+              const bHeaders = {
+                Authorization: `Bearer ${googleToken}`,
+                'developer-token': devToken,
+                'Content-Type': 'application/json'
+              };
+              if (loginId) {
+                bHeaders['login-customer-id'] = loginId;
+              }
+
+              const bRes = await fetchWithTimeout(`https://googleads.googleapis.com/v23/customers/${gCustId}/googleAds:searchStream`, {
+                method: 'POST',
+                headers: bHeaders,
+                body: JSON.stringify({ query: bQuery }),
+                timeout: 4000
+              });
+
+              if (!bRes.ok) {
+                throw new Error(`Budget HTTP ${bRes.status}`);
+              }
+              const bData = await bRes.json();
+              return flattenSearchStreamResults(bData);
+            };
+
+            try {
+              let bRows = [];
+              try {
+                bRows = await tryQueryBudget(gLoginCustId);
+              } catch (bErr1) {
+                if (gLoginCustId && gLoginCustId !== '1872453947') {
+                  try { bRows = await tryQueryBudget('1872453947'); } catch (e) {}
+                } else if (!gLoginCustId) {
+                  try { bRows = await tryQueryBudget('1872453947'); } catch (e) {}
+                }
+              }
+
+              if (bRows && bRows.length > 0) {
+                const bObj = bRows[0].accountBudget;
+                if (bObj) {
+                  if (bObj.approvedSpendingLimitType === 'INFINITE') {
+                    isGooglePostpaid = true;
+                  } else {
+                    const limit = parseInt(bObj.approvedSpendingLimitMicros || 0, 10) / 1000000;
+                    const served = parseInt(bObj.amountServedMicros || 0, 10) / 1000000;
+                    const adjustments = parseInt(bObj.totalAdjustmentsMicros || 0, 10) / 1000000;
+                    const bal = (limit + adjustments) - served;
+                    if (bal >= 0) {
+                      gBalanceVal = Math.round(bal * 100) / 100;
+                      if (gSpend > 0) {
+                        gDaysLeftVal = (gBalanceVal / gSpend).toFixed(1);
+                        if (parseFloat(gDaysLeftVal) <= 3) {
+                          unitLowBalances.push({
+                            name: `${unitName} (Google Ads)`,
+                            balance: gBalanceVal,
+                            daysLeft: gDaysLeftVal
+                          });
+                        }
+                      }
+                    }
+                  }
+                }
+              } else {
+                isGooglePostpaid = true;
+              }
+            } catch (bErr) {
+              isGooglePostpaid = true;
+            }
+          }
+
           const gCpc = gClicks > 0 ? gSpend / gClicks : 0;
           const gCpa = gConversions > 0 ? gSpend / gConversions : 0;
 
@@ -486,7 +575,16 @@ export default async function handler(req, res) {
           if (googleMod.cpa !== false) unitText += `📉 *Custo/Conv.:* ${formatBRL(gCpa)}\n`;
           if (googleMod.cpc !== false) unitText += `🖱️ *CPC Médio:* ${formatBRL(gCpc)}\n`;
           if (googleMod.balance !== false) {
-            unitText += `💳 *Saldo Atual:* Pós-pago / Cartão de Crédito\n`;
+            if (gBalanceVal !== null) {
+              unitText += `💳 *Saldo Atual:* ${formatBRL(gBalanceVal)}\n`;
+              if (gDaysLeftVal !== null) {
+                unitText += `⏳ *Previsão de Saldo:* ~${gDaysLeftVal} dias restantes\n`;
+              }
+            } else if (isGooglePostpaid) {
+              unitText += `💳 *Saldo Atual:* Pós-pago (Recarga automática ativada)\n`;
+            } else {
+              unitText += `💳 *Saldo Atual:* Pós-pago / Cartão de Crédito\n`;
+            }
           }
         }
 

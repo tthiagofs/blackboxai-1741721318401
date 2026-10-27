@@ -122,8 +122,11 @@ class FacebookAuth {
                     // Check login status first
                     FB.getLoginStatus((response) => {
                         if (response.status === 'connected') {
-                            this.accessToken = response.authResponse.accessToken;
-                            localStorage.setItem('fbAccessToken', this.accessToken);
+                            // Se já temos um token salvo (Long-Lived de 60 dias), NÃO sobrescrever com o token curto de sessão do SDK
+                            if (!this.accessToken) {
+                                this.accessToken = response.authResponse.accessToken;
+                                localStorage.setItem('fbAccessToken', this.accessToken);
+                            }
                             console.log("Facebook SDK inicializado e usuário já conectado!");
                         } else {
                             console.log("Facebook SDK inicializado com sucesso!");

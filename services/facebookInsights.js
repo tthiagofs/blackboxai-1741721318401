@@ -18,9 +18,30 @@ export class FacebookInsightsService {
             // Pequeno delay para evitar sobrecarga
             if (allData.length > 0) await this._delay(100);
             
-            const response = await new Promise((resolve) => {
-                FB.api(currentUrl, resolve);
-            });
+            let response = null;
+            try {
+                // Montar URL direta para a Meta Graph API v22.0
+                let fullUrl = currentUrl;
+                if (!fullUrl.startsWith('http')) {
+                    const cleanPath = fullUrl.startsWith('/') ? fullUrl : `/${fullUrl}`;
+                    fullUrl = `https://graph.facebook.com/v22.0${cleanPath}`;
+                }
+                if (this.accessToken && !fullUrl.includes('access_token=')) {
+                    fullUrl += (fullUrl.includes('?') ? '&' : '?') + `access_token=${this.accessToken}`;
+                }
+
+                const res = await fetch(fullUrl);
+                response = await res.json();
+            } catch (fetchErr) {
+                // Fallback para FB.api se disponível
+                if (typeof FB !== 'undefined' && FB.api) {
+                    response = await new Promise((resolve) => {
+                        FB.api(currentUrl, resolve);
+                    });
+                } else {
+                    throw fetchErr;
+                }
+            }
 
             if (response && !response.error) {
                 allData = allData.concat(response.data || []);

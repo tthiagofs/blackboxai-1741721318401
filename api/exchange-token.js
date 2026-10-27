@@ -27,18 +27,7 @@ export default async function handler(req, res) {
       }
 
       const appId = process.env.META_APP_ID || '1595817924411708';
-      const appSecret = process.env.META_APP_SECRET || process.env.FACEBOOK_APP_SECRET;
-
-      if (!appSecret) {
-        // Se ainda não configurado appSecret nas variáveis de ambiente, retornar o token atual
-        console.warn('⚠️ META_APP_SECRET não encontrado nas env vars. Mantendo token de sessão.');
-        return res.status(200).json({
-          accessToken: shortLivedToken,
-          expiresIn: 5184000,
-          isLongLived: false,
-          warning: 'Configure META_APP_SECRET para gerar tokens oficiais de 60 dias.'
-        });
-      }
+      const appSecret = process.env.META_APP_SECRET || process.env.FACEBOOK_APP_SECRET || 'd49f5626e442e55814ea432f80fdcfb8';
 
       // Trocar por Long-Lived Token oficial de 60 dias da Meta
       const url = `https://graph.facebook.com/v22.0/oauth/access_token?grant_type=fb_exchange_token&client_id=${appId}&client_secret=${appSecret}&fb_exchange_token=${shortLivedToken}`;

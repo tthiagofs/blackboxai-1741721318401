@@ -361,8 +361,12 @@ export default async function handler(req, res) {
               promises.push(Promise.resolve(null));
             }
 
-            // Histórico para Semáforo de Metas / Otimização (se ativo)
-            if (alert.optimizationRules?.enabled && alert.optimizationRules.cplIncreaseEnabled) {
+            // Histórico para Alerta de Otimização (se ativo com aumento de CPL)
+            const isMetaCplCheck = alert.optimizationRules?.enabled && (
+              alert.optimizationRules.criterion === 'cpl_increase' || 
+              (!alert.optimizationRules.criterion && alert.optimizationRules.cplIncreaseEnabled)
+            );
+            if (isMetaCplCheck) {
               const cmpDays = Math.max(2, parseInt(alert.optimizationRules.cplCompareDays || 30, 10));
               const dComp = new Date(spDate);
               dComp.setDate(dComp.getDate() - cmpDays);
@@ -399,7 +403,7 @@ export default async function handler(req, res) {
               }
             }
 
-            // Processar histórico Meta para Semáforo de Metas
+            // Processar histórico Meta para Alerta de Otimização
             if (histData?.data && histData.data.length > 0) {
               const hr = histData.data[0];
               histMetaSpend = parseFloat(hr.spend || 0);
@@ -563,8 +567,12 @@ export default async function handler(req, res) {
               }
             }
 
-            // Histórico Google Ads para Semáforo de Metas (se ativo)
-            if (alert.optimizationRules?.enabled && alert.optimizationRules.cplIncreaseEnabled) {
+            // Histórico Google Ads para Alerta de Otimização (se ativo com aumento de CPL)
+            const isGoogleCplCheck = alert.optimizationRules?.enabled && (
+              alert.optimizationRules.criterion === 'cpl_increase' || 
+              (!alert.optimizationRules.criterion && alert.optimizationRules.cplIncreaseEnabled)
+            );
+            if (isGoogleCplCheck) {
               try {
                 const cmpDays = Math.max(2, parseInt(alert.optimizationRules.cplCompareDays || 30, 10));
                 const dComp = new Date(spDate);
@@ -738,24 +746,21 @@ export default async function handler(req, res) {
           unitText += `_(Nenhuma conta vinculada nesta unidade)_\n`;
         }
 
-        // Avaliação de Semáforo de Metas & Alerta de Otimização por Unidade
+        // Avaliação de Alerta de Otimização por Unidade (Critério Exclusivo: Volume de Leads OU Aumento de CPL)
         const unitOptWarnings = [];
         if (alert.optimizationRules && alert.optimizationRules.enabled) {
           const opt = alert.optimizationRules;
           const totalUnitLeads = metaLeads + gConversions;
           const totalUnitSpend = metaSpend + gSpend;
           const currentUnitCpl = totalUnitLeads > 0 ? (totalUnitSpend / totalUnitLeads) : 0;
+          const criterion = opt.criterion || (opt.cplIncreaseEnabled && !opt.minLeadsEnabled ? 'cpl_increase' : 'min_leads');
 
-          // Critério 1: Mínimo de Leads no Período
-          if (opt.minLeadsEnabled) {
+          if (criterion === 'min_leads') {
             const minL = Math.max(1, parseInt(opt.minLeadsValue || 5, 10));
             if (totalUnitLeads < minL) {
               unitOptWarnings.push(`Poucos leads no período (${totalUnitLeads} lead(s) gerados / Meta mínima: ${minL})`);
             }
-          }
-
-          // Critério 2: Aumento no Custo por Lead (CPL)
-          if (opt.cplIncreaseEnabled) {
+          } else if (criterion === 'cpl_increase') {
             const totalHistSpend = histMetaSpend + histGoogleSpend;
             const totalHistLeads = histMetaLeads + histGoogleConversions;
             const baselineCpl = totalHistLeads > 0 ? (totalHistSpend / totalHistLeads) : 0;
@@ -818,31 +823,37 @@ export default async function handler(req, res) {
           return allUnitTexts.join('');
         },
 
-        balance_thermometer: () => {
-          if (allThermometerItems.length === 0) return '';
-          let text = `━━━━━━━━━━━━━━━━━━━━\n💳 *TERMÔMETRO DE SALDO & PREVISÃO:*\n`;
-          allThermometerItems.forEach(t => {
-            text += `• *${t.unitName.toUpperCase()}:*\n`;
-            if (t.metaText) text += `  🔹 Meta: ${t.metaText}\n`;
-            if (t.googleText) text += `  🔸 Google: ${t.googleText}\n`;
-          });
-          return text;
-        },
+        balance_thermometer: () => '', // Removido por redundância (métricas por unidade já trazem o saldo e previsão)
 
         low_balance: () => {
           if (allLowBalances.length === 0) return '';
-          let text = `━━━━━━━━━━━━━━━━━━━━\n⚠️ *ALERTA DE SALDO BAIXO (< 3 DIAS):*\n`;
+          let text = `━━━━━━━━━━━━━━━━━━━━\n⚠️ *ALERTA DE SALDO BAIXO (≤ 3 DIAS):*\n`;
           allLowBalances.forEach(u => {
             text += `• *${u.name}:* ${formatBRL(u.balance)} (~${u.daysLeft} dias restantes - 🚨 Recarga Necessária!)\n`;
           });
           return text;
         },
 
-        zero_balance: () => {
-          if (allZeroBalances.length === 0) return '';
-          let text = `━━━━━━━━━━━━━━━━━━━━\n🛑 *ALERTA DE FALTA DE SALDO (SALDO ZERADO):*\n`;
+        zero_balance: () => '', // Unificado com zero_spend (Conta Parada / Saldo Zerado)
+
+        zero_spend: () => {
+          // Unir unidades com gasto zero e unidades com saldo esgotado (ambas representam conta parada)
+          const stoppedUnits = [];
+          const seen = new Set();
+          allZeroSpend.forEach(u => {
+            stoppedUnits.push(`• *${u.unitName}:* Gasto total de R$ 0,00 no período! Campanhas pausadas ou sem veiculação.`);
+            seen.add(u.unitName);
+          });
           allZeroBalances.forEach(u => {
-            text += `• *${u.name}:* Saldo esgotado (R$ 0,00) - Anúncios prestes a pausar!\n`;
+            if (!seen.has(u.name)) {
+              stoppedUnits.push(`• *${u.name}:* Saldo esgotado (R$ 0,00) - Anúncios sem saldo para veicular!`);
+              seen.add(u.name);
+            }
+          });
+          if (stoppedUnits.length === 0) return '';
+          let text = `━━━━━━━━━━━━━━━━━━━━\n🛑 *ALERTA DE CONTA PARADA (GASTO R$ 0,00 OU SALDO ZERADO):*\n`;
+          stoppedUnits.forEach(line => {
+            text += `${line}\n`;
           });
           return text;
         },
@@ -851,7 +862,7 @@ export default async function handler(req, res) {
           if (!alert.optimizationRules?.enabled) return '';
           let text = `━━━━━━━━━━━━━━━━━━━━\n`;
           if (allOptAlerts.length > 0) {
-            text += `🚨 *ALERTA DE OTIMIZAÇÃO (SEMÁFORO DE METAS):*\n`;
+            text += `🚨 *ALERTA DE OTIMIZAÇÃO:*\n`;
             allOptAlerts.forEach(item => {
               text += `• *${item.unitName.toUpperCase()}:*\n`;
               item.warnings.forEach(w => {
@@ -859,17 +870,8 @@ export default async function handler(req, res) {
               });
             });
           } else {
-            text += `🟢 *SEMÁFORO DE METAS:* Todas as unidades monitoradas estão dentro das metas de volume e CPL!\n`;
+            text += `🟢 *ALERTA DE OTIMIZAÇÃO:* Todas as unidades monitoradas estão dentro da meta estipulada!\n`;
           }
-          return text;
-        },
-
-        zero_spend: () => {
-          if (allZeroSpend.length === 0) return '';
-          let text = `━━━━━━━━━━━━━━━━━━━━\n❄️ *ALERTA DE CONTA PARADA (GASTO R$ 0,00):*\n`;
-          allZeroSpend.forEach(u => {
-            text += `• *${u.unitName}:* Gasto total de R$ 0,00 no período! Verifique se as campanhas foram pausadas ou o saldo esgotou.\n`;
-          });
           return text;
         },
 
@@ -885,11 +887,9 @@ export default async function handler(req, res) {
 
       const defaultBlocksOrder = [
         { id: 'metrics_meta_google', enabled: true },
-        { id: 'balance_thermometer', enabled: true },
         { id: 'low_balance', enabled: true },
-        { id: 'zero_balance', enabled: true },
-        { id: 'optimization', enabled: true },
         { id: 'zero_spend', enabled: true },
+        { id: 'optimization', enabled: true },
         { id: 'rejected_ads', enabled: true }
       ];
 

@@ -82,66 +82,34 @@
 
                         <form id="alertConfigForm" class="bg-white border border-gray-200 rounded-2xl p-6 sm:p-8 shadow-sm space-y-6">
                             
-                            <!-- 1. WhatsApp de Destino & Teste Imediato -->
+                            <!-- 1. Destinatário & Unidades Monitoradas -->
                             <div>
                                 <h3 class="text-base font-bold text-gray-900 mb-1 flex items-center gap-2">
                                     <span class="w-6 h-6 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xs font-bold">1</span>
-                                    WhatsApp de Destino & Teste Imediato
+                                    Destinatário & Unidades Monitoradas
                                 </h3>
-                                <p class="text-xs text-gray-500 mb-3">O número onde as notificações e os testes serão entregues.</p>
+                                <p class="text-xs text-gray-500 mb-4">Informe o WhatsApp que receberá os relatórios e selecione as unidades deste projeto.</p>
                                 
-                                <div class="relative">
-                                    <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400 text-sm">
-                                        <i class="fab fa-whatsapp text-green-500"></i>
-                                    </span>
-                                    <input type="text" id="targetPhoneInput" required placeholder="(38) 98422-3393" class="w-full pl-9 pr-3.5 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none">
-                                </div>
-
-                                <!-- Card Dedicado de Teste Imediato com Dados Reais -->
-                                <div class="mt-4 p-4 bg-gray-50 border border-gray-200 rounded-xl space-y-3">
-                                    <div class="flex items-center justify-between">
-                                        <span class="text-xs font-bold text-gray-800 flex items-center gap-1.5">
-                                            <i class="fas fa-vial text-green-600"></i> Disparar Teste Real Agora
-                                        </span>
-                                        <span class="text-[11px] text-gray-500">Consulta dados reais ao vivo</span>
-                                    </div>
-                                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-                                        <div class="sm:col-span-1">
-                                            <label class="block text-[11px] text-gray-600 font-medium mb-1">Data base:</label>
-                                            <input type="date" id="testDateInput" title="Data do relatório para teste" class="w-full px-2.5 py-1.5 bg-white border border-gray-300 rounded-lg text-xs font-semibold outline-none focus:ring-2 focus:ring-green-500">
-                                        </div>
-                                        <div class="sm:col-span-1">
-                                            <label class="block text-[11px] text-gray-600 font-medium mb-1">Período do teste:</label>
-                                            <select id="testPeriodRange" class="w-full px-2.5 py-1.5 bg-white border border-gray-300 rounded-lg text-xs font-semibold outline-none focus:ring-2 focus:ring-green-500">
-                                                <option value="single_day">Somente este dia</option>
-                                                <option value="last_7_days">Últimos 7 dias até a data</option>
-                                            </select>
-                                        </div>
-                                        <div class="sm:col-span-1 flex items-end">
-                                            <button type="button" id="testPhoneBtn" class="w-full py-1.5 bg-green-600 hover:bg-green-700 text-white font-bold rounded-lg text-xs transition-all flex items-center justify-center gap-1.5 shadow-sm">
-                                                <i class="fas fa-paper-plane"></i> Disparar Teste
-                                            </button>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                                    <div>
+                                        <label class="block text-xs font-bold text-gray-700 mb-1.5">
+                                            <i class="fab fa-whatsapp text-green-600 mr-1"></i> WhatsApp de Destino (com DDD)
+                                        </label>
+                                        <div class="relative">
+                                            <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400 text-sm">
+                                                <i class="fas fa-phone-alt text-gray-400"></i>
+                                            </span>
+                                            <input type="text" id="targetPhoneInput" required placeholder="(38) 98422-3393" class="w-full pl-9 pr-3.5 py-2.5 border border-gray-300 rounded-lg text-sm font-semibold focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none">
                                         </div>
                                     </div>
-                                    <div id="phoneTestFeedback" class="mt-2 text-xs hidden p-2.5 rounded-lg"></div>
-                                </div>
-                            </div>
-
-                            <hr class="border-gray-100">
-
-                            <!-- 2. Seleção de Projeto e Unidades -->
-                            <div>
-                                <h3 class="text-base font-bold text-gray-900 mb-1 flex items-center gap-2">
-                                    <span class="w-6 h-6 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xs font-bold">2</span>
-                                    Projeto e Unidades Monitoradas
-                                </h3>
-                                <p class="text-xs text-gray-500 mb-3">Selecione o projeto e quais unidades você deseja incluir no envio programado.</p>
-
-                                <div class="mb-4">
-                                    <label class="block text-xs font-semibold text-gray-700 mb-1">Projeto</label>
-                                    <select id="projectSelect" required class="w-full px-3.5 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-white">
-                                        <option value="">Carregando projetos...</option>
-                                    </select>
+                                    <div>
+                                        <label class="block text-xs font-bold text-gray-700 mb-1.5">
+                                            <i class="fas fa-folder text-blue-600 mr-1"></i> Projeto Monitorado
+                                        </label>
+                                        <select id="projectSelect" required class="w-full px-3.5 py-2.5 border border-gray-300 rounded-lg text-sm font-semibold focus:ring-2 focus:ring-blue-500 outline-none bg-white">
+                                            <option value="">Carregando projetos...</option>
+                                        </select>
+                                    </div>
                                 </div>
 
                                 <!-- Lista de Unidades Detectadas -->
@@ -149,12 +117,12 @@
                                     <div class="flex items-center justify-between mb-2">
                                         <label class="block text-xs font-semibold text-gray-700">Unidades com Contas Vinculadas</label>
                                         <div class="space-x-2 text-[11px]">
-                                            <button type="button" id="selectAllUnitsBtn" class="text-blue-600 hover:underline">Marcar todas</button>
+                                            <button type="button" id="selectAllUnitsBtn" class="text-blue-600 font-semibold hover:underline">Marcar todas</button>
                                             <span class="text-gray-300">|</span>
-                                            <button type="button" id="deselectAllUnitsBtn" class="text-gray-500 hover:underline">Desmarcar todas</button>
+                                            <button type="button" id="deselectAllUnitsBtn" class="text-gray-500 font-semibold hover:underline">Desmarcar todas</button>
                                         </div>
                                     </div>
-                                    <div id="unitsContainer" class="space-y-2 border border-gray-200 rounded-xl p-4 bg-gray-50 max-h-56 overflow-y-auto">
+                                    <div id="unitsContainer" class="space-y-2 border border-gray-200 rounded-xl p-3.5 bg-gray-50 max-h-56 overflow-y-auto">
                                         <p class="text-xs text-gray-400 text-center py-2">Selecione um projeto para listar as unidades</p>
                                     </div>
                                 </div>
@@ -162,20 +130,20 @@
 
                             <hr class="border-gray-100">
 
-                            <!-- 3. Horário do Envio & Período dos Dados -->
+                            <!-- 2. Horário do Disparo & Período dos Dados -->
                             <div>
                                 <div class="flex items-center justify-between mb-1">
                                     <h3 class="text-base font-bold text-gray-900 flex items-center gap-2">
-                                        <span class="w-6 h-6 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xs font-bold">3</span>
+                                        <span class="w-6 h-6 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xs font-bold">2</span>
                                         Horário do Disparo & Período dos Dados
                                     </h3>
                                     <span class="text-[11px] bg-blue-50 text-blue-700 font-semibold px-2 py-0.5 rounded-full border border-blue-200">
-                                        🛡️ Limite máx: 3 programações ativas
+                                        🛡️ Limite: até 3 programações ativas
                                     </span>
                                 </div>
-                                <p class="text-xs text-gray-500 mb-3">Defina o período dos dados e o horário em que o relatório será enviado.</p>
+                                <p class="text-xs text-gray-500 mb-3">Defina o período dos dados e o horário em que o relatório automático será entregue.</p>
 
-                                <!-- Seletor de Período dos Dados (Ontem, Últimos 7 Dias ou Personalizado X Dias) -->
+                                <!-- Seletor de Período dos Dados -->
                                 <div class="mb-4">
                                     <label class="block text-xs font-bold text-gray-800 mb-2">📊 Período dos Dados a Enviar</label>
                                     <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -190,14 +158,14 @@
                                             <input type="radio" name="reportPeriod" value="last_7_days" class="mt-0.5 text-green-600 focus:ring-green-500">
                                             <div>
                                                 <span class="text-xs font-bold text-gray-900 block">📆 Últimos 7 Dias</span>
-                                                <span class="text-[11px] text-gray-500 block mt-0.5">Ideal para fechamento semanal na sexta-feira.</span>
+                                                <span class="text-[11px] text-gray-500 block mt-0.5">Ideal para fechamento semanal consolidado.</span>
                                             </div>
                                         </label>
                                         <label class="flex items-start gap-3 p-3 bg-white border border-gray-200 rounded-xl cursor-pointer transition-all period-radio-card hover:border-gray-300" id="periodCardCustomDays">
                                             <input type="radio" name="reportPeriod" value="custom_days" class="mt-0.5 text-green-600 focus:ring-green-500">
                                             <div>
                                                 <span class="text-xs font-bold text-gray-900 block">⚙️ Últimos X Dias</span>
-                                                <span class="text-[11px] text-gray-500 block mt-0.5">Defina quantos dias e se inclui o dia de hoje.</span>
+                                                <span class="text-[11px] text-gray-500 block mt-0.5">Personalize quantos dias e se inclui o dia atual.</span>
                                             </div>
                                         </label>
                                     </div>
@@ -219,8 +187,8 @@
                                             <div>
                                                 <span class="text-xs font-bold text-gray-900 block">Contar com o dia de hoje (dia do disparo)?</span>
                                                 <span class="text-[11px] text-gray-500 block leading-relaxed mt-0.5">
-                                                    • Se <strong>desmarcado</strong>: puxa apenas dias já fechados até ontem (ex: 1 dia = ontem; 2 dias = anteontem e ontem).<br>
-                                                    • Se <strong>marcado</strong>: inclui os dados de hoje desde 00:00 até a hora exata do envio (ex: 1 dia com caixa marcada às 14h = hoje das 00:00 às 14:00).
+                                                    • Se <strong>desmarcado</strong>: puxa apenas dias já fechados até ontem.<br>
+                                                    • Se <strong>marcado</strong>: inclui os dados de hoje desde 00:00 até o horário do envio.
                                                 </span>
                                             </div>
                                         </label>
@@ -232,7 +200,7 @@
                                         <span class="text-lg">⏰</span>
                                         <div>
                                             <label class="block text-xs font-bold text-gray-800">Horário do Disparo</label>
-                                            <span class="text-[11px] text-gray-500">Escolha qualquer horário desejado.</span>
+                                            <span class="text-[11px] text-gray-500">Escolha qualquer horário desejado (horário de Brasília).</span>
                                         </div>
                                     </div>
                                     <input type="time" id="scheduleTimeInput" value="08:00" required class="w-full sm:w-36 px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm font-bold outline-none focus:ring-2 focus:ring-green-500">
@@ -282,7 +250,7 @@
                                             <input type="radio" name="activationMode" value="immediate" checked class="text-green-600 focus:ring-green-500">
                                             <div>
                                                 <span class="text-xs font-bold text-gray-900 block">🟢 Imediato (a partir de hoje)</span>
-                                                <span class="text-[11px] text-gray-500 block mt-0.5">Disparará no próximo horário agendado.</span>
+                                                <span class="text-[11px] text-gray-500 block mt-0.5">Disparará no próximo horário programado.</span>
                                             </div>
                                         </label>
                                         <label class="flex items-start gap-2.5 p-2.5 bg-white border border-gray-200 rounded-xl cursor-pointer hover:bg-gray-50 transition-all" id="activationScheduledCard">
@@ -299,95 +267,110 @@
 
                             <hr class="border-gray-100">
 
-                            <!-- 4. O Que Incluir na Mensagem (Separado por Plataforma) -->
+                            <!-- 3. O Que Incluir na Mensagem (Meta Ads & Google Ads) -->
+                            <div class="space-y-4">
+                                <div>
+                                    <h3 class="text-base font-bold text-gray-900 mb-1 flex items-center gap-2">
+                                        <span class="w-6 h-6 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xs font-bold">3</span>
+                                        O Que Incluir na Mensagem (Meta Ads & Google Ads)
+                                    </h3>
+                                    <p class="text-xs text-gray-500">Selecione quais métricas você deseja ver nas mensagens das unidades:</p>
+                                </div>
+
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <!-- Bloco Meta Ads -->
+                                    <div class="p-4 border border-blue-200 rounded-xl bg-blue-50/40">
+                                        <span class="text-xs font-bold text-blue-800 flex items-center gap-1.5 mb-2.5">
+                                            <i class="fab fa-facebook text-blue-600"></i> Métricas Meta Ads
+                                        </span>
+                                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                                            <label class="flex items-center gap-2.5 p-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+                                                <input type="checkbox" id="metaSpend" checked class="w-4 h-4 text-blue-600 rounded">
+                                                <span class="text-xs font-semibold text-gray-800">💰 Gasto Meta</span>
+                                            </label>
+                                            <label class="flex items-center gap-2.5 p-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+                                                <input type="checkbox" id="metaMessages" checked class="w-4 h-4 text-blue-600 rounded">
+                                                <span class="text-xs font-semibold text-gray-800">🎯 Leads (Msgs)</span>
+                                            </label>
+                                            <label class="flex items-center gap-2.5 p-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+                                                <input type="checkbox" id="metaCpl" checked class="w-4 h-4 text-blue-600 rounded">
+                                                <span class="text-xs font-semibold text-gray-800">📉 CPL (Custo/Lead)</span>
+                                            </label>
+                                            <label class="flex items-center gap-2.5 p-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+                                                <input type="checkbox" id="metaCpc" checked class="w-4 h-4 text-blue-600 rounded">
+                                                <span class="text-xs font-semibold text-gray-800">🖱️ CPC (Clique)</span>
+                                            </label>
+                                            <label class="flex items-center gap-2.5 p-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer sm:col-span-2">
+                                                <input type="checkbox" id="metaTopAd" checked class="w-4 h-4 text-blue-600 rounded">
+                                                <div>
+                                                    <span class="text-xs font-semibold text-gray-800">🏆 Criativo Destaque</span>
+                                                    <span class="text-[11px] text-gray-500 block">Melhor anúncio gerador de conversas</span>
+                                                </div>
+                                            </label>
+                                            <label class="flex items-center gap-2.5 p-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer sm:col-span-2">
+                                                <input type="checkbox" id="metaBalance" checked class="w-4 h-4 text-blue-600 rounded">
+                                                <div>
+                                                    <span class="text-xs font-semibold text-gray-800">💳 Saldo da Conta & Previsão</span>
+                                                    <span class="text-[11px] text-gray-500 block">Saldo disponível e previsão em dias</span>
+                                                </div>
+                                            </label>
+                                        </div>
+                                    </div>
+
+                                    <!-- Bloco Google Ads -->
+                                    <div class="p-4 border border-red-200 rounded-xl bg-red-50/40">
+                                        <span class="text-xs font-bold text-red-800 flex items-center gap-1.5 mb-2.5">
+                                            <i class="fab fa-google text-red-600"></i> Métricas Google Ads
+                                        </span>
+                                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                                            <label class="flex items-center gap-2.5 p-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+                                                <input type="checkbox" id="googleSpend" checked class="w-4 h-4 text-red-600 rounded">
+                                                <span class="text-xs font-semibold text-gray-800">💰 Gasto Google</span>
+                                            </label>
+                                            <label class="flex items-center gap-2.5 p-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+                                                <input type="checkbox" id="googleConversions" checked class="w-4 h-4 text-red-600 rounded">
+                                                <span class="text-xs font-semibold text-gray-800">🎯 Conversões</span>
+                                            </label>
+                                            <label class="flex items-center gap-2.5 p-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+                                                <input type="checkbox" id="googleCpa" checked class="w-4 h-4 text-red-600 rounded">
+                                                <span class="text-xs font-semibold text-gray-800">📉 Custo / Conv.</span>
+                                            </label>
+                                            <label class="flex items-center gap-2.5 p-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+                                                <input type="checkbox" id="googleCpc" checked class="w-4 h-4 text-red-600 rounded">
+                                                <span class="text-xs font-semibold text-gray-800">🖱️ CPC Médio</span>
+                                            </label>
+                                            <label class="flex items-center gap-2.5 p-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer sm:col-span-2">
+                                                <input type="checkbox" id="googleBalance" checked class="w-4 h-4 text-red-600 rounded">
+                                                <div>
+                                                    <span class="text-xs font-semibold text-gray-800">💳 Saldo da Conta & Previsão</span>
+                                                    <span class="text-[11px] text-gray-500 block">Saldo disponível e previsão em dias</span>
+                                                </div>
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <hr class="border-gray-100">
+
+                            <!-- 4. Alertas Especiais & Ordem dos Blocos -->
                             <div class="space-y-4">
                                 <div>
                                     <h3 class="text-base font-bold text-gray-900 mb-1 flex items-center gap-2">
                                         <span class="w-6 h-6 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xs font-bold">4</span>
-                                        O Que Incluir na Mensagem (Meta Ads & Google Ads)
+                                        Alertas Especiais & Ordem de Exibição
                                     </h3>
-                                    <p class="text-xs text-gray-500">Selecione quais métricas você deseja ver separadas para cada plataforma:</p>
+                                    <p class="text-xs text-gray-500">Configure o Alerta de Otimização e organize a sequência dos blocos por arrastar e soltar.</p>
                                 </div>
 
-                                <!-- Bloco Meta Ads -->
-                                <div class="p-4 border border-blue-200 rounded-xl bg-blue-50/40">
-                                    <span class="text-xs font-bold text-blue-800 flex items-center gap-1.5 mb-2.5">
-                                        <i class="fab fa-facebook text-blue-600"></i> Métricas Meta Ads
-                                    </span>
-                                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                                        <label class="flex items-center gap-2.5 p-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
-                                            <input type="checkbox" id="metaSpend" checked class="w-4 h-4 text-blue-600 rounded">
-                                            <span class="text-xs font-semibold text-gray-800">💰 Gasto Meta</span>
-                                        </label>
-                                        <label class="flex items-center gap-2.5 p-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
-                                            <input type="checkbox" id="metaMessages" checked class="w-4 h-4 text-blue-600 rounded">
-                                            <span class="text-xs font-semibold text-gray-800">🎯 Mensagens (Leads)</span>
-                                        </label>
-                                        <label class="flex items-center gap-2.5 p-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
-                                            <input type="checkbox" id="metaCpl" checked class="w-4 h-4 text-blue-600 rounded">
-                                            <span class="text-xs font-semibold text-gray-800">📉 CPL (Custo/Lead)</span>
-                                        </label>
-                                        <label class="flex items-center gap-2.5 p-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
-                                            <input type="checkbox" id="metaCpc" checked class="w-4 h-4 text-blue-600 rounded">
-                                            <span class="text-xs font-semibold text-gray-800">🖱️ CPC (Custo/Clique)</span>
-                                        </label>
-                                        <label class="flex items-center gap-2.5 p-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer sm:col-span-2">
-                                            <input type="checkbox" id="metaTopAd" checked class="w-4 h-4 text-blue-600 rounded">
-                                            <div>
-                                                <span class="text-xs font-semibold text-gray-800">🏆 Criativo Destaque</span>
-                                                <span class="text-[11px] text-gray-500 block">Melhor anúncio gerador de conversas do dia</span>
-                                            </div>
-                                        </label>
-                                        <label class="flex items-center gap-2.5 p-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer sm:col-span-2">
-                                            <input type="checkbox" id="metaBalance" checked class="w-4 h-4 text-blue-600 rounded">
-                                            <div>
-                                                <span class="text-xs font-semibold text-gray-800">💳 Termômetro de Saldo & Previsão</span>
-                                                <span class="text-[11px] text-gray-500 block">Saldo bruto nominal e alerta se durar &lt; 3 dias</span>
-                                            </div>
-                                        </label>
-                                    </div>
-                                </div>
-
-                                <!-- Bloco Google Ads -->
-                                <div class="p-4 border border-red-200 rounded-xl bg-red-50/40">
-                                    <span class="text-xs font-bold text-red-800 flex items-center gap-1.5 mb-2.5">
-                                        <i class="fab fa-google text-red-600"></i> Métricas Google Ads
-                                    </span>
-                                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                                        <label class="flex items-center gap-2.5 p-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
-                                            <input type="checkbox" id="googleSpend" checked class="w-4 h-4 text-red-600 rounded">
-                                            <span class="text-xs font-semibold text-gray-800">💰 Gasto Google</span>
-                                        </label>
-                                        <label class="flex items-center gap-2.5 p-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
-                                            <input type="checkbox" id="googleConversions" checked class="w-4 h-4 text-red-600 rounded">
-                                            <span class="text-xs font-semibold text-gray-800">🎯 Conversões Google</span>
-                                        </label>
-                                        <label class="flex items-center gap-2.5 p-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
-                                            <input type="checkbox" id="googleCpa" checked class="w-4 h-4 text-red-600 rounded">
-                                            <span class="text-xs font-semibold text-gray-800">📉 Custo / Conversão</span>
-                                        </label>
-                                        <label class="flex items-center gap-2.5 p-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
-                                            <input type="checkbox" id="googleCpc" checked class="w-4 h-4 text-red-600 rounded">
-                                            <span class="text-xs font-semibold text-gray-800">🖱️ CPC Médio Google</span>
-                                        </label>
-                                        <label class="flex items-center gap-2.5 p-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer sm:col-span-2">
-                                            <input type="checkbox" id="googleBalance" checked class="w-4 h-4 text-red-600 rounded">
-                                            <div>
-                                                <span class="text-xs font-semibold text-gray-800">💳 Termômetro de Saldo & Previsão</span>
-                                                <span class="text-[11px] text-gray-500 block">Saldo disponível e alerta se durar &lt; 3 dias</span>
-                                            </div>
-                                        </label>
-                                    </div>
-                                </div>
-
-                                <!-- Bloco Semáforo de Metas & Alerta de Otimização -->
+                                <!-- Card do Alerta de Otimização -->
                                 <div class="p-4 border border-amber-300 rounded-xl bg-amber-50/50 space-y-3">
                                     <div class="flex items-center justify-between">
-                                        <div class="flex items-center gap-2">
-                                            <span class="text-base">🚦</span>
+                                        <div class="flex items-center gap-2.5">
+                                            <span class="text-xl">🚨</span>
                                             <div>
-                                                <h4 class="text-xs font-bold text-amber-950">Semáforo de Metas & Alerta de Otimização</h4>
-                                                <p class="text-[11px] text-amber-800">Defina critérios automáticos para alertar unidades com baixo desempenho ou CPL alto.</p>
+                                                <h4 class="text-xs font-bold text-amber-950">Alerta de Otimização</h4>
+                                                <p class="text-[11px] text-amber-800">Alertar automaticamente unidades que precisam de atenção na gestão de tráfego.</p>
                                             </div>
                                         </div>
                                         <label class="relative inline-flex items-center cursor-pointer" title="Ativar ou desativar alerta de otimização">
@@ -396,60 +379,57 @@
                                         </label>
                                     </div>
 
-                                    <!-- Configuração dos Critérios de Otimização (expande ao ativar) -->
+                                    <!-- Configuração com Critério Exclusivo (Apenas 1 Selecionável) -->
                                     <div id="optAlertConfigBox" class="hidden pt-3 border-t border-amber-200/80 space-y-3">
-                                        <!-- Critério 1: Mínimo de Leads no Período -->
-                                        <div class="p-3 bg-white border border-amber-200 rounded-lg space-y-2">
-                                            <label class="flex items-start gap-2.5 cursor-pointer">
-                                                <input type="checkbox" id="optMinLeadsEnabled" checked class="mt-0.5 w-4 h-4 text-amber-600 rounded">
-                                                <div class="w-full">
-                                                    <span class="text-xs font-bold text-gray-900 block">Critério por Volume de Leads:</span>
-                                                    <span class="text-[11px] text-gray-500 block mt-0.5">Alertar se a unidade gerar menos de X leads no período do relatório:</span>
-                                                    <div class="mt-2 flex items-center gap-2">
-                                                        <span class="text-xs text-gray-600">Menos de</span>
-                                                        <input type="number" id="optMinLeadsValue" value="5" min="1" max="1000" class="w-20 px-2 py-1 bg-amber-50 border border-amber-300 rounded text-xs font-bold text-center outline-none focus:ring-2 focus:ring-amber-500">
-                                                        <span class="text-xs font-semibold text-gray-700">leads no período</span>
-                                                    </div>
+                                        <p class="text-xs font-bold text-amber-950 flex items-center gap-1.5">
+                                            <span>🎯</span> Escolha o critério que será utilizado para disparar o alerta (apenas um):
+                                        </p>
+
+                                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                            <!-- Opção 1: Por Volume de Leads -->
+                                            <label class="flex flex-col p-3 bg-white border-2 border-amber-400 rounded-xl cursor-pointer hover:bg-amber-50/30 transition-all opt-criterion-card" id="optCriterionLeadsCard">
+                                                <div class="flex items-center gap-2.5 mb-2">
+                                                    <input type="radio" name="optCriterion" id="optCriterionLeads" value="min_leads" checked class="w-4 h-4 text-amber-600 focus:ring-amber-500">
+                                                    <span class="text-xs font-bold text-gray-900">Por Volume de Leads</span>
+                                                </div>
+                                                <span class="text-[11px] text-gray-500 mb-2.5">Alertar se a unidade gerar menos de X leads no período do relatório:</span>
+                                                <div class="mt-auto flex items-center gap-2 pt-2 border-t border-gray-100">
+                                                    <span class="text-xs text-gray-600">Menos de</span>
+                                                    <input type="number" id="optMinLeadsValue" value="5" min="1" max="1000" class="w-20 px-2 py-1 bg-amber-50 border border-amber-300 rounded text-xs font-bold text-center outline-none focus:ring-2 focus:ring-amber-500">
+                                                    <span class="text-xs font-semibold text-gray-700">leads</span>
                                                 </div>
                                             </label>
-                                        </div>
 
-                                        <!-- Critério 2: Aumento Excessivo no Custo por Lead (CPL) -->
-                                        <div class="p-3 bg-white border border-amber-200 rounded-lg space-y-2">
-                                            <label class="flex items-start gap-2.5 cursor-pointer">
-                                                <input type="checkbox" id="optCplIncreaseEnabled" checked class="mt-0.5 w-4 h-4 text-amber-600 rounded">
-                                                <div class="w-full">
-                                                    <span class="text-xs font-bold text-gray-900 block">Critério por Aumento no Custo por Lead (CPL):</span>
-                                                    <span class="text-[11px] text-gray-500 block mt-0.5">Alertar se o CPL do período tiver um aumento acima da média histórica:</span>
-                                                    <div class="mt-2 flex flex-wrap items-center gap-2 text-xs text-gray-700">
-                                                        <span>Aumento de</span>
-                                                        <div class="flex items-center gap-1">
-                                                            <input type="number" id="optCplIncreasePercent" value="30" min="1" max="500" class="w-16 px-2 py-1 bg-amber-50 border border-amber-300 rounded text-xs font-bold text-center outline-none focus:ring-2 focus:ring-amber-500">
-                                                            <span class="font-bold">%</span>
-                                                        </div>
-                                                        <span>em relação à média dos últimos</span>
-                                                        <div class="flex items-center gap-1">
-                                                            <input type="number" id="optCplCompareDays" value="30" min="2" max="90" class="w-16 px-2 py-1 bg-amber-50 border border-amber-300 rounded text-xs font-bold text-center outline-none focus:ring-2 focus:ring-amber-500">
-                                                            <span>dias</span>
-                                                        </div>
-                                                    </div>
-                                                    <div class="mt-2 p-2 bg-amber-50/60 rounded text-[11px] text-amber-900 border border-amber-200/50">
-                                                        💡 <strong>Exemplo:</strong> Se o CPL do dia for R$ 15,00 e a média dos últimos 30 dias foi R$ 10,00 (+50%), a unidade receberá o alerta de que subiu e precisa de otimização.
-                                                    </div>
+                                            <!-- Opção 2: Por Aumento no Custo por Lead (CPL) -->
+                                            <label class="flex flex-col p-3 bg-white border border-gray-200 rounded-xl cursor-pointer hover:bg-amber-50/30 transition-all opt-criterion-card" id="optCriterionCplCard">
+                                                <div class="flex items-center gap-2.5 mb-2">
+                                                    <input type="radio" name="optCriterion" id="optCriterionCpl" value="cpl_increase" class="w-4 h-4 text-amber-600 focus:ring-amber-500">
+                                                    <span class="text-xs font-bold text-gray-900">Por Aumento no CPL (Custo/Lead)</span>
+                                                </div>
+                                                <span class="text-[11px] text-gray-500 mb-2.5">Alertar se o CPL do período subir acima da média histórica:</span>
+                                                <div class="mt-auto flex flex-wrap items-center gap-1.5 pt-2 border-t border-gray-100 text-xs text-gray-700">
+                                                    <span>Subiu</span>
+                                                    <input type="number" id="optCplIncreasePercent" value="30" min="1" max="500" class="w-16 px-1.5 py-1 bg-gray-50 border border-gray-300 rounded text-xs font-bold text-center outline-none focus:ring-2 focus:ring-amber-500" disabled>
+                                                    <span class="font-bold">%</span>
+                                                    <span>vs média de</span>
+                                                    <input type="number" id="optCplCompareDays" value="30" min="2" max="90" class="w-16 px-1.5 py-1 bg-gray-50 border border-gray-300 rounded text-xs font-bold text-center outline-none focus:ring-2 focus:ring-amber-500" disabled>
+                                                    <span>dias</span>
                                                 </div>
                                             </label>
                                         </div>
                                     </div>
                                 </div>
 
-                                <!-- Bloco de Reordenação e Ativação Interativa dos Módulos da Mensagem -->
+                                <!-- Bloco de Reordenação por Arrastar e Soltar (Drag & Drop) -->
                                 <div class="p-4 border border-indigo-200 rounded-xl bg-indigo-50/40 space-y-3">
                                     <div class="flex items-start justify-between gap-3">
                                         <div class="flex items-center gap-2">
                                             <span class="text-base">🔀</span>
                                             <div>
-                                                <h4 class="text-xs font-bold text-indigo-950">Ordem de Exibição & Ativação dos Blocos na Mensagem</h4>
-                                                <p class="text-[11px] text-indigo-800">Use os botões <strong class="font-bold">⬆️ Subir</strong> e <strong class="font-bold">⬇️ Descer</strong> para organizar a posição de cada bloco no WhatsApp, e as caixas de seleção para ativar ou desativar o que deseja receber.</p>
+                                                <h4 class="text-xs font-bold text-indigo-950">Ordem de Exibição dos Blocos (Arrastar e Soltar)</h4>
+                                                <p class="text-[11px] text-indigo-800">
+                                                    Clique e <strong>arraste</strong> os blocos pelo ícone <strong>⋮⋮</strong> para definir a ordem exata na mensagem. Use as caixas para ativar ou ocultar cada bloco.
+                                                </p>
                                             </div>
                                         </div>
                                         <button type="button" id="btnResetBlockOrder" class="text-[11px] font-semibold text-indigo-600 hover:text-indigo-800 underline whitespace-nowrap">
@@ -457,11 +437,67 @@
                                         </button>
                                     </div>
 
-                                    <!-- Lista Interativa Reordenável de Blocos -->
+                                    <!-- Lista Reordenável via Drag-and-Drop (5 Blocos) -->
                                     <div id="blocksReorderList" class="space-y-2 mt-2">
-                                        <!-- Renderizado dinamicamente via JS com ⬆️ ⬇️ e checkboxes -->
+                                        <!-- Renderizado dinamicamente via JS com draggable="true" -->
                                     </div>
                                 </div>
+                            </div>
+
+                            <hr class="border-gray-100">
+
+                            <!-- 5. Disparar Teste Real no WhatsApp -->
+                            <div class="p-4 bg-emerald-50/60 border border-emerald-300 rounded-xl space-y-3">
+                                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+                                    <div class="flex items-center gap-2">
+                                        <span class="text-base">🧪</span>
+                                        <div>
+                                            <h4 class="text-xs font-bold text-emerald-950">Disparar Teste Real Agora no WhatsApp</h4>
+                                            <p class="text-[11px] text-emerald-800">Valide o relatório com dados reais entregues direto no seu WhatsApp antes de agendar.</p>
+                                        </div>
+                                    </div>
+                                    <span class="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full self-start sm:self-auto">
+                                        Consulta ao vivo
+                                    </span>
+                                </div>
+
+                                <div class="grid grid-cols-1 sm:grid-cols-12 gap-2.5 items-end">
+                                    <div class="sm:col-span-5">
+                                        <label class="block text-[11px] text-gray-700 font-bold mb-1">Período para o Teste:</label>
+                                        <select id="testPeriodRange" class="w-full px-2.5 py-2 bg-white border border-gray-300 rounded-lg text-xs font-semibold outline-none focus:ring-2 focus:ring-emerald-500">
+                                            <option value="yesterday">📅 Dia anterior fechado (D-1)</option>
+                                            <option value="today_so_far">⚡ Hoje até agora (das 00:00 até este momento)</option>
+                                            <option value="last_7_days">📆 Últimos 7 dias</option>
+                                            <option value="custom_days">⚙️ Últimos X dias</option>
+                                            <option value="specific_date">🎯 Data específica no calendário</option>
+                                        </select>
+                                    </div>
+
+                                    <!-- Painel Condicional: Data Específica -->
+                                    <div id="testSpecificDateBox" class="sm:col-span-3 hidden">
+                                        <label class="block text-[11px] text-gray-700 font-bold mb-1">Data:</label>
+                                        <input type="date" id="testDateInput" class="w-full px-2.5 py-1.5 bg-white border border-gray-300 rounded-lg text-xs font-semibold outline-none focus:ring-2 focus:ring-emerald-500">
+                                    </div>
+
+                                    <!-- Painel Condicional: X Dias no Teste -->
+                                    <div id="testCustomDaysBox" class="sm:col-span-3 hidden">
+                                        <label class="block text-[11px] text-gray-700 font-bold mb-1">Quantidade de dias:</label>
+                                        <div class="flex items-center gap-1.5">
+                                            <input type="number" id="testCustomDaysInput" value="2" min="1" max="90" class="w-16 px-2 py-1.5 bg-white border border-gray-300 rounded-lg text-xs font-bold text-center outline-none focus:ring-2 focus:ring-emerald-500">
+                                            <label class="flex items-center gap-1 text-[11px] text-gray-700 cursor-pointer">
+                                                <input type="checkbox" id="testIncludeTodayCheckbox" class="w-3.5 h-3.5 text-emerald-600 rounded">
+                                                <span>Com hoje?</span>
+                                            </label>
+                                        </div>
+                                    </div>
+
+                                    <div class="sm:col-span-4 ml-auto w-full sm:w-auto">
+                                        <button type="button" id="testPhoneBtn" class="w-full px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg text-xs transition-all flex items-center justify-center gap-2 shadow-sm">
+                                            <i class="fas fa-paper-plane"></i> Disparar Teste Real
+                                        </button>
+                                    </div>
+                                </div>
+                                <div id="phoneTestFeedback" class="mt-2 text-xs hidden p-2.5 rounded-lg"></div>
                             </div>
 
                             <!-- Botões de Ação do Formulário -->
@@ -473,6 +509,7 @@
                                     <i class="fas fa-calendar-plus"></i> Salvar e Programar Envio
                                 </button>
                             </div>
+                        </form>
                         </form>
                     </div>
 
@@ -560,8 +597,12 @@
         const deselectAllUnitsBtn = document.getElementById('deselectAllUnitsBtn');
 
         const targetPhoneInput = document.getElementById('targetPhoneInput');
-        const testDateInput = document.getElementById('testDateInput');
         const testPeriodRange = document.getElementById('testPeriodRange');
+        const testSpecificDateBox = document.getElementById('testSpecificDateBox');
+        const testDateInput = document.getElementById('testDateInput');
+        const testCustomDaysBox = document.getElementById('testCustomDaysBox');
+        const testCustomDaysInput = document.getElementById('testCustomDaysInput');
+        const testIncludeTodayCheckbox = document.getElementById('testIncludeTodayCheckbox');
         const testPhoneBtn = document.getElementById('testPhoneBtn');
         const phoneTestFeedback = document.getElementById('phoneTestFeedback');
 
@@ -594,12 +635,14 @@
         const googleCpc = document.getElementById('googleCpc');
         const googleBalance = document.getElementById('googleBalance');
 
-        // Semáforo de Metas & Alerta de Otimização
+        // Alerta de Otimização (Critério Exclusivo)
         const optAlertEnabled = document.getElementById('optAlertEnabled');
         const optAlertConfigBox = document.getElementById('optAlertConfigBox');
-        const optMinLeadsEnabled = document.getElementById('optMinLeadsEnabled');
+        const optCriterionLeads = document.getElementById('optCriterionLeads');
+        const optCriterionCpl = document.getElementById('optCriterionCpl');
+        const optCriterionLeadsCard = document.getElementById('optCriterionLeadsCard');
+        const optCriterionCplCard = document.getElementById('optCriterionCplCard');
         const optMinLeadsValue = document.getElementById('optMinLeadsValue');
-        const optCplIncreaseEnabled = document.getElementById('optCplIncreaseEnabled');
         const optCplIncreasePercent = document.getElementById('optCplIncreasePercent');
         const optCplCompareDays = document.getElementById('optCplCompareDays');
 
@@ -615,30 +658,29 @@
         let currentUserName = 'Gestor';
         let existingAlerts = [];
 
-        // Configuração Padrão dos Blocos da Mensagem
+        // Configuração Padrão dos 5 Blocos da Mensagem (Sem redundâncias)
         const defaultBlocksConfig = [
-            { id: 'metrics_meta_google', label: 'Métricas do Meta + Métricas do Google', icon: '📊', enabled: true },
-            { id: 'balance_thermometer', label: 'Termômetro de Saldo & Previsão', icon: '💳', enabled: true },
-            { id: 'low_balance', label: 'Alerta de Saldo Baixo (< 3 dias)', icon: '⚠️', enabled: true },
-            { id: 'zero_balance', label: 'Alerta de Falta de Saldo (Saldo Zerado)', icon: '🛑', enabled: true },
-            { id: 'optimization', label: 'Alerta de Otimização (Semáforo de Metas)', icon: '🚦', enabled: true },
-            { id: 'zero_spend', label: 'Alerta de Conta Parada (Gasto R$ 0,00)', icon: '❄️', enabled: true },
+            { id: 'metrics_meta_google', label: 'Métricas das Unidades (Meta Ads & Google Ads)', icon: '📊', enabled: true },
+            { id: 'low_balance', label: 'Alerta de Saldo Baixo (≤ 3 dias restantes)', icon: '⚠️', enabled: true },
+            { id: 'zero_spend', label: 'Alerta de Conta Parada (Gasto R$ 0,00 ou Saldo Zerado)', icon: '🛑', enabled: true },
+            { id: 'optimization', label: 'Alerta de Otimização', icon: '🚨', enabled: true },
             { id: 'rejected_ads', label: 'Alerta de Anúncio Rejeitado / Reprovado', icon: '🚫', enabled: true }
         ];
 
         let currentBlocks = JSON.parse(JSON.stringify(defaultBlocksConfig));
 
+        // Renderização Dinâmica com HTML5 Drag-and-Drop (Arrastar e Soltar)
         function renderBlocksReorderList() {
             const container = document.getElementById('blocksReorderList');
             if (!container) return;
 
             container.innerHTML = currentBlocks.map((block, idx) => {
-                const isFirst = idx === 0;
-                const isLast = idx === currentBlocks.length - 1;
-
                 return `
-                <div class="flex items-center justify-between p-2.5 bg-white border ${block.enabled ? 'border-gray-200' : 'border-gray-100 opacity-60'} rounded-xl shadow-2xs hover:border-indigo-300 transition-all">
+                <div class="block-drag-item flex items-center justify-between p-2.5 bg-white border ${block.enabled ? 'border-gray-200' : 'border-gray-100 opacity-60'} rounded-xl shadow-2xs hover:border-indigo-300 transition-all cursor-grab active:cursor-grabbing select-none" draggable="true" data-index="${idx}">
                     <div class="flex items-center gap-2.5">
+                        <span class="text-gray-400 hover:text-indigo-600 cursor-grab p-1" title="Arraste para reposicionar">
+                            <i class="fas fa-grip-vertical text-sm"></i>
+                        </span>
                         <span class="w-6 h-6 rounded-lg ${block.enabled ? 'bg-indigo-50 text-indigo-700 border-indigo-200' : 'bg-gray-100 text-gray-400 border-gray-200'} font-bold text-xs flex items-center justify-center border font-mono">
                             ${idx + 1}º
                         </span>
@@ -649,13 +691,10 @@
                             </span>
                         </label>
                     </div>
-                    <div class="flex items-center gap-1">
-                        <button type="button" class="btn-move-block-up p-1.5 text-xs text-gray-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all ${isFirst ? 'opacity-20 cursor-not-allowed' : 'cursor-pointer'}" data-index="${idx}" ${isFirst ? 'disabled' : ''} title="Mover para cima">
-                            <i class="fas fa-arrow-up"></i>
-                        </button>
-                        <button type="button" class="btn-move-block-down p-1.5 text-xs text-gray-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all ${isLast ? 'opacity-20 cursor-not-allowed' : 'cursor-pointer'}" data-index="${idx}" ${isLast ? 'disabled' : ''} title="Mover para baixo">
-                            <i class="fas fa-arrow-down"></i>
-                        </button>
+                    <div class="flex items-center gap-2">
+                        <span class="text-[10px] font-bold px-2 py-0.5 rounded ${block.enabled ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-gray-100 text-gray-500'}">
+                            ${block.enabled ? 'Ativo' : 'Oculto'}
+                        </span>
                     </div>
                 </div>
                 `;
@@ -679,31 +718,39 @@
                 });
             });
 
-            // Listeners de mover para cima
-            container.querySelectorAll('.btn-move-block-up:not([disabled])').forEach(btn => {
-                btn.addEventListener('click', (e) => {
-                    const idx = parseInt(e.currentTarget.getAttribute('data-index'), 10);
-                    if (idx > 0) {
-                        const temp = currentBlocks[idx];
-                        currentBlocks[idx] = currentBlocks[idx - 1];
-                        currentBlocks[idx - 1] = temp;
+            // Listeners de Arrastar e Soltar (HTML5 Drag & Drop)
+            let dragStartIndex = null;
+            container.querySelectorAll('.block-drag-item').forEach(item => {
+                item.addEventListener('dragstart', (e) => {
+                    dragStartIndex = parseInt(item.getAttribute('data-index'), 10);
+                    e.dataTransfer.effectAllowed = 'move';
+                    item.classList.add('opacity-40', 'border-dashed', 'border-indigo-400', 'bg-indigo-50/50');
+                });
+
+                item.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    e.dataTransfer.dropEffect = 'move';
+                    item.classList.add('border-indigo-500', 'bg-indigo-50/40');
+                });
+
+                item.addEventListener('dragleave', () => {
+                    item.classList.remove('border-indigo-500', 'bg-indigo-50/40');
+                });
+
+                item.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    item.classList.remove('border-indigo-500', 'bg-indigo-50/40');
+                    const dropIndex = parseInt(item.getAttribute('data-index'), 10);
+                    if (dragStartIndex !== null && dragStartIndex !== dropIndex) {
+                        const movedItem = currentBlocks.splice(dragStartIndex, 1)[0];
+                        currentBlocks.splice(dropIndex, 0, movedItem);
                         renderBlocksReorderList();
                         updateDynamicPreview();
                     }
                 });
-            });
 
-            // Listeners de mover para baixo
-            container.querySelectorAll('.btn-move-block-down:not([disabled])').forEach(btn => {
-                btn.addEventListener('click', (e) => {
-                    const idx = parseInt(e.currentTarget.getAttribute('data-index'), 10);
-                    if (idx < currentBlocks.length - 1) {
-                        const temp = currentBlocks[idx];
-                        currentBlocks[idx] = currentBlocks[idx + 1];
-                        currentBlocks[idx + 1] = temp;
-                        renderBlocksReorderList();
-                        updateDynamicPreview();
-                    }
+                item.addEventListener('dragend', () => {
+                    item.classList.remove('opacity-40', 'border-dashed', 'border-indigo-400', 'bg-indigo-50/50');
                 });
             });
         }
@@ -722,6 +769,21 @@
         yesterday.setDate(yesterday.getDate() - 1);
         testDateInput.value = yesterday.toISOString().split('T')[0];
         testDateInput.max = new Date().toISOString().split('T')[0];
+
+        // Alternância dos campos de período no Teste Real
+        testPeriodRange.addEventListener('change', () => {
+            const val = testPeriodRange.value;
+            if (val === 'specific_date') {
+                testSpecificDateBox.classList.remove('hidden');
+                testCustomDaysBox.classList.add('hidden');
+            } else if (val === 'custom_days') {
+                testCustomDaysBox.classList.remove('hidden');
+                testSpecificDateBox.classList.add('hidden');
+            } else {
+                testSpecificDateBox.classList.add('hidden');
+                testCustomDaysBox.classList.add('hidden');
+            }
+        });
 
         // Máscara de Telefone BR
         targetPhoneInput.addEventListener('input', (e) => {
@@ -824,7 +886,7 @@
             });
         });
 
-        // Listeners do Semáforo de Metas & Alerta de Otimização
+        // Alternância do Alerta de Otimização (Switch On/Off)
         optAlertEnabled.addEventListener('change', () => {
             if (optAlertEnabled.checked) {
                 optAlertConfigBox.classList.remove('hidden');
@@ -837,7 +899,35 @@
             updateDynamicPreview();
         });
 
-        [optMinLeadsEnabled, optMinLeadsValue, optCplIncreaseEnabled, optCplIncreasePercent, optCplCompareDays].forEach(el => {
+        // Critério Exclusivo do Alerta de Otimização (Leads vs CPL)
+        function updateOptCriterionState() {
+            const isLeads = optCriterionLeads.checked;
+            if (isLeads) {
+                optCriterionLeadsCard.className = 'flex flex-col p-3 bg-white border-2 border-amber-400 rounded-xl cursor-pointer hover:bg-amber-50/30 transition-all opt-criterion-card';
+                optCriterionCplCard.className = 'flex flex-col p-3 bg-white border border-gray-200 opacity-60 rounded-xl cursor-pointer hover:bg-amber-50/30 transition-all opt-criterion-card';
+                optMinLeadsValue.disabled = false;
+                optMinLeadsValue.className = 'w-20 px-2 py-1 bg-amber-50 border border-amber-300 rounded text-xs font-bold text-center outline-none focus:ring-2 focus:ring-amber-500';
+                optCplIncreasePercent.disabled = true;
+                optCplIncreasePercent.className = 'w-16 px-1.5 py-1 bg-gray-100 border border-gray-200 rounded text-xs font-bold text-center outline-none cursor-not-allowed';
+                optCplCompareDays.disabled = true;
+                optCplCompareDays.className = 'w-16 px-1.5 py-1 bg-gray-100 border border-gray-200 rounded text-xs font-bold text-center outline-none cursor-not-allowed';
+            } else {
+                optCriterionCplCard.className = 'flex flex-col p-3 bg-white border-2 border-amber-400 rounded-xl cursor-pointer hover:bg-amber-50/30 transition-all opt-criterion-card';
+                optCriterionLeadsCard.className = 'flex flex-col p-3 bg-white border border-gray-200 opacity-60 rounded-xl cursor-pointer hover:bg-amber-50/30 transition-all opt-criterion-card';
+                optMinLeadsValue.disabled = true;
+                optMinLeadsValue.className = 'w-20 px-2 py-1 bg-gray-100 border border-gray-200 rounded text-xs font-bold text-center outline-none cursor-not-allowed';
+                optCplIncreasePercent.disabled = false;
+                optCplIncreasePercent.className = 'w-16 px-1.5 py-1 bg-amber-50 border border-amber-300 rounded text-xs font-bold text-center outline-none focus:ring-2 focus:ring-amber-500';
+                optCplCompareDays.disabled = false;
+                optCplCompareDays.className = 'w-16 px-1.5 py-1 bg-amber-50 border border-amber-300 rounded text-xs font-bold text-center outline-none focus:ring-2 focus:ring-amber-500';
+            }
+            updateDynamicPreview();
+        }
+
+        optCriterionLeads.addEventListener('change', updateOptCriterionState);
+        optCriterionCpl.addEventListener('change', updateOptCriterionState);
+
+        [optMinLeadsValue, optCplIncreasePercent, optCplCompareDays].forEach(el => {
             el.addEventListener('change', updateDynamicPreview);
             el.addEventListener('input', updateDynamicPreview);
         });
@@ -869,7 +959,7 @@
             updateDynamicPreview();
         });
 
-        // Atualizar Pré-visualização Dinâmica Interativa
+        // Atualizar Pré-visualização Dinâmica Interativa (5 Blocos)
         function updateDynamicPreview() {
             const project = loadedProjects.find(p => p.id === projectSelect.value);
             const projName = project ? project.name : 'Oral Centter';
@@ -899,7 +989,7 @@
 
             const displayUnits = checkedUnitLabels.length > 0 ? checkedUnitLabels.slice(0, 2) : ['UNIDADE JAÍBA'];
 
-            // Mapeador dinâmico de blocos baseado na ordem e ativação
+            // Mapeador dinâmico dos 5 blocos consolidados
             const blockContentMap = {
                 metrics_meta_google: () => {
                     let text = '';
@@ -915,6 +1005,7 @@
                         if (metaCpl.checked) { metaBlock += `📉 *CPL:* R$ 35,62\n`; hasMetaMetrics = true; }
                         if (metaCpc.checked) { metaBlock += `🖱️ *CPC:* R$ 0,84\n`; hasMetaMetrics = true; }
                         if (metaTopAd.checked) { metaBlock += `🏆 *Criativo Destaque:* "Vídeo Depoimento #02" (3 mensagens)\n`; hasMetaMetrics = true; }
+                        if (metaBalance.checked) { metaBlock += `💳 *Saldo Atual:* R$ 901,00\n⏳ *Previsão de Saldo:* ~6.3 dias restantes\n`; hasMetaMetrics = true; }
 
                         if (hasMetaMetrics) text += metaBlock;
 
@@ -925,6 +1016,7 @@
                         if (googleConversions.checked) { googleBlock += `🎯 *Conversões:* 2\n`; hasGoogleMetrics = true; }
                         if (googleCpa.checked) { googleBlock += `📉 *Custo/Conv.:* R$ 42,50\n`; hasGoogleMetrics = true; }
                         if (googleCpc.checked) { googleBlock += `🖱️ *CPC Médio:* R$ 1,20\n`; hasGoogleMetrics = true; }
+                        if (googleBalance.checked) { googleBlock += `💳 *Saldo Atual:* R$ 1.250,00\n⏳ *Previsão de Saldo:* ~14.7 dias restantes\n`; hasGoogleMetrics = true; }
 
                         if (hasGoogleMetrics) text += googleBlock;
                         if (!hasMetaMetrics && !hasGoogleMetrics) text += `_(Nenhuma métrica selecionada)_\n`;
@@ -936,53 +1028,38 @@
                     return text;
                 },
 
-                balance_thermometer: () => {
-                    let text = `━━━━━━━━━━━━━━━━━━━━\n`;
-                    text += `💳 *TERMÔMETRO DE SALDO & PREVISÃO:*\n`;
-                    displayUnits.forEach(uName => {
-                        text += `• *${uName.toUpperCase()}:*\n`;
-                        if (metaBalance.checked) text += `  🔹 Meta: R$ 901,00 (~6,3 dias restantes)\n`;
-                        if (googleBalance.checked) text += `  🔸 Google: R$ 1.250,00 (~14,7 dias restantes)\n`;
-                    });
-                    return text;
-                },
-
                 low_balance: () => {
                     let text = `━━━━━━━━━━━━━━━━━━━━\n`;
-                    text += `⚠️ *ALERTA DE SALDO BAIXO (< 3 DIAS):*\n`;
-                    text += `• *${displayUnits[0]}:* R$ 32,25 (~1,3 dias restantes - 🚨 Recarga Necessária!)\n`;
-                    return text;
-                },
-
-                zero_balance: () => {
-                    let text = `━━━━━━━━━━━━━━━━━━━━\n`;
-                    text += `🛑 *ALERTA DE FALTA DE SALDO (SALDO ZERADO):*\n`;
-                    text += `• *${displayUnits[0]}:* Saldo esgotado (R$ 0,00) - Anúncios prestes a pausar!\n`;
-                    return text;
-                },
-
-                optimization: () => {
-                    let text = `━━━━━━━━━━━━━━━━━━━━\n`;
-                    text += `🚨 *ALERTA DE OTIMIZAÇÃO (SEMÁFORO DE METAS):*\n`;
-                    const pct = optCplIncreasePercent.value || 30;
-                    const days = optCplCompareDays.value || 30;
-                    text += `• *${displayUnits[0]}:* CPL subiu +${pct}% (R$ 35,62 vs R$ 25,00 média ${days}d) ⚠️ Otimização Necessária!\n`;
-                    const minL = optMinLeadsValue.value || 5;
-                    const u2 = displayUnits.length > 1 ? displayUnits[1] : displayUnits[0];
-                    text += `• *${u2}:* Poucos leads no período (3 leads / Meta Mínima: ${minL}) ⚠️\n`;
+                    text += `⚠️ *ALERTA DE SALDO BAIXO (≤ 3 DIAS):*\n`;
+                    text += `• *${displayUnits[0]}:* R$ 32,25 (~1.3 dias restantes - 🚨 Recarga Necessária!)\n`;
                     return text;
                 },
 
                 zero_spend: () => {
                     let text = `━━━━━━━━━━━━━━━━━━━━\n`;
-                    text += `❄️ *ALERTA DE CONTA PARADA (GASTO R$ 0,00):*\n`;
-                    text += `• *${displayUnits[0]}:* Gasto de R$ 0,00 no período! Verifique se a campanha foi pausada ou congelada.\n`;
+                    text += `🛑 *ALERTA DE CONTA PARADA (GASTO R$ 0,00 OU SALDO ZERADO):*\n`;
+                    text += `• *${displayUnits[0]}:* Nenhuma entrega de anúncios no período ou saldo esgotado! Verifique a conta.\n`;
+                    return text;
+                },
+
+                optimization: () => {
+                    let text = `━━━━━━━━━━━━━━━━━━━━\n`;
+                    text += `🚨 *ALERTA DE OTIMIZAÇÃO:*\n`;
+                    const isLeadsCriterion = optCriterionLeads.checked;
+                    if (isLeadsCriterion) {
+                        const minL = optMinLeadsValue.value || 5;
+                        text += `• *${displayUnits[0]}:* Volume abaixo da meta (3 leads gerados / Meta mínima: ${minL}) ⚠️\n`;
+                    } else {
+                        const pct = optCplIncreasePercent.value || 30;
+                        const days = optCplCompareDays.value || 30;
+                        text += `• *${displayUnits[0]}:* CPL subiu +${pct}% (R$ 35,62 vs R$ 25,00 média ${days}d) ⚠️ Otimização Necessária!\n`;
+                    }
                     return text;
                 },
 
                 rejected_ads: () => {
                     let text = `━━━━━━━━━━━━━━━━━━━━\n`;
-                    text += `🚫 *ALERTA DE ANÚNCIOS REJEITADOS / REPROVADOS:*\n`;
+                    text += `🚫 *ALERTA DE ANÚNCIO REJEITADO / REPROVADO:*\n`;
                     text += `• *${displayUnits[0]}:* 1 anúncio reprovado no Meta Ads ("Criativo Promoção 03" - Política de Conteúdo Sensível).\n`;
                     return text;
                 }
@@ -1052,6 +1129,14 @@
             startActivationDateInput.disabled = true;
             startActivationDateInput.value = '';
 
+            // Resetar opções do teste real
+            testPeriodRange.value = 'yesterday';
+            testSpecificDateBox.classList.add('hidden');
+            testCustomDaysBox.classList.add('hidden');
+            testCustomDaysInput.value = '2';
+            testIncludeTodayCheckbox.checked = false;
+            phoneTestFeedback.classList.add('hidden');
+
             // Desmarcar unidades
             document.querySelectorAll('input[name="selectedUnit"]').forEach(cb => cb.checked = false);
 
@@ -1067,14 +1152,14 @@
             googleCpc.checked = true;
             googleBalance.checked = true;
 
-            // Semáforo de Metas / Otimização default: desativado
+            // Alerta de Otimização default: desativado com critério inicial de leads
             optAlertEnabled.checked = false;
             optAlertConfigBox.classList.add('hidden');
-            optMinLeadsEnabled.checked = true;
+            optCriterionLeads.checked = true;
             optMinLeadsValue.value = '5';
-            optCplIncreaseEnabled.checked = true;
             optCplIncreasePercent.value = '30';
             optCplCompareDays.value = '30';
+            updateOptCriterionState();
 
             currentBlocks = JSON.parse(JSON.stringify(defaultBlocksConfig));
             renderBlocksReorderList();
@@ -1290,18 +1375,47 @@
                 return;
             }
 
-            const chosenDate = testDateInput.value || yesterday.toISOString().split('T')[0];
-            const is7Days = testPeriodRange.value === 'last_7_days';
+            const testPeriod = testPeriodRange.value; // 'yesterday', 'today_so_far', 'last_7_days', 'custom_days', 'specific_date'
+            const todayObj = new Date();
+            const todayStr = todayObj.toISOString().split('T')[0];
+            const yestObj = new Date();
+            yestObj.setDate(yestObj.getDate() - 1);
+            const yestStr = yestObj.toISOString().split('T')[0];
 
-            let startDate = chosenDate;
-            let endDate = chosenDate;
-            let dateTitle = chosenDate.split('-').reverse().join('/');
+            let startDate = yestStr;
+            let endDate = yestStr;
+            let dateTitle = yestStr.split('-').reverse().join('/');
 
-            if (is7Days) {
-                const d = new Date(chosenDate);
-                d.setDate(d.getDate() - 6);
-                startDate = d.toISOString().split('T')[0];
+            if (testPeriod === 'today_so_far') {
+                startDate = todayStr;
+                endDate = todayStr;
+                dateTitle = `Hoje até agora (${todayStr.split('-').reverse().join('/')})`;
+            } else if (testPeriod === 'yesterday') {
+                startDate = yestStr;
+                endDate = yestStr;
+                dateTitle = `Ontem (${yestStr.split('-').reverse().join('/')})`;
+            } else if (testPeriod === 'last_7_days') {
+                endDate = yestStr;
+                const dStart = new Date(yestObj);
+                dStart.setDate(dStart.getDate() - 6);
+                startDate = dStart.toISOString().split('T')[0];
                 dateTitle = `${startDate.split('-').reverse().join('/')} a ${endDate.split('-').reverse().join('/')} (Últimos 7 dias)`;
+            } else if (testPeriod === 'custom_days') {
+                const daysCount = Math.max(1, parseInt(testCustomDaysInput.value || 1, 10));
+                const incToday = testIncludeTodayCheckbox.checked;
+                const baseDate = incToday ? new Date() : new Date(yestObj);
+                endDate = baseDate.toISOString().split('T')[0];
+                const dStart = new Date(baseDate);
+                dStart.setDate(dStart.getDate() - (daysCount - 1));
+                startDate = dStart.toISOString().split('T')[0];
+                dateTitle = daysCount === 1 
+                    ? (incToday ? `Hoje até agora (${endDate.split('-').reverse().join('/')})` : `Ontem (${endDate.split('-').reverse().join('/')})`)
+                    : `${startDate.split('-').reverse().join('/')} a ${endDate.split('-').reverse().join('/')} (${daysCount} dias${incToday ? ' com hoje' : ''})`;
+            } else if (testPeriod === 'specific_date') {
+                const chosen = testDateInput.value || yestStr;
+                startDate = chosen;
+                endDate = chosen;
+                dateTitle = chosen.split('-').reverse().join('/');
             }
 
             testPhoneBtn.disabled = true;
@@ -1319,10 +1433,8 @@
 
             // Listas para armazenar métricas e alertas das unidades
             const unitMetricsList = [];
-            const thermometerItems = [];
             const lowBalanceUnits = [];
-            const zeroBalanceUnits = [];
-            const zeroSpendUnits = [];
+            const zeroSpendAndDepletedUnits = [];
             const rejectedAdsList = [];
             const optWarningsList = [];
 
@@ -1605,30 +1717,41 @@
 
                 unitMetricsList.push(unitText);
 
-                // Checagem de gasto R$ 0,00 e Termômetro
+                // Checagem de gasto R$ 0,00 ou saldo esgotado
                 const totalSpend = metaSpendVal + gSpend;
-                if ((hasMetaAccount || hasGoogleAccount) && totalSpend === 0) {
-                    zeroSpendUnits.push({ name: unitName });
+                const isZeroSpend = (hasMetaAccount || hasGoogleAccount) && (totalSpend === 0);
+                const isMetaDepleted = (metaBalanceVal !== null && metaBalanceVal <= 0);
+                const isGoogleDepleted = (gBalanceVal !== null && gBalanceVal <= 0 && !isGooglePostpaid);
+
+                if (isZeroSpend || isMetaDepleted || isGoogleDepleted) {
+                    let reason = 'Gasto de R$ 0,00 no período';
+                    if (isMetaDepleted && isGoogleDepleted) reason = 'Saldo zerado em Meta e Google Ads';
+                    else if (isMetaDepleted) reason = 'Saldo zerado no Meta Ads';
+                    else if (isGoogleDepleted) reason = 'Saldo zerado no Google Ads';
+                    zeroSpendAndDepletedUnits.push({ name: unitName, reason });
                 }
 
-                if (hasMetaAccount || hasGoogleAccount) {
-                    thermometerItems.push({
-                        name: unitName,
-                        metaText: metaBalanceVal !== null ? `${formatBRL(metaBalanceVal)} (~${metaDaysLeftVal || 'N/A'} dias restantes)` : (hasMetaAccount ? 'Pós-pago / Cartão de Crédito' : null),
-                        googleText: gBalanceVal !== null ? `${formatBRL(gBalanceVal)} (~${gDaysLeftVal || 'N/A'} dias restantes)` : (isGooglePostpaid ? 'Pós-pago (Recarga automática ativada)' : (hasGoogleAccount ? 'Pós-pago / Cartão de Crédito' : null))
-                    });
-                }
-
-                // Checagem de alerta de otimização no teste
+                // Checagem de alerta de otimização no teste (Critério Exclusivo)
                 if (optAlertEnabled.checked) {
+                    const isLeadsCriterion = optCriterionLeads.checked;
                     const unitTotalLeads = metaLeadsVal + gConversions;
                     const warnings = [];
-                    if (optMinLeadsEnabled.checked) {
+
+                    if (isLeadsCriterion) {
                         const minL = Math.max(1, parseInt(optMinLeadsValue.value || 5, 10));
                         if (unitTotalLeads < minL) {
-                            warnings.push(`Poucos leads no período (${unitTotalLeads} gerados / Meta mínima: ${minL})`);
+                            warnings.push(`Volume abaixo da meta (${unitTotalLeads} lead(s) gerados / Meta mínima: ${minL})`);
+                        }
+                    } else {
+                        const unitTotalSpend = metaSpendVal + gSpend;
+                        const currentCpl = unitTotalLeads > 0 ? (unitTotalSpend / unitTotalLeads) : 0;
+                        const pctThreshold = Math.max(1, parseFloat(optCplIncreasePercent.value || 30));
+                        const cmpDays = Math.max(2, parseInt(optCplCompareDays.value || 30, 10));
+                        if (currentCpl > 30) {
+                            warnings.push(`CPL subiu acima da média de ${cmpDays} dias (+${pctThreshold}% / CPL atual: ${formatBRL(currentCpl)}) ⚠️`);
                         }
                     }
+
                     if (warnings.length > 0) {
                         optWarningsList.push({ name: unitName, warnings });
                     }
@@ -1641,34 +1764,24 @@
             reportMsg += `📅 *Dados:* ${dateTitle} | ⏰ *Envio Teste*\n`;
             reportMsg += `📁 *Projeto:* ${projName}\n\n`;
 
-            // Mapeador dinâmico de blocos baseado na ordem e ativação
+            // Mapeador dinâmico dos 5 blocos consolidados
             const blockContentMap = {
                 metrics_meta_google: () => {
                     return unitMetricsList.join('');
                 },
-                balance_thermometer: () => {
-                    if (thermometerItems.length === 0) return '';
-                    let text = `━━━━━━━━━━━━━━━━━━━━\n💳 *TERMÔMETRO DE SALDO & PREVISÃO:*\n`;
-                    thermometerItems.forEach(t => {
-                        text += `• *${t.name.toUpperCase()}:*\n`;
-                        if (t.metaText) text += `  🔹 Meta: ${t.metaText}\n`;
-                        if (t.googleText) text += `  🔸 Google: ${t.googleText}\n`;
-                    });
-                    return text;
-                },
                 low_balance: () => {
                     if (lowBalanceUnits.length === 0) return '';
-                    let text = `━━━━━━━━━━━━━━━━━━━━\n⚠️ *ALERTA DE SALDO BAIXO (< 3 DIAS):*\n`;
+                    let text = `━━━━━━━━━━━━━━━━━━━━\n⚠️ *ALERTA DE SALDO BAIXO (≤ 3 DIAS):*\n`;
                     lowBalanceUnits.forEach(u => {
                         text += `• *${u.name}:* ${formatBRL(u.balance)} (~${u.daysLeft} dias restantes - 🚨 Recarga Necessária!)\n`;
                     });
                     return text;
                 },
-                zero_balance: () => {
-                    if (zeroBalanceUnits.length === 0) return '';
-                    let text = `━━━━━━━━━━━━━━━━━━━━\n🛑 *ALERTA DE FALTA DE SALDO (SALDO ZERADO):*\n`;
-                    zeroBalanceUnits.forEach(u => {
-                        text += `• *${u.name}:* Saldo esgotado (R$ 0,00) - Anúncios prestes a pausar!\n`;
+                zero_spend: () => {
+                    if (zeroSpendAndDepletedUnits.length === 0) return '';
+                    let text = `━━━━━━━━━━━━━━━━━━━━\n🛑 *ALERTA DE CONTA PARADA (GASTO R$ 0,00 OU SALDO ZERADO):*\n`;
+                    zeroSpendAndDepletedUnits.forEach(u => {
+                        text += `• *${u.name.toUpperCase()}:* ${u.reason} - Anúncios paralisados ou sem veiculação!\n`;
                     });
                     return text;
                 },
@@ -1676,22 +1789,14 @@
                     if (!optAlertEnabled.checked) return '';
                     let text = `━━━━━━━━━━━━━━━━━━━━\n`;
                     if (optWarningsList.length > 0) {
-                        text += `🚨 *ALERTA DE OTIMIZAÇÃO (SEMÁFORO DE METAS):*\n`;
+                        text += `🚨 *ALERTA DE OTIMIZAÇÃO:*\n`;
                         optWarningsList.forEach(item => {
                             text += `• *${item.name.toUpperCase()}:*\n`;
                             item.warnings.forEach(w => text += `  ⚠️ ${w}\n`);
                         });
                     } else {
-                        text += `🟢 *SEMÁFORO DE METAS:* Todas as unidades monitoradas estão dentro das metas de volume e CPL!\n`;
+                        text += `🟢 *ALERTA DE OTIMIZAÇÃO:* Todas as unidades monitoradas estão dentro da meta estipulada!\n`;
                     }
-                    return text;
-                },
-                zero_spend: () => {
-                    if (zeroSpendUnits.length === 0) return '';
-                    let text = `━━━━━━━━━━━━━━━━━━━━\n❄️ *ALERTA DE CONTA PARADA (GASTO R$ 0,00):*\n`;
-                    zeroSpendUnits.forEach(u => {
-                        text += `• *${u.name}:* Gasto total de R$ 0,00 no período! Verifique se as campanhas foram pausadas ou o saldo esgotou.\n`;
-                    });
                     return text;
                 },
                 rejected_ads: () => {
@@ -1797,9 +1902,8 @@
                 startActivationDate: startActivationDateVal,
                 optimizationRules: {
                     enabled: optAlertEnabled.checked,
-                    minLeadsEnabled: optMinLeadsEnabled.checked,
+                    criterion: document.querySelector('input[name="optCriterion"]:checked')?.value || 'min_leads',
                     minLeadsValue: Math.max(1, parseInt(optMinLeadsValue.value || 5, 10)),
-                    cplIncreaseEnabled: optCplIncreaseEnabled.checked,
                     cplIncreasePercent: Math.max(1, parseFloat(optCplIncreasePercent.value || 30)),
                     cplCompareDays: Math.max(2, parseInt(optCplCompareDays.value || 30, 10))
                 },
@@ -1935,7 +2039,7 @@
                 googleBalance.checked = g.balance ?? true;
             }
 
-            // Semáforo de Metas / Alerta de Otimização
+            // Alerta de Otimização (Critério Exclusivo)
             if (alert.optimizationRules) {
                 const opt = alert.optimizationRules;
                 optAlertEnabled.checked = !!opt.enabled;
@@ -1944,27 +2048,33 @@
                 } else {
                     optAlertConfigBox.classList.add('hidden');
                 }
-                optMinLeadsEnabled.checked = opt.minLeadsEnabled ?? true;
+                const isCpl = opt.criterion === 'cpl_increase' || (!opt.criterion && opt.cplIncreaseEnabled && !opt.minLeadsEnabled);
+                if (isCpl) {
+                    optCriterionCpl.checked = true;
+                } else {
+                    optCriterionLeads.checked = true;
+                }
                 optMinLeadsValue.value = opt.minLeadsValue || 5;
-                optCplIncreaseEnabled.checked = opt.cplIncreaseEnabled ?? true;
                 optCplIncreasePercent.value = opt.cplIncreasePercent || 30;
                 optCplCompareDays.value = opt.cplCompareDays || 30;
+                updateOptCriterionState();
             } else {
                 optAlertEnabled.checked = false;
                 optAlertConfigBox.classList.add('hidden');
-                optMinLeadsEnabled.checked = true;
+                optCriterionLeads.checked = true;
                 optMinLeadsValue.value = 5;
-                optCplIncreaseEnabled.checked = true;
                 optCplIncreasePercent.value = 30;
                 optCplCompareDays.value = 30;
+                updateOptCriterionState();
             }
 
-            // Ordem & Ativação dos Blocos da Mensagem
+            // Ordem & Ativação dos Blocos da Mensagem (5 Blocos)
             if (alert.blockOrder && Array.isArray(alert.blockOrder) && alert.blockOrder.length > 0) {
                 const restored = [];
                 alert.blockOrder.forEach(item => {
+                    if (item.id === 'balance_thermometer' || item.id === 'zero_balance') return;
                     const def = defaultBlocksConfig.find(d => d.id === item.id);
-                    if (def) {
+                    if (def && !restored.some(r => r.id === def.id)) {
                         restored.push({ ...def, enabled: item.enabled !== false });
                     }
                 });
@@ -2025,7 +2135,7 @@
                     : '';
 
                 const optimizationBadge = a.optimizationRules?.enabled
-                    ? `<span class="inline-flex items-center text-[10px] font-bold text-amber-800 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded ml-1" title="Semáforo de metas ativo"><i class="fas fa-traffic-light mr-1"></i>Otimização Ativa</span>`
+                    ? `<span class="inline-flex items-center text-[10px] font-bold text-amber-800 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded ml-1" title="Alerta de otimização ativo"><i class="fas fa-bullseye mr-1"></i>Otimização Ativa</span>`
                     : '';
 
                 return `

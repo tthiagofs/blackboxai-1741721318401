@@ -117,8 +117,9 @@ export default async function handler(req, res) {
             }
           }
         }
-      } catch (fErr) {
-        console.warn('⚠️ Não foi possível listar users via Firestore REST:', fErr.message);
+        } catch (fErr) {
+          console.warn('⚠️ Não foi possível listar users via Firestore REST:', fErr.message);
+        }
       }
     }
 

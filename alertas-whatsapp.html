@@ -1330,7 +1330,7 @@
 
             if (allowInteractive) {
                 try {
-                    const interactiveToken = await googleAuth.getAccessToken();
+                    const interactiveToken = await googleAuth.getAccessToken(true);
                     if (interactiveToken) return interactiveToken;
                 } catch (e) {
                     console.warn('googleAuth aviso na renovação:', e);
@@ -1437,6 +1437,7 @@
                 const selectedUnitIds = checkedUnitEls.map(el => el.value);
 
                 let hasAnyGoogleAuthError = false;
+                let hasMetaRateLimit = false;
 
                 // Listas para armazenar métricas e alertas das unidades
                 const unitMetricsList = [];
@@ -1480,6 +1481,13 @@
                         const insUrl = `https://graph.facebook.com/v21.0/${actId}/insights?fields=spend,impressions,clicks,cpc,actions&time_range=${timeRange}&access_token=${metaToken}`;
                         const insRes = await fetch(insUrl);
                         const insData = await insRes.json();
+
+                        if (insData?.error) {
+                            if (insData.error.code === 17 || insData.error.message?.includes('User request limit reached')) {
+                                hasMetaRateLimit = true;
+                                console.warn(`[Meta Ads] Limite de requisições por minuto atingido para conta ${actId}`);
+                            }
+                        }
 
                         if (insData?.data && insData.data.length > 0) {
                             const r = insData.data[0];
@@ -1747,11 +1755,16 @@
                         }
                     } else {
                         const unitTotalSpend = metaSpendVal + gSpend;
-                        const currentCpl = unitTotalLeads > 0 ? (unitTotalSpend / unitTotalLeads) : 0;
                         const pctThreshold = Math.max(1, parseFloat(optCplIncreasePercent.value || 30));
                         const cmpDays = Math.max(2, parseInt(optCplCompareDays.value || 30, 10));
-                        if (currentCpl > 30) {
-                            warnings.push(`CPL subiu acima da média de ${cmpDays} dias (+${pctThreshold}% / CPL atual: ${formatBRL(currentCpl)}) ⚠️`);
+
+                        if (unitTotalSpend > 0 && unitTotalLeads === 0) {
+                            warnings.push(`Gasto de ${formatBRL(unitTotalSpend)} no período sem nenhum lead gerado! ⚠️`);
+                        } else if (unitTotalLeads > 0) {
+                            const currentCpl = unitTotalSpend / unitTotalLeads;
+                            if (currentCpl >= 10) {
+                                warnings.push(`CPL elevado em ${formatBRL(currentCpl)} por lead (alerta para subidas > +${pctThreshold}% vs média de ${cmpDays}d) ⚠️`);
+                            }
                         }
                     }
 
@@ -1832,6 +1845,9 @@
                     let successMsg = `✅ <strong>Sucesso!</strong> Relatório real de <strong>${dateTitle}</strong> enviado para seu WhatsApp!`;
                     if (hasAnyGoogleAuthError) {
                         successMsg += `<div class="mt-2 text-[11px] text-amber-800 bg-amber-50 border border-amber-200 p-2 rounded">⚠️ <strong>Atenção Google Ads:</strong> O token da sua conta Google Ads expirou. O relatório foi gerado e enviado, mas recomendamos clicar em <strong>Reconectar</strong> na aba <a href="conexoes.html" class="underline font-bold">Conexões</a> para atualizar os números do Google.</div>`;
+                    }
+                    if (hasMetaRateLimit) {
+                        successMsg += `<div class="mt-2 text-[11px] text-amber-800 bg-amber-50 border border-amber-200 p-2 rounded">⚠️ <strong>Pausa temporária da Meta (Rate Limit):</strong> A API do Facebook limitou temporariamente o número de consultas por excesso de requisições recentes. Os dados da Meta voltarão a responder normalmente em 5 a 10 minutos.</div>`;
                     }
                     phoneTestFeedback.innerHTML = successMsg;
                 } else {

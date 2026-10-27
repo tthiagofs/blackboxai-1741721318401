@@ -139,12 +139,12 @@ class GoogleAuthService {
         return false;
     }
 
-    // Retorna token atual (carrega do storage, renova silenciosamente se necessário ou restaura do Firestore)
-    async getAccessToken() {
+    // Retorna token atual (carrega do storage, renova silenciosamente se necessário ou interativo se permitido)
+    async getAccessToken(interactiveIfExpired = false) {
         let t = this._loadTokenFromStorage();
         
         const tokenTime = localStorage.getItem('google_ads_token_time');
-        const isExpiring = tokenTime && (Date.now() - parseInt(tokenTime, 10) > 45 * 60 * 1000);
+        const isExpiring = !tokenTime || (Date.now() - parseInt(tokenTime, 10) > 45 * 60 * 1000);
 
         if (!t || isExpiring) {
             try {
@@ -157,6 +157,24 @@ class GoogleAuthService {
                 }
             } catch (err) {
                 console.warn('⚠️ [GoogleAuth] Renovação silenciosa indisponível sem interação.');
+
+                // Se permitido interativo (ex: clique do usuário em Disparar Teste ou Salvar)
+                if (interactiveIfExpired) {
+                    try {
+                        console.log('🔄 [GoogleAuth] Solicitando renovação interativa ao usuário...');
+                        const interactiveToken = await this.login('consent');
+                        if (interactiveToken) {
+                            this.accessToken = interactiveToken;
+                            try {
+                                await connectionService.initialize();
+                                await connectionService.saveGoogleConnection(interactiveToken, null, this.getStoredAccounts());
+                            } catch (eSave) {}
+                            return interactiveToken;
+                        }
+                    } catch (eInter) {
+                        console.warn('⚠️ [GoogleAuth] Renovação interativa cancelada ou falhou:', eInter);
+                    }
+                }
             }
 
             // Se ainda não tiver token, tentar restaurar do Firestore

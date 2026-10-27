@@ -304,6 +304,10 @@ export default async function handler(req, res) {
         const unitName = unit.name || 'Unidade';
         let unitText = `━━━━━━━━━━━━━━━━━━━━\n🏢 *${unitName.toUpperCase()}*\n`;
         const unitLowBalances = [];
+        let histMetaSpend = 0;
+        let histMetaLeads = 0;
+        let histGoogleSpend = 0;
+        let histGoogleConversions = 0;
 
         const hasMeta = !!unit?.linkedAccounts?.meta?.id;
         const hasGoogle = !!unit?.linkedAccounts?.google?.id;
@@ -348,7 +352,22 @@ export default async function handler(req, res) {
               promises.push(Promise.resolve(null));
             }
 
-            const [insData, adsData, accData] = await Promise.all(promises);
+            // Histórico para Semáforo de Metas / Otimização (se ativo)
+            if (alert.optimizationRules?.enabled && alert.optimizationRules.cplIncreaseEnabled) {
+              const cmpDays = Math.max(2, parseInt(alert.optimizationRules.cplCompareDays || 30, 10));
+              const dComp = new Date(spDate);
+              dComp.setDate(dComp.getDate() - cmpDays);
+              const sinceComp = dComp.toISOString().split('T')[0];
+              const trComp = encodeURIComponent(JSON.stringify({ since: sinceComp, until: yesterdayStr }));
+              promises.push(
+                fetchWithTimeout(`https://graph.facebook.com/v22.0/${actId}/insights?fields=spend,actions&time_range=${trComp}&access_token=${metaToken}`, { timeout: 4500 })
+                  .then(r => r.json()).catch(() => null)
+              );
+            } else {
+              promises.push(Promise.resolve(null));
+            }
+
+            const [insData, adsData, accData, histData] = await Promise.all(promises);
 
             // Processar métricas gerais
             if (insData?.data && insData.data.length > 0) {
@@ -361,6 +380,20 @@ export default async function handler(req, res) {
                 else {
                   const lead = r.actions.find(a => a.action_type === 'lead');
                   if (lead && lead.value) metaLeads = parseInt(lead.value, 10);
+                }
+              }
+            }
+
+            // Processar histórico Meta para Semáforo de Metas
+            if (histData?.data && histData.data.length > 0) {
+              const hr = histData.data[0];
+              histMetaSpend = parseFloat(hr.spend || 0);
+              if (hr.actions && Array.isArray(hr.actions)) {
+                const conv = hr.actions.find(a => a.action_type === 'onsite_conversion.messaging_conversation_started_7d');
+                if (conv && conv.value) histMetaLeads = parseInt(conv.value, 10);
+                else {
+                  const lead = hr.actions.find(a => a.action_type === 'lead');
+                  if (lead && lead.value) histMetaLeads = parseInt(lead.value, 10);
                 }
               }
             }
@@ -437,7 +470,7 @@ export default async function handler(req, res) {
           let gClicks = 0;
           let gConversions = 0;
 
-          const tryQueryGoogle = async (loginId) => {
+          const tryQueryGoogle = async (loginId, qStart = startDate, qEnd = endDate) => {
             const devToken = process.env.GOOGLE_ADS_DEVELOPER_TOKEN || 'XJMJTE6x6lU7zbtl8oNFXA';
             const gHeaders = {
               Authorization: `Bearer ${googleToken}`,
@@ -455,7 +488,7 @@ export default async function handler(req, res) {
                 metrics.conversions,
                 metrics.cost_micros
               FROM customer
-              WHERE segments.date BETWEEN '${startDate}' AND '${endDate}'
+              WHERE segments.date BETWEEN '${qStart}' AND '${qEnd}'
             `;
 
             const gRes = await fetchWithTimeout(`https://googleads.googleapis.com/v23/customers/${gCustId}/googleAds:searchStream`, {
@@ -498,6 +531,31 @@ export default async function handler(req, res) {
                 gClicks += parseInt(row.metrics.clicks || 0, 10);
                 gConversions += parseFloat(row.metrics.conversions || 0);
               }
+            }
+
+            // Histórico Google Ads para Semáforo de Metas (se ativo)
+            if (alert.optimizationRules?.enabled && alert.optimizationRules.cplIncreaseEnabled) {
+              try {
+                const cmpDays = Math.max(2, parseInt(alert.optimizationRules.cplCompareDays || 30, 10));
+                const dComp = new Date(spDate);
+                dComp.setDate(dComp.getDate() - cmpDays);
+                const sinceComp = dComp.toISOString().split('T')[0];
+                let gHistRows = [];
+                try {
+                  gHistRows = await tryQueryGoogle(gLoginCustId, sinceComp, yesterdayStr);
+                } catch (eH1) {
+                  const defaultMcc = '1872453947';
+                  if (gLoginCustId !== defaultMcc) {
+                    try { gHistRows = await tryQueryGoogle(defaultMcc, sinceComp, yesterdayStr); } catch (eH2) {}
+                  }
+                }
+                for (const row of gHistRows) {
+                  if (row.metrics) {
+                    histGoogleSpend += (parseFloat(row.metrics.costMicros || 0) / 1000000);
+                    histGoogleConversions += parseFloat(row.metrics.conversions || 0);
+                  }
+                }
+              } catch (eGHist) {}
             }
           } catch (gErr) {
             console.warn(`Erro Google Ads ${unitName}:`, gErr.message);
@@ -618,13 +676,54 @@ export default async function handler(req, res) {
           unitText += `_(Nenhuma conta vinculada nesta unidade)_\n`;
         }
 
-        return { text: unitText, lowBalances: unitLowBalances };
+        // Avaliação de Semáforo de Metas & Alerta de Otimização por Unidade
+        const unitOptWarnings = [];
+        if (alert.optimizationRules && alert.optimizationRules.enabled) {
+          const opt = alert.optimizationRules;
+          const totalUnitLeads = metaLeads + gConversions;
+          const totalUnitSpend = metaSpend + gSpend;
+          const currentUnitCpl = totalUnitLeads > 0 ? (totalUnitSpend / totalUnitLeads) : 0;
+
+          // Critério 1: Mínimo de Leads no Período
+          if (opt.minLeadsEnabled) {
+            const minL = Math.max(1, parseInt(opt.minLeadsValue || 5, 10));
+            if (totalUnitLeads < minL) {
+              unitOptWarnings.push(`Poucos leads no período (${totalUnitLeads} lead(s) gerados / Meta mínima: ${minL})`);
+            }
+          }
+
+          // Critério 2: Aumento no Custo por Lead (CPL)
+          if (opt.cplIncreaseEnabled) {
+            const totalHistSpend = histMetaSpend + histGoogleSpend;
+            const totalHistLeads = histMetaLeads + histGoogleConversions;
+            const baselineCpl = totalHistLeads > 0 ? (totalHistSpend / totalHistLeads) : 0;
+            const thresholdPct = Math.max(1, parseFloat(opt.cplIncreasePercent || 30));
+            const cmpDays = Math.max(2, parseInt(opt.cplCompareDays || 30, 10));
+
+            if (currentUnitCpl > 0 && baselineCpl > 0) {
+              const diffPct = ((currentUnitCpl - baselineCpl) / baselineCpl) * 100;
+              if (diffPct >= thresholdPct) {
+                unitOptWarnings.push(`CPL subiu +${diffPct.toFixed(0)}% (${formatBRL(currentUnitCpl)} vs média ${formatBRL(baselineCpl)} dos últimos ${cmpDays}d) ⚠️`);
+              }
+            }
+          }
+        }
+
+        return { 
+          text: unitText, 
+          lowBalances: unitLowBalances,
+          optAlert: unitOptWarnings.length > 0 ? { unitName, warnings: unitOptWarnings } : null
+        };
       }));
 
       // Consolidar resultados das unidades
+      const allOptAlerts = [];
       for (const res of unitResults) {
         reportMsg += res.text;
         lowBalanceUnits.push(...res.lowBalances);
+        if (res.optAlert) {
+          allOptAlerts.push(res.optAlert);
+        }
       }
 
       // Alerta de Saldo Geral
@@ -634,6 +733,22 @@ export default async function handler(req, res) {
         lowBalanceUnits.forEach(u => {
           reportMsg += `• *${u.name}:* ${formatBRL(u.balance)} (~${u.daysLeft} dias restantes - 🚨 Recarga Necessária!)\n`;
         });
+      }
+
+      // Alerta de Otimização (Semáforo de Metas Inteligente)
+      if (alert.optimizationRules && alert.optimizationRules.enabled) {
+        reportMsg += `\n━━━━━━━━━━━━━━━━━━━━\n`;
+        if (allOptAlerts.length > 0) {
+          reportMsg += `🚨 *ALERTA DE OTIMIZAÇÃO (SEMÁFORO DE METAS):*\n`;
+          allOptAlerts.forEach(item => {
+            reportMsg += `• *${item.unitName.toUpperCase()}:*\n`;
+            item.warnings.forEach(w => {
+              reportMsg += `  ⚠️ ${w}\n`;
+            });
+          });
+        } else {
+          reportMsg += `🟢 *SEMÁFORO DE METAS:* Todas as unidades monitoradas estão dentro das metas de volume e CPL!\n`;
+        }
       }
 
       // Enviar via Gateway WhatsApp da Oracle Cloud

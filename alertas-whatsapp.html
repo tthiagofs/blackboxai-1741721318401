@@ -379,6 +379,68 @@
                                         </label>
                                     </div>
                                 </div>
+
+                                <!-- Bloco Semáforo de Metas & Alerta de Otimização -->
+                                <div class="p-4 border border-amber-300 rounded-xl bg-amber-50/50 space-y-3">
+                                    <div class="flex items-center justify-between">
+                                        <div class="flex items-center gap-2">
+                                            <span class="text-base">🚦</span>
+                                            <div>
+                                                <h4 class="text-xs font-bold text-amber-950">Semáforo de Metas & Alerta de Otimização</h4>
+                                                <p class="text-[11px] text-amber-800">Defina critérios automáticos para alertar unidades com baixo desempenho ou CPL alto.</p>
+                                            </div>
+                                        </div>
+                                        <label class="relative inline-flex items-center cursor-pointer" title="Ativar ou desativar alerta de otimização">
+                                            <input type="checkbox" id="optAlertEnabled" class="sr-only peer">
+                                            <div class="w-10 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-amber-600"></div>
+                                        </label>
+                                    </div>
+
+                                    <!-- Configuração dos Critérios de Otimização (expande ao ativar) -->
+                                    <div id="optAlertConfigBox" class="hidden pt-3 border-t border-amber-200/80 space-y-3">
+                                        <!-- Critério 1: Mínimo de Leads no Período -->
+                                        <div class="p-3 bg-white border border-amber-200 rounded-lg space-y-2">
+                                            <label class="flex items-start gap-2.5 cursor-pointer">
+                                                <input type="checkbox" id="optMinLeadsEnabled" checked class="mt-0.5 w-4 h-4 text-amber-600 rounded">
+                                                <div class="w-full">
+                                                    <span class="text-xs font-bold text-gray-900 block">Critério por Volume de Leads:</span>
+                                                    <span class="text-[11px] text-gray-500 block mt-0.5">Alertar se a unidade gerar menos de X leads no período do relatório:</span>
+                                                    <div class="mt-2 flex items-center gap-2">
+                                                        <span class="text-xs text-gray-600">Menos de</span>
+                                                        <input type="number" id="optMinLeadsValue" value="5" min="1" max="1000" class="w-20 px-2 py-1 bg-amber-50 border border-amber-300 rounded text-xs font-bold text-center outline-none focus:ring-2 focus:ring-amber-500">
+                                                        <span class="text-xs font-semibold text-gray-700">leads no período</span>
+                                                    </div>
+                                                </div>
+                                            </label>
+                                        </div>
+
+                                        <!-- Critério 2: Aumento Excessivo no Custo por Lead (CPL) -->
+                                        <div class="p-3 bg-white border border-amber-200 rounded-lg space-y-2">
+                                            <label class="flex items-start gap-2.5 cursor-pointer">
+                                                <input type="checkbox" id="optCplIncreaseEnabled" checked class="mt-0.5 w-4 h-4 text-amber-600 rounded">
+                                                <div class="w-full">
+                                                    <span class="text-xs font-bold text-gray-900 block">Critério por Aumento no Custo por Lead (CPL):</span>
+                                                    <span class="text-[11px] text-gray-500 block mt-0.5">Alertar se o CPL do período tiver um aumento acima da média histórica:</span>
+                                                    <div class="mt-2 flex flex-wrap items-center gap-2 text-xs text-gray-700">
+                                                        <span>Aumento de</span>
+                                                        <div class="flex items-center gap-1">
+                                                            <input type="number" id="optCplIncreasePercent" value="30" min="1" max="500" class="w-16 px-2 py-1 bg-amber-50 border border-amber-300 rounded text-xs font-bold text-center outline-none focus:ring-2 focus:ring-amber-500">
+                                                            <span class="font-bold">%</span>
+                                                        </div>
+                                                        <span>em relação à média dos últimos</span>
+                                                        <div class="flex items-center gap-1">
+                                                            <input type="number" id="optCplCompareDays" value="30" min="2" max="90" class="w-16 px-2 py-1 bg-amber-50 border border-amber-300 rounded text-xs font-bold text-center outline-none focus:ring-2 focus:ring-amber-500">
+                                                            <span>dias</span>
+                                                        </div>
+                                                    </div>
+                                                    <div class="mt-2 p-2 bg-amber-50/60 rounded text-[11px] text-amber-900 border border-amber-200/50">
+                                                        💡 <strong>Exemplo:</strong> Se o CPL do dia for R$ 15,00 e a média dos últimos 30 dias foi R$ 10,00 (+50%), a unidade receberá o alerta de que subiu e precisa de otimização.
+                                                    </div>
+                                                </div>
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
 
                             <!-- Botões de Ação do Formulário -->
@@ -511,6 +573,15 @@
         const googleCpc = document.getElementById('googleCpc');
         const googleBalance = document.getElementById('googleBalance');
 
+        // Semáforo de Metas & Alerta de Otimização
+        const optAlertEnabled = document.getElementById('optAlertEnabled');
+        const optAlertConfigBox = document.getElementById('optAlertConfigBox');
+        const optMinLeadsEnabled = document.getElementById('optMinLeadsEnabled');
+        const optMinLeadsValue = document.getElementById('optMinLeadsValue');
+        const optCplIncreaseEnabled = document.getElementById('optCplIncreaseEnabled');
+        const optCplIncreasePercent = document.getElementById('optCplIncreasePercent');
+        const optCplCompareDays = document.getElementById('optCplCompareDays');
+
         const saveAlertBtn = document.getElementById('saveAlertBtn');
         const previewBubbleText = document.getElementById('previewBubbleText');
         const previewTimestamp = document.getElementById('previewTimestamp');
@@ -630,6 +701,21 @@
             });
         });
 
+        // Listeners do Semáforo de Metas & Alerta de Otimização
+        optAlertEnabled.addEventListener('change', () => {
+            if (optAlertEnabled.checked) {
+                optAlertConfigBox.classList.remove('hidden');
+            } else {
+                optAlertConfigBox.classList.add('hidden');
+            }
+            updateDynamicPreview();
+        });
+
+        [optMinLeadsEnabled, optMinLeadsValue, optCplIncreaseEnabled, optCplIncreasePercent, optCplCompareDays].forEach(el => {
+            el.addEventListener('change', updateDynamicPreview);
+            el.addEventListener('input', updateDynamicPreview);
+        });
+
         // Ações rápidas dos dias da semana
         btnWeekdaysOnly.addEventListener('click', () => {
             weekDayCheckboxes.forEach(cb => {
@@ -742,6 +828,22 @@
                 msg += `• *${displayUnits[0]}:* R$ 32,25 (~1,3 dias restantes - 🚨 Recarga Necessária!)\n`;
             }
 
+            // Alerta de Otimização (Semáforo de Metas)
+            if (optAlertEnabled.checked) {
+                msg += `\n━━━━━━━━━━━━━━━━━━━━\n`;
+                msg += `🚨 *ALERTA DE OTIMIZAÇÃO (SEMÁFORO DE METAS):*\n`;
+                if (optCplIncreaseEnabled.checked) {
+                    const pct = optCplIncreasePercent.value || 30;
+                    const days = optCplCompareDays.value || 30;
+                    msg += `• *${displayUnits[0]}:* CPL subiu +${pct}% (R$ 35,62 vs R$ 25,00 média ${days}d) ⚠️ Otimização Necessária!\n`;
+                }
+                if (optMinLeadsEnabled.checked) {
+                    const minL = optMinLeadsValue.value || 5;
+                    const u2 = displayUnits.length > 1 ? displayUnits[1] : displayUnits[0];
+                    msg += `• *${u2}:* Poucos leads no período (3 leads / Meta Mínima: ${minL}) ⚠️\n`;
+                }
+            }
+
             previewBubbleText.textContent = msg;
         }
 
@@ -813,6 +915,16 @@
             googleCpa.checked = true;
             googleCpc.checked = true;
             googleBalance.checked = true;
+
+            // Semáforo de Metas / Otimização default: desativado
+            optAlertEnabled.checked = false;
+            optAlertConfigBox.classList.add('hidden');
+            optMinLeadsEnabled.checked = true;
+            optMinLeadsValue.value = '5';
+            optCplIncreaseEnabled.checked = true;
+            optCplIncreasePercent.value = '30';
+            optCplCompareDays.value = '30';
+
             btnWeekdaysOnly.click();
             checkScheduleSlots();
             updateDynamicPreview();
@@ -1323,6 +1435,21 @@
                 });
             }
 
+            // Bloco de Alerta de Otimização no Teste
+            if (optAlertEnabled.checked) {
+                reportMsg += `\n━━━━━━━━━━━━━━━━━━━━\n`;
+                reportMsg += `🚨 *ALERTA DE OTIMIZAÇÃO (SEMÁFORO DE METAS):*\n`;
+                if (optCplIncreaseEnabled.checked) {
+                    const pct = optCplIncreasePercent.value || 30;
+                    const days = optCplCompareDays.value || 30;
+                    reportMsg += `• *Critério CPL Ativo:* Aumento >= ${pct}% vs média dos últimos ${days} dias.\n`;
+                }
+                if (optMinLeadsEnabled.checked) {
+                    const minL = optMinLeadsValue.value || 5;
+                    reportMsg += `• *Critério Leads Ativo:* Mínimo de ${minL} leads no período.\n`;
+                }
+            }
+
             phoneTestFeedback.textContent = `Disparando WhatsApp para ${targetPhoneInput.value.trim()}...`;
 
             // Enviar mensagem via WhatsApp Service
@@ -1407,6 +1534,14 @@
                 customDays: customDaysVal,
                 includeToday: includeTodayVal,
                 startActivationDate: startActivationDateVal,
+                optimizationRules: {
+                    enabled: optAlertEnabled.checked,
+                    minLeadsEnabled: optMinLeadsEnabled.checked,
+                    minLeadsValue: Math.max(1, parseInt(optMinLeadsValue.value || 5, 10)),
+                    cplIncreaseEnabled: optCplIncreaseEnabled.checked,
+                    cplIncreasePercent: Math.max(1, parseFloat(optCplIncreasePercent.value || 30)),
+                    cplCompareDays: Math.max(2, parseInt(optCplCompareDays.value || 30, 10))
+                },
                 daysOfWeek: selectedDays,
                 modules: {
                     meta: {
@@ -1538,6 +1673,30 @@
                 googleBalance.checked = g.balance ?? true;
             }
 
+            // Semáforo de Metas / Alerta de Otimização
+            if (alert.optimizationRules) {
+                const opt = alert.optimizationRules;
+                optAlertEnabled.checked = !!opt.enabled;
+                if (opt.enabled) {
+                    optAlertConfigBox.classList.remove('hidden');
+                } else {
+                    optAlertConfigBox.classList.add('hidden');
+                }
+                optMinLeadsEnabled.checked = opt.minLeadsEnabled ?? true;
+                optMinLeadsValue.value = opt.minLeadsValue || 5;
+                optCplIncreaseEnabled.checked = opt.cplIncreaseEnabled ?? true;
+                optCplIncreasePercent.value = opt.cplIncreasePercent || 30;
+                optCplCompareDays.value = opt.cplCompareDays || 30;
+            } else {
+                optAlertEnabled.checked = false;
+                optAlertConfigBox.classList.add('hidden');
+                optMinLeadsEnabled.checked = true;
+                optMinLeadsValue.value = 5;
+                optCplIncreaseEnabled.checked = true;
+                optCplIncreasePercent.value = 30;
+                optCplCompareDays.value = 30;
+            }
+
             checkScheduleSlots();
             updateDynamicPreview();
         }
@@ -1583,6 +1742,10 @@
                     ? `<span class="inline-flex items-center text-[10px] font-bold text-blue-800 bg-blue-50 border border-blue-200 px-1.5 py-0.5 rounded ml-1" title="Disparos iniciam a partir desta data"><i class="far fa-calendar-alt mr-1"></i>Início: ${a.startActivationDate.split('-').reverse().join('/')}</span>`
                     : '';
 
+                const optimizationBadge = a.optimizationRules?.enabled
+                    ? `<span class="inline-flex items-center text-[10px] font-bold text-amber-800 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded ml-1" title="Semáforo de metas ativo"><i class="fas fa-traffic-light mr-1"></i>Otimização Ativa</span>`
+                    : '';
+
                 return `
                 <div class="p-5 bg-white border ${isActive ? 'border-green-300 shadow-sm' : 'border-gray-200 opacity-80'} rounded-2xl transition-all relative space-y-4">
                     <!-- Topo do Card -->
@@ -1614,7 +1777,7 @@
                         </p>
                         <p class="flex items-center justify-between">
                             <span class="text-gray-500"><i class="far fa-calendar-check mr-1 text-blue-500"></i> Período:</span>
-                            <span class="font-bold text-gray-700 flex items-center">${periodBadge} ${activationBadge}</span>
+                            <span class="font-bold text-gray-700 flex flex-wrap items-center gap-1">${periodBadge} ${activationBadge} ${optimizationBadge}</span>
                         </p>
                         <p class="flex items-center justify-between">
                             <span class="text-gray-500"><i class="far fa-calendar-alt mr-1 text-blue-500"></i> Dias:</span>

@@ -121,6 +121,7 @@ export class WhatsAppService {
                 customDays: alertData.customDays ? parseInt(alertData.customDays, 10) : 1,
                 includeToday: !!alertData.includeToday,
                 startActivationDate: alertData.startActivationDate || null,
+                optimizationRules: alertData.optimizationRules || null,
                 daysOfWeek: alertData.daysOfWeek || [1, 2, 3, 4, 5],
                 modules: alertData.modules || {},
                 selectedUnits: alertData.selectedUnits || [],

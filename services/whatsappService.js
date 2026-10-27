@@ -111,6 +111,7 @@ export class WhatsAppService {
                 id: alertId,
                 userId: user.uid,
                 userEmail: user.email || '',
+                managerName: alertData.managerName || user.displayName || 'Gestor',
                 phone: (alertData.phone || '').replace(/\D/g, ''),
                 projectId: alertData.projectId || '',
                 projectName: alertData.projectName || '',
@@ -120,6 +121,10 @@ export class WhatsAppService {
                 daysOfWeek: alertData.daysOfWeek || [1, 2, 3, 4, 5],
                 modules: alertData.modules || {},
                 selectedUnits: alertData.selectedUnits || [],
+                unitsSnapshot: alertData.unitsSnapshot || [],
+                metaToken: alertData.metaToken || '',
+                googleToken: alertData.googleToken || '',
+                lastSentKey: alertData.lastSentKey || '',
                 updatedAt: new Date().toISOString()
             };
 

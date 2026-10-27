@@ -835,16 +835,11 @@
             return null;
         }
 
-        // Obter Token Google (garantindo persistência e renovação silenciosa)
-        async function getGoogleAccessToken() {
-            try {
-                const token = await googleAuth.getAccessToken();
-                if (token) return token;
-            } catch (e) {
-                console.warn('googleAuth.getAccessToken avisou:', e);
-            }
+        // Obter Token Google (modo 100% silencioso para não disparar pop-ups ao salvar/editar)
+        async function getGoogleAccessToken(allowInteractive = false) {
             let token = localStorage.getItem('google_ads_access_token') || localStorage.getItem('googleAccessToken');
             if (token) return token;
+
             if (auth.currentUser) {
                 try {
                     const userSnap = await getDoc(doc(db, 'users', auth.currentUser.uid));
@@ -860,6 +855,16 @@
                     console.warn('Erro ao obter token Google:', e);
                 }
             }
+
+            if (allowInteractive) {
+                try {
+                    const interactiveToken = await googleAuth.getAccessToken();
+                    if (interactiveToken) return interactiveToken;
+                } catch (e) {
+                    console.warn('googleAuth avisou:', e);
+                }
+            }
+
             return null;
         }
 
@@ -1262,6 +1267,7 @@
 
             const payload = {
                 id: currentAlertId,
+                managerName: auth.currentUser?.displayName || 'Thiago Felipe',
                 phone: targetPhoneInput.value.trim(),
                 projectId: projectSelect.value,
                 projectName: project ? project.name : '',

@@ -45,9 +45,6 @@ export class GoogleAdsService {
                     error = { error: errorText };
                 }
                 const errMsg = error.error || `Erro na requisição: ${response.status}`;
-                if (response.status === 401 || errMsg.includes('401') || errMsg.includes('UNAUTHENTICATED') || errMsg.includes('invalid authentication credentials')) {
-                    import('../authGoogle.js').then(m => m.googleAuth.clearToken()).catch(() => {});
-                }
                 throw new Error(errMsg);
             }
 

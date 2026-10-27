@@ -62,19 +62,31 @@ class GoogleAuthService {
         await this.initialize();
 
         return new Promise((resolve, reject) => {
+            let timeoutId = null;
+            const original = this.tokenClient.callback;
+
             const handler = (resp) => {
+                if (timeoutId) clearTimeout(timeoutId);
+                this.tokenClient.callback = original;
                 if (resp.error) return reject(resp);
                 this.accessToken = resp.access_token;
                 this._saveTokenToStorage(resp.access_token);
                 resolve(resp.access_token);
             };
 
-            // Temporariamente substitui o callback
-            const original = this.tokenClient.callback;
             this.tokenClient.callback = handler;
+
+            // Timeout de proteção: 4s para renovação silenciosa, 120s para consentimento com popup
+            const maxWait = prompt === '' ? 4000 : 120000;
+            timeoutId = setTimeout(() => {
+                this.tokenClient.callback = original;
+                reject(new Error(prompt === '' ? 'Renovação silenciosa indisponível (popup bloqueado pelo navegador)' : 'Tempo limite para login excedido'));
+            }, maxWait);
+
             try {
                 this.tokenClient.requestAccessToken({ prompt });
             } catch (err) {
+                if (timeoutId) clearTimeout(timeoutId);
                 this.tokenClient.callback = original;
                 reject(err);
             }
@@ -97,8 +109,8 @@ class GoogleAuthService {
         }
     }
 
-    // Limpar token e dados locais
-    async clearToken() {
+    // Limpar token e dados locais SEM apagar Firestore por padrão
+    async clearToken(disconnectFirestore = false) {
         localStorage.removeItem('google_ads_access_token');
         localStorage.removeItem('googleAccessToken');
         localStorage.removeItem('google_ads_token_time');
@@ -106,11 +118,13 @@ class GoogleAuthService {
         this.accessToken = null;
         this.adAccounts = [];
 
-        try {
-            await connectionService.initialize();
-            await connectionService.disconnectGoogle();
-        } catch (err) {
-            console.warn('Erro ao desconectar no Firebase:', err);
+        if (disconnectFirestore) {
+            try {
+                await connectionService.initialize();
+                await connectionService.disconnectGoogle();
+            } catch (err) {
+                console.warn('Erro ao desconectar no Firebase:', err);
+            }
         }
     }
 

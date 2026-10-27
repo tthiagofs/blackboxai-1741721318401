@@ -1303,11 +1303,15 @@
             return null;
         }
 
-        // Obter Token Google (modo 100% silencioso para não disparar pop-ups ao salvar/editar)
+        // Obter Token Google com verificação de expiração e restauração
         async function getGoogleAccessToken(allowInteractive = false) {
             let token = localStorage.getItem('google_ads_access_token') || localStorage.getItem('googleAccessToken');
-            if (token) return token;
+            const tokenTime = localStorage.getItem('google_ads_token_time');
+            const isExpiring = tokenTime && (Date.now() - parseInt(tokenTime, 10) > 50 * 60 * 1000);
 
+            if (token && !isExpiring) return token;
+
+            // Buscar do Firestore se estiver ausente ou expirado no local
             if (auth.currentUser) {
                 try {
                     const userSnap = await getDoc(doc(db, 'users', auth.currentUser.uid));
@@ -1316,11 +1320,11 @@
                         if (conn?.google?.accessToken) {
                             token = conn.google.accessToken;
                             localStorage.setItem('google_ads_access_token', token);
-                            return token;
+                            if (!isExpiring) return token;
                         }
                     }
                 } catch (e) {
-                    console.warn('Erro ao obter token Google:', e);
+                    console.warn('Erro ao obter token Google do Firestore:', e);
                 }
             }
 
@@ -1329,11 +1333,11 @@
                     const interactiveToken = await googleAuth.getAccessToken();
                     if (interactiveToken) return interactiveToken;
                 } catch (e) {
-                    console.warn('googleAuth avisou:', e);
+                    console.warn('googleAuth aviso na renovação:', e);
                 }
             }
 
-            return null;
+            return token || null;
         }
 
         // Extrair Leads do Meta com Precisão (evitando duplicar first_reply ou lead)
@@ -1424,21 +1428,24 @@
             phoneTestFeedback.textContent = `Consultando dados reais de ${dateTitle} nas contas vinculadas...`;
             phoneTestFeedback.classList.remove('hidden');
 
-            const project = loadedProjects.find(p => p.id === projectSelect.value);
-            const projName = project ? project.name : 'Oral Centter';
+            try {
+                const project = loadedProjects.find(p => p.id === projectSelect.value);
+                const projName = project ? project.name : 'Oral Centter';
 
-            const metaToken = await getMetaAccessToken();
-            const googleToken = await getGoogleAccessToken();
-            const selectedUnitIds = checkedUnitEls.map(el => el.value);
+                const metaToken = await getMetaAccessToken();
+                const googleToken = await getGoogleAccessToken(true);
+                const selectedUnitIds = checkedUnitEls.map(el => el.value);
 
-            // Listas para armazenar métricas e alertas das unidades
-            const unitMetricsList = [];
-            const lowBalanceUnits = [];
-            const zeroSpendAndDepletedUnits = [];
-            const rejectedAdsList = [];
-            const optWarningsList = [];
+                let hasAnyGoogleAuthError = false;
 
-            // Buscar métricas reais de cada unidade
+                // Listas para armazenar métricas e alertas das unidades
+                const unitMetricsList = [];
+                const lowBalanceUnits = [];
+                const zeroSpendAndDepletedUnits = [];
+                const rejectedAdsList = [];
+                const optWarningsList = [];
+
+                // Buscar métricas reais de cada unidade
             for (const unitId of selectedUnitIds) {
                 const unit = loadedUnits.find(u => u.id === unitId);
                 const unitName = unit ? unit.name : 'Unidade';
@@ -1592,16 +1599,14 @@
 
                 // 2. PROCESSAR GOOGLE ADS
                 if (hasGoogleAccount && googleToken) {
+                    let googleUnitAuthError = false;
                     try {
                         const custId = unit.linkedAccounts.google.id.replace(/\D/g, '');
                         let managedBy = unit.linkedAccounts.google.managedBy || null;
 
                         if (!managedBy) {
                             try {
-                                let storedAccounts = googleAuth.getStoredAccounts();
-                                if (!storedAccounts || storedAccounts.length === 0) {
-                                    storedAccounts = await googleAuth.fetchAccessibleAccounts();
-                                }
+                                const storedAccounts = googleAuth.getStoredAccounts();
                                 const found = (storedAccounts || []).find(a => String(a.customerId).replace(/\D/g, '') === custId);
                                 if (found && found.managedBy) {
                                     managedBy = found.managedBy;
@@ -1610,25 +1615,17 @@
                         }
 
                         const ga = new GoogleAdsService(custId, googleToken, managedBy);
-                        let gInsights = await ga.getAccountInsights(startDate, endDate);
-
-                        if (gInsights?.error && (gInsights.error.includes('PERMISSION_DENIED') || gInsights.error.includes('login-customer-id') || !managedBy)) {
-                            try {
-                                const accList = await googleAuth.fetchAccessibleAccounts();
-                                const mccAccounts = accList.filter(a => !a.managedBy);
-                                for (const mcc of mccAccounts.slice(0, 5)) {
-                                    try {
-                                        const gaMCC = new GoogleAdsService(custId, googleToken, mcc.customerId);
-                                        const testRes = await gaMCC.getAccountInsights(startDate, endDate);
-                                        if (!testRes.error) {
-                                            managedBy = mcc.customerId;
-                                            ga.loginCustomerId = managedBy;
-                                            gInsights = testRes;
-                                            break;
-                                        }
-                                    } catch (eTry) {}
-                                }
-                            } catch (eMcc) {}
+                        let gInsights = null;
+                        try {
+                            gInsights = await ga.getAccountInsights(startDate, endDate);
+                        } catch (eIns) {
+                            const msg = eIns?.message || '';
+                            if (msg.includes('401') || msg.includes('UNAUTHENTICATED') || msg.includes('invalid authentication credentials')) {
+                                googleUnitAuthError = true;
+                                hasAnyGoogleAuthError = true;
+                            } else {
+                                console.warn(`[Google Ads Insights] Erro na conta ${custId}:`, msg);
+                            }
                         }
 
                         if (gInsights && !gInsights.error) {
@@ -1637,56 +1634,58 @@
                             gConversions = parseFloat(gInsights.conversions || 0);
                         }
 
-                        // Checar anúncios rejeitados no Google Ads
-                        try {
-                            const qRej = `
-                                SELECT
-                                    ad_group_ad.ad.name,
-                                    ad_group_ad.policy_summary.approval_status
-                                FROM ad_group_ad
-                                WHERE ad_group_ad.status = 'ENABLED'
-                                  AND ad_group_ad.policy_summary.approval_status = 'DISAPPROVED'
-                                LIMIT 5
-                            `;
-                            const gRejData = await ga.query(qRej);
-                            if (gRejData && gRejData.length > 0) {
-                                rejectedAdsList.push({
-                                    unitName,
-                                    platform: 'Google Ads',
-                                    count: gRejData.length,
-                                    ads: gRejData.map(r => r.adGroupAd?.ad?.name || 'Anúncio Google')
-                                });
-                            }
-                        } catch (eGRej) {}
-
-                        // Buscar Saldo e Previsão Google
-                        if (googleBalance.checked) {
+                        // Checar anúncios rejeitados e saldo se a autenticação foi bem-sucedida
+                        if (!googleUnitAuthError) {
                             try {
-                                const bRes = await ga.getAccountBudget();
-                                if (bRes?.budget && typeof bRes.budget.balance === 'number') {
-                                    gBalanceVal = bRes.budget.balance;
-                                    const d3 = new Date(endDate);
-                                    d3.setDate(d3.getDate() - 3);
-                                    const since3d = d3.toISOString().split('T')[0];
-                                    const ins3d = await ga.getAccountInsights(since3d, endDate);
-                                    const spend3d = parseFloat(ins3d?.cost || 0);
-                                    const avgDaily = spend3d / 3;
+                                const qRej = `
+                                    SELECT
+                                        ad_group_ad.ad.name,
+                                        ad_group_ad.policy_summary.approval_status
+                                    FROM ad_group_ad
+                                    WHERE ad_group_ad.status = 'ENABLED'
+                                      AND ad_group_ad.policy_summary.approval_status = 'DISAPPROVED'
+                                    LIMIT 5
+                                `;
+                                const gRejData = await ga.query(qRej);
+                                if (gRejData && gRejData.length > 0) {
+                                    rejectedAdsList.push({
+                                        unitName,
+                                        platform: 'Google Ads',
+                                        count: gRejData.length,
+                                        ads: gRejData.map(r => r.adGroupAd?.ad?.name || 'Anúncio Google')
+                                    });
+                                }
+                            } catch (eGRej) {}
 
-                                    if (avgDaily > 0) {
-                                        gDaysLeftVal = (gBalanceVal / avgDaily).toFixed(1);
-                                        if (parseFloat(gDaysLeftVal) <= 3) {
-                                            lowBalanceUnits.push({
-                                                name: `${unitName} (Google Ads)`,
-                                                balance: gBalanceVal,
-                                                daysLeft: gDaysLeftVal
-                                            });
+                            // Buscar Saldo e Previsão Google
+                            if (googleBalance.checked) {
+                                try {
+                                    const bRes = await ga.getAccountBudget();
+                                    if (bRes?.budget && typeof bRes.budget.balance === 'number') {
+                                        gBalanceVal = bRes.budget.balance;
+                                        const d3 = new Date(endDate);
+                                        d3.setDate(d3.getDate() - 3);
+                                        const since3d = d3.toISOString().split('T')[0];
+                                        const ins3d = await ga.getAccountInsights(since3d, endDate);
+                                        const spend3d = parseFloat(ins3d?.cost || 0);
+                                        const avgDaily = spend3d / 3;
+
+                                        if (avgDaily > 0) {
+                                            gDaysLeftVal = (gBalanceVal / avgDaily).toFixed(1);
+                                            if (parseFloat(gDaysLeftVal) <= 3) {
+                                                lowBalanceUnits.push({
+                                                    name: `${unitName} (Google Ads)`,
+                                                    balance: gBalanceVal,
+                                                    daysLeft: gDaysLeftVal
+                                                });
+                                            }
                                         }
+                                    } else {
+                                        isGooglePostpaid = true;
                                     }
-                                } else {
+                                } catch (eBal) {
                                     isGooglePostpaid = true;
                                 }
-                            } catch (eBal) {
-                                isGooglePostpaid = true;
                             }
                         }
                     } catch (e) {
@@ -1697,16 +1696,20 @@
                     const gCpa = gConversions > 0 ? gSpend / gConversions : 0;
 
                     unitText += `\n🔸 *Google Ads:*\n`;
-                    if (googleSpend.checked) unitText += `💰 *Gasto:* ${formatBRL(gSpend)}\n`;
-                    if (googleConversions.checked) unitText += `🎯 *Conversões:* ${gConversions}\n`;
-                    if (googleCpa.checked) unitText += `📉 *Custo/Conv.:* ${formatBRL(gCpa)}\n`;
-                    if (googleCpc.checked) unitText += `🖱️ *CPC Médio:* ${formatBRL(gCpc)}\n`;
-                    if (googleBalance.checked) {
-                        if (gBalanceVal !== null && !isGooglePostpaid) {
-                            unitText += `💳 *Saldo Atual:* ${formatBRL(gBalanceVal)}\n`;
-                            unitText += `⏳ *Previsão de Saldo:* ~${gDaysLeftVal || 'N/A'} dias restantes\n`;
-                        } else {
-                            unitText += `💳 *Saldo Atual:* Pós-pago / Cartão de Crédito\n`;
+                    if (googleUnitAuthError) {
+                        unitText += `⚠️ _Sessão do Google Ads expirada. Reconecte em Conexões._\n`;
+                    } else {
+                        if (googleSpend.checked) unitText += `💰 *Gasto:* ${formatBRL(gSpend)}\n`;
+                        if (googleConversions.checked) unitText += `🎯 *Conversões:* ${gConversions}\n`;
+                        if (googleCpa.checked) unitText += `📉 *Custo/Conv.:* ${formatBRL(gCpa)}\n`;
+                        if (googleCpc.checked) unitText += `🖱️ *CPC Médio:* ${formatBRL(gCpc)}\n`;
+                        if (googleBalance.checked) {
+                            if (gBalanceVal !== null && !isGooglePostpaid) {
+                                unitText += `💳 *Saldo Atual:* ${formatBRL(gBalanceVal)}\n`;
+                                unitText += `⏳ *Previsão de Saldo:* ~${gDaysLeftVal || 'N/A'} dias restantes\n`;
+                            } else {
+                                unitText += `💳 *Saldo Atual:* Pós-pago / Cartão de Crédito\n`;
+                            }
                         }
                     }
                 }
@@ -1824,16 +1827,25 @@
                 message: reportMsg
             });
 
-            if (res.success) {
-                phoneTestFeedback.className = 'mt-2 text-xs text-green-700 bg-green-50 p-2.5 rounded-lg border border-green-200';
-                phoneTestFeedback.innerHTML = `✅ <strong>Sucesso!</strong> Relatório real de <strong>${dateTitle}</strong> enviado para seu WhatsApp!`;
-            } else {
+                if (res.success) {
+                    phoneTestFeedback.className = 'mt-2 text-xs text-green-700 bg-green-50 p-2.5 rounded-lg border border-green-200';
+                    let successMsg = `✅ <strong>Sucesso!</strong> Relatório real de <strong>${dateTitle}</strong> enviado para seu WhatsApp!`;
+                    if (hasAnyGoogleAuthError) {
+                        successMsg += `<div class="mt-2 text-[11px] text-amber-800 bg-amber-50 border border-amber-200 p-2 rounded">⚠️ <strong>Atenção Google Ads:</strong> O token da sua conta Google Ads expirou. O relatório foi gerado e enviado, mas recomendamos clicar em <strong>Reconectar</strong> na aba <a href="conexoes.html" class="underline font-bold">Conexões</a> para atualizar os números do Google.</div>`;
+                    }
+                    phoneTestFeedback.innerHTML = successMsg;
+                } else {
+                    phoneTestFeedback.className = 'mt-2 text-xs text-red-700 bg-red-50 p-2.5 rounded-lg border border-red-200';
+                    phoneTestFeedback.innerHTML = '❌ <strong>Falha no envio:</strong> ' + (res.error || res.details || 'Verifique o número e o robô de WhatsApp.');
+                }
+            } catch (err) {
+                console.error('❌ Erro no disparo de teste:', err);
                 phoneTestFeedback.className = 'mt-2 text-xs text-red-700 bg-red-50 p-2.5 rounded-lg border border-red-200';
-                phoneTestFeedback.innerHTML = '❌ <strong>Falha no envio:</strong> ' + (res.error || res.details || 'Verifique o número e o robô de WhatsApp.');
+                phoneTestFeedback.innerHTML = `❌ <strong>Erro no teste:</strong> ${err.message || 'Falha ao processar os dados das contas.'}`;
+            } finally {
+                testPhoneBtn.disabled = false;
+                testPhoneBtn.innerHTML = '<i class="fas fa-paper-plane mr-1"></i> Disparar Teste';
             }
-
-            testPhoneBtn.disabled = false;
-            testPhoneBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Disparar Teste';
         });
 
         // SALVAR E PROGRAMAR ENVIO (Limite de 3 Programações)

@@ -108,15 +108,25 @@ export default async function handler(req, res) {
         const schedules = alert.schedules || ['08:00'];
         const [cHour, cMin] = currentHourMin.split(':').map(Number);
         
-        // Verifica se algum horário bate com a janela atual (+/- 20 minutos)
-        const matchesSchedule = schedules.some(s => {
+        // Verifica se algum horário bate com a janela atual (+/- 3 minutos para precisão minuto a minuto)
+        let matchedSchedule = null;
+        for (const s of schedules) {
           const [sHour, sMin] = s.split(':').map(Number);
           const diffMinutes = Math.abs((cHour * 60 + cMin) - (sHour * 60 + sMin));
-          return diffMinutes <= 20;
-        });
+          if (diffMinutes <= 3) {
+            matchedSchedule = s;
+            break;
+          }
+        }
 
-        if (!matchesSchedule) {
+        if (!matchedSchedule) {
           results.push({ alertId, status: 'skipped', reason: `Horário ${currentHourMin} fora da janela de ${schedules.join(', ')}` });
+          continue;
+        }
+
+        const todayDateKey = `${spDate.toISOString().split('T')[0]}_${matchedSchedule}`;
+        if (alert.lastSentKey === todayDateKey) {
+          results.push({ alertId, status: 'skipped', reason: `Alerta já enviado hoje para o horário ${matchedSchedule}` });
           continue;
         }
       }

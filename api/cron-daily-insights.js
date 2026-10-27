@@ -148,6 +148,12 @@ export default async function handler(req, res) {
 
       // Checagem de agendamento se não for forçado
       if (!isForce) {
+        // Checagem de data de ativação (iniciar a partir de data futura)
+        if (alert.startActivationDate && alert.startActivationDate > todayDateStr) {
+          results.push({ alertId, status: 'skipped', reason: `Alerta configurado para iniciar apenas a partir de ${alert.startActivationDate}` });
+          continue;
+        }
+
         const days = alert.daysOfWeek || [1, 2, 3, 4, 5];
         if (!days.includes(currentDayOfWeek)) {
           results.push({ alertId, status: 'skipped', reason: `Hoje não é dia de envio configurado (dia ${currentDayOfWeek})` });
@@ -195,7 +201,6 @@ export default async function handler(req, res) {
       console.log(`🚀 [Cron WhatsApp] Processando envio para ${phone} (Projeto: ${alert.projectName})...`);
 
       // 3. Montar datas do relatório
-      const is7Days = alert.reportPeriod === 'last_7_days';
       const yesterday = new Date(spDate);
       yesterday.setDate(yesterday.getDate() - 1);
       const yesterdayStr = yesterday.toISOString().split('T')[0];
@@ -204,11 +209,32 @@ export default async function handler(req, res) {
       let endDate = yesterdayStr;
       let dateTitle = yesterdayStr.split('-').reverse().join('/');
 
-      if (is7Days) {
+      if (alert.reportPeriod === 'last_7_days') {
         const d7 = new Date(yesterday);
         d7.setDate(d7.getDate() - 6);
         startDate = d7.toISOString().split('T')[0];
         dateTitle = `${startDate.split('-').reverse().join('/')} a ${endDate.split('-').reverse().join('/')} (Últimos 7 dias)`;
+      } else if (alert.reportPeriod === 'custom_days') {
+        const daysCount = Math.max(1, parseInt(alert.customDays || 1, 10));
+        const incToday = !!alert.includeToday;
+
+        if (incToday) {
+          endDate = todayDateStr;
+          const sDate = new Date(spDate);
+          sDate.setDate(sDate.getDate() - (daysCount - 1));
+          startDate = sDate.toISOString().split('T')[0];
+          dateTitle = daysCount === 1 
+            ? `${todayDateStr.split('-').reverse().join('/')} (Hoje até agora)`
+            : `${startDate.split('-').reverse().join('/')} a ${endDate.split('-').reverse().join('/')} (Últimos ${daysCount} dias incluindo hoje)`;
+        } else {
+          endDate = yesterdayStr;
+          const sDate = new Date(yesterday);
+          sDate.setDate(sDate.getDate() - (daysCount - 1));
+          startDate = sDate.toISOString().split('T')[0];
+          dateTitle = daysCount === 1 
+            ? yesterdayStr.split('-').reverse().join('/')
+            : `${startDate.split('-').reverse().join('/')} a ${endDate.split('-').reverse().join('/')} (Últimos ${daysCount} dias fechados)`;
+        }
       }
 
       const projName = alert.projectName || 'Oral Centter';

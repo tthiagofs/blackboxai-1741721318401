@@ -57,7 +57,7 @@
                         <i class="fas fa-sliders-h"></i> 1. Configurar & Testar
                     </button>
                     <button id="tabAlertsBtn" type="button" class="tab-btn pb-3 px-1 border-b-2 border-transparent text-gray-500 hover:text-gray-700 font-medium transition-all text-sm flex items-center gap-2">
-                        <i class="fas fa-calendar-check"></i> 2. Envios Programados <span id="alertsCountBadge" class="bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full text-xs">0/2</span>
+                        <i class="fas fa-calendar-check"></i> 2. Envios Programados <span id="alertsCountBadge" class="bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full text-xs">0/3</span>
                     </button>
                 </nav>
             </div>
@@ -67,14 +67,14 @@
                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
                     <!-- Formulário de Configuração (2 colunas) -->
                     <div class="lg:col-span-2 space-y-6">
-                        <!-- Banner de Limite de Horários (se atingir 2) -->
+                        <!-- Banner de Limite de Horários (se atingir 3) -->
                         <div id="scheduleLimitNotice" class="hidden p-4 bg-amber-50 border border-amber-200 rounded-2xl flex items-start gap-3">
                             <i class="fas fa-exclamation-triangle text-amber-500 text-base mt-0.5"></i>
                             <div>
-                                <h4 class="text-xs font-bold text-amber-900">Limite de 2 envios diários atingido</h4>
+                                <h4 class="text-xs font-bold text-amber-900">Limite de 3 envios programados atingido</h4>
                                 <p class="text-xs text-amber-700 mt-0.5">
-                                    Para proteger seu WhatsApp de bloqueios, o sistema permite no máximo 2 envios programados por dia.
-                                    Para cadastrar um novo horário, desative, edite ou exclua um dos envios na aba 
+                                    Para proteger a integridade do seu WhatsApp, o sistema permite no máximo 3 envios programados ativos.
+                                    Para cadastrar uma nova programação, pause, edite ou exclua um dos envios na aba 
                                     <button type="button" id="linkToAlertsTab" class="font-bold underline text-amber-900">2. Envios Programados</button>.
                                 </p>
                             </div>
@@ -169,28 +169,59 @@
                                         <span class="w-6 h-6 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xs font-bold">3</span>
                                         Horário do Disparo & Período dos Dados
                                     </h3>
-                                    <span class="text-[11px] bg-yellow-50 text-yellow-700 font-semibold px-2 py-0.5 rounded-full border border-yellow-200">
-                                        🛡️ Limite máx: 2 envios/dia
+                                    <span class="text-[11px] bg-blue-50 text-blue-700 font-semibold px-2 py-0.5 rounded-full border border-blue-200">
+                                        🛡️ Limite máx: 3 programações ativas
                                     </span>
                                 </div>
                                 <p class="text-xs text-gray-500 mb-3">Defina o período dos dados e o horário em que o relatório será enviado.</p>
 
-                                <!-- Seletor de Período dos Dados (Ontem vs Últimos 7 Dias) -->
+                                <!-- Seletor de Período dos Dados (Ontem, Últimos 7 Dias ou Personalizado X Dias) -->
                                 <div class="mb-4">
                                     <label class="block text-xs font-bold text-gray-800 mb-2">📊 Período dos Dados a Enviar</label>
-                                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                    <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
                                         <label class="flex items-start gap-3 p-3 bg-white border-2 border-green-500 rounded-xl cursor-pointer transition-all period-radio-card" id="periodCardYesterday">
                                             <input type="radio" name="reportPeriod" value="yesterday" checked class="mt-0.5 text-green-600 focus:ring-green-500">
                                             <div>
-                                                <span class="text-xs font-bold text-gray-900 block">📅 Dia Anterior (D-1 / Ontem)</span>
-                                                <span class="text-[11px] text-gray-500 block mt-0.5">Disparo diário trazendo o resumo de ontem (ex: no dia 25 recebe os dados do dia 24).</span>
+                                                <span class="text-xs font-bold text-gray-900 block">📅 Dia Anterior (D-1)</span>
+                                                <span class="text-[11px] text-gray-500 block mt-0.5">Resumo de ontem fechado (ex: no dia 25 recebe dia 24).</span>
                                             </div>
                                         </label>
                                         <label class="flex items-start gap-3 p-3 bg-white border border-gray-200 rounded-xl cursor-pointer transition-all period-radio-card hover:border-gray-300" id="periodCardLast7Days">
                                             <input type="radio" name="reportPeriod" value="last_7_days" class="mt-0.5 text-green-600 focus:ring-green-500">
                                             <div>
-                                                <span class="text-xs font-bold text-gray-900 block">📆 Últimos 7 Dias (Semanal)</span>
-                                                <span class="text-[11px] text-gray-500 block mt-0.5">Ideal para rodar na sexta-feira ou fechamento semanal, puxando os últimos 7 dias fechados.</span>
+                                                <span class="text-xs font-bold text-gray-900 block">📆 Últimos 7 Dias</span>
+                                                <span class="text-[11px] text-gray-500 block mt-0.5">Ideal para fechamento semanal na sexta-feira.</span>
+                                            </div>
+                                        </label>
+                                        <label class="flex items-start gap-3 p-3 bg-white border border-gray-200 rounded-xl cursor-pointer transition-all period-radio-card hover:border-gray-300" id="periodCardCustomDays">
+                                            <input type="radio" name="reportPeriod" value="custom_days" class="mt-0.5 text-green-600 focus:ring-green-500">
+                                            <div>
+                                                <span class="text-xs font-bold text-gray-900 block">⚙️ Últimos X Dias</span>
+                                                <span class="text-[11px] text-gray-500 block mt-0.5">Defina quantos dias e se inclui o dia de hoje.</span>
+                                            </div>
+                                        </label>
+                                    </div>
+
+                                    <!-- Painel Dinâmico: Personalizar X Dias -->
+                                    <div id="customDaysConfigBox" class="hidden mt-3 p-3.5 bg-green-50/60 border border-green-200 rounded-xl space-y-3">
+                                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-green-200/60">
+                                            <div>
+                                                <label class="text-xs font-bold text-gray-900 block">Quantidade de dias no período:</label>
+                                                <span class="text-[11px] text-gray-500">Ex: 2 dias para análise de otimização (anteontem + ontem).</span>
+                                            </div>
+                                            <div class="flex items-center gap-2">
+                                                <input type="number" id="customDaysInput" value="2" min="1" max="90" class="w-20 px-2.5 py-1.5 bg-white border border-gray-300 rounded-lg text-sm font-bold text-center outline-none focus:ring-2 focus:ring-green-500 shadow-xs">
+                                                <span class="text-xs font-semibold text-gray-700">dia(s)</span>
+                                            </div>
+                                        </div>
+                                        <label class="flex items-start gap-2.5 p-2 bg-white border border-green-300/80 rounded-lg cursor-pointer hover:bg-green-50/30">
+                                            <input type="checkbox" id="includeTodayCheckbox" class="mt-0.5 w-4 h-4 text-green-600 rounded">
+                                            <div>
+                                                <span class="text-xs font-bold text-gray-900 block">Contar com o dia de hoje (dia do disparo)?</span>
+                                                <span class="text-[11px] text-gray-500 block leading-relaxed mt-0.5">
+                                                    • Se <strong>desmarcado</strong>: puxa apenas dias já fechados até ontem (ex: 1 dia = ontem; 2 dias = anteontem e ontem).<br>
+                                                    • Se <strong>marcado</strong>: inclui os dados de hoje desde 00:00 até a hora exata do envio (ex: 1 dia com caixa marcada às 14h = hoje das 00:00 às 14:00).
+                                                </span>
                                             </div>
                                         </label>
                                     </div>
@@ -239,6 +270,28 @@
                                         </label>
                                         <label class="flex items-center gap-1 bg-white border px-2.5 py-1.5 rounded-lg cursor-pointer hover:bg-gray-50">
                                             <input type="checkbox" name="weekDay" value="0" class="w-3.5 h-3.5 text-green-600 rounded"> Dom
+                                        </label>
+                                    </div>
+                                </div>
+
+                                <!-- Seletor de Data de Início da Ativação -->
+                                <div class="mt-4 pt-3 border-t border-gray-200">
+                                    <label class="block text-xs font-bold text-gray-700 mb-1.5">🚀 Quando Iniciar os Envios Desta Programação?</label>
+                                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                                        <label class="flex items-center gap-2.5 p-2.5 bg-white border-2 border-green-500 rounded-xl cursor-pointer hover:bg-gray-50 transition-all" id="activationImmediateCard">
+                                            <input type="radio" name="activationMode" value="immediate" checked class="text-green-600 focus:ring-green-500">
+                                            <div>
+                                                <span class="text-xs font-bold text-gray-900 block">🟢 Imediato (a partir de hoje)</span>
+                                                <span class="text-[11px] text-gray-500 block mt-0.5">Disparará no próximo horário agendado.</span>
+                                            </div>
+                                        </label>
+                                        <label class="flex items-start gap-2.5 p-2.5 bg-white border border-gray-200 rounded-xl cursor-pointer hover:bg-gray-50 transition-all" id="activationScheduledCard">
+                                            <input type="radio" name="activationMode" value="scheduled" class="mt-1 text-green-600 focus:ring-green-500">
+                                            <div class="w-full">
+                                                <span class="text-xs font-bold text-gray-900 block">📅 Iniciar em Data Futura</span>
+                                                <span class="text-[11px] text-gray-500 block mt-0.5">Só iniciará a partir do dia selecionado:</span>
+                                                <input type="date" id="startActivationDateInput" class="mt-2 w-full px-2.5 py-1.5 bg-gray-50 border border-gray-300 rounded-lg text-xs font-bold outline-none focus:ring-2 focus:ring-green-500" disabled>
+                                            </div>
                                         </label>
                                     </div>
                                 </div>
@@ -432,6 +485,13 @@
         const scheduleTimeInput = document.getElementById('scheduleTimeInput');
         const periodCardYesterday = document.getElementById('periodCardYesterday');
         const periodCardLast7Days = document.getElementById('periodCardLast7Days');
+        const periodCardCustomDays = document.getElementById('periodCardCustomDays');
+        const customDaysConfigBox = document.getElementById('customDaysConfigBox');
+        const customDaysInput = document.getElementById('customDaysInput');
+        const includeTodayCheckbox = document.getElementById('includeTodayCheckbox');
+        const activationImmediateCard = document.getElementById('activationImmediateCard');
+        const activationScheduledCard = document.getElementById('activationScheduledCard');
+        const startActivationDateInput = document.getElementById('startActivationDateInput');
         const btnWeekdaysOnly = document.getElementById('btnWeekdaysOnly');
         const btnAllDays = document.getElementById('btnAllDays');
         const weekDayCheckboxes = document.querySelectorAll('input[name="weekDay"]');
@@ -507,8 +567,8 @@
 
         btnGoToNewAlert.addEventListener('click', () => {
             const activeCount = existingAlerts.filter(a => a.active !== false).length;
-            if (activeCount >= 2) {
-                alert('Você já possui 2 envios ativos programados. Para criar um novo, pause, edite ou exclua um existente.');
+            if (activeCount >= 3) {
+                alert('Você já possui 3 envios ativos programados. Para criar um novo, pause, edite ou exclua um existente.');
                 return;
             }
             resetConfigForm();
@@ -527,11 +587,46 @@
                 if (val === 'yesterday') {
                     periodCardYesterday.className = 'flex items-start gap-3 p-3 bg-white border-2 border-green-500 rounded-xl cursor-pointer transition-all period-radio-card';
                     periodCardLast7Days.className = 'flex items-start gap-3 p-3 bg-white border border-gray-200 rounded-xl cursor-pointer transition-all period-radio-card hover:border-gray-300';
-                } else {
+                    periodCardCustomDays.className = 'flex items-start gap-3 p-3 bg-white border border-gray-200 rounded-xl cursor-pointer transition-all period-radio-card hover:border-gray-300';
+                    customDaysConfigBox.classList.add('hidden');
+                } else if (val === 'last_7_days') {
                     periodCardLast7Days.className = 'flex items-start gap-3 p-3 bg-white border-2 border-green-500 rounded-xl cursor-pointer transition-all period-radio-card';
                     periodCardYesterday.className = 'flex items-start gap-3 p-3 bg-white border border-gray-200 rounded-xl cursor-pointer transition-all period-radio-card hover:border-gray-300';
+                    periodCardCustomDays.className = 'flex items-start gap-3 p-3 bg-white border border-gray-200 rounded-xl cursor-pointer transition-all period-radio-card hover:border-gray-300';
+                    customDaysConfigBox.classList.add('hidden');
+                } else if (val === 'custom_days') {
+                    periodCardCustomDays.className = 'flex items-start gap-3 p-3 bg-white border-2 border-green-500 rounded-xl cursor-pointer transition-all period-radio-card';
+                    periodCardYesterday.className = 'flex items-start gap-3 p-3 bg-white border border-gray-200 rounded-xl cursor-pointer transition-all period-radio-card hover:border-gray-300';
+                    periodCardLast7Days.className = 'flex items-start gap-3 p-3 bg-white border border-gray-200 rounded-xl cursor-pointer transition-all period-radio-card hover:border-gray-300';
+                    customDaysConfigBox.classList.remove('hidden');
                 }
                 updateDynamicPreview();
+            });
+        });
+
+        // Listeners do período customizado
+        customDaysInput.addEventListener('input', updateDynamicPreview);
+        includeTodayCheckbox.addEventListener('change', updateDynamicPreview);
+
+        // Seleção visual da Ativação (Imediata vs Programada)
+        document.querySelectorAll('input[name="activationMode"]').forEach(radio => {
+            radio.addEventListener('change', () => {
+                const mode = document.querySelector('input[name="activationMode"]:checked')?.value;
+                if (mode === 'immediate') {
+                    activationImmediateCard.className = 'flex items-center gap-2.5 p-2.5 bg-white border-2 border-green-500 rounded-xl cursor-pointer hover:bg-gray-50 transition-all';
+                    activationScheduledCard.className = 'flex items-start gap-2.5 p-2.5 bg-white border border-gray-200 rounded-xl cursor-pointer hover:bg-gray-50 transition-all';
+                    startActivationDateInput.disabled = true;
+                } else {
+                    activationScheduledCard.className = 'flex items-start gap-2.5 p-2.5 bg-white border-2 border-green-500 rounded-xl cursor-pointer hover:bg-gray-50 transition-all';
+                    activationImmediateCard.className = 'flex items-center gap-2.5 p-2.5 bg-white border border-gray-200 rounded-xl cursor-pointer hover:bg-gray-50 transition-all';
+                    startActivationDateInput.disabled = false;
+                    if (!startActivationDateInput.value) {
+                        const tomorrow = new Date();
+                        tomorrow.setDate(tomorrow.getDate() + 1);
+                        startActivationDateInput.value = tomorrow.toISOString().split('T')[0];
+                    }
+                    startActivationDateInput.focus();
+                }
             });
         });
 
@@ -568,7 +663,16 @@
             const projName = project ? project.name : 'Oral Centter';
             const timeStr = scheduleTimeInput.value || '08:00';
             const periodVal = document.querySelector('input[name="reportPeriod"]:checked')?.value || 'yesterday';
-            const periodLabel = periodVal === 'last_7_days' ? 'Últimos 7 dias (Semanal)' : 'Dados de ontem (D-1)';
+            let periodLabel = 'Dados de ontem (D-1)';
+            if (periodVal === 'last_7_days') {
+                periodLabel = 'Últimos 7 dias (Semanal)';
+            } else if (periodVal === 'custom_days') {
+                const daysCount = Math.max(1, parseInt(customDaysInput.value || 1, 10));
+                const incToday = includeTodayCheckbox.checked;
+                periodLabel = incToday 
+                    ? (daysCount === 1 ? 'Hoje até o momento (00:00 até agora)' : `Últimos ${daysCount} dias (incluindo hoje)`)
+                    : (daysCount === 1 ? 'Dados de ontem (D-1)' : `Últimos ${daysCount} dias (fechados até ontem)`);
+            }
 
             previewTimestamp.textContent = `${timeStr} ✓✓`;
 
@@ -648,19 +752,19 @@
             el.addEventListener('input', updateDynamicPreview);
         });
 
-        // Verificar disponibilidade de vagas de horários (máx 2)
+        // Verificar disponibilidade de vagas de horários (máx 3)
         function checkScheduleSlots() {
             const activeAlerts = existingAlerts.filter(a => a.active !== false);
-            alertsCountBadge.textContent = `${activeAlerts.length}/2`;
+            alertsCountBadge.textContent = `${activeAlerts.length}/3`;
 
             const isEditing = !!currentAlertId;
             const otherActiveCount = existingAlerts.filter(a => a.active !== false && a.id !== currentAlertId).length;
 
-            if (otherActiveCount >= 2 && !isEditing) {
+            if (otherActiveCount >= 3 && !isEditing) {
                 scheduleLimitNotice.classList.remove('hidden');
                 saveAlertBtn.disabled = true;
                 saveAlertBtn.className = 'ml-auto bg-gray-400 text-white font-medium px-6 py-2.5 rounded-lg text-sm transition-all flex items-center gap-2 cursor-not-allowed';
-                saveAlertBtn.innerHTML = '<i class="fas fa-lock"></i> Limite de 2 Envios Atingido';
+                saveAlertBtn.innerHTML = '<i class="fas fa-lock"></i> Limite de 3 Envios Atingido';
             } else {
                 scheduleLimitNotice.classList.add('hidden');
                 saveAlertBtn.disabled = false;
@@ -681,7 +785,19 @@
                 radioYest.checked = true;
                 periodCardYesterday.className = 'flex items-start gap-3 p-3 bg-white border-2 border-green-500 rounded-xl cursor-pointer transition-all period-radio-card';
                 periodCardLast7Days.className = 'flex items-start gap-3 p-3 bg-white border border-gray-200 rounded-xl cursor-pointer transition-all period-radio-card hover:border-gray-300';
+                periodCardCustomDays.className = 'flex items-start gap-3 p-3 bg-white border border-gray-200 rounded-xl cursor-pointer transition-all period-radio-card hover:border-gray-300';
+                customDaysConfigBox.classList.add('hidden');
             }
+            customDaysInput.value = '2';
+            includeTodayCheckbox.checked = false;
+
+            // Ativação default: imediata
+            const actImmRadio = document.querySelector('input[name="activationMode"][value="immediate"]');
+            if (actImmRadio) actImmRadio.checked = true;
+            activationImmediateCard.className = 'flex items-center gap-2.5 p-2.5 bg-white border-2 border-green-500 rounded-xl cursor-pointer hover:bg-gray-50 transition-all';
+            activationScheduledCard.className = 'flex items-start gap-2.5 p-2.5 bg-white border border-gray-200 rounded-xl cursor-pointer hover:bg-gray-50 transition-all';
+            startActivationDateInput.disabled = true;
+            startActivationDateInput.value = '';
 
             // Desmarcar unidades
             document.querySelectorAll('input[name="selectedUnit"]').forEach(cb => cb.checked = false);
@@ -1227,14 +1343,14 @@
             testPhoneBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Disparar Teste';
         });
 
-        // SALVAR E PROGRAMAR ENVIO (Limite de 2 Horários)
+        // SALVAR E PROGRAMAR ENVIO (Limite de 3 Programações)
         alertConfigForm.addEventListener('submit', async (e) => {
             e.preventDefault();
 
-            // Verificar se já atingiu o limite de 2 envios ativos
+            // Verificar se já atingiu o limite de 3 envios ativos
             const activeAlerts = existingAlerts.filter(a => a.active !== false && a.id !== currentAlertId);
-            if (activeAlerts.length >= 2) {
-                alert('Limite atingido! Você já possui 2 envios ativos programados. Desative, edite ou exclua um existente na aba "2. Envios Programados".');
+            if (activeAlerts.length >= 3) {
+                alert('Limite atingido! Você já possui 3 envios ativos programados. Desative, edite ou exclua um existente na aba "2. Envios Programados".');
                 return;
             }
 
@@ -1246,6 +1362,20 @@
 
             const timeValue = scheduleTimeInput.value || '08:00';
             const periodValue = document.querySelector('input[name="reportPeriod"]:checked')?.value || 'yesterday';
+            const customDaysVal = Math.max(1, parseInt(customDaysInput.value || 1, 10));
+            const includeTodayVal = includeTodayCheckbox.checked;
+
+            const activationModeVal = document.querySelector('input[name="activationMode"]:checked')?.value || 'immediate';
+            let startActivationDateVal = null;
+            if (activationModeVal === 'scheduled') {
+                startActivationDateVal = startActivationDateInput.value;
+                if (!startActivationDateVal) {
+                    alert('Por favor, informe a data a partir da qual os envios devem começar!');
+                    startActivationDateInput.focus();
+                    return;
+                }
+            }
+
             const selectedDays = Array.from(document.querySelectorAll('input[name="weekDay"]:checked')).map(el => parseInt(el.value));
             if (selectedDays.length === 0) {
                 alert('Selecione pelo menos um dia da semana para receber os alertas!');
@@ -1274,6 +1404,9 @@
                 active: true,
                 schedules: [timeValue],
                 reportPeriod: periodValue,
+                customDays: customDaysVal,
+                includeToday: includeTodayVal,
+                startActivationDate: startActivationDateVal,
                 daysOfWeek: selectedDays,
                 modules: {
                     meta: {
@@ -1344,13 +1477,42 @@
             const radioEl = document.querySelector(`input[name="reportPeriod"][value="${periodVal}"]`);
             if (radioEl) {
                 radioEl.checked = true;
-                if (periodVal === 'yesterday') {
-                    periodCardYesterday.className = 'flex items-start gap-3 p-3 bg-white border-2 border-green-500 rounded-xl cursor-pointer transition-all period-radio-card';
-                    periodCardLast7Days.className = 'flex items-start gap-3 p-3 bg-white border border-gray-200 rounded-xl cursor-pointer transition-all period-radio-card hover:border-gray-300';
-                } else {
-                    periodCardLast7Days.className = 'flex items-start gap-3 p-3 bg-white border-2 border-green-500 rounded-xl cursor-pointer transition-all period-radio-card';
-                    periodCardYesterday.className = 'flex items-start gap-3 p-3 bg-white border border-gray-200 rounded-xl cursor-pointer transition-all period-radio-card hover:border-gray-300';
-                }
+            }
+            customDaysInput.value = alert.customDays || 2;
+            includeTodayCheckbox.checked = !!alert.includeToday;
+
+            if (periodVal === 'yesterday') {
+                periodCardYesterday.className = 'flex items-start gap-3 p-3 bg-white border-2 border-green-500 rounded-xl cursor-pointer transition-all period-radio-card';
+                periodCardLast7Days.className = 'flex items-start gap-3 p-3 bg-white border border-gray-200 rounded-xl cursor-pointer transition-all period-radio-card hover:border-gray-300';
+                periodCardCustomDays.className = 'flex items-start gap-3 p-3 bg-white border border-gray-200 rounded-xl cursor-pointer transition-all period-radio-card hover:border-gray-300';
+                customDaysConfigBox.classList.add('hidden');
+            } else if (periodVal === 'last_7_days') {
+                periodCardLast7Days.className = 'flex items-start gap-3 p-3 bg-white border-2 border-green-500 rounded-xl cursor-pointer transition-all period-radio-card';
+                periodCardYesterday.className = 'flex items-start gap-3 p-3 bg-white border border-gray-200 rounded-xl cursor-pointer transition-all period-radio-card hover:border-gray-300';
+                periodCardCustomDays.className = 'flex items-start gap-3 p-3 bg-white border border-gray-200 rounded-xl cursor-pointer transition-all period-radio-card hover:border-gray-300';
+                customDaysConfigBox.classList.add('hidden');
+            } else if (periodVal === 'custom_days') {
+                periodCardCustomDays.className = 'flex items-start gap-3 p-3 bg-white border-2 border-green-500 rounded-xl cursor-pointer transition-all period-radio-card';
+                periodCardYesterday.className = 'flex items-start gap-3 p-3 bg-white border border-gray-200 rounded-xl cursor-pointer transition-all period-radio-card hover:border-gray-300';
+                periodCardLast7Days.className = 'flex items-start gap-3 p-3 bg-white border border-gray-200 rounded-xl cursor-pointer transition-all period-radio-card hover:border-gray-300';
+                customDaysConfigBox.classList.remove('hidden');
+            }
+
+            // Início da Ativação
+            if (alert.startActivationDate) {
+                const actSchedRadio = document.querySelector('input[name="activationMode"][value="scheduled"]');
+                if (actSchedRadio) actSchedRadio.checked = true;
+                activationScheduledCard.className = 'flex items-start gap-2.5 p-2.5 bg-white border-2 border-green-500 rounded-xl cursor-pointer hover:bg-gray-50 transition-all';
+                activationImmediateCard.className = 'flex items-center gap-2.5 p-2.5 bg-white border border-gray-200 rounded-xl cursor-pointer hover:bg-gray-50 transition-all';
+                startActivationDateInput.disabled = false;
+                startActivationDateInput.value = alert.startActivationDate;
+            } else {
+                const actImmRadio = document.querySelector('input[name="activationMode"][value="immediate"]');
+                if (actImmRadio) actImmRadio.checked = true;
+                activationImmediateCard.className = 'flex items-center gap-2.5 p-2.5 bg-white border-2 border-green-500 rounded-xl cursor-pointer hover:bg-gray-50 transition-all';
+                activationScheduledCard.className = 'flex items-start gap-2.5 p-2.5 bg-white border border-gray-200 rounded-xl cursor-pointer hover:bg-gray-50 transition-all';
+                startActivationDateInput.disabled = true;
+                startActivationDateInput.value = '';
             }
 
             if (alert.daysOfWeek && Array.isArray(alert.daysOfWeek)) {
@@ -1385,7 +1547,7 @@
             const alerts = await WhatsAppService.getUserAlerts();
             existingAlerts = alerts;
             const activeAlerts = alerts.filter(a => a.active !== false);
-            alertsCountBadge.textContent = `${activeAlerts.length}/2`;
+            alertsCountBadge.textContent = `${activeAlerts.length}/3`;
 
             if (alerts.length === 0) {
                 savedAlertsList.innerHTML = `
@@ -1406,7 +1568,20 @@
                 const formattedDays = (a.daysOfWeek || []).map(d => dayNames[d] || d).join(', ') || 'Seg a Sex';
                 const timeLabel = (a.schedules || []).length > 0 ? (a.schedules || []).join(', ') + 'h' : 'Sem horário';
                 const unitsCount = (a.selectedUnits || []).length;
-                const periodBadge = a.reportPeriod === 'last_7_days' ? '📆 Últimos 7 Dias (Semanal)' : '📅 Dia Anterior (D-1)';
+                
+                let periodBadge = '📅 Dia Anterior (D-1)';
+                if (a.reportPeriod === 'last_7_days') {
+                    periodBadge = '📆 Últimos 7 Dias (Semanal)';
+                } else if (a.reportPeriod === 'custom_days') {
+                    const dCount = a.customDays || 1;
+                    periodBadge = a.includeToday 
+                        ? `⚙️ Últimos ${dCount} dia(s) (com hoje)`
+                        : `⚙️ Últimos ${dCount} dia(s) (fechados)`;
+                }
+
+                const activationBadge = a.startActivationDate 
+                    ? `<span class="inline-flex items-center text-[10px] font-bold text-blue-800 bg-blue-50 border border-blue-200 px-1.5 py-0.5 rounded ml-1" title="Disparos iniciam a partir desta data"><i class="far fa-calendar-alt mr-1"></i>Início: ${a.startActivationDate.split('-').reverse().join('/')}</span>`
+                    : '';
 
                 return `
                 <div class="p-5 bg-white border ${isActive ? 'border-green-300 shadow-sm' : 'border-gray-200 opacity-80'} rounded-2xl transition-all relative space-y-4">
@@ -1439,7 +1614,7 @@
                         </p>
                         <p class="flex items-center justify-between">
                             <span class="text-gray-500"><i class="far fa-calendar-check mr-1 text-blue-500"></i> Período:</span>
-                            <span class="font-bold text-gray-700">${periodBadge}</span>
+                            <span class="font-bold text-gray-700 flex items-center">${periodBadge} ${activationBadge}</span>
                         </p>
                         <p class="flex items-center justify-between">
                             <span class="text-gray-500"><i class="far fa-calendar-alt mr-1 text-blue-500"></i> Dias:</span>

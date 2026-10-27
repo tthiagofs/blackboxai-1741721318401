@@ -52,14 +52,15 @@ export default async function handler(req, res) {
     // Autenticar com o bot de sistema
     let authHeaders = {};
     try {
-      const authRes = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${firebaseApiKey}`, {
+      const authRes = await fetchWithTimeout(`https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${firebaseApiKey}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           email: 'cron.bot@insightflow.internal',
           password: 'CronPass123!@#',
           returnSecureToken: true
-        })
+        }),
+        timeout: 4000
       });
       if (authRes.ok) {
         const authData = await authRes.json();
@@ -79,7 +80,7 @@ export default async function handler(req, res) {
       // 1. Tentar buscar da coleção whatsapp_alerts
       try {
         const alertsUrl = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/whatsapp_alerts?key=${firebaseApiKey}&pageSize=100`;
-        const aRes = await fetch(alertsUrl, { headers: authHeaders });
+        const aRes = await fetchWithTimeout(alertsUrl, { headers: authHeaders, timeout: 4500 });
         if (aRes.ok) {
           const aData = await aRes.json();
           const docs = aData.documents || [];
@@ -100,7 +101,7 @@ export default async function handler(req, res) {
       if (alertsToProcess.length === 0) {
         try {
           const firestoreUrl = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/users?key=${firebaseApiKey}&pageSize=100`;
-          const fRes = await fetch(firestoreUrl, { headers: authHeaders });
+          const fRes = await fetchWithTimeout(firestoreUrl, { headers: authHeaders, timeout: 4500 });
           if (fRes.ok) {
             const fData = await fRes.json();
             const documents = fData.documents || [];
@@ -161,8 +162,8 @@ export default async function handler(req, res) {
           const [sHour, sMin] = s.split(':').map(Number);
           const schedTotalMinutes = sHour * 60 + sMin;
           const diff = currentTotalMinutes - schedTotalMinutes;
-          // Dispara se estiver exatamente no minuto (diff === 0) ou no máximo 1 minuto de tolerância para o cron (diff === 1)
-          // NUNCA dispara antes (diff < 0) e nunca após a janela de 1 minuto
+          // Dispara se estiver no minuto exato (diff === 0) ou tolerância de no máximo 1 minuto de atraso do cron (diff === 1)
+          // NUNCA dispara antes (diff < 0) e nunca após 1 minuto
           if (diff >= 0 && diff <= 1) {
             matchedSchedule = s;
             break;
@@ -218,7 +219,7 @@ export default async function handler(req, res) {
       if ((!units || units.length === 0) && alert.projectId) {
         try {
           const unitsUrl = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/projects/${alert.projectId}/units?key=${firebaseApiKey}&pageSize=100`;
-          const uRes = await fetch(unitsUrl, { headers: authHeaders });
+          const uRes = await fetchWithTimeout(unitsUrl, { headers: authHeaders, timeout: 4500 });
           if (uRes.ok) {
             const uData = await uRes.json();
             const fetchedUnits = (uData.documents || []).map(d => {
@@ -245,7 +246,7 @@ export default async function handler(req, res) {
       if ((!metaToken || !googleToken) && alert.userId) {
         try {
           const userUrl = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/users/${alert.userId}?key=${firebaseApiKey}`;
-          const usrRes = await fetch(userUrl, { headers: authHeaders });
+          const usrRes = await fetchWithTimeout(userUrl, { headers: authHeaders, timeout: 4000 });
           if (usrRes.ok) {
             const usrDoc = await usrRes.json();
             const usrData = parseFirestoreMap(usrDoc.fields || {});
@@ -272,15 +273,16 @@ export default async function handler(req, res) {
 
       const lowBalanceUnits = [];
 
-      for (const unit of units) {
+      // Processar todas as unidades em PARALELO para máxima velocidade (evita timeout de 10s na Vercel)
+      const unitResults = await Promise.all(units.map(async (unit) => {
         const unitName = unit.name || 'Unidade';
-        reportMsg += `━━━━━━━━━━━━━━━━━━━━\n`;
-        reportMsg += `🏢 *${unitName.toUpperCase()}*\n`;
+        let unitText = `━━━━━━━━━━━━━━━━━━━━\n🏢 *${unitName.toUpperCase()}*\n`;
+        const unitLowBalances = [];
 
         const hasMeta = !!unit?.linkedAccounts?.meta?.id;
         const hasGoogle = !!unit?.linkedAccounts?.google?.id;
 
-        // Meta Ads
+        // 1. Meta Ads
         if (hasMeta && metaToken) {
           const actId = unit.linkedAccounts.meta.id.startsWith('act_') 
             ? unit.linkedAccounts.meta.id 
@@ -295,8 +297,34 @@ export default async function handler(req, res) {
 
           try {
             const timeRange = encodeURIComponent(JSON.stringify({ since: startDate, until: endDate }));
-            const insRes = await fetch(`https://graph.facebook.com/v22.0/${actId}/insights?fields=spend,impressions,clicks,cpc,actions&time_range=${timeRange}&access_token=${metaToken}`);
-            const insData = await insRes.json();
+            
+            // Disparar requisições Meta em paralelo
+            const promises = [
+              fetchWithTimeout(`https://graph.facebook.com/v22.0/${actId}/insights?fields=spend,impressions,clicks,cpc,actions&time_range=${timeRange}&access_token=${metaToken}`, { timeout: 4500 })
+                .then(r => r.json()).catch(() => null)
+            ];
+
+            if (metaMod.topAd !== false) {
+              promises.push(
+                fetchWithTimeout(`https://graph.facebook.com/v22.0/${actId}/insights?fields=ad_name,spend,actions&time_range=${timeRange}&level=ad&limit=20&access_token=${metaToken}`, { timeout: 4500 })
+                  .then(r => r.json()).catch(() => null)
+              );
+            } else {
+              promises.push(Promise.resolve(null));
+            }
+
+            if (metaMod.balance !== false) {
+              promises.push(
+                fetchWithTimeout(`https://graph.facebook.com/v22.0/${actId}?fields=balance,spend_cap,amount_spent,is_prepay_account&access_token=${metaToken}`, { timeout: 4000 })
+                  .then(r => r.json()).catch(() => null)
+              );
+            } else {
+              promises.push(Promise.resolve(null));
+            }
+
+            const [insData, adsData, accData] = await Promise.all(promises);
+
+            // Processar métricas gerais
             if (insData?.data && insData.data.length > 0) {
               const r = insData.data[0];
               metaSpend = parseFloat(r.spend || 0);
@@ -311,30 +339,24 @@ export default async function handler(req, res) {
               }
             }
 
-            // Top Criativo
-            if (metaMod.topAd !== false) {
-              const adsRes = await fetch(`https://graph.facebook.com/v22.0/${actId}/insights?fields=ad_name,spend,actions&time_range=${timeRange}&level=ad&limit=25&access_token=${metaToken}`);
-              const adsData = await adsRes.json();
-              if (adsData?.data && Array.isArray(adsData.data)) {
-                let maxMsgs = 0;
-                adsData.data.forEach(ad => {
-                  let msgs = 0;
-                  if (ad.actions) {
-                    const c = ad.actions.find(a => a.action_type === 'onsite_conversion.messaging_conversation_started_7d');
-                    if (c) msgs = parseInt(c.value, 10);
-                  }
-                  if (msgs > maxMsgs) {
-                    maxMsgs = msgs;
-                    metaTopAd = { name: ad.ad_name, messages: msgs };
-                  }
-                });
-              }
+            // Processar Top Criativo
+            if (adsData?.data && Array.isArray(adsData.data)) {
+              let maxMsgs = 0;
+              adsData.data.forEach(ad => {
+                let msgs = 0;
+                if (ad.actions) {
+                  const c = ad.actions.find(a => a.action_type === 'onsite_conversion.messaging_conversation_started_7d');
+                  if (c) msgs = parseInt(c.value, 10);
+                }
+                if (msgs > maxMsgs) {
+                  maxMsgs = msgs;
+                  metaTopAd = { name: ad.ad_name, messages: msgs };
+                }
+              });
             }
 
-            // Saldo e Previsão
-            if (metaMod.balance !== false) {
-              const accRes = await fetch(`https://graph.facebook.com/v22.0/${actId}?fields=balance,spend_cap,amount_spent,is_prepay_account&access_token=${metaToken}`);
-              const accData = await accRes.json();
+            // Processar Saldo
+            if (accData) {
               let rawBal = null;
               const spendCap = parseFloat(accData.spend_cap || 0);
               const amountSpent = parseFloat(accData.amount_spent || 0);
@@ -346,24 +368,16 @@ export default async function handler(req, res) {
 
               if (rawBal !== null && rawBal > 0) {
                 metaBalanceVal = Math.round((rawBal / (1 - 0.11765)) * 100) / 100;
-                // Estimativa de dias restantes com média dos últimos 3 dias
-                const d3 = new Date(yesterday);
-                d3.setDate(d3.getDate() - 3);
-                const tr3 = encodeURIComponent(JSON.stringify({ since: d3.toISOString().split('T')[0], until: endDate }));
-                const ins3Res = await fetch(`https://graph.facebook.com/v22.0/${actId}/insights?fields=spend&time_range=${tr3}&access_token=${metaToken}`);
-                const ins3Data = await ins3Res.json();
-                if (ins3Data?.data && ins3Data.data[0]) {
-                  const sp3 = parseFloat(ins3Data.data[0].spend || 0);
-                  const avg = sp3 / 3;
-                  if (avg > 0) {
-                    metaDaysLeft = (metaBalanceVal / avg).toFixed(1);
-                    if (parseFloat(metaDaysLeft) <= 3) {
-                      lowBalanceUnits.push({ name: `${unitName} (Meta Ads)`, balance: metaBalanceVal, daysLeft: metaDaysLeft });
-                    }
+                // Estimativa de dias restantes
+                if (metaSpend > 0) {
+                  metaDaysLeft = (metaBalanceVal / metaSpend).toFixed(1);
+                  if (parseFloat(metaDaysLeft) <= 3) {
+                    unitLowBalances.push({ name: `${unitName} (Meta Ads)`, balance: metaBalanceVal, daysLeft: metaDaysLeft });
                   }
                 }
               }
             }
+
           } catch (mErr) {
             console.warn(`Erro Meta Ads ${unitName}:`, mErr.message);
           }
@@ -371,22 +385,22 @@ export default async function handler(req, res) {
           const cpl = metaLeads > 0 ? metaSpend / metaLeads : 0;
           const cpc = metaClicks > 0 ? metaSpend / metaClicks : 0;
 
-          reportMsg += `\n🔹 *Meta Ads:*\n`;
-          if (metaMod.spend !== false) reportMsg += `💰 *Gasto:* ${formatBRL(metaSpend)}\n`;
-          if (metaMod.messages !== false) reportMsg += `🎯 *Mensagens (Leads):* ${metaLeads}\n`;
-          if (metaMod.cpl !== false) reportMsg += `📉 *CPL:* ${formatBRL(cpl)}\n`;
-          if (metaMod.cpc !== false) reportMsg += `🖱️ *CPC:* ${formatBRL(cpc)}\n`;
+          unitText += `\n🔹 *Meta Ads:*\n`;
+          if (metaMod.spend !== false) unitText += `💰 *Gasto:* ${formatBRL(metaSpend)}\n`;
+          if (metaMod.messages !== false) unitText += `🎯 *Mensagens (Leads):* ${metaLeads}\n`;
+          if (metaMod.cpl !== false) unitText += `📉 *CPL:* ${formatBRL(cpl)}\n`;
+          if (metaMod.cpc !== false) unitText += `🖱️ *CPC:* ${formatBRL(cpc)}\n`;
           if (metaMod.topAd !== false) {
-            reportMsg += metaTopAd ? `🏆 *Criativo Destaque:* "${metaTopAd.name}" (${metaTopAd.messages} msgs)\n` : `🏆 *Criativo Destaque:* Sem mensagens no período\n`;
+            unitText += metaTopAd ? `🏆 *Criativo Destaque:* "${metaTopAd.name}" (${metaTopAd.messages} msgs)\n` : `🏆 *Criativo Destaque:* Sem mensagens no período\n`;
           }
           if (metaMod.balance !== false) {
-            reportMsg += metaBalanceVal !== null 
+            unitText += metaBalanceVal !== null 
               ? `💳 *Saldo Atual:* ${formatBRL(metaBalanceVal)}\n⏳ *Previsão de Saldo:* ~${metaDaysLeft || 'N/A'} dias restantes\n`
               : `💳 *Saldo Atual:* Pós-pago / Cartão de Crédito\n`;
           }
         }
 
-        // Google Ads
+        // 2. Google Ads
         if (hasGoogle && googleToken) {
           const gRawId = unit.linkedAccounts.google.id;
           const gCustId = String(gRawId).replace(/\D/g, '');
@@ -419,10 +433,11 @@ export default async function handler(req, res) {
               WHERE segments.date BETWEEN '${startDate}' AND '${endDate}'
             `;
 
-            const gRes = await fetch(`https://googleads.googleapis.com/v23/customers/${gCustId}/googleAds:searchStream`, {
+            const gRes = await fetchWithTimeout(`https://googleads.googleapis.com/v23/customers/${gCustId}/googleAds:searchStream`, {
               method: 'POST',
               headers: gHeaders,
-              body: JSON.stringify({ query: gQuery })
+              body: JSON.stringify({ query: gQuery }),
+              timeout: 4500
             });
 
             if (gRes.ok) {
@@ -443,19 +458,27 @@ export default async function handler(req, res) {
           const gCpc = gClicks > 0 ? gSpend / gClicks : 0;
           const gCpa = gConversions > 0 ? gSpend / gConversions : 0;
 
-          reportMsg += `\n🔸 *Google Ads:*\n`;
-          if (googleMod.spend !== false) reportMsg += `💰 *Gasto:* ${formatBRL(gSpend)}\n`;
-          if (googleMod.conversions !== false) reportMsg += `🎯 *Conversões:* ${gConversions}\n`;
-          if (googleMod.cpa !== false) reportMsg += `📉 *Custo/Conv.:* ${formatBRL(gCpa)}\n`;
-          if (googleMod.cpc !== false) reportMsg += `🖱️ *CPC Médio:* ${formatBRL(gCpc)}\n`;
+          unitText += `\n🔸 *Google Ads:*\n`;
+          if (googleMod.spend !== false) unitText += `💰 *Gasto:* ${formatBRL(gSpend)}\n`;
+          if (googleMod.conversions !== false) unitText += `🎯 *Conversões:* ${gConversions}\n`;
+          if (googleMod.cpa !== false) unitText += `📉 *Custo/Conv.:* ${formatBRL(gCpa)}\n`;
+          if (googleMod.cpc !== false) unitText += `🖱️ *CPC Médio:* ${formatBRL(gCpc)}\n`;
           if (googleMod.balance !== false) {
-            reportMsg += `💳 *Saldo Atual:* Pós-pago / Cartão de Crédito\n`;
+            unitText += `💳 *Saldo Atual:* Pós-pago / Cartão de Crédito\n`;
           }
         }
 
         if (!hasMeta && !hasGoogle) {
-          reportMsg += `_(Nenhuma conta vinculada nesta unidade)_\n`;
+          unitText += `_(Nenhuma conta vinculada nesta unidade)_\n`;
         }
+
+        return { text: unitText, lowBalances: unitLowBalances };
+      }));
+
+      // Consolidar resultados das unidades
+      for (const res of unitResults) {
+        reportMsg += res.text;
+        lowBalanceUnits.push(...res.lowBalances);
       }
 
       // Alerta de Saldo Geral
@@ -469,7 +492,7 @@ export default async function handler(req, res) {
 
       // Enviar via Gateway WhatsApp da Oracle Cloud
       try {
-        const sendRes = await fetch(`${gatewayUrl}/message/sendText`, {
+        const sendRes = await fetchWithTimeout(`${gatewayUrl}/message/sendText`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -478,7 +501,8 @@ export default async function handler(req, res) {
           body: JSON.stringify({
             number: phone,
             text: reportMsg
-          })
+          }),
+          timeout: 8000
         });
 
         const sendData = await sendRes.json();
@@ -495,20 +519,21 @@ export default async function handler(req, res) {
           try {
             // 1. Atualizar em whatsapp_alerts
             const patchUrl = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/whatsapp_alerts/${alertId}?updateMask.fieldPaths=lastSentKey&key=${firebaseApiKey}`;
-            await fetch(patchUrl, {
+            await fetchWithTimeout(patchUrl, {
               method: 'PATCH',
               headers: { ...authHeaders, 'Content-Type': 'application/json' },
               body: JSON.stringify({
                 fields: {
                   lastSentKey: { stringValue: todayDateKey }
                 }
-              })
+              }),
+              timeout: 4000
             });
 
             // 2. Se o alerta tiver userId, atualizar também em users/{userId}
             if (alert.userId) {
               const uUrl = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/users/${alert.userId}?key=${firebaseApiKey}`;
-              const uRes = await fetch(uUrl, { headers: authHeaders });
+              const uRes = await fetchWithTimeout(uUrl, { headers: authHeaders, timeout: 4000 });
               if (uRes.ok) {
                 const uDoc = await uRes.json();
                 const uFields = uDoc.fields || {};
@@ -520,14 +545,15 @@ export default async function handler(req, res) {
                     }
                     return val;
                   });
-                  await fetch(`https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/users/${alert.userId}?updateMask.fieldPaths=whatsappAlerts&key=${firebaseApiKey}`, {
+                  await fetchWithTimeout(`https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/users/${alert.userId}?updateMask.fieldPaths=whatsappAlerts&key=${firebaseApiKey}`, {
                     method: 'PATCH',
                     headers: { ...authHeaders, 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                       fields: {
                         whatsappAlerts: { arrayValue: { values: arr } }
                       }
-                    })
+                    }),
+                    timeout: 4000
                   });
                 }
               }
@@ -553,6 +579,23 @@ export default async function handler(req, res) {
   } catch (error) {
     console.error('❌ Erro no cron-daily-insights:', error);
     return res.status(500).json({ error: error.message });
+  }
+}
+
+async function fetchWithTimeout(resource, options = {}) {
+  const { timeout = 4500 } = options;
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), timeout);
+  try {
+    const response = await fetch(resource, {
+      ...options,
+      signal: controller.signal
+    });
+    clearTimeout(id);
+    return response;
+  } catch (error) {
+    clearTimeout(id);
+    throw error;
   }
 }
 

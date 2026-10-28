@@ -70,6 +70,8 @@ class GoogleAuthService {
                     client_id: this.clientId,
                     scope: this.scope,
                     ux_mode: 'popup',
+                    prompt: 'consent',
+                    access_type: 'offline',
                     callback: async (response) => {
                         if (timeoutId) clearTimeout(timeoutId);
                         if (response.error) {
@@ -106,6 +108,15 @@ class GoogleAuthService {
                                 localStorage.setItem('googleRefreshToken', data.refreshToken);
                                 localStorage.setItem('google_ads_refresh_token', data.refreshToken);
                                 console.log('🎉 [GoogleAuth] Refresh token permanente do Google Ads obtido com sucesso!');
+                            }
+
+                            // Persistir imediatamente no Firestore e sincronizar com alertas programados
+                            try {
+                                await connectionService.initialize();
+                                const finalRt = data.refreshToken || localStorage.getItem('googleRefreshToken') || this.refreshTokenVal || null;
+                                await connectionService.saveGoogleConnection(data.accessToken, finalRt, this.getStoredAccounts());
+                            } catch (ePersist) {
+                                console.warn('⚠️ [GoogleAuth] Aviso ao persistir token no Firestore após login:', ePersist);
                             }
 
                             resolve(data.accessToken);
@@ -167,7 +178,18 @@ class GoogleAuthService {
 
     // Renova token silenciosamente via backend (usando refresh_token permanente)
     async refreshSilently() {
-        const rt = localStorage.getItem('googleRefreshToken') || localStorage.getItem('google_ads_refresh_token') || this.refreshTokenVal;
+        let rt = localStorage.getItem('googleRefreshToken') || localStorage.getItem('google_ads_refresh_token') || this.refreshTokenVal;
+        if (!rt) {
+            try {
+                await connectionService.initialize();
+                rt = connectionService.connections?.google?.refreshToken || null;
+                if (rt) {
+                    this.refreshTokenVal = rt;
+                    localStorage.setItem('googleRefreshToken', rt);
+                    localStorage.setItem('google_ads_refresh_token', rt);
+                }
+            } catch (eConn) {}
+        }
         if (!rt) return null;
 
         try {
@@ -187,6 +209,10 @@ class GoogleAuthService {
                     this.accessToken = data.accessToken;
                     this._saveTokenToStorage(data.accessToken);
                     console.log('✅ [GoogleAuth] Access token renovado com sucesso via backend!');
+                    try {
+                        await connectionService.initialize();
+                        await connectionService.saveGoogleConnection(data.accessToken, rt, this.getStoredAccounts());
+                    } catch (eSync) {}
                     return data.accessToken;
                 }
             } else {
@@ -389,5 +415,3 @@ class GoogleAuthService {
 }
 
 export const googleAuth = new GoogleAuthService();
-
-

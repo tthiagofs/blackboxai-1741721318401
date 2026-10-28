@@ -1,3 +1,5 @@
+import { connectionService } from './connectionService.js';
+
 // Serviço para Google Ads via Vercel Serverless Functions
 export class GoogleAdsService {
     constructor(customerId, accessToken = null, loginCustomerId = null) {
@@ -48,7 +50,17 @@ export class GoogleAdsService {
 
                 // Se der 401 e tiver refresh_token, renova automaticamente e retenta de forma transparente
                 const isAuthError = response.status === 401 || errMsg.includes('401') || errMsg.includes('UNAUTHENTICATED') || errMsg.includes('invalid authentication credentials');
-                const rt = localStorage.getItem('googleRefreshToken') || localStorage.getItem('google_ads_refresh_token');
+                let rt = localStorage.getItem('googleRefreshToken') || localStorage.getItem('google_ads_refresh_token');
+                if (isAuthError && !rt && !params._isRetry) {
+                    try {
+                        await connectionService.initialize();
+                        rt = connectionService.connections?.google?.refreshToken || null;
+                        if (rt) {
+                            localStorage.setItem('googleRefreshToken', rt);
+                            localStorage.setItem('google_ads_refresh_token', rt);
+                        }
+                    } catch (eConn) {}
+                }
 
                 if (isAuthError && rt && !params._isRetry) {
                     console.log('🔄 [GoogleAdsService] 401 detectado no frontend. Renovando token via refresh_token silenciosamente...');
@@ -65,6 +77,9 @@ export class GoogleAdsService {
                                 localStorage.setItem('googleAccessToken', rData.accessToken);
                                 localStorage.setItem('google_ads_access_token', rData.accessToken);
                                 localStorage.setItem('google_ads_token_time', Date.now().toString());
+                                try {
+                                    await connectionService.saveGoogleConnection(rData.accessToken, rt, connectionService.connections?.google?.adAccounts || []);
+                                } catch (eSave) {}
                                 console.log('✅ [GoogleAdsService] Token renovado com sucesso! Retentando chamada...');
                                 return await this._call(action, { ...params, _isRetry: true });
                             }

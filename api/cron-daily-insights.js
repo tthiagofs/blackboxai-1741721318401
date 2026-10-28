@@ -70,32 +70,55 @@ export default async function handler(req, res) {
       }
     } catch (eAuth) {}
 
-    // 2. Coletar alertas a serem processados
+    // 2. Coletar alertas a serem processados e mapa de tokens sincronizados em whatsapp_alerts
     let alertsToProcess = [];
+    const tokensByUser = {};
+    const globalFallbackTokens = { metaToken: '', googleToken: '', googleRefreshToken: '' };
+
+    // Sempre consultar whatsapp_alerts para carregar docs _tokens_{uid} e tokens de fallback
+    try {
+      const alertsUrl = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/whatsapp_alerts?key=${firebaseApiKey}&pageSize=100`;
+      const aRes = await fetchWithTimeout(alertsUrl, { headers: authHeaders, timeout: 4500 });
+      if (aRes.ok) {
+        const aData = await aRes.json();
+        const docs = aData.documents || [];
+        for (const doc of docs) {
+          const docId = doc.name.split('/').pop();
+          const alertObj = parseFirestoreMap(doc.fields || {});
+          alertObj.id = alertObj.id || docId;
+          alertObj._docPath = doc.name;
+
+          // Coletar tokens válidos para o usuário e para fallback global do projeto
+          if (alertObj.userId) {
+            tokensByUser[alertObj.userId] = tokensByUser[alertObj.userId] || {};
+            if (alertObj.googleRefreshToken) tokensByUser[alertObj.userId].googleRefreshToken = alertObj.googleRefreshToken;
+            if (alertObj.googleToken) tokensByUser[alertObj.userId].googleToken = alertObj.googleToken;
+            if (alertObj.metaToken) tokensByUser[alertObj.userId].metaToken = alertObj.metaToken;
+          }
+          if (alertObj.googleRefreshToken && !globalFallbackTokens.googleRefreshToken) {
+            globalFallbackTokens.googleRefreshToken = alertObj.googleRefreshToken;
+          }
+          if (alertObj.googleToken && !globalFallbackTokens.googleToken) {
+            globalFallbackTokens.googleToken = alertObj.googleToken;
+          }
+          if (alertObj.metaToken && !globalFallbackTokens.metaToken) {
+            globalFallbackTokens.metaToken = alertObj.metaToken;
+          }
+
+          // Adicionar à fila de alertas apenas se não for documento de armazenamento de token
+          if (!req.body?.alerts && !docId.startsWith('_tokens_') && !alertObj.isTokenStore && alertObj.active !== false) {
+            alertsToProcess.push(alertObj);
+          }
+        }
+      }
+    } catch (errAlerts) {
+      console.warn('⚠️ Erro ao consultar whatsapp_alerts:', errAlerts.message);
+    }
 
     // Se vierem alertas diretamente no corpo da requisição (disparo manual ou teste do app)
     if (req.body?.alerts && Array.isArray(req.body.alerts)) {
       alertsToProcess = req.body.alerts;
     } else {
-      // 1. Tentar buscar da coleção whatsapp_alerts
-      try {
-        const alertsUrl = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/whatsapp_alerts?key=${firebaseApiKey}&pageSize=100`;
-        const aRes = await fetchWithTimeout(alertsUrl, { headers: authHeaders, timeout: 4500 });
-        if (aRes.ok) {
-          const aData = await aRes.json();
-          const docs = aData.documents || [];
-          for (const doc of docs) {
-            const alertObj = parseFirestoreMap(doc.fields || {});
-            alertObj.id = alertObj.id || doc.name.split('/').pop();
-            alertObj._docPath = doc.name;
-            if (alertObj && (alertObj.active !== false)) {
-              alertsToProcess.push(alertObj);
-            }
-          }
-        }
-      } catch (errAlerts) {
-        console.warn('⚠️ Erro ao consultar whatsapp_alerts:', errAlerts.message);
-      }
 
       // 2. Fallback: tentar listar users se whatsapp_alerts estiver vazia
       if (alertsToProcess.length === 0) {
@@ -248,7 +271,16 @@ export default async function handler(req, res) {
       const until3d = yesterdayStr;
 
       const projName = alert.projectName || 'Oral Centter';
-      const managerName = alert.managerName || 'Thiago Felipe';
+      let managerName = alert.managerName || 'Gestor';
+      // Auto-correção de nome do gestor caso o alerta tenha sido salvo com o fallback antigo "Thiago Felipe" em conta de outro usuário
+      if (managerName === 'Thiago Felipe' && alert.userEmail && !alert.userEmail.toLowerCase().includes('thiago')) {
+        if (alert.userEmail.toLowerCase().includes('hiury')) {
+          managerName = 'Hiury';
+        } else {
+          const prefix = alert.userEmail.split('@')[0].replace(/[0-9._-]+/g, ' ').trim();
+          managerName = prefix ? prefix.charAt(0).toUpperCase() + prefix.slice(1) : 'Gestor';
+        }
+      }
       let units = alert.unitsSnapshot || [];
 
       // Fallback: se unitsSnapshot estiver vazio, carregar unidades do projeto via Firestore REST
@@ -275,12 +307,13 @@ export default async function handler(req, res) {
         }
       }
 
-      // Fallback e Renovação: se tokens estiverem ausentes ou expirados, buscar e renovar
-      let metaToken = alert.metaToken || process.env.META_ACCESS_TOKEN || '';
-      let googleToken = alert.googleToken || '';
-      let googleRefreshToken = alert.googleRefreshToken || process.env.GOOGLE_ADS_REFRESH_TOKEN || '';
+      // Fallback e Renovação: buscar tokens do alerta, do doc _tokens_{userId}, do fallback global ou das variáveis de ambiente
+      const userTokMap = (alert.userId && tokensByUser[alert.userId]) ? tokensByUser[alert.userId] : {};
+      let metaToken = alert.metaToken || userTokMap.metaToken || globalFallbackTokens.metaToken || process.env.META_ACCESS_TOKEN || '';
+      let googleToken = alert.googleToken || userTokMap.googleToken || globalFallbackTokens.googleToken || '';
+      let googleRefreshToken = alert.googleRefreshToken || userTokMap.googleRefreshToken || globalFallbackTokens.googleRefreshToken || process.env.GOOGLE_ADS_REFRESH_TOKEN || '';
 
-      if (alert.userId) {
+      if (alert.userId && (!metaToken || !googleRefreshToken)) {
         try {
           const userUrl = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/users/${alert.userId}?key=${firebaseApiKey}`;
           const usrRes = await fetchWithTimeout(userUrl, { headers: authHeaders, timeout: 4000 });
@@ -326,6 +359,22 @@ export default async function handler(req, res) {
             if (gRefData.access_token) {
               googleToken = gRefData.access_token;
               console.log(`✅ [Cron WhatsApp] Token do Google Ads renovado com sucesso via refresh_token para alerta ${alertId}`);
+              // Persistir o access_token renovado (e o refresh_token se faltava) de volta no documento do alerta em whatsapp_alerts
+              if (alertId && alertId !== 'sem-id') {
+                const patchTokUrl = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/whatsapp_alerts/${alertId}?updateMask.fieldPaths=googleToken&updateMask.fieldPaths=googleRefreshToken&updateMask.fieldPaths=managerName&key=${firebaseApiKey}`;
+                fetchWithTimeout(patchTokUrl, {
+                  method: 'PATCH',
+                  headers: { ...authHeaders, 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    fields: {
+                      googleToken: { stringValue: googleToken },
+                      googleRefreshToken: { stringValue: googleRefreshToken },
+                      managerName: { stringValue: managerName }
+                    }
+                  }),
+                  timeout: 3500
+                }).catch(() => {});
+              }
             }
           } else {
             const errTxt = await gRefRes.text();

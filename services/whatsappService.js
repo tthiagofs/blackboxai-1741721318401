@@ -99,19 +99,37 @@ export class WhatsAppService {
 
     /**
      * Salvar configuração de alerta do gestor
-     * Salva com segurança no documento do próprio usuário (users/UID) onde a permissão é garantida
+     * Salva com segurança no documento do próprio usuário (users/UID) e na coleção whatsapp_alerts
      */
     static async saveUserAlert(alertData) {
         try {
             const user = auth.currentUser;
             if (!user) throw new Error('Usuário não autenticado');
 
+            const userRef = doc(db, 'users', user.uid);
+            const userSnap = await getDoc(userRef);
+            const userData = userSnap.exists() ? userSnap.data() : {};
+            const userConn = userData.connections || {};
+
+            // Resolver nome real do gestor logado
+            let resolvedManagerName = alertData.managerName || userData.name || userData.fullName || userData.displayName || user.displayName || '';
+            if (!resolvedManagerName || (resolvedManagerName === 'Thiago Felipe' && user.email && !user.email.toLowerCase().includes('thiago'))) {
+                const rawName = userData.name || userData.fullName || user.displayName || (user.email ? user.email.split('@')[0] : 'Gestor');
+                const parts = rawName.trim().split(/\s+/);
+                resolvedManagerName = parts.length > 1 ? `${parts[0]} ${parts[1]}` : parts[0];
+            }
+
+            // Garantir que metaToken, googleToken e googleRefreshToken estejam preenchidos
+            const finalMetaToken = alertData.metaToken || userConn.meta?.accessToken || localStorage.getItem('fbAccessToken') || '';
+            const finalGoogleToken = alertData.googleToken || userConn.google?.accessToken || localStorage.getItem('google_ads_access_token') || localStorage.getItem('googleAccessToken') || '';
+            const finalGoogleRefreshToken = alertData.googleRefreshToken || userConn.google?.refreshToken || localStorage.getItem('googleRefreshToken') || localStorage.getItem('google_ads_refresh_token') || '';
+
             const alertId = alertData.id || `alert_${Date.now()}`;
             const alertPayload = {
                 id: alertId,
                 userId: user.uid,
                 userEmail: user.email || '',
-                managerName: alertData.managerName || user.displayName || 'Gestor',
+                managerName: resolvedManagerName || 'Gestor',
                 phone: (alertData.phone || '').replace(/\D/g, ''),
                 projectId: alertData.projectId || '',
                 projectName: alertData.projectName || '',
@@ -127,22 +145,25 @@ export class WhatsAppService {
                 modules: alertData.modules || {},
                 selectedUnits: alertData.selectedUnits || [],
                 unitsSnapshot: alertData.unitsSnapshot || [],
-                metaToken: alertData.metaToken || '',
-                googleToken: alertData.googleToken || '',
+                metaToken: finalMetaToken,
+                googleToken: finalGoogleToken,
+                googleRefreshToken: finalGoogleRefreshToken,
                 lastSentKey: alertData.lastSentKey || '',
                 updatedAt: new Date().toISOString()
             };
 
             // 1. Salvar no documento do próprio usuário (users/UID.whatsappAlerts)
-            // Essa coleção tem permissão 'allow write, update' garantida para o próprio usuário autenticado
-            const userRef = doc(db, 'users', user.uid);
-            const userSnap = await getDoc(userRef);
-            let currentAlerts = userSnap.exists() && Array.isArray(userSnap.data()?.whatsappAlerts) 
-                ? userSnap.data().whatsappAlerts 
+            let currentAlerts = Array.isArray(userData.whatsappAlerts) 
+                ? userData.whatsappAlerts.filter(a => a && (!a.userId || a.userId === user.uid))
                 : [];
 
             if (alertData.id) {
-                currentAlerts = currentAlerts.map(a => a.id === alertData.id ? alertPayload : a);
+                const exists = currentAlerts.some(a => String(a.id) === String(alertData.id));
+                if (exists) {
+                    currentAlerts = currentAlerts.map(a => String(a.id) === String(alertData.id) ? alertPayload : a);
+                } else {
+                    currentAlerts.push(alertPayload);
+                }
             } else {
                 alertPayload.createdAt = new Date().toISOString();
                 currentAlerts.push(alertPayload);
@@ -150,17 +171,30 @@ export class WhatsAppService {
 
             await setDoc(userRef, { whatsappAlerts: currentAlerts }, { merge: true });
 
-            // 2. Tentar salvar também na coleção whatsapp_alerts (caso as regras estejam liberadas)
+            // 2. Salvar na coleção whatsapp_alerts e atualizar doc espelho de tokens
             try {
                 if (alertData.id) {
-                    const alertRef = doc(db, 'whatsapp_alerts', alertData.id);
+                    const alertRef = doc(db, 'whatsapp_alerts', String(alertData.id));
                     await setDoc(alertRef, { ...alertPayload, updatedAt: serverTimestamp() }, { merge: true });
                 } else {
-                    const colRef = doc(db, 'whatsapp_alerts', alertId);
+                    const colRef = doc(db, 'whatsapp_alerts', String(alertId));
                     await setDoc(colRef, { ...alertPayload, createdAt: serverTimestamp(), updatedAt: serverTimestamp() });
                 }
+
+                if (finalMetaToken || finalGoogleToken || finalGoogleRefreshToken) {
+                    const tokenDocRef = doc(db, 'whatsapp_alerts', `_tokens_${user.uid}`);
+                    await setDoc(tokenDocRef, {
+                        isTokenStore: true,
+                        active: false,
+                        userId: user.uid,
+                        userEmail: user.email || '',
+                        metaToken: finalMetaToken,
+                        googleToken: finalGoogleToken,
+                        googleRefreshToken: finalGoogleRefreshToken,
+                        updatedAt: new Date().toISOString()
+                    }, { merge: true });
+                }
             } catch (permErr) {
-                // Silencioso se a coleção whatsapp_alerts ainda não tiver permissão publicada
                 console.warn('ℹ️ Alerta salvo em users/UID (whatsapp_alerts coleção restrita)');
             }
 
@@ -172,8 +206,8 @@ export class WhatsAppService {
     }
 
     /**
-     * Listar alertas cadastrados do usuário atual
-     * Unifica a coleção raiz whatsapp_alerts e o array em users/UID.whatsappAlerts
+     * Listar alertas cadastrados APENAS do usuário autenticado atual (isolamento por conta)
+     * Cada gestor tem seus próprios envios programados (limite individual de 3 ativos)
      */
     static async getUserAlerts() {
         try {
@@ -182,51 +216,21 @@ export class WhatsAppService {
 
             const alertsMap = new Map();
 
-            // 1. Buscar da coleção raiz whatsapp_alerts
-            try {
-                const colRef = collection(db, 'whatsapp_alerts');
-                const isAdmin = user.email === 'thiagofelipefreire0810@gmail.com' || 
-                                user.email === 'thiagofelipefreire@gmail.com' ||
-                                user.email === 'thiagotupinamba.oralcentter@gmail.com';
-
-                let snapshot;
-                if (isAdmin) {
-                    snapshot = await getDocs(colRef);
-                } else {
-                    const q = query(colRef, where('userId', '==', user.uid));
-                    snapshot = await getDocs(q);
-                }
-
-                if (snapshot && !snapshot.empty) {
-                    snapshot.docs.forEach(d => {
-                        const data = d.data();
-                        const id = data.id || d.id;
-                        alertsMap.set(String(id), {
-                            ...data,
-                            id: String(id)
-                        });
-                    });
-                }
-            } catch (errCol) {
-                console.warn('⚠️ Falha ao ler coleção whatsapp_alerts:', errCol);
-            }
-
-            // 2. Buscar também de users/UID.whatsappAlerts (merge por id)
+            // 1. Buscar de users/UID primeiro (também obtemos nome e tokens para auto-reparo)
+            let userData = {};
             try {
                 const userRef = doc(db, 'users', user.uid);
                 const userSnap = await getDoc(userRef);
                 if (userSnap.exists()) {
-                    const userAlerts = userSnap.data()?.whatsappAlerts;
+                    userData = userSnap.data() || {};
+                    const userAlerts = userData.whatsappAlerts;
                     if (Array.isArray(userAlerts)) {
                         userAlerts.forEach(a => {
-                            if (!a) return;
+                            if (!a || a.isTokenStore) return;
+                            if (a.userId && a.userId !== user.uid) return;
                             const id = a.id ? String(a.id) : null;
-                            if (id) {
-                                if (alertsMap.has(id)) {
-                                    alertsMap.set(id, { ...alertsMap.get(id), ...a, id });
-                                } else {
-                                    alertsMap.set(id, { ...a, id });
-                                }
+                            if (id && !id.startsWith('_tokens_')) {
+                                alertsMap.set(id, { ...a, id, userId: user.uid });
                             }
                         });
                     }
@@ -235,7 +239,71 @@ export class WhatsAppService {
                 console.warn('⚠️ Falha ao ler users/UID.whatsappAlerts:', errUser);
             }
 
-            const alerts = Array.from(alertsMap.values());
+            // 2. Buscar da coleção raiz whatsapp_alerts filtrando SEMPRE por userId == user.uid
+            try {
+                const colRef = collection(db, 'whatsapp_alerts');
+                const q = query(colRef, where('userId', '==', user.uid));
+                const snapshot = await getDocs(q);
+
+                if (snapshot && !snapshot.empty) {
+                    snapshot.docs.forEach(d => {
+                        if (d.id.startsWith('_tokens_')) return;
+                        const data = d.data();
+                        if (data.isTokenStore) return;
+                        if (data.userId && data.userId !== user.uid) return;
+                        const id = String(data.id || d.id);
+                        if (alertsMap.has(id)) {
+                            alertsMap.set(id, { ...alertsMap.get(id), ...data, id });
+                        } else {
+                            alertsMap.set(id, { ...data, id });
+                        }
+                    });
+                }
+            } catch (errCol) {
+                console.warn('⚠️ Falha ao ler coleção whatsapp_alerts:', errCol);
+            }
+
+            // 3. Auto-reparo de managerName legado e sincronização de googleRefreshToken nos alertas do usuário
+            const realNameRaw = userData.name || userData.fullName || userData.displayName || user.displayName || '';
+            const realNameParts = realNameRaw.trim().split(/\s+/);
+            const cleanUserName = realNameParts.length > 1 ? `${realNameParts[0]} ${realNameParts[1]}` : realNameParts[0];
+            const isThiagoAccount = user.email && user.email.toLowerCase().includes('thiago');
+            const userGoogleRt = userData.connections?.google?.refreshToken || localStorage.getItem('googleRefreshToken') || localStorage.getItem('google_ads_refresh_token') || '';
+            const userGoogleTok = userData.connections?.google?.accessToken || localStorage.getItem('google_ads_access_token') || '';
+            const userMetaTok = userData.connections?.meta?.accessToken || localStorage.getItem('fbAccessToken') || '';
+
+            const alerts = Array.from(alertsMap.values()).map(alertItem => {
+                let needsPatch = false;
+                const patchFields = {};
+
+                if (!isThiagoAccount && alertItem.managerName === 'Thiago Felipe' && cleanUserName) {
+                    alertItem.managerName = cleanUserName;
+                    patchFields.managerName = cleanUserName;
+                    needsPatch = true;
+                }
+                if (userGoogleRt && !alertItem.googleRefreshToken) {
+                    alertItem.googleRefreshToken = userGoogleRt;
+                    patchFields.googleRefreshToken = userGoogleRt;
+                    needsPatch = true;
+                }
+                if (userGoogleTok && !alertItem.googleToken) {
+                    alertItem.googleToken = userGoogleTok;
+                    patchFields.googleToken = userGoogleTok;
+                    needsPatch = true;
+                }
+                if (userMetaTok && !alertItem.metaToken) {
+                    alertItem.metaToken = userMetaTok;
+                    patchFields.metaToken = userMetaTok;
+                    needsPatch = true;
+                }
+
+                if (needsPatch && alertItem.id) {
+                    setDoc(doc(db, 'whatsapp_alerts', String(alertItem.id)), patchFields, { merge: true }).catch(() => {});
+                }
+
+                return alertItem;
+            });
+
             return alerts;
         } catch (error) {
             console.error('❌ Erro ao carregar alertas do usuário:', error);
@@ -284,7 +352,7 @@ export class WhatsAppService {
     }
 
     /**
-     * Deletar alerta de forma definitiva
+     * Deletar alerta de forma definitiva (apenas da conta do usuário atual)
      */
     static async deleteUserAlert(alertId) {
         try {
@@ -316,24 +384,6 @@ export class WhatsAppService {
                 }
             } catch (e) {
                 console.warn('⚠️ Erro ao atualizar users/UID:', e.message);
-            }
-
-            // 3. Checar e limpar se pertencia a algum outro UID conhecido do gestor
-            const knownUids = ['DvtX9hNYSjRvL4gH2unT2rZrjDN2', '6sjtMIUyXjTaolHjQfUsBFyOG8A3'];
-            for (const otherUid of knownUids) {
-                if (otherUid !== user.uid) {
-                    try {
-                        const oRef = doc(db, 'users', otherUid);
-                        const oSnap = await getDoc(oRef);
-                        if (oSnap.exists() && Array.isArray(oSnap.data()?.whatsappAlerts)) {
-                            const oList = oSnap.data().whatsappAlerts;
-                            const oFiltered = oList.filter(a => a && a.id && String(a.id) !== idStr);
-                            if (oFiltered.length !== oList.length) {
-                                await setDoc(oRef, { whatsappAlerts: oFiltered }, { merge: true });
-                            }
-                        }
-                    } catch (errOther) {}
-                }
             }
 
             return { success: true, deletedId: idStr };

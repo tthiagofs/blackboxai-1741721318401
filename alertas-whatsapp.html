@@ -1154,22 +1154,55 @@
                     const data = userDoc.exists() ? userDoc.data() : {};
                     let candidateName = data.name || data.fullName || data.displayName || user.displayName || '';
 
-                    // Se vier como "Administrador" ou vazio, buscar o nome real
+                    // Se vier como "Administrador" ou vazio, buscar o nome real da conta logada
                     if (!candidateName || candidateName.trim().toLowerCase() === 'administrador') {
-                        if (user.email && user.email.toLowerCase().includes('thiago')) {
+                        const mail = (user.email || data.email || '').toLowerCase();
+                        if (mail.includes('thiago')) {
                             candidateName = 'Thiago Felipe';
-                        } else if (data.email && data.email.toLowerCase().includes('thiago')) {
-                            candidateName = 'Thiago Felipe';
+                        } else if (mail.includes('hiury')) {
+                            candidateName = 'Hiury';
+                        } else if (mail) {
+                            const prefix = mail.split('@')[0].replace(/[0-9._-]+/g, ' ').trim();
+                            candidateName = prefix ? prefix.charAt(0).toUpperCase() + prefix.slice(1) : 'Gestor';
                         } else {
-                            candidateName = 'Thiago Felipe';
+                            candidateName = 'Gestor';
                         }
                     }
 
                     const parts = candidateName.trim().split(/\s+/);
                     currentUserName = parts.length > 1 ? `${parts[0]} ${parts[1]}` : parts[0];
+
+                    // Garantir que tokens da conta (especialmente refreshToken do Google) estejam no localStorage e espelhados para o Cron
+                    if (data.connections?.google?.refreshToken) {
+                        localStorage.setItem('googleRefreshToken', data.connections.google.refreshToken);
+                        localStorage.setItem('google_ads_refresh_token', data.connections.google.refreshToken);
+                    }
+                    if (data.connections?.google?.accessToken) {
+                        localStorage.setItem('google_ads_access_token', data.connections.google.accessToken);
+                    }
+                    if (data.connections?.meta?.accessToken) {
+                        localStorage.setItem('fbAccessToken', data.connections.meta.accessToken);
+                    }
+
+                    // Sincronizar tokens em background para whatsapp_alerts/_tokens_{uid}
+                    const syncRt = data.connections?.google?.refreshToken || localStorage.getItem('googleRefreshToken') || localStorage.getItem('google_ads_refresh_token') || '';
+                    const syncGt = data.connections?.google?.accessToken || localStorage.getItem('google_ads_access_token') || '';
+                    const syncMt = data.connections?.meta?.accessToken || localStorage.getItem('fbAccessToken') || '';
+                    if (syncRt || syncGt || syncMt) {
+                        setDoc(doc(db, 'whatsapp_alerts', `_tokens_${user.uid}`), {
+                            isTokenStore: true,
+                            active: false,
+                            userId: user.uid,
+                            userEmail: user.email || '',
+                            metaToken: syncMt,
+                            googleToken: syncGt,
+                            googleRefreshToken: syncRt,
+                            updatedAt: new Date().toISOString()
+                        }, { merge: true }).catch(() => {});
+                    }
                 } catch (e) {
                     console.warn('Erro ao obter nome:', e);
-                    currentUserName = 'Thiago Felipe';
+                    currentUserName = user.displayName || 'Gestor';
                 }
 
                 renderBlocksReorderList();
@@ -1280,24 +1313,60 @@
             return null;
         }
 
-        // Obter Token Google com verificação de expiração e restauração
-        async function getGoogleAccessToken(allowInteractive = false) {
-            let token = localStorage.getItem('google_ads_access_token') || localStorage.getItem('googleAccessToken');
-            const tokenTime = localStorage.getItem('google_ads_token_time');
-            const isExpiring = tokenTime && (Date.now() - parseInt(tokenTime, 10) > 50 * 60 * 1000);
-
-            if (token && !isExpiring) return token;
-
-            // Buscar do Firestore se estiver ausente ou expirado no local
+        // Obter Refresh Token permanente do Google Ads (localStorage ou Firestore)
+        async function getGoogleRefreshToken() {
+            let rt = localStorage.getItem('googleRefreshToken') || localStorage.getItem('google_ads_refresh_token');
+            if (rt) return rt;
             if (auth.currentUser) {
                 try {
                     const userSnap = await getDoc(doc(db, 'users', auth.currentUser.uid));
                     if (userSnap.exists()) {
                         const conn = userSnap.data().connections;
+                        if (conn?.google?.refreshToken) {
+                            rt = conn.google.refreshToken;
+                            localStorage.setItem('googleRefreshToken', rt);
+                            localStorage.setItem('google_ads_refresh_token', rt);
+                            return rt;
+                        }
+                    }
+                } catch (e) {
+                    console.warn('Erro ao obter refreshToken do Firestore:', e);
+                }
+            }
+            return '';
+        }
+
+        // Obter Token Google com verificação de expiração e auto-renovação silenciosa via refresh_token
+        async function getGoogleAccessToken(allowInteractive = false) {
+            let token = localStorage.getItem('google_ads_access_token') || localStorage.getItem('googleAccessToken');
+            const tokenTime = localStorage.getItem('google_ads_token_time');
+            const isExpiring = !tokenTime || (Date.now() - parseInt(tokenTime, 10) > 45 * 60 * 1000);
+
+            if (token && !isExpiring) return token;
+
+            // 1. Tentar renovar silenciosamente via refresh_token no backend
+            try {
+                const refreshed = await googleAuth.refreshSilently();
+                if (refreshed) return refreshed;
+            } catch (eRef) {
+                console.warn('Aviso ao renovar token Google silenciosamente:', eRef);
+            }
+
+            // 2. Buscar do Firestore se estiver ausente no local
+            if (auth.currentUser) {
+                try {
+                    const userSnap = await getDoc(doc(db, 'users', auth.currentUser.uid));
+                    if (userSnap.exists()) {
+                        const conn = userSnap.data().connections;
+                        if (conn?.google?.refreshToken) {
+                            localStorage.setItem('googleRefreshToken', conn.google.refreshToken);
+                            localStorage.setItem('google_ads_refresh_token', conn.google.refreshToken);
+                            const retryRefreshed = await googleAuth.refreshSilently();
+                            if (retryRefreshed) return retryRefreshed;
+                        }
                         if (conn?.google?.accessToken) {
                             token = conn.google.accessToken;
                             localStorage.setItem('google_ads_access_token', token);
-                            if (!isExpiring) return token;
                         }
                     }
                 } catch (e) {
@@ -1938,10 +2007,11 @@
 
             const metaToken = (await getMetaAccessToken()) || '';
             const googleToken = (await getGoogleAccessToken()) || '';
+            const googleRefreshToken = (await getGoogleRefreshToken()) || '';
 
             const payload = {
                 id: currentAlertId,
-                managerName: auth.currentUser?.displayName || 'Thiago Felipe',
+                managerName: currentUserName || auth.currentUser?.displayName || 'Gestor',
                 phone: targetPhoneInput.value.trim(),
                 projectId: projectSelect.value,
                 projectName: project ? project.name : '',
@@ -1981,7 +2051,7 @@
                 unitsSnapshot: selectedUnitsData,
                 metaToken,
                 googleToken,
-                googleRefreshToken: localStorage.getItem('googleRefreshToken') || localStorage.getItem('google_ads_refresh_token') || ''
+                googleRefreshToken
             };
 
             saveAlertBtn.disabled = true;
@@ -2276,7 +2346,14 @@
                     try {
                         const metaTok = (await getMetaAccessToken()) || target.metaToken;
                         const googleTok = (await getGoogleAccessToken()) || target.googleToken;
-                        const alertToSend = { ...target, metaToken: metaTok, googleToken: googleTok };
+                        const googleRt = (await getGoogleRefreshToken()) || target.googleRefreshToken || '';
+                        const alertToSend = {
+                            ...target,
+                            managerName: currentUserName || target.managerName || 'Gestor',
+                            metaToken: metaTok,
+                            googleToken: googleTok,
+                            googleRefreshToken: googleRt
+                        };
 
                         const response = await fetch('/api/cron-daily-insights', {
                             method: 'POST',
@@ -2316,10 +2393,13 @@
                     try {
                         const metaTok = await getMetaAccessToken();
                         const googleTok = await getGoogleAccessToken();
+                        const googleRt = await getGoogleRefreshToken();
                         const alertsToSend = active.map(a => ({
                             ...a,
+                            managerName: currentUserName || a.managerName || 'Gestor',
                             metaToken: metaTok || a.metaToken,
-                            googleToken: googleTok || a.googleToken
+                            googleToken: googleTok || a.googleToken,
+                            googleRefreshToken: googleRt || a.googleRefreshToken || ''
                         }));
 
                         const response = await fetch('/api/cron-daily-insights', {

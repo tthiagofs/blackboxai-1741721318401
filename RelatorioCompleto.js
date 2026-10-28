@@ -92,11 +92,14 @@ async function loadUnits() {
         }
         
         // Preencher dropdown
-        unitSelect.innerHTML = '<option value="">Selecione uma unidade...</option>';
+        unitSelect.innerHTML = '<option value="" class="text-gray-900 bg-white" style="color:#111827; background-color:#ffffff;">Selecione uma unidade...</option>';
         units.forEach(unit => {
             const option = document.createElement('option');
             option.value = unit.id;
             option.textContent = unit.name;
+            option.className = 'text-gray-900 bg-white font-medium';
+            option.style.color = '#111827';
+            option.style.backgroundColor = '#ffffff';
             option.dataset.unit = JSON.stringify(unit);
             unitSelect.appendChild(option);
         });

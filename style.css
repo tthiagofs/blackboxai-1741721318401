@@ -158,6 +158,13 @@ input, select, textarea {
     font-size: 16px;
     margin-top: var(--spacing-xs);
     transition: border-color var(--transition-fast);
+    color: #111827 !important;
+    background-color: #ffffff !important;
+}
+
+select option {
+    color: #111827 !important;
+    background-color: #ffffff !important;
 }
 
 input:focus, select:focus, textarea:focus {

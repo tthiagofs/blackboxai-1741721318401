@@ -45,6 +45,35 @@ export class GoogleAdsService {
                     error = { error: errorText };
                 }
                 const errMsg = error.error || `Erro na requisição: ${response.status}`;
+
+                // Se der 401 e tiver refresh_token, renova automaticamente e retenta de forma transparente
+                const isAuthError = response.status === 401 || errMsg.includes('401') || errMsg.includes('UNAUTHENTICATED') || errMsg.includes('invalid authentication credentials');
+                const rt = localStorage.getItem('googleRefreshToken') || localStorage.getItem('google_ads_refresh_token');
+
+                if (isAuthError && rt && !params._isRetry) {
+                    console.log('🔄 [GoogleAdsService] 401 detectado no frontend. Renovando token via refresh_token silenciosamente...');
+                    try {
+                        const rRes = await fetch('/api/exchange-token', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ platform: 'google', refreshToken: rt })
+                        });
+                        if (rRes.ok) {
+                            const rData = await rRes.json();
+                            if (rData.accessToken) {
+                                this.accessToken = rData.accessToken;
+                                localStorage.setItem('googleAccessToken', rData.accessToken);
+                                localStorage.setItem('google_ads_access_token', rData.accessToken);
+                                localStorage.setItem('google_ads_token_time', Date.now().toString());
+                                console.log('✅ [GoogleAdsService] Token renovado com sucesso! Retentando chamada...');
+                                return await this._call(action, { ...params, _isRetry: true });
+                            }
+                        }
+                    } catch (eRetry) {
+                        console.warn('⚠️ [GoogleAdsService] Falha na auto-renovação silenciosa:', eRetry);
+                    }
+                }
+
                 throw new Error(errMsg);
             }
 

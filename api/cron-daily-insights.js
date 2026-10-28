@@ -750,7 +750,7 @@ export default async function handler(req, res) {
                 bHeaders['login-customer-id'] = loginId;
               }
 
-              const bRes = await fetchWithTimeout(`https://googleads.googleapis.com/v23/customers/${gCustId}/googleAds:searchStream`, {
+              let bRes = await fetchWithTimeout(`https://googleads.googleapis.com/v23/customers/${gCustId}/googleAds:searchStream`, {
                 method: 'POST',
                 headers: bHeaders,
                 body: JSON.stringify({ query: bQuery }),
@@ -758,7 +758,43 @@ export default async function handler(req, res) {
               });
 
               if (!bRes.ok) {
-                throw new Error(`Budget HTTP ${bRes.status}`);
+                const bErrTxt = await bRes.text();
+                if ((bRes.status === 401 || bErrTxt.includes('UNAUTHENTICATED')) && googleRefreshToken) {
+                  console.warn(`⚠️ [Cron] 401 no Budget do Google Ads na conta ${gCustId}. Renovando token...`);
+                  try {
+                    const clientId = process.env.GOOGLE_CLIENT_ID || process.env.GOOGLE_ADS_CLIENT_ID || '73361857075-qoqd61imivlju9l83dd6fevvh8e8ppsf.apps.googleusercontent.com';
+                    const clientSecret = process.env.GOOGLE_CLIENT_SECRET || process.env.GOOGLE_ADS_CLIENT_SECRET || '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';
+                    const tokenUrl = 'https://oauth2.googleapis.com/token';
+                    const params = new URLSearchParams({
+                      client_id: clientId,
+                      client_secret: clientSecret,
+                      refresh_token: googleRefreshToken,
+                      grant_type: 'refresh_token'
+                    });
+                    const rRes = await fetchWithTimeout(tokenUrl, {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                      body: params.toString(),
+                      timeout: 5000
+                    });
+                    if (rRes.ok) {
+                      const rData = await rRes.json();
+                      if (rData.access_token) {
+                        googleToken = rData.access_token;
+                        bHeaders.Authorization = `Bearer ${googleToken}`;
+                        bRes = await fetchWithTimeout(`https://googleads.googleapis.com/v23/customers/${gCustId}/googleAds:searchStream`, {
+                          method: 'POST',
+                          headers: bHeaders,
+                          body: JSON.stringify({ query: bQuery }),
+                          timeout: 4000
+                        });
+                      }
+                    }
+                  } catch (eBRetry) {}
+                }
+                if (!bRes.ok) {
+                  throw new Error(`Budget HTTP ${bRes.status}`);
+                }
               }
               const bData = await bRes.json();
               return flattenSearchStreamResults(bData);

@@ -921,7 +921,7 @@ export default async function handler(req, res) {
             if (currentUnitCpl > 0 && baselineCpl > 0) {
               const diffPct = ((currentUnitCpl - baselineCpl) / baselineCpl) * 100;
               if (diffPct >= thresholdPct) {
-                unitOptWarnings.push(`CPL subiu +${diffPct.toFixed(0)}% (${formatBRL(currentUnitCpl)} vs média ${formatBRL(baselineCpl)} dos últimos ${cmpDays}d) ⚠️`);
+                unitOptWarnings.push(`CPL elevado em ${formatBRL(currentUnitCpl)} por lead (CPL médio últimos ${cmpDays}d = ${formatBRL(baselineCpl)} | Subida de +${diffPct.toFixed(0)}%) ⚠️`);
               }
             }
           }

@@ -2,10 +2,6 @@
   "buildCommand": "echo 'Build completed'",
   "outputDirectory": ".",
   "functions": {
-    "api/export-pdf.js": {
-      "memory": 2048,
-      "maxDuration": 60
-    },
     "api/cron-daily-insights.js": {
       "memory": 1024,
       "maxDuration": 60

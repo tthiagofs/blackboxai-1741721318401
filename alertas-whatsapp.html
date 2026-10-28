@@ -99,7 +99,7 @@
                                             <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400 text-sm">
                                                 <i class="fas fa-phone-alt text-gray-400"></i>
                                             </span>
-                                            <input type="text" id="targetPhoneInput" required placeholder="(38) 98422-3393" class="w-full pl-9 pr-3.5 py-2.5 border border-gray-300 rounded-lg text-sm font-semibold focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none">
+                                            <input type="text" id="targetPhoneInput" required placeholder="(99) 99999-9999" class="w-full pl-9 pr-3.5 py-2.5 border border-gray-300 rounded-lg text-sm font-semibold focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none">
                                         </div>
                                     </div>
                                     <div>
@@ -1052,7 +1052,7 @@
                     } else {
                         const pct = optCplIncreasePercent.value || 30;
                         const days = optCplCompareDays.value || 30;
-                        text += `• *${displayUnits[0]}:* CPL subiu +${pct}% (R$ 35,62 vs R$ 25,00 média ${days}d) ⚠️ Otimização Necessária!\n`;
+                        text += `• *${displayUnits[0]}:*\n  ⚠️ CPL elevado em R$ 35,62 por lead (CPL médio últimos ${days}d = R$ 25,00 | Subida de +${pct}%) ⚠️\n`;
                     }
                     return text;
                 },
@@ -1764,8 +1764,51 @@
                             warnings.push(`Gasto de ${formatBRL(unitTotalSpend)} no período sem nenhum lead gerado! ⚠️`);
                         } else if (unitTotalLeads > 0) {
                             const currentCpl = unitTotalSpend / unitTotalLeads;
-                            if (currentCpl >= 10) {
-                                warnings.push(`CPL elevado em ${formatBRL(currentCpl)} por lead (alerta para subidas > +${pctThreshold}% vs média de ${cmpDays}d) ⚠️`);
+                            
+                            // Buscar histórico real dos cmpDays para apurar o CPL médio anterior
+                            let histSpend = 0;
+                            let histLeads = 0;
+
+                            const dComp = new Date(endDate);
+                            dComp.setDate(dComp.getDate() - cmpDays);
+                            const sinceComp = dComp.toISOString().split('T')[0];
+
+                            // Histórico Meta
+                            if (hasMetaAccount && metaToken) {
+                                try {
+                                    const trComp = encodeURIComponent(JSON.stringify({ since: sinceComp, until: endDate }));
+                                    const hRes = await fetch(`https://graph.facebook.com/v21.0/${actId}/insights?fields=spend,actions&time_range=${trComp}&access_token=${metaToken}`);
+                                    const hData = await hRes.json();
+                                    if (hData?.data && hData.data.length > 0) {
+                                        histSpend += parseFloat(hData.data[0].spend || 0);
+                                        if (hData.data[0].actions) {
+                                            histLeads += extractExactMetaLeads(hData.data[0].actions);
+                                        }
+                                    }
+                                } catch (eHMeta) {}
+                            }
+
+                            // Histórico Google
+                            if (hasGoogleAccount && googleToken && !googleUnitAuthError) {
+                                try {
+                                    const custId = unit.linkedAccounts.google.id.replace(/\D/g, '');
+                                    const gaComp = new GoogleAdsService(custId, googleToken, managedBy);
+                                    const gHist = await gaComp.getAccountInsights(sinceComp, endDate);
+                                    if (gHist && !gHist.error) {
+                                        histSpend += parseFloat(gHist.cost || 0);
+                                        histLeads += parseFloat(gHist.conversions || 0);
+                                    }
+                                } catch (eHG) {}
+                            }
+
+                            const baselineCpl = histLeads > 0 ? (histSpend / histLeads) : 0;
+                            if (baselineCpl > 0) {
+                                const diffPct = ((currentCpl - baselineCpl) / baselineCpl) * 100;
+                                if (diffPct >= pctThreshold) {
+                                    warnings.push(`CPL elevado em ${formatBRL(currentCpl)} por lead (CPL médio últimos ${cmpDays}d = ${formatBRL(baselineCpl)} | Subida de +${diffPct.toFixed(0)}%) ⚠️`);
+                                }
+                            } else if (currentCpl >= 10) {
+                                warnings.push(`CPL elevado em ${formatBRL(currentCpl)} por lead (CPL médio últimos ${cmpDays}d = N/D | Subida > +${pctThreshold}%) ⚠️`);
                             }
                         }
                     }

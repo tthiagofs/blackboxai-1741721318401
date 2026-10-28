@@ -47,6 +47,8 @@
 
 /* ===== VARIÁVEIS CSS ===== */
 :root {
+    color-scheme: light;
+
     /* Cores principais */
     --primary-color: #2563eb;
     --primary-hover: #1d4ed8;

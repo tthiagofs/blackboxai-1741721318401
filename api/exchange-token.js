@@ -52,14 +52,11 @@ export default async function handler(req, res) {
     // 2. GOOGLE ADS
     // ==========================================
     if (platform === 'google') {
-      const clientId = process.env.GOOGLE_CLIENT_ID || '73361857075-qoqd61imivlju9l83dd6fevvh8e8ppsf.apps.googleusercontent.com';
-      const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
+      const clientId = process.env.GOOGLE_CLIENT_ID || process.env.GOOGLE_ADS_CLIENT_ID || '73361857075-qoqd61imivlju9l83dd6fevvh8e8ppsf.apps.googleusercontent.com';
+      const clientSecret = process.env.GOOGLE_CLIENT_SECRET || process.env.GOOGLE_ADS_CLIENT_SECRET || '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';
 
       // Cenário A: Renovar access_token usando refresh_token permanente
       if (refreshToken) {
-        if (!clientSecret) {
-          return res.status(400).json({ error: 'GOOGLE_CLIENT_SECRET não configurado nas env vars' });
-        }
 
         const tokenUrl = 'https://oauth2.googleapis.com/token';
         const params = new URLSearchParams({

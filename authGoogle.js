@@ -57,40 +57,107 @@ class GoogleAuthService {
         });
     }
 
-    // Solicita token ao usuário. prompt: 'consent' | 'select_account' | ''
+    // Solicita token ao usuário. Usa initCodeClient para obter Refresh Token permanente
     async login(prompt = 'consent') {
         await this.initialize();
 
         return new Promise((resolve, reject) => {
             let timeoutId = null;
-            const original = this.tokenClient.callback;
-
-            const handler = (resp) => {
-                if (timeoutId) clearTimeout(timeoutId);
-                this.tokenClient.callback = original;
-                if (resp.error) return reject(resp);
-                this.accessToken = resp.access_token;
-                this._saveTokenToStorage(resp.access_token);
-                resolve(resp.access_token);
-            };
-
-            this.tokenClient.callback = handler;
-
-            // Timeout de proteção: 4s para renovação silenciosa, 120s para consentimento com popup
-            const maxWait = prompt === '' ? 4000 : 120000;
-            timeoutId = setTimeout(() => {
-                this.tokenClient.callback = original;
-                reject(new Error(prompt === '' ? 'Renovação silenciosa indisponível (popup bloqueado pelo navegador)' : 'Tempo limite para login excedido'));
-            }, maxWait);
 
             try {
-                this.tokenClient.requestAccessToken({ prompt });
-            } catch (err) {
+                // Tentar Authorization Code Flow com popup (obtém refresh_token permanente)
+                const codeClient = google.accounts.oauth2.initCodeClient({
+                    client_id: this.clientId,
+                    scope: this.scope,
+                    ux_mode: 'popup',
+                    callback: async (response) => {
+                        if (timeoutId) clearTimeout(timeoutId);
+                        if (response.error) {
+                            console.error('❌ [GoogleAuth] Erro retornado pelo Google Identity:', response);
+                            return reject(new Error(response.error_description || response.error));
+                        }
+
+                        if (!response.code) {
+                            return reject(new Error('Nenhum código de autorização retornado pelo Google.'));
+                        }
+
+                        try {
+                            console.log('🔄 [GoogleAuth] Trocando authorization code por refresh_token permanente...');
+                            const res = await fetch('/api/exchange-token', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    platform: 'google',
+                                    code: response.code,
+                                    redirectUri: 'postmessage'
+                                })
+                            });
+
+                            const data = await res.json();
+                            if (!res.ok || data.error) {
+                                throw new Error(data.error || 'Falha ao trocar código de autorização do Google');
+                            }
+
+                            this.accessToken = data.accessToken;
+                            this._saveTokenToStorage(data.accessToken);
+
+                            if (data.refreshToken) {
+                                this.refreshTokenVal = data.refreshToken;
+                                localStorage.setItem('googleRefreshToken', data.refreshToken);
+                                localStorage.setItem('google_ads_refresh_token', data.refreshToken);
+                                console.log('🎉 [GoogleAuth] Refresh token permanente do Google Ads obtido com sucesso!');
+                            }
+
+                            resolve(data.accessToken);
+                        } catch (err) {
+                            console.error('❌ [GoogleAuth] Erro no exchange-token:', err);
+                            reject(err);
+                        }
+                    }
+                });
+
+                timeoutId = setTimeout(() => {
+                    reject(new Error('Tempo limite para login excedido'));
+                }, 120000);
+
+                codeClient.requestCode();
+            } catch (errInit) {
                 if (timeoutId) clearTimeout(timeoutId);
-                this.tokenClient.callback = original;
-                reject(err);
+                console.warn('⚠️ [GoogleAuth] Falha no initCodeClient, tentando tokenClient fallback:', errInit);
+                this._loginWithTokenClient(prompt, resolve, reject);
             }
         });
+    }
+
+    // Fallback: login legado via tokenClient (implicit token)
+    _loginWithTokenClient(prompt, resolve, reject) {
+        let timeoutId = null;
+        const original = this.tokenClient.callback;
+
+        const handler = (resp) => {
+            if (timeoutId) clearTimeout(timeoutId);
+            this.tokenClient.callback = original;
+            if (resp.error) return reject(resp);
+            this.accessToken = resp.access_token;
+            this._saveTokenToStorage(resp.access_token);
+            resolve(resp.access_token);
+        };
+
+        this.tokenClient.callback = handler;
+
+        const maxWait = prompt === '' ? 4000 : 120000;
+        timeoutId = setTimeout(() => {
+            this.tokenClient.callback = original;
+            reject(new Error(prompt === '' ? 'Renovação silenciosa indisponível' : 'Tempo limite para login excedido'));
+        }, maxWait);
+
+        try {
+            this.tokenClient.requestAccessToken({ prompt });
+        } catch (err) {
+            if (timeoutId) clearTimeout(timeoutId);
+            this.tokenClient.callback = original;
+            reject(err);
+        }
     }
 
     // Força seleção de conta
@@ -98,15 +165,48 @@ class GoogleAuthService {
         return this.login('select_account');
     }
 
-    // Tenta renovar token silenciosamente
-    async refreshToken() {
-        await this.initialize();
+    // Renova token silenciosamente via backend (usando refresh_token permanente)
+    async refreshSilently() {
+        const rt = localStorage.getItem('googleRefreshToken') || localStorage.getItem('google_ads_refresh_token') || this.refreshTokenVal;
+        if (!rt) return null;
+
         try {
-            return await this.login('');
-        } catch (err) {
-            // sinalizar que precisa de consentimento interativo
-            throw err;
+            console.log('🔄 [GoogleAuth] Renovando token Google Ads silenciosamente via refresh_token...');
+            const res = await fetch('/api/exchange-token', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    platform: 'google',
+                    refreshToken: rt
+                })
+            });
+
+            if (res.ok) {
+                const data = await res.json();
+                if (data.accessToken) {
+                    this.accessToken = data.accessToken;
+                    this._saveTokenToStorage(data.accessToken);
+                    console.log('✅ [GoogleAuth] Access token renovado com sucesso via backend!');
+                    return data.accessToken;
+                }
+            } else {
+                console.warn('⚠️ [GoogleAuth] Falha na resposta do exchange-token:', await res.text());
+            }
+        } catch (e) {
+            console.warn('⚠️ [GoogleAuth] Erro ao renovar via refresh_token:', e.message);
         }
+        return null;
+    }
+
+    // Tenta renovar token silenciosamente (primeiro via refresh_token permanente, depois GSI)
+    async refreshToken() {
+        const backendRefreshed = await this.refreshSilently();
+        if (backendRefreshed) return backendRefreshed;
+
+        await this.initialize();
+        return new Promise((resolve, reject) => {
+            this._loginWithTokenClient('', resolve, reject);
+        });
     }
 
     // Limpar token e dados locais SEM apagar Firestore por padrão
@@ -115,7 +215,10 @@ class GoogleAuthService {
         localStorage.removeItem('googleAccessToken');
         localStorage.removeItem('google_ads_token_time');
         localStorage.removeItem('google_ads_accounts');
+        localStorage.removeItem('googleRefreshToken');
+        localStorage.removeItem('google_ads_refresh_token');
         this.accessToken = null;
+        this.refreshTokenVal = null;
         this.adAccounts = [];
 
         if (disconnectFirestore) {
@@ -148,7 +251,6 @@ class GoogleAuthService {
 
         if (!t || isExpiring) {
             try {
-                // Tentar renovação silenciosa via Google Identity Services
                 console.log('🔄 [GoogleAuth] Renovando token Google Ads silenciosamente...');
                 const refreshed = await this.refreshToken();
                 if (refreshed) {
@@ -167,7 +269,8 @@ class GoogleAuthService {
                             this.accessToken = interactiveToken;
                             try {
                                 await connectionService.initialize();
-                                await connectionService.saveGoogleConnection(interactiveToken, null, this.getStoredAccounts());
+                                const rt = localStorage.getItem('googleRefreshToken') || this.refreshTokenVal || null;
+                                await connectionService.saveGoogleConnection(interactiveToken, rt, this.getStoredAccounts());
                             } catch (eSave) {}
                             return interactiveToken;
                         }
@@ -228,7 +331,11 @@ class GoogleAuthService {
 
         if (!res.ok) {
             if (res.status === 401 || data.error?.includes('401') || data.error?.includes('UNAUTHENTICATED') || data.error?.includes('invalid authentication credentials')) {
-                await this.clearToken();
+                console.warn('⚠️ [GoogleAuth] 401 ao listar contas. Tentando renovação silenciosa via refresh_token...');
+                const refreshed = await this.refreshSilently();
+                if (refreshed) {
+                    return this.fetchAccessibleAccounts();
+                }
                 throw new Error('Sessão do Google Ads expirada (401). Reconecte a conta em Conexões.');
             }
             throw new Error(data.error || 'Erro ao listar contas');
@@ -240,7 +347,8 @@ class GoogleAuthService {
 
             try {
                 await connectionService.initialize();
-                await connectionService.saveGoogleConnection(token, null, this.adAccounts);
+                const rt = localStorage.getItem('googleRefreshToken') || this.refreshTokenVal || null;
+                await connectionService.saveGoogleConnection(token, rt, this.adAccounts);
             } catch (err) {
                 console.warn('Erro ao salvar conexão no Firebase:', err);
             }

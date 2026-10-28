@@ -1422,6 +1422,10 @@
                 dateTitle = chosen.split('-').reverse().join('/');
             }
 
+            const sTime = new Date(startDate).getTime();
+            const eTime = new Date(endDate).getTime();
+            const periodDays = Math.max(1, Math.round((eTime - sTime) / (1000 * 60 * 60 * 24)) + 1);
+
             testPhoneBtn.disabled = true;
             testPhoneBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Consultando...';
             phoneTestFeedback.className = 'mt-2 text-xs text-blue-700 bg-blue-50 border border-blue-200 p-2.5 rounded-lg';
@@ -1562,14 +1566,12 @@
                                 const ins3Url = `https://graph.facebook.com/v21.0/${actId}/insights?fields=spend&time_range=${tr3}&access_token=${metaToken}`;
                                 const ins3Res = await fetch(ins3Url);
                                 const ins3Data = await ins3Res.json();
-                                if (ins3Data?.data && ins3Data.data.length > 0) {
-                                    const sp3 = parseFloat(ins3Data.data[0].spend || 0);
-                                    const avgDaily = sp3 / 3;
-                                    if (avgDaily > 0) {
-                                        metaDaysLeftVal = (metaBalanceVal / avgDaily).toFixed(1);
-                                        if (parseFloat(metaDaysLeftVal) <= 3) {
-                                            lowBalanceUnits.push({ name: `${unitName} (Meta Ads)`, balance: metaBalanceVal, daysLeft: metaDaysLeftVal });
-                                        }
+                                const sp3 = (ins3Data?.data && ins3Data.data.length > 0) ? parseFloat(ins3Data.data[0].spend || 0) : 0;
+                                const avgDaily = sp3 > 0 ? (sp3 / 3) : (metaSpendVal > 0 ? (metaSpendVal / periodDays) : 0);
+                                if (avgDaily > 0) {
+                                    metaDaysLeftVal = (metaBalanceVal / avgDaily).toFixed(1);
+                                    if (parseFloat(metaDaysLeftVal) <= 3) {
+                                        lowBalanceUnits.push({ name: `${unitName} (Meta Ads)`, balance: metaBalanceVal, daysLeft: metaDaysLeftVal });
                                     }
                                 }
                             } else if ((spendCap > 0 && spendCap <= amountSpent) || (accData.is_prepay_account && parseFloat(accData.balance || 0) <= 0)) {
@@ -1676,7 +1678,7 @@
                                         const since3d = d3.toISOString().split('T')[0];
                                         const ins3d = await ga.getAccountInsights(since3d, endDate);
                                         const spend3d = parseFloat(ins3d?.cost || 0);
-                                        const avgDaily = spend3d / 3;
+                                        const avgDaily = spend3d > 0 ? (spend3d / 3) : (gSpend > 0 ? (gSpend / periodDays) : 0);
 
                                         if (avgDaily > 0) {
                                             gDaysLeftVal = (gBalanceVal / avgDaily).toFixed(1);
@@ -1957,7 +1959,8 @@
                 selectedUnits,
                 unitsSnapshot: selectedUnitsData,
                 metaToken,
-                googleToken
+                googleToken,
+                googleRefreshToken: localStorage.getItem('googleRefreshToken') || localStorage.getItem('google_ads_refresh_token') || ''
             };
 
             saveAlertBtn.disabled = true;

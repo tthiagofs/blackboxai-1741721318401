@@ -237,6 +237,16 @@ export default async function handler(req, res) {
         }
       }
 
+      // 3.1 Calcular duração do período e janela dos últimos 3 dias para previsão diária de saldo
+      const sTime = new Date(startDate).getTime();
+      const eTime = new Date(endDate).getTime();
+      const periodDays = Math.max(1, Math.round((eTime - sTime) / (1000 * 60 * 60 * 24)) + 1);
+
+      const d3 = new Date(yesterday);
+      d3.setDate(d3.getDate() - 2); // Ex: ontem (27) - 2 = 25 -> cobre dias 25, 26, 27 (3 dias fechados)
+      const since3d = d3.toISOString().split('T')[0];
+      const until3d = yesterdayStr;
+
       const projName = alert.projectName || 'Oral Centter';
       const managerName = alert.managerName || 'Thiago Felipe';
       let units = alert.unitsSnapshot || [];
@@ -265,11 +275,12 @@ export default async function handler(req, res) {
         }
       }
 
-      // Fallback: se tokens estiverem ausentes, buscar do usuário no Firestore
+      // Fallback e Renovação: se tokens estiverem ausentes ou expirados, buscar e renovar
       let metaToken = alert.metaToken || process.env.META_ACCESS_TOKEN || '';
       let googleToken = alert.googleToken || '';
+      let googleRefreshToken = alert.googleRefreshToken || process.env.GOOGLE_ADS_REFRESH_TOKEN || '';
 
-      if ((!metaToken || !googleToken) && alert.userId) {
+      if (alert.userId) {
         try {
           const userUrl = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/users/${alert.userId}?key=${firebaseApiKey}`;
           const usrRes = await fetchWithTimeout(userUrl, { headers: authHeaders, timeout: 4000 });
@@ -279,12 +290,49 @@ export default async function handler(req, res) {
             if (!metaToken && usrData.connections?.meta?.accessToken) {
               metaToken = usrData.connections.meta.accessToken;
             }
+            if (!googleRefreshToken && usrData.connections?.google?.refreshToken) {
+              googleRefreshToken = usrData.connections.google.refreshToken;
+            }
             if (!googleToken && usrData.connections?.google?.accessToken) {
               googleToken = usrData.connections.google.accessToken;
             }
           }
         } catch (eTok) {
           console.warn('⚠️ Erro ao buscar tokens do usuário no Firestore:', eTok.message);
+        }
+      }
+
+      // Se temos refresh_token do Google Ads, SEMPRE renovamos o access_token antes do envio
+      // Isso evita tokens expirados de 1 hora gerados via GSI
+      if (googleRefreshToken) {
+        try {
+          const clientId = process.env.GOOGLE_CLIENT_ID || process.env.GOOGLE_ADS_CLIENT_ID || '73361857075-qoqd61imivlju9l83dd6fevvh8e8ppsf.apps.googleusercontent.com';
+          const clientSecret = process.env.GOOGLE_CLIENT_SECRET || process.env.GOOGLE_ADS_CLIENT_SECRET || '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';
+          const tokenUrl = 'https://oauth2.googleapis.com/token';
+          const params = new URLSearchParams({
+            client_id: clientId,
+            client_secret: clientSecret,
+            refresh_token: googleRefreshToken,
+            grant_type: 'refresh_token'
+          });
+          const gRefRes = await fetchWithTimeout(tokenUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: params.toString(),
+            timeout: 5000
+          });
+          if (gRefRes.ok) {
+            const gRefData = await gRefRes.json();
+            if (gRefData.access_token) {
+              googleToken = gRefData.access_token;
+              console.log(`✅ [Cron WhatsApp] Token do Google Ads renovado com sucesso via refresh_token para alerta ${alertId}`);
+            }
+          } else {
+            const errTxt = await gRefRes.text();
+            console.warn(`⚠️ [Cron WhatsApp] Falha ao renovar token Google via refresh_token: ${errTxt}`);
+          }
+        } catch (eRef) {
+          console.warn(`⚠️ [Cron WhatsApp] Exceção ao renovar token Google:`, eRef.message);
         }
       }
 
@@ -336,6 +384,7 @@ export default async function handler(req, res) {
 
           try {
             const timeRange = encodeURIComponent(JSON.stringify({ since: startDate, until: endDate }));
+            const tr3d = encodeURIComponent(JSON.stringify({ since: since3d, until: until3d }));
             
             // Disparar requisições Meta em paralelo
             const promises = [
@@ -357,7 +406,13 @@ export default async function handler(req, res) {
                 fetchWithTimeout(`https://graph.facebook.com/v22.0/${actId}?fields=balance,spend_cap,amount_spent,is_prepay_account&access_token=${metaToken}`, { timeout: 4000 })
                   .then(r => r.json()).catch(() => null)
               );
+              // Buscar gasto dos últimos 3 dias para média diária de saldo
+              promises.push(
+                fetchWithTimeout(`https://graph.facebook.com/v22.0/${actId}/insights?fields=spend&time_range=${tr3d}&access_token=${metaToken}`, { timeout: 4500 })
+                  .then(r => r.json()).catch(() => null)
+              );
             } else {
+              promises.push(Promise.resolve(null));
               promises.push(Promise.resolve(null));
             }
 
@@ -386,7 +441,7 @@ export default async function handler(req, res) {
                 .then(r => r.json()).catch(() => null)
             );
 
-            const [insData, adsData, accData, histData, rejData] = await Promise.all(promises);
+            const [insData, adsData, accData, spend3dData, histData, rejData] = await Promise.all(promises);
 
             // Processar métricas gerais
             if (insData?.data && insData.data.length > 0) {
@@ -459,9 +514,12 @@ export default async function handler(req, res) {
 
               if (rawBal !== null && rawBal > 0) {
                 metaBalanceVal = Math.round((rawBal / (1 - 0.11765)) * 100) / 100;
-                // Estimativa de dias restantes
-                if (metaSpend > 0) {
-                  metaDaysLeft = (metaBalanceVal / metaSpend).toFixed(1);
+                // Estimativa de dias restantes SEMPRE baseada na média diária dos últimos 3 dias
+                const sp3 = (spend3dData?.data && spend3dData.data.length > 0) ? parseFloat(spend3dData.data[0].spend || 0) : 0;
+                const avgDailyMeta = sp3 > 0 ? (sp3 / 3) : (metaSpend > 0 ? (metaSpend / Math.max(1, periodDays)) : 0);
+
+                if (avgDailyMeta > 0) {
+                  metaDaysLeft = (metaBalanceVal / avgDailyMeta).toFixed(1);
                   if (parseFloat(metaDaysLeft) <= 3) {
                     unitLowBalances.push({ name: `${unitName} (Meta Ads)`, balance: metaBalanceVal, daysLeft: metaDaysLeft });
                   }
@@ -525,7 +583,7 @@ export default async function handler(req, res) {
               WHERE segments.date BETWEEN '${qStart}' AND '${qEnd}'
             `;
 
-            const gRes = await fetchWithTimeout(`https://googleads.googleapis.com/v23/customers/${gCustId}/googleAds:searchStream`, {
+            let gRes = await fetchWithTimeout(`https://googleads.googleapis.com/v23/customers/${gCustId}/googleAds:searchStream`, {
               method: 'POST',
               headers: gHeaders,
               body: JSON.stringify({ query: gQuery }),
@@ -534,7 +592,43 @@ export default async function handler(req, res) {
 
             if (!gRes.ok) {
               const errTxt = await gRes.text();
-              throw new Error(`Google Ads HTTP ${gRes.status}: ${errTxt}`);
+              if ((gRes.status === 401 || errTxt.includes('UNAUTHENTICATED')) && googleRefreshToken) {
+                console.warn(`⚠️ [Cron] 401 no Google Ads na conta ${gCustId}. Renovando token via refresh_token...`);
+                try {
+                  const clientId = process.env.GOOGLE_CLIENT_ID || process.env.GOOGLE_ADS_CLIENT_ID || '73361857075-qoqd61imivlju9l83dd6fevvh8e8ppsf.apps.googleusercontent.com';
+                  const clientSecret = process.env.GOOGLE_CLIENT_SECRET || process.env.GOOGLE_ADS_CLIENT_SECRET || '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';
+                  const tokenUrl = 'https://oauth2.googleapis.com/token';
+                  const params = new URLSearchParams({
+                    client_id: clientId,
+                    client_secret: clientSecret,
+                    refresh_token: googleRefreshToken,
+                    grant_type: 'refresh_token'
+                  });
+                  const rRes = await fetchWithTimeout(tokenUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: params.toString(),
+                    timeout: 5000
+                  });
+                  if (rRes.ok) {
+                    const rData = await rRes.json();
+                    if (rData.access_token) {
+                      googleToken = rData.access_token;
+                      gHeaders.Authorization = `Bearer ${googleToken}`;
+                      gRes = await fetchWithTimeout(`https://googleads.googleapis.com/v23/customers/${gCustId}/googleAds:searchStream`, {
+                        method: 'POST',
+                        headers: gHeaders,
+                        body: JSON.stringify({ query: gQuery }),
+                        timeout: 4500
+                      });
+                    }
+                  }
+                } catch (eRetry) {}
+              }
+              if (!gRes.ok) {
+                const finalErrTxt = await gRes.text();
+                throw new Error(`Google Ads HTTP ${gRes.status}: ${finalErrTxt}`);
+              }
             }
 
             const gData = await gRes.json();
@@ -694,8 +788,29 @@ export default async function handler(req, res) {
                     const bal = (limit + adjustments) - served;
                     if (bal > 0) {
                       gBalanceVal = Math.round(bal * 100) / 100;
-                      if (gSpend > 0) {
-                        gDaysLeftVal = (gBalanceVal / gSpend).toFixed(1);
+                      
+                      // Buscar gasto dos últimos 3 dias para média diária
+                      let gSpend3d = 0;
+                      try {
+                        let g3dRows = [];
+                        try {
+                          g3dRows = await tryQueryGoogle(gLoginCustId, since3d, until3d);
+                        } catch (eG3d1) {
+                          if (gLoginCustId !== '1872453947') {
+                            try { g3dRows = await tryQueryGoogle('1872453947', since3d, until3d); } catch (eG3d2) {}
+                          }
+                        }
+                        for (const row of g3dRows) {
+                          if (row.metrics) {
+                            gSpend3d += (parseFloat(row.metrics.costMicros || 0) / 1000000);
+                          }
+                        }
+                      } catch (eG3d) {}
+
+                      const avgDailyG = gSpend3d > 0 ? (gSpend3d / 3) : (gSpend > 0 ? (gSpend / Math.max(1, periodDays)) : 0);
+
+                      if (avgDailyG > 0) {
+                        gDaysLeftVal = (gBalanceVal / avgDailyG).toFixed(1);
                         if (parseFloat(gDaysLeftVal) <= 3) {
                           unitLowBalances.push({
                             name: `${unitName} (Google Ads)`,

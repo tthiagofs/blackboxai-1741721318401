@@ -2212,8 +2212,10 @@
                     ? `<span class="inline-flex items-center text-[10px] font-bold text-amber-800 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded ml-1" title="Alerta de otimização ativo"><i class="fas fa-bullseye mr-1"></i>Otimização Ativa</span>`
                     : '';
 
+                const cardAlertId = String(a.id || ('alert_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5)));
+
                 return `
-                <div class="p-5 bg-white border ${isActive ? 'border-green-300 shadow-sm' : 'border-gray-200 opacity-80'} rounded-2xl transition-all relative space-y-4">
+                <div class="p-5 bg-white border ${isActive ? 'border-green-300 shadow-sm' : 'border-gray-200 opacity-80'} rounded-2xl transition-all relative space-y-4" data-card-id="${cardAlertId}">
                     <!-- Topo do Card -->
                     <div class="flex items-start justify-between gap-3">
                         <div>
@@ -2229,7 +2231,7 @@
                         <!-- Toggle Ativar / Desativar Programação -->
                         <div class="flex items-center gap-2">
                             <label class="relative inline-flex items-center cursor-pointer" title="${isActive ? 'Clique para pausar (libera vaga)' : 'Clique para ativar'}">
-                                <input type="checkbox" class="sr-only peer toggle-alert-active-btn" data-id="${a.id}" ${isActive ? 'checked' : ''}>
+                                <input type="checkbox" class="sr-only peer toggle-alert-active-btn" data-id="${cardAlertId}" ${isActive ? 'checked' : ''}>
                                 <div class="w-10 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-green-600"></div>
                             </label>
                         </div>
@@ -2257,14 +2259,14 @@
 
                     <!-- Rodapé com Botões de Edição, Disparo e Exclusão -->
                     <div class="pt-2 border-t border-gray-100 flex items-center justify-between gap-2">
-                        <button type="button" class="btn-trigger-now-alert text-xs font-bold text-green-700 bg-green-50 hover:bg-green-100 border border-green-300 px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-all shadow-xs" data-id="${a.id}" title="Disparar este alerta agora para testar">
+                        <button type="button" class="btn-trigger-now-alert text-xs font-bold text-green-700 bg-green-50 hover:bg-green-100 border border-green-300 px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-all shadow-xs" data-id="${cardAlertId}" title="Disparar este alerta agora para testar">
                             <i class="fas fa-paper-plane"></i> Disparar Agora
                         </button>
                         <div class="flex items-center gap-3">
-                            <button type="button" class="btn-edit-alert text-xs font-semibold text-blue-600 hover:text-blue-800 flex items-center gap-1 transition-all" data-id="${a.id}">
+                            <button type="button" class="btn-edit-alert text-xs font-semibold text-blue-600 hover:text-blue-800 flex items-center gap-1 transition-all" data-id="${cardAlertId}">
                                 <i class="fas fa-pen"></i> Editar
                             </button>
-                            <button type="button" class="btn-delete-alert text-xs text-red-500 hover:text-red-700 flex items-center gap-1 transition-all" data-id="${a.id}" title="Excluir envio programado">
+                            <button type="button" class="btn-delete-alert text-xs text-red-500 hover:text-red-700 flex items-center gap-1 transition-all" data-id="${cardAlertId}" title="Excluir envio programado">
                                 <i class="fas fa-trash"></i> Excluir
                             </button>
                         </div>
@@ -2278,6 +2280,12 @@
                 btn.addEventListener('change', async (e) => {
                     const id = e.currentTarget.getAttribute('data-id');
                     const newStatus = e.currentTarget.checked;
+                    
+                    // Atualização imediata na memória local
+                    const item = existingAlerts.find(a => String(a.id) === String(id));
+                    if (item) item.active = newStatus;
+                    checkScheduleSlots();
+
                     await WhatsAppService.toggleUserAlertStatus(id, newStatus);
                     await loadSavedAlerts();
                 });
@@ -2287,7 +2295,7 @@
             document.querySelectorAll('.btn-trigger-now-alert').forEach(btn => {
                 btn.addEventListener('click', async (e) => {
                     const id = e.currentTarget.getAttribute('data-id');
-                    const target = alerts.find(a => a.id === id);
+                    const target = alerts.find(a => String(a.id) === String(id));
                     if (!target) return;
 
                     const originalHtml = e.currentTarget.innerHTML;
@@ -2368,7 +2376,7 @@
             document.querySelectorAll('.btn-edit-alert').forEach(btn => {
                 btn.addEventListener('click', (e) => {
                     const id = e.currentTarget.getAttribute('data-id');
-                    const target = alerts.find(a => a.id === id);
+                    const target = alerts.find(a => String(a.id) === String(id));
                     if (target) {
                         populateAlertIntoForm(target);
                         switchTab('config');
@@ -2377,12 +2385,73 @@
                 });
             });
 
-            // Listeners de Excluir
+            // Listeners de Excluir com feedback imediato, otimista e seguro
             document.querySelectorAll('.btn-delete-alert').forEach(btn => {
                 btn.addEventListener('click', async (e) => {
-                    const id = e.currentTarget.getAttribute('data-id');
-                    if (confirm('Deseja realmente excluir este envio programado?')) {
-                        await WhatsAppService.deleteUserAlert(id);
+                    const deleteBtn = e.currentTarget;
+                    const id = deleteBtn.getAttribute('data-id');
+                    if (!id) return;
+
+                    const targetAlert = alerts.find(a => String(a.id) === String(id));
+                    const alertName = targetAlert?.projectName || 'este envio';
+                    const alertTime = targetAlert?.schedules?.[0] || '';
+
+                    if (!confirm(`Deseja realmente excluir o envio programado "${alertName}" (${alertTime}h)?`)) {
+                        return;
+                    }
+
+                    // 1. Feedback visual imediato: desativa botão e esmaece card específico
+                    const card = deleteBtn.closest('[data-card-id]') || deleteBtn.closest('.p-5');
+                    const originalBtnHtml = deleteBtn.innerHTML;
+                    deleteBtn.disabled = true;
+                    deleteBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Excluindo...';
+                    if (card) {
+                        card.style.transition = 'opacity 0.25s ease, transform 0.25s ease';
+                        card.style.opacity = '0.35';
+                        card.style.pointerEvents = 'none';
+                    }
+
+                    // 2. Atualização otimista na memória para liberar vagas imediatamente
+                    existingAlerts = existingAlerts.filter(a => a && String(a.id) !== String(id));
+                    checkScheduleSlots();
+
+                    try {
+                        const res = await WhatsAppService.deleteUserAlert(id);
+                        if (res && res.success === false) {
+                            throw new Error(res.error || 'Falha ao excluir no banco de dados');
+                        }
+
+                        // 3. Sucesso: animação de saída e remoção do elemento no DOM
+                        if (card) {
+                            card.style.transform = 'scale(0.95)';
+                            card.style.opacity = '0';
+                            setTimeout(() => {
+                                card.remove();
+                                // Se não restou nenhum envio, exibe o estado vazio
+                                const remainingCards = savedAlertsList.querySelectorAll('[data-card-id]');
+                                if (remainingCards.length === 0) {
+                                    savedAlertsList.innerHTML = `
+                                        <div class="col-span-full text-center py-10 bg-gray-50 border border-dashed border-gray-300 rounded-xl">
+                                            <i class="fab fa-whatsapp text-gray-400 text-3xl mb-2"></i>
+                                            <p class="text-sm font-semibold text-gray-700">Nenhum envio programado ainda</p>
+                                            <p class="text-xs text-gray-500 mt-1">Configure na aba <strong>1. Configurar & Testar</strong> para programar seus envios diários ou semanais.</p>
+                                        </div>
+                                    `;
+                                }
+                            }, 200);
+                        }
+
+                        // 4. Recarrega os dados para sincronizar estado
+                        await loadSavedAlerts();
+                    } catch (err) {
+                        console.error('❌ Erro ao excluir envio programado:', err);
+                        alert('Não foi possível excluir o envio programado: ' + (err.message || 'Erro desconhecido'));
+                        if (card) {
+                            card.style.opacity = '1';
+                            card.style.pointerEvents = 'auto';
+                        }
+                        deleteBtn.disabled = false;
+                        deleteBtn.innerHTML = originalBtnHtml;
                         await loadSavedAlerts();
                     }
                 });

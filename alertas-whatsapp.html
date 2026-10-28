@@ -365,22 +365,16 @@
 
                                 <!-- Card do Alerta de Otimização -->
                                 <div class="p-4 border border-amber-300 rounded-xl bg-amber-50/50 space-y-3">
-                                    <div class="flex items-center justify-between">
-                                        <div class="flex items-center gap-2.5">
-                                            <span class="text-xl">🚨</span>
-                                            <div>
-                                                <h4 class="text-xs font-bold text-amber-950">Alerta de Otimização</h4>
-                                                <p class="text-[11px] text-amber-800">Alertar automaticamente unidades que precisam de atenção na gestão de tráfego.</p>
-                                            </div>
+                                    <div class="flex items-center gap-2.5">
+                                        <span class="text-xl">🚨</span>
+                                        <div>
+                                            <h4 class="text-xs font-bold text-amber-950">Alerta de Otimização</h4>
+                                            <p class="text-[11px] text-amber-800">Defina os parâmetros para alertar unidades que precisam de atenção na gestão de tráfego (para ativar ou ocultar este bloco, utilize a ordem de exibição abaixo).</p>
                                         </div>
-                                        <label class="relative inline-flex items-center cursor-pointer" title="Ativar ou desativar alerta de otimização">
-                                            <input type="checkbox" id="optAlertEnabled" class="sr-only peer">
-                                            <div class="w-10 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-amber-600"></div>
-                                        </label>
                                     </div>
 
                                     <!-- Configuração com Critério Exclusivo (Apenas 1 Selecionável) -->
-                                    <div id="optAlertConfigBox" class="hidden pt-3 border-t border-amber-200/80 space-y-3">
+                                    <div id="optAlertConfigBox" class="pt-3 border-t border-amber-200/80 space-y-3">
                                         <p class="text-xs font-bold text-amber-950 flex items-center gap-1.5">
                                             <span>🎯</span> Escolha o critério que será utilizado para disparar o alerta (apenas um):
                                         </p>
@@ -707,11 +701,6 @@
                     const b = currentBlocks.find(x => x.id === id);
                     if (b) {
                         b.enabled = e.currentTarget.checked;
-                        if (id === 'optimization') {
-                            optAlertEnabled.checked = b.enabled;
-                            if (b.enabled) optAlertConfigBox.classList.remove('hidden');
-                            else optAlertConfigBox.classList.add('hidden');
-                        }
                     }
                     renderBlocksReorderList();
                     updateDynamicPreview();
@@ -886,18 +875,6 @@
             });
         });
 
-        // Alternância do Alerta de Otimização (Switch On/Off)
-        optAlertEnabled.addEventListener('change', () => {
-            if (optAlertEnabled.checked) {
-                optAlertConfigBox.classList.remove('hidden');
-            } else {
-                optAlertConfigBox.classList.add('hidden');
-            }
-            const optBlock = currentBlocks.find(b => b.id === 'optimization');
-            if (optBlock) optBlock.enabled = optAlertEnabled.checked;
-            renderBlocksReorderList();
-            updateDynamicPreview();
-        });
 
         // Critério Exclusivo do Alerta de Otimização (Leads vs CPL)
         function updateOptCriterionState() {
@@ -1847,7 +1824,8 @@
                     return text;
                 },
                 optimization: () => {
-                    if (!optAlertEnabled.checked) return '';
+                    const isOptEnabled = currentBlocks.find(b => b.id === 'optimization')?.enabled !== false;
+                    if (!isOptEnabled) return '';
                     let text = `━━━━━━━━━━━━━━━━━━━━\n`;
                     if (optWarningsList.length > 0) {
                         text += `🚨 *ALERTA DE OTIMIZAÇÃO:*\n`;
@@ -1974,7 +1952,7 @@
                 includeToday: includeTodayVal,
                 startActivationDate: startActivationDateVal,
                 optimizationRules: {
-                    enabled: optAlertEnabled.checked,
+                    enabled: currentBlocks.find(b => b.id === 'optimization')?.enabled !== false,
                     criterion: document.querySelector('input[name="optCriterion"]:checked')?.value || 'min_leads',
                     minLeadsValue: Math.max(1, parseInt(optMinLeadsValue.value || 5, 10)),
                     cplIncreasePercent: Math.max(1, parseFloat(optCplIncreasePercent.value || 30)),
@@ -2116,12 +2094,6 @@
             // Alerta de Otimização (Critério Exclusivo)
             if (alert.optimizationRules) {
                 const opt = alert.optimizationRules;
-                optAlertEnabled.checked = !!opt.enabled;
-                if (opt.enabled) {
-                    optAlertConfigBox.classList.remove('hidden');
-                } else {
-                    optAlertConfigBox.classList.add('hidden');
-                }
                 const isCpl = opt.criterion === 'cpl_increase' || (!opt.criterion && opt.cplIncreaseEnabled && !opt.minLeadsEnabled);
                 if (isCpl) {
                     optCriterionCpl.checked = true;
@@ -2133,8 +2105,6 @@
                 optCplCompareDays.value = opt.cplCompareDays || 30;
                 updateOptCriterionState();
             } else {
-                optAlertEnabled.checked = false;
-                optAlertConfigBox.classList.add('hidden');
                 optCriterionLeads.checked = true;
                 optMinLeadsValue.value = 5;
                 optCplIncreasePercent.value = 30;
@@ -2208,7 +2178,8 @@
                     ? `<span class="inline-flex items-center text-[10px] font-bold text-blue-800 bg-blue-50 border border-blue-200 px-1.5 py-0.5 rounded ml-1" title="Disparos iniciam a partir desta data"><i class="far fa-calendar-alt mr-1"></i>Início: ${a.startActivationDate.split('-').reverse().join('/')}</span>`
                     : '';
 
-                const optimizationBadge = a.optimizationRules?.enabled
+                const isOptActive = a.optimizationRules?.enabled ?? a.blockOrder?.find(b => b.id === 'optimization')?.enabled ?? true;
+                const optimizationBadge = isOptActive
                     ? `<span class="inline-flex items-center text-[10px] font-bold text-amber-800 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded ml-1" title="Alerta de otimização ativo"><i class="fas fa-bullseye mr-1"></i>Otimização Ativa</span>`
                     : '';
 

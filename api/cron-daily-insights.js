@@ -1010,7 +1010,8 @@ export default async function handler(req, res) {
         },
 
         optimization: () => {
-          if (!alert.optimizationRules?.enabled) return '';
+          const isBlockEnabled = activeOrder.find(b => b.id === 'optimization')?.enabled !== false;
+          if (!isBlockEnabled && alert.optimizationRules?.enabled === false) return '';
           let text = `━━━━━━━━━━━━━━━━━━━━\n`;
           if (allOptAlerts.length > 0) {
             text += `🚨 *ALERTA DE OTIMIZAÇÃO:*\n`;

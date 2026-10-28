@@ -567,7 +567,7 @@
         import { listUnits } from './services/unitsService.js';
         import { auth, db } from './config/firebase.js';
         import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
-        import { doc, getDoc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+        import { doc, getDoc, setDoc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
         import { googleAuth } from './authGoogle.js';
         import { GoogleAdsService } from './services/googleAds.js';
 
@@ -630,7 +630,7 @@
         const googleBalance = document.getElementById('googleBalance');
 
         // Alerta de Otimização (Critério Exclusivo)
-        const optAlertEnabled = document.getElementById('optAlertEnabled');
+        // optAlertEnabled removido - controlado pela ordem de blocos
         const optAlertConfigBox = document.getElementById('optAlertConfigBox');
         const optCriterionLeads = document.getElementById('optCriterionLeads');
         const optCriterionCpl = document.getElementById('optCriterionCpl');
@@ -1130,8 +1130,7 @@
             googleBalance.checked = true;
 
             // Alerta de Otimização default: desativado com critério inicial de leads
-            optAlertEnabled.checked = false;
-            optAlertConfigBox.classList.add('hidden');
+            if (optAlertConfigBox) optAlertConfigBox.classList.remove('hidden');
             optCriterionLeads.checked = true;
             optMinLeadsValue.value = '5';
             optCplIncreasePercent.value = '30';
@@ -1791,7 +1790,8 @@
                 }
 
                 // Checagem de alerta de otimização no teste (Critério Exclusivo)
-                if (optAlertEnabled.checked) {
+                const isOptActive = currentBlocks.find(b => b.id === 'optimization')?.enabled !== false;
+                if (isOptActive) {
                     const isLeadsCriterion = optCriterionLeads.checked;
                     const unitTotalLeads = metaLeadsVal + gConversions;
                     const warnings = [];

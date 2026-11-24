@@ -25,6 +25,11 @@ export async function initSidebar(currentPage = '') {
 async function checkAdminStatus() {
   if (!currentUser) return false;
   
+  if (currentUser.email === 'thiagofelipefreire0810@gmail.com') {
+    isAdmin = true;
+    return true;
+  }
+  
   try {
     const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
     if (userDoc.exists()) {
@@ -129,6 +134,11 @@ function renderSidebar(currentPage) {
         </a>
         
         ${isAdmin ? `
+        <a href="/automacao-planilha.html" class="flex items-center px-3 py-2.5 mb-1 border-l-4 ${currentPage === 'automacao-planilha' ? 'border-emerald-600 bg-emerald-50 text-emerald-700 font-semibold' : 'border-transparent text-gray-700 hover:bg-gray-50'} transition-all">
+          <i class="fas fa-file-excel mr-3 text-sm text-emerald-600"></i>
+          <span class="text-sm">Automação Planilha (Admin)</span>
+        </a>
+
         <a href="/whatsapp-admin.html" class="flex items-center px-3 py-2.5 mb-1 border-l-4 ${currentPage === 'whatsapp-admin' ? 'border-green-600 bg-green-50 text-green-700 font-semibold' : 'border-transparent text-gray-700 hover:bg-gray-50'} transition-all">
           <i class="fas fa-robot mr-3 text-sm text-green-600"></i>
           <span class="text-sm">Robô WhatsApp (Admin)</span>

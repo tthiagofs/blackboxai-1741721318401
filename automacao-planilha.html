@@ -1,0 +1,935 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Automação Google Sheets - InsightFlow Admin</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen font-sans m-0 p-0 text-gray-800">
+    <!-- Proteção de Acesso (Exclusivo Admin Thiago) -->
+    <script type="module">
+        import { auth, db } from './config/firebase.js';
+        import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+        import { doc, getDoc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+        
+        onAuthStateChanged(auth, async (user) => {
+            if (!user) {
+                window.location.href = '/login.html';
+                return;
+            }
+            
+            const allowedEmail = 'thiagofelipefreire0810@gmail.com';
+            let isAdmin = user.email === allowedEmail;
+            
+            if (!isAdmin) {
+                try {
+                    const userDoc = await getDoc(doc(db, 'users', user.uid));
+                    if (userDoc.exists() && userDoc.data().role === 'admin') {
+                        isAdmin = true;
+                    }
+                } catch (e) {
+                    console.error('Erro ao verificar permissão:', e);
+                }
+            }
+            
+            if (!isAdmin) {
+                alert('Acesso restrito para o administrador master!');
+                window.location.href = '/home.html';
+                return;
+            }
+        });
+    </script>
+
+    <!-- Layout Principal com Sidebar -->
+    <div class="flex min-h-screen w-full bg-gray-50">
+        <!-- Sidebar Unificada -->
+        <div id="app-sidebar"></div>
+
+        <!-- Conteúdo Principal -->
+        <main class="flex-1 p-6 lg:p-10 max-w-7xl">
+            <!-- Header -->
+            <div class="mb-8 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                <div>
+                    <div class="flex items-center gap-3">
+                        <div class="w-12 h-12 bg-emerald-100 rounded-2xl flex items-center justify-center text-emerald-600 shadow-sm">
+                            <i class="fas fa-file-excel text-2xl"></i>
+                        </div>
+                        <div>
+                            <div class="flex items-center gap-2">
+                                <h1 class="text-2xl font-bold text-gray-900">Automação Google Sheets</h1>
+                                <span class="bg-emerald-100 text-emerald-800 text-xs font-bold px-2.5 py-0.5 rounded-full border border-emerald-200">Admin</span>
+                            </div>
+                            <p class="text-sm text-gray-500">Atualização automática em segundo plano das métricas de tráfego pago na planilha de unidades.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex flex-wrap items-center gap-3">
+                    <div id="statusBadge" class="inline-flex items-center px-3.5 py-1.5 rounded-full text-xs font-bold bg-amber-100 text-amber-800 border border-amber-200">
+                        <span class="w-2 h-2 rounded-full bg-amber-500 mr-2 animate-pulse"></span>
+                        Carregando status...
+                    </div>
+
+                    <button id="btnManualSync" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-2 disabled:opacity-50">
+                        <i class="fas fa-sync-alt" id="syncSpinner"></i>
+                        <span>Sincronizar Agora</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Banner Informativo da Planilha -->
+            <div class="bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200 rounded-2xl p-4 mb-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                <div class="flex items-center gap-3.5">
+                    <div class="w-10 h-10 rounded-xl bg-white text-emerald-700 flex items-center justify-center shadow-xs text-lg">
+                        <i class="fas fa-table"></i>
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <span class="font-bold text-sm text-gray-900">Planilha Vinculada:</span>
+                            <span class="text-xs bg-white text-emerald-800 font-semibold px-2 py-0.5 rounded border border-emerald-200">Unidades 2 até 86</span>
+                        </div>
+                        <a href="https://docs.google.com/spreadsheets/d/1YwoSLZKB96Al8OOBFTkEsrT7n5B60RnoWHwsMcGHNbg/edit?gid=255464261#gid=255464261" target="_blank" class="text-xs text-emerald-700 hover:underline flex items-center gap-1 mt-0.5">
+                            Abrir Planilha no Google Sheets <i class="fas fa-external-link-alt text-[10px]"></i>
+                        </a>
+                    </div>
+                </div>
+                <div class="text-xs text-gray-600 bg-white/80 backdrop-blur-xs px-3 py-2 rounded-xl border border-emerald-100">
+                    <i class="fas fa-shield-alt text-emerald-600 mr-1"></i>
+                    A automação atualiza <strong>apenas</strong> as colunas <code>Investimento</code>, <code>Leads</code> e <code>Data</code>. Linhas abaixo da 86 e demais colunas são 100% preservadas.
+                </div>
+            </div>
+
+            <!-- Grid de Configurações e Status -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
+                <!-- Coluna 1 & 2: Configuração de Disparo e Webhook -->
+                <div class="lg:col-span-2 space-y-6">
+                    <!-- Card de Configurações Gerais -->
+                    <div class="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
+                        <div class="flex items-center justify-between mb-5 pb-4 border-b border-gray-100">
+                            <div>
+                                <h3 class="text-base font-bold text-gray-900 flex items-center gap-2">
+                                    <i class="fas fa-sliders-h text-emerald-600"></i>
+                                    Parâmetros da Automação
+                                </h3>
+                                <p class="text-xs text-gray-500">Configure a URL do Webhook do Apps Script e os horários de atualização.</p>
+                            </div>
+                            <!-- Switch Ativar/Desativar -->
+                            <div class="flex items-center gap-2.5">
+                                <span class="text-xs font-semibold text-gray-600" id="switchLabel">Automação Ativa:</span>
+                                <label class="relative inline-flex items-center cursor-pointer">
+                                    <input type="checkbox" id="toggleAutomation" class="sr-only peer">
+                                    <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600"></div>
+                                </label>
+                            </div>
+                        </div>
+
+                        <form id="configForm" class="space-y-4">
+                            <!-- URL do Webhook -->
+                            <div>
+                                <label class="block text-xs font-bold text-gray-700 mb-1">
+                                    URL do Webhook do Google Apps Script
+                                    <span class="text-red-500">*</span>
+                                </label>
+                                <div class="relative">
+                                    <input type="url" id="webhookUrlInput" placeholder="https://script.google.com/macros/s/AKfycb.../exec" required class="w-full pl-9 pr-3.5 py-2.5 bg-gray-50 border border-gray-300 rounded-xl text-xs font-mono focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all">
+                                    <i class="fas fa-link absolute left-3 top-3 text-gray-400 text-xs"></i>
+                                </div>
+                                <p class="text-[11px] text-gray-400 mt-1">Gerada ao implantar o script na sua planilha Google Sheets (veja o guia abaixo).</p>
+                            </div>
+
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <!-- Aba do Mês -->
+                                <div>
+                                    <label class="block text-xs font-bold text-gray-700 mb-1">Nome da Aba Atual</label>
+                                    <div class="relative">
+                                        <input type="text" id="tabNameInput" value="Novembro" placeholder="Ex: Novembro" class="w-full pl-9 pr-3.5 py-2 bg-gray-50 border border-gray-300 rounded-xl text-xs font-semibold focus:bg-white focus:ring-2 focus:ring-emerald-500 outline-none">
+                                        <i class="fas fa-bookmark absolute left-3 top-2.5 text-gray-400 text-xs"></i>
+                                    </div>
+                                    <p class="text-[11px] text-gray-400 mt-1">Deixe em branco para usar automaticamente a aba ativa do mês.</p>
+                                </div>
+
+                                <!-- Linha Limite -->
+                                <div>
+                                    <label class="block text-xs font-bold text-gray-700 mb-1">Linha Máxima de Unidades</label>
+                                    <div class="relative">
+                                        <input type="number" id="maxRowInput" value="86" min="10" max="200" class="w-full pl-9 pr-3.5 py-2 bg-gray-50 border border-gray-300 rounded-xl text-xs font-semibold focus:bg-white focus:ring-2 focus:ring-emerald-500 outline-none">
+                                        <i class="fas fa-list-ol absolute left-3 top-2.5 text-gray-400 text-xs"></i>
+                                    </div>
+                                    <p class="text-[11px] text-gray-400 mt-1">Garante que nenhuma linha abaixo da 86 seja tocada.</p>
+                                </div>
+                            </div>
+
+                            <!-- Horários de Atualização Automática -->
+                            <div class="pt-2">
+                                <div class="flex items-center justify-between mb-2">
+                                    <label class="block text-xs font-bold text-gray-700">Horários de Atualização Automática (Horário de Brasília):</label>
+                                    <div class="flex items-center gap-2">
+                                        <button type="button" id="btnSelectBusinessHours" class="text-[11px] text-emerald-600 font-semibold hover:underline">Horário Comercial</button>
+                                        <span class="text-gray-300 text-xs">|</span>
+                                        <button type="button" id="btnSelectAllHours" class="text-[11px] text-emerald-600 font-semibold hover:underline">A cada 1h</button>
+                                        <span class="text-gray-300 text-xs">|</span>
+                                        <button type="button" id="btnDeselectAllHours" class="text-[11px] text-gray-400 font-semibold hover:underline">Limpar</button>
+                                    </div>
+                                </div>
+
+                                <div class="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-2" id="hoursGridContainer">
+                                    <!-- Gerado dinamicamente de 06:00 até 23:00 -->
+                                </div>
+                                <p class="text-[11px] text-gray-400 mt-2">O cron serverless verifica os horários selecionados e atualiza a planilha de forma pontual.</p>
+                            </div>
+
+                            <div class="pt-4 border-t border-gray-100 flex items-center justify-between">
+                                <span id="saveConfigFeedback" class="text-xs font-medium text-emerald-600 hidden">
+                                    <i class="fas fa-check-circle mr-1"></i> Configurações salvas com sucesso!
+                                </span>
+                                <button type="submit" id="btnSaveConfig" class="ml-auto bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-5 py-2 rounded-xl text-xs transition-all shadow-sm flex items-center gap-2">
+                                    <i class="fas fa-save"></i>
+                                    <span>Salvar Configurações</span>
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Coluna 3: Status da Última Execução e Resumo -->
+                <div class="space-y-6">
+                    <div class="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
+                        <h3 class="text-sm font-bold text-gray-900 mb-4 flex items-center gap-2">
+                            <i class="fas fa-history text-emerald-600"></i>
+                            Última Sincronização
+                        </h3>
+
+                        <div class="space-y-3.5">
+                            <div class="p-3 bg-gray-50 rounded-xl border border-gray-100">
+                                <span class="text-[11px] font-semibold text-gray-400 block uppercase">Data e Hora</span>
+                                <span id="lastSyncTime" class="text-xs font-bold text-gray-800">Nenhuma execução registrada</span>
+                            </div>
+
+                            <div class="p-3 bg-gray-50 rounded-xl border border-gray-100">
+                                <span class="text-[11px] font-semibold text-gray-400 block uppercase">Unidades Processadas</span>
+                                <span id="lastSyncCount" class="text-xs font-bold text-gray-800">0 unidades</span>
+                            </div>
+
+                            <div class="p-3 bg-gray-50 rounded-xl border border-gray-100">
+                                <span class="text-[11px] font-semibold text-gray-400 block uppercase">Status da Conexão</span>
+                                <span id="lastSyncStatus" class="text-xs font-bold text-gray-500">Pronto para executar</span>
+                            </div>
+
+                            <div id="lastSyncDetails" class="text-[11px] text-gray-500 bg-emerald-50/50 p-2.5 rounded-lg border border-emerald-100 hidden">
+                                <!-- Detalhes da última sync -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Card de Tokens Disponíveis -->
+                    <div class="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
+                        <h3 class="text-sm font-bold text-gray-900 mb-3 flex items-center gap-2">
+                            <i class="fas fa-key text-blue-600"></i>
+                            Credenciais de Acesso
+                        </h3>
+                        <div class="space-y-2 text-xs">
+                            <div class="flex items-center justify-between py-1.5 border-b border-gray-100">
+                                <span class="text-gray-600 flex items-center gap-1.5">
+                                    <i class="fab fa-facebook text-blue-600"></i> Meta Ads:
+                                </span>
+                                <span id="metaTokenStatus" class="font-bold text-emerald-600">Verificando...</span>
+                            </div>
+                            <div class="flex items-center justify-between py-1.5">
+                                <span class="text-gray-600 flex items-center gap-1.5">
+                                    <i class="fab fa-google text-red-500"></i> Google Ads:
+                                </span>
+                                <span id="googleTokenStatus" class="font-bold text-emerald-600">Verificando...</span>
+                            </div>
+                        </div>
+                        <a href="/conexoes.html" class="block text-center mt-3 text-xs text-blue-600 font-bold hover:underline">
+                            Gerenciar Conexões & Reautenticar <i class="fas fa-chevron-right text-[10px]"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tabela de Mapeamento De/Para: Planilha vs Contas de Anúncio -->
+            <div class="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm mb-8">
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 pb-4 border-b border-gray-100">
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <h3 class="text-lg font-bold text-gray-900">Mapeamento de Contas por Unidade</h3>
+                            <span id="mappingCountBadge" class="text-xs bg-gray-100 text-gray-700 font-bold px-2 py-0.5 rounded-full">0 unidades</span>
+                        </div>
+                        <p class="text-xs text-gray-500">Vincule cada nome da planilha à sua respectiva conta no Meta Ads e/ou Google Ads.</p>
+                    </div>
+
+                    <div class="flex flex-wrap items-center gap-2.5">
+                        <button type="button" id="btnAutoMatch" class="px-3.5 py-2 bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5">
+                            <i class="fas fa-magic text-blue-600"></i>
+                            <span>Auto-vincular por Nome</span>
+                        </button>
+
+                        <button type="button" id="btnReloadFromSheet" class="px-3.5 py-2 bg-gray-50 text-gray-700 hover:bg-gray-100 border border-gray-200 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5" title="Carregar lista de unidades direto do Webhook">
+                            <i class="fas fa-cloud-download-alt text-gray-500"></i>
+                            <span>Ler da Planilha</span>
+                        </button>
+
+                        <button type="button" id="btnSaveMapping" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-1.5">
+                            <i class="fas fa-save"></i>
+                            <span>Salvar Mapeamento</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Filtros e Busca Rápida -->
+                <div class="flex flex-col sm:flex-row items-center justify-between gap-3 mb-4">
+                    <div class="relative w-full sm:w-72">
+                        <input type="text" id="unitSearchInput" placeholder="Buscar unidade..." class="w-full pl-8 pr-3 py-1.5 bg-gray-50 border border-gray-300 rounded-lg text-xs outline-none focus:bg-white focus:ring-1 focus:ring-emerald-500">
+                        <i class="fas fa-search absolute left-2.5 top-2.5 text-gray-400 text-xs"></i>
+                    </div>
+
+                    <div class="flex items-center gap-2 text-xs">
+                        <span class="text-gray-400 font-medium">Filtrar:</span>
+                        <button type="button" data-filter="all" class="filter-tab px-2.5 py-1 rounded-md font-bold bg-gray-800 text-white">Todas (<span id="countAll">0</span>)</button>
+                        <button type="button" data-filter="linked" class="filter-tab px-2.5 py-1 rounded-md text-gray-600 hover:bg-gray-100">Vinculadas (<span id="countLinked">0</span>)</button>
+                        <button type="button" data-filter="unlinked" class="filter-tab px-2.5 py-1 rounded-md text-amber-600 hover:bg-amber-50">Sem Vínculo (<span id="countUnlinked">0</span>)</button>
+                    </div>
+                </div>
+
+                <!-- Tabela de Unidades -->
+                <div class="overflow-x-auto custom-scrollbar border border-gray-200 rounded-xl max-h-[550px]">
+                    <table class="w-full text-left text-xs">
+                        <thead class="bg-gray-50 text-gray-600 uppercase font-bold sticky top-0 z-10 border-b border-gray-200">
+                            <tr>
+                                <th class="px-3.5 py-3 w-12 text-center">#</th>
+                                <th class="px-3.5 py-3 w-48">Nome na Planilha</th>
+                                <th class="px-3.5 py-3">Conta Meta Ads</th>
+                                <th class="px-3.5 py-3">Conta Google Ads</th>
+                                <th class="px-3.5 py-3 w-32 text-center">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="mappingTableBody" class="divide-y divide-gray-100 bg-white">
+                            <tr>
+                                <td colspan="5" class="py-8 text-center text-gray-400">
+                                    <i class="fas fa-spinner fa-spin mr-2"></i> Carregando unidades e contas...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="mt-4 flex items-center justify-between text-xs text-gray-500">
+                    <span>Dica: se uma unidade não investe ou não possui Google Ads, basta manter como <em>(Nenhuma)</em>.</span>
+                    <button type="button" id="btnSaveMappingBottom" class="text-emerald-600 font-bold hover:underline">
+                        Salvar Alterações
+                    </button>
+                </div>
+            </div>
+
+            <!-- Card: Como Configurar o Google Apps Script na Planilha -->
+            <div class="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
+                <div class="flex items-center justify-between mb-4 pb-3 border-b border-gray-100">
+                    <h3 class="text-base font-bold text-gray-900 flex items-center gap-2">
+                        <i class="fas fa-code text-indigo-600"></i>
+                        Código do Google Apps Script (Instalação em 1 minuto)
+                    </h3>
+                    <button type="button" id="btnCopyScriptCode" class="px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold rounded-lg text-xs transition-all flex items-center gap-1.5 border border-indigo-200">
+                        <i class="fas fa-copy"></i>
+                        <span>Copiar Código</span>
+                    </button>
+                </div>
+
+                <ol class="list-decimal list-inside space-y-2 text-xs text-gray-600 mb-4 leading-relaxed">
+                    <li>Abra a sua planilha <a href="https://docs.google.com/spreadsheets/d/1YwoSLZKB96Al8OOBFTkEsrT7n5B60RnoWHwsMcGHNbg/edit?gid=255464261#gid=255464261" target="_blank" class="text-emerald-600 font-bold hover:underline">clicando aqui</a>.</li>
+                    <li>No menu superior, clique em <strong>Extensões</strong> &gt; <strong>Apps Script</strong>.</li>
+                    <li>Apague qualquer código que estiver lá e <strong>cole o código abaixo</strong>.</li>
+                    <li>Clique em <strong>Implantar</strong> (canto superior direito) &gt; <strong>Nova implantação</strong>.</li>
+                    <li>Em tipo, selecione <strong>App da Web</strong>. Em <em>"Quem pode acessar"</em>, marque <strong>Qualquer pessoa</strong>.</li>
+                    <li>Copie o link gerado (termina com <code>/exec</code>) e cole no campo <strong>URL do Webhook</strong> acima!</li>
+                </ol>
+
+                <div class="relative">
+                    <pre class="bg-gray-900 text-gray-100 p-4 rounded-xl text-[11px] font-mono overflow-x-auto max-h-72 custom-scrollbar" id="appsScriptCodeBlock">
+// CÓDIGO GOOGLE APPS SCRIPT PARA INSIGHTFLOW
+function doGet(e) {
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sheet = ss.getActiveSheet();
+    var maxRow = 86; // Linha máxima das unidades
+    var data = sheet.getRange(2, 1, maxRow - 1, 3).getValues();
+    var units = [];
+    
+    for (var i = 0; i < data.length; i++) {
+      var rowNumber = i + 2;
+      var name = String(data[i][0] || '').trim();
+      if (!name) continue;
+      // Parar se atingir rodapé consolidado
+      if (name.toLowerCase().indexOf('gestor de tr') !== -1 || name.toLowerCase().indexOf('unidades com') !== -1) break;
+      units.push({ row: rowNumber, name: name });
+    }
+    
+    return ContentService.createTextOutput(JSON.stringify({
+      success: true,
+      sheetName: sheet.getName(),
+      units: units
+    })).setMimeType(ContentService.MimeType.JSON);
+  } catch (err) {
+    return ContentService.createTextOutput(JSON.stringify({ success: false, error: err.message })).setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+function doPost(e) {
+  try {
+    var json = JSON.parse(e.postData.contents);
+    var updates = json.updates || [];
+    var tabName = json.tabName || '';
+    var maxRow = json.maxRow || 86;
+    
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sheet = tabName ? ss.getSheetByName(tabName) : ss.getActiveSheet();
+    if (!sheet) sheet = ss.getActiveSheet();
+    
+    // Ler nomes das unidades (coluna A, linhas 2 até maxRow)
+    var numRows = maxRow - 1;
+    var rangeUnits = sheet.getRange(2, 1, numRows, 1).getValues();
+    
+    // Mapear unidade normalizada para linha física
+    var rowMap = {};
+    for (var i = 0; i < rangeUnits.length; i++) {
+      var uName = String(rangeUnits[i][0] || '').trim();
+      if (uName) {
+        var cleanKey = uName.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+        rowMap[cleanKey] = i + 2;
+      }
+    }
+    
+    // Localizar coluna de Data de Atualização (linha 1)
+    var headerValues = sheet.getRange(1, 1, 1, 20).getValues()[0];
+    var colDate = -1;
+    for (var c = 0; c < headerValues.length; c++) {
+      var h = String(headerValues[c] || '').toLowerCase();
+      if (h.indexOf('data') !== -1 && h.indexOf('atualiz') !== -1) {
+        colDate = c + 1;
+        break;
+      }
+    }
+    if (colDate === -1) colDate = 17; // Padrão coluna Q
+    
+    // Preparar Data e Hora atual
+    var nowStr = Utilities.formatDate(new Date(), 'America/Sao_Paulo', 'yyyy-MM-dd HH:mm:ss');
+    var updatedCount = 0;
+    
+    // Aplicar atualizações
+    for (var u = 0; u < updates.length; u++) {
+      var item = updates[u];
+      var key = String(item.unit || '').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+      var targetRow = rowMap[key];
+      
+      if (targetRow && targetRow <= maxRow) {
+        if (item.spend !== undefined && item.spend !== null) {
+          sheet.getRange(targetRow, 2).setValue(item.spend); // Coluna B = Investimento
+        }
+        if (item.leads !== undefined && item.leads !== null) {
+          sheet.getRange(targetRow, 3).setValue(item.leads); // Coluna C = Leads
+        }
+        sheet.getRange(targetRow, colDate).setValue(nowStr); // Data de Atualização
+        updatedCount++;
+      }
+    }
+    
+    return ContentService.createTextOutput(JSON.stringify({
+      success: true,
+      updatedCount: updatedCount,
+      timestamp: nowStr
+    })).setMimeType(ContentService.MimeType.JSON);
+  } catch (err) {
+    return ContentService.createTextOutput(JSON.stringify({ success: false, error: err.message })).setMimeType(ContentService.MimeType.JSON);
+  }
+}
+                    </pre>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Script de Inicialização da Sidebar e Lógica da Página -->
+    <script type="module">
+        import { initSidebar } from './components/sidebar.js';
+        import { auth, db } from './config/firebase.js';
+        import { doc, getDoc, setDoc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+
+        // Inicializar Sidebar com aba ativa
+        initSidebar('automacao-planilha');
+
+        // Lista padrão das 85 unidades da planilha do usuário
+        const DEFAULT_UNITS = [
+            "Anápolis", "Caculé", "Catalão", "Condeúba", "Contagem", "Coração de Jesus", 
+            "Curvelo", "Eunápolis", "Independência", "Itabuna", "Itajubá", "João Pinheiro", 
+            "Manga", "Patos de Minas", "Porteirinha", "Santa Vitória", "São João do Paraíso", 
+            "Unaí", "Valença", "Venda Nova", "Vitória da Conquista", "Barreiras", "Camaçari", 
+            "Itamaraju", "Jaíba", "Janaúba", "Major Prates", "Maracanã", "Salinas", "São Francisco", 
+            "Teixeira de Freitas", "Todos os Santos", "Almenara", "Arinos", "Bocaiúva", 
+            "Capitão Enéas", "Centro", "Corinto", "Cruz das Almas", "Espinosa", "Lontra", 
+            "Mirabela", "Monte Azul", "Ourinhos", "Paracatu", "Pedra Azul", "Pompéu", "Recife", 
+            "Rio Pardo", "São Joaquim da Barra", "Taiobeiras", "Três Marias", "Urandi", 
+            "Varzelândia", "Brasília de Minas", "Buritizeiro", "Candeias", "Capelinha", 
+            "Correntina", "Francisco Sá", "Grão Mogol", "Ilhéus", "Januária", "Jardim Palmeiras", 
+            "Lagoa Santa", "Luís Eduardo Magalhães", "Medina", "Rio Verde", "Santa Maria da vitória", 
+            "Teófilo Otoni", "Turmalina", "Várzea da Palma", "Betim", "Brumado", "Divinopolis", 
+            "Guanambi", "Itacarambi", "João XIII", "Lauro de Freitas", "Maceió", "Pituba", 
+            "Planalto", "Poções", "São João da Ponte", "Sete Lagoas"
+        ];
+
+        // Estado da aplicação
+        let automationConfig = {
+            active: false,
+            webhookUrl: '',
+            tabName: 'Novembro',
+            maxRow: 86,
+            schedules: ['08:00', '10:00', '12:00', '14:00', '16:00', '18:00', '20:00'],
+            lastSync: null
+        };
+
+        let currentUnits = [...DEFAULT_UNITS];
+        let unitMappings = {}; // { "Anápolis": { metaId: "act_...", googleId: "..." } }
+        let availableMetaAccounts = [];
+        let availableGoogleAccounts = [];
+        let currentFilter = 'all';
+
+        // Elementos DOM
+        const statusBadge = document.getElementById('statusBadge');
+        const toggleAutomation = document.getElementById('toggleAutomation');
+        const webhookUrlInput = document.getElementById('webhookUrlInput');
+        const tabNameInput = document.getElementById('tabNameInput');
+        const maxRowInput = document.getElementById('maxRowInput');
+        const hoursGridContainer = document.getElementById('hoursGridContainer');
+        const mappingTableBody = document.getElementById('mappingTableBody');
+        const mappingCountBadge = document.getElementById('mappingCountBadge');
+        const unitSearchInput = document.getElementById('unitSearchInput');
+        const btnManualSync = document.getElementById('btnManualSync');
+        const syncSpinner = document.getElementById('syncSpinner');
+
+        // Renderizar Grade de Horários
+        function renderHoursGrid() {
+            const hours = [];
+            for (let h = 6; h <= 23; h++) {
+                const hourStr = String(h).padStart(2, '0') + ':00';
+                hours.push(hourStr);
+            }
+            hoursGridContainer.innerHTML = hours.map(h => {
+                const isChecked = (automationConfig.schedules || []).includes(h);
+                return `
+                    <label class="flex items-center gap-1.5 p-1.5 bg-gray-50 border border-gray-200 rounded-lg text-xs cursor-pointer hover:bg-emerald-50 hover:border-emerald-300 transition-all select-none">
+                        <input type="checkbox" name="schedHour" value="${h}" ${isChecked ? 'checked' : ''} class="w-3.5 h-3.5 text-emerald-600 rounded">
+                        <span class="font-mono font-semibold text-gray-700">${h}</span>
+                    </label>
+                `;
+            }).join('');
+        }
+
+        // Carregar Contas Disponíveis (Meta e Google)
+        async function loadAvailableAdAccounts() {
+            try {
+                // 1. Meta Accounts salvas no localStorage ou Firestore
+                const localFbMap = localStorage.getItem('adAccountsMap');
+                if (localFbMap) {
+                    try {
+                        const parsed = JSON.parse(localFbMap);
+                        if (typeof parsed === 'object') {
+                            availableMetaAccounts = Object.entries(parsed).map(([id, name]) => ({ id, name }));
+                        }
+                    } catch (e) {}
+                }
+
+                // 2. Google Accounts salvas no localStorage
+                const localGAccounts = localStorage.getItem('googleAdAccounts') || localStorage.getItem('google_ads_accounts');
+                if (localGAccounts) {
+                    try {
+                        const parsed = JSON.parse(localGAccounts);
+                        if (Array.isArray(parsed)) {
+                            availableGoogleAccounts = parsed.map(acc => ({
+                                id: acc.id || acc.customerId,
+                                name: acc.name || acc.descriptiveName || acc.id
+                            }));
+                        }
+                    } catch (e) {}
+                }
+
+                // Atualizar badges de status de tokens
+                const fbToken = localStorage.getItem('fbAccessToken');
+                const gToken = localStorage.getItem('googleRefreshToken') || localStorage.getItem('google_ads_refresh_token');
+                
+                document.getElementById('metaTokenStatus').innerHTML = fbToken ? 
+                    '<span class="text-emerald-600"><i class="fas fa-check-circle"></i> Conectado</span>' : 
+                    '<span class="text-amber-500"><i class="fas fa-exclamation-triangle"></i> Não detectado</span>';
+
+                document.getElementById('googleTokenStatus').innerHTML = gToken ? 
+                    '<span class="text-emerald-600"><i class="fas fa-check-circle"></i> Conectado</span>' : 
+                    '<span class="text-amber-500"><i class="fas fa-exclamation-triangle"></i> Não detectado</span>';
+
+            } catch (err) {
+                console.warn('Aviso ao carregar contas de anúncio:', err);
+            }
+        }
+
+        // Carregar Configuração e Mapeamento do Firestore
+        async function loadFirestoreData() {
+            try {
+                const configSnap = await getDoc(doc(db, 'system_automations', 'sheets_sync'));
+                if (configSnap.exists()) {
+                    const data = configSnap.data();
+                    automationConfig = { ...automationConfig, ...data };
+                    
+                    if (data.mappings) {
+                        unitMappings = data.mappings;
+                    }
+                    if (data.unitsList && Array.isArray(data.unitsList) && data.unitsList.length > 0) {
+                        currentUnits = data.unitsList;
+                    }
+                }
+
+                // Atualizar campos do formulário
+                toggleAutomation.checked = !!automationConfig.active;
+                updateStatusBadge(automationConfig.active);
+                webhookUrlInput.value = automationConfig.webhookUrl || '';
+                tabNameInput.value = automationConfig.tabName || 'Novembro';
+                maxRowInput.value = automationConfig.maxRow || 86;
+
+                if (automationConfig.lastSync) {
+                    const d = new Date(automationConfig.lastSync.timestamp || Date.now());
+                    document.getElementById('lastSyncTime').textContent = d.toLocaleString('pt-BR');
+                    document.getElementById('lastSyncCount').textContent = `${automationConfig.lastSync.count || 0} unidades`;
+                    document.getElementById('lastSyncStatus').textContent = automationConfig.lastSync.status === 'success' ? '✅ Sucesso' : '⚠️ Erro';
+                }
+
+                renderHoursGrid();
+                renderMappingTable();
+
+            } catch (err) {
+                console.error('Erro ao ler configuração do Firestore:', err);
+                renderHoursGrid();
+                renderMappingTable();
+            }
+        }
+
+        function updateStatusBadge(isActive) {
+            if (isActive) {
+                statusBadge.className = 'inline-flex items-center px-3.5 py-1.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-300';
+                statusBadge.innerHTML = '<span class="w-2 h-2 rounded-full bg-emerald-500 mr-2 animate-ping"></span> Automação Ativa';
+            } else {
+                statusBadge.className = 'inline-flex items-center px-3.5 py-1.5 rounded-full text-xs font-bold bg-gray-100 text-gray-700 border border-gray-300';
+                statusBadge.innerHTML = '<span class="w-2 h-2 rounded-full bg-gray-400 mr-2"></span> Automação Pausada';
+            }
+        }
+
+        // Renderizar Tabela de Mapeamento
+        function renderMappingTable() {
+            const searchTerm = (unitSearchInput.value || '').trim().toLowerCase();
+            let total = 0;
+            let linked = 0;
+            let unlinked = 0;
+
+            const rowsHtml = currentUnits.map((unitName, index) => {
+                const map = unitMappings[unitName] || { metaId: '', googleId: '' };
+                const hasMeta = !!map.metaId;
+                const hasGoogle = !!map.googleId;
+                const isLinked = hasMeta || hasGoogle;
+
+                total++;
+                if (isLinked) linked++;
+                else unlinked++;
+
+                // Filtragem
+                if (currentFilter === 'linked' && !isLinked) return '';
+                if (currentFilter === 'unlinked' && isLinked) return '';
+                if (searchTerm && !unitName.toLowerCase().includes(searchTerm)) return '';
+
+                let statusBadge = '<span class="bg-gray-100 text-gray-500 text-[10px] font-bold px-2 py-0.5 rounded">Não investe</span>';
+                if (hasMeta && hasGoogle) {
+                    statusBadge = '<span class="bg-purple-100 text-purple-700 text-[10px] font-bold px-2 py-0.5 rounded">Meta + Google</span>';
+                } else if (hasMeta) {
+                    statusBadge = '<span class="bg-blue-100 text-blue-700 text-[10px] font-bold px-2 py-0.5 rounded">Meta Ads</span>';
+                } else if (hasGoogle) {
+                    statusBadge = '<span class="bg-red-100 text-red-700 text-[10px] font-bold px-2 py-0.5 rounded">Google Ads</span>';
+                }
+
+                // Opções de Meta
+                const metaOptions = `
+                    <option value="">(Nenhuma conta Meta)</option>
+                    ${availableMetaAccounts.map(acc => `
+                        <option value="${acc.id}" ${map.metaId === acc.id ? 'selected' : ''}>${acc.name} (${acc.id})</option>
+                    `).join('')}
+                    ${map.metaId && !availableMetaAccounts.some(a => a.id === map.metaId) ? `
+                        <option value="${map.metaId}" selected>Conta salva (${map.metaId})</option>
+                    ` : ''}
+                `;
+
+                // Opções de Google
+                const googleOptions = `
+                    <option value="">(Nenhuma conta Google)</option>
+                    ${availableGoogleAccounts.map(acc => `
+                        <option value="${acc.id}" ${map.googleId === acc.id ? 'selected' : ''}>${acc.name} (${acc.id})</option>
+                    `).join('')}
+                    ${map.googleId && !availableGoogleAccounts.some(a => a.id === map.googleId) ? `
+                        <option value="${map.googleId}" selected>Conta salva (${map.googleId})</option>
+                    ` : ''}
+                `;
+
+                return `
+                    <tr class="hover:bg-gray-50/80 transition-all border-b border-gray-100">
+                        <td class="px-3.5 py-2.5 text-center text-gray-400 font-mono text-[11px]">${index + 1}</td>
+                        <td class="px-3.5 py-2.5 font-bold text-gray-900">${unitName}</td>
+                        <td class="px-3.5 py-2.5">
+                            <select data-unit="${unitName}" data-type="meta" class="w-full bg-gray-50 border border-gray-300 rounded-lg px-2 py-1.5 text-xs outline-none focus:bg-white focus:border-blue-500">
+                                ${metaOptions}
+                            </select>
+                        </td>
+                        <td class="px-3.5 py-2.5">
+                            <select data-unit="${unitName}" data-type="google" class="w-full bg-gray-50 border border-gray-300 rounded-lg px-2 py-1.5 text-xs outline-none focus:bg-white focus:border-red-500">
+                                ${googleOptions}
+                            </select>
+                        </td>
+                        <td class="px-3.5 py-2.5 text-center">${statusBadge}</td>
+                    </tr>
+                `;
+            }).join('');
+
+            mappingTableBody.innerHTML = rowsHtml || `
+                <tr>
+                    <td colspan="5" class="py-8 text-center text-gray-400">Nenhuma unidade encontrada com o filtro selecionado.</td>
+                </tr>
+            `;
+
+            // Atualizar contadores
+            document.getElementById('countAll').textContent = total;
+            document.getElementById('countLinked').textContent = linked;
+            document.getElementById('countUnlinked').textContent = unlinked;
+            mappingCountBadge.textContent = `${total} unidades`;
+
+            // Listeners de mudança nos selects
+            mappingTableBody.querySelectorAll('select').forEach(sel => {
+                sel.addEventListener('change', (e) => {
+                    const uName = e.target.getAttribute('data-unit');
+                    const uType = e.target.getAttribute('data-type');
+                    unitMappings[uName] = unitMappings[uName] || { metaId: '', googleId: '' };
+                    if (uType === 'meta') unitMappings[uName].metaId = e.target.value;
+                    if (uType === 'google') unitMappings[uName].googleId = e.target.value;
+                });
+            });
+        }
+
+        // Auto-vincular por similaridade de nome
+        document.getElementById('btnAutoMatch').addEventListener('click', () => {
+            let matched = 0;
+            const normalize = (str) => (str || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+
+            currentUnits.forEach(uName => {
+                const normUnit = normalize(uName);
+                unitMappings[uName] = unitMappings[uName] || { metaId: '', googleId: '' };
+
+                // Match Meta
+                if (!unitMappings[uName].metaId && availableMetaAccounts.length > 0) {
+                    const foundMeta = availableMetaAccounts.find(acc => normalize(acc.name).includes(normUnit));
+                    if (foundMeta) {
+                        unitMappings[uName].metaId = foundMeta.id;
+                        matched++;
+                    }
+                }
+
+                // Match Google
+                if (!unitMappings[uName].googleId && availableGoogleAccounts.length > 0) {
+                    const foundG = availableGoogleAccounts.find(acc => normalize(acc.name).includes(normUnit));
+                    if (foundG) {
+                        unitMappings[uName].googleId = foundG.id;
+                        matched++;
+                    }
+                }
+            });
+
+            renderMappingTable();
+            alert(`Auto-vínculo concluído! ${matched} conexões sugeridas com base no nome das contas. Não se esqueça de clicar em 'Salvar Mapeamento'.`);
+        });
+
+        // Salvar Mapeamento no Firestore
+        async function saveMappingToFirestore() {
+            try {
+                await setDoc(doc(db, 'system_automations', 'sheets_sync'), {
+                    mappings: unitMappings,
+                    unitsList: currentUnits,
+                    updatedAt: new Date().toISOString()
+                }, { merge: true });
+
+                alert('✅ Mapeamento das unidades salvo com sucesso no banco de dados!');
+                renderMappingTable();
+            } catch (err) {
+                console.error('Erro ao salvar mapeamento:', err);
+                alert('Erro ao salvar mapeamento: ' + err.message);
+            }
+        }
+
+        document.getElementById('btnSaveMapping').addEventListener('click', saveMappingToFirestore);
+        document.getElementById('btnSaveMappingBottom').addEventListener('click', saveMappingToFirestore);
+
+        // Salvar Configurações Gerais
+        document.getElementById('configForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const webhookUrl = webhookUrlInput.value.trim();
+            const tabName = tabNameInput.value.trim();
+            const maxRow = parseInt(maxRowInput.value, 10) || 86;
+
+            const selectedHours = Array.from(document.querySelectorAll('input[name="schedHour"]:checked')).map(cb => cb.value);
+
+            automationConfig.webhookUrl = webhookUrl;
+            automationConfig.tabName = tabName;
+            automationConfig.maxRow = maxRow;
+            automationConfig.schedules = selectedHours;
+            automationConfig.active = toggleAutomation.checked;
+
+            try {
+                await setDoc(doc(db, 'system_automations', 'sheets_sync'), {
+                    webhookUrl,
+                    tabName,
+                    maxRow,
+                    schedules: selectedHours,
+                    active: toggleAutomation.checked,
+                    updatedAt: new Date().toISOString()
+                }, { merge: true });
+
+                const fb = document.getElementById('saveConfigFeedback');
+                fb.classList.remove('hidden');
+                setTimeout(() => fb.classList.add('hidden'), 3500);
+
+            } catch (err) {
+                alert('Erro ao salvar configurações: ' + err.message);
+            }
+        });
+
+        // Toggle Ativar / Desativar rápido
+        toggleAutomation.addEventListener('change', async () => {
+            const isActive = toggleAutomation.checked;
+            updateStatusBadge(isActive);
+            try {
+                await setDoc(doc(db, 'system_automations', 'sheets_sync'), {
+                    active: isActive,
+                    updatedAt: new Date().toISOString()
+                }, { merge: true });
+            } catch (e) {
+                console.error(e);
+            }
+        });
+
+        // Atalhos de Horários
+        document.getElementById('btnSelectBusinessHours').addEventListener('click', () => {
+            const businessHours = ['08:00', '10:00', '12:00', '14:00', '16:00', '18:00', '20:00'];
+            document.querySelectorAll('input[name="schedHour"]').forEach(cb => {
+                cb.checked = businessHours.includes(cb.value);
+            });
+        });
+
+        document.getElementById('btnSelectAllHours').addEventListener('click', () => {
+            document.querySelectorAll('input[name="schedHour"]').forEach(cb => {
+                cb.checked = true;
+            });
+        });
+
+        document.getElementById('btnDeselectAllHours').addEventListener('click', () => {
+            document.querySelectorAll('input[name="schedHour"]').forEach(cb => {
+                cb.checked = false;
+            });
+        });
+
+        // Filtros de visualização
+        document.querySelectorAll('.filter-tab').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                document.querySelectorAll('.filter-tab').forEach(b => {
+                    b.className = 'filter-tab px-2.5 py-1 rounded-md text-gray-600 hover:bg-gray-100';
+                });
+                e.target.className = 'filter-tab px-2.5 py-1 rounded-md font-bold bg-gray-800 text-white';
+                currentFilter = e.target.getAttribute('data-filter');
+                renderMappingTable();
+            });
+        });
+
+        unitSearchInput.addEventListener('input', renderMappingTable);
+
+        // Copiar Código do Apps Script
+        document.getElementById('btnCopyScriptCode').addEventListener('click', () => {
+            const code = document.getElementById('appsScriptCodeBlock').innerText;
+            navigator.clipboard.writeText(code).then(() => {
+                alert('Código do Apps Script copiado para a área de transferência! Agora cole nas Extensões > Apps Script da sua planilha.');
+            });
+        });
+
+        // Ler unidades diretamente da Planilha via Webhook
+        document.getElementById('btnReloadFromSheet').addEventListener('click', async () => {
+            const url = webhookUrlInput.value.trim();
+            if (!url) {
+                alert('Informe a URL do Webhook do Google Apps Script antes de tentar ler da planilha!');
+                webhookUrlInput.focus();
+                return;
+            }
+
+            try {
+                const res = await fetch(url);
+                const data = await res.json();
+                if (data.success && data.units && data.units.length > 0) {
+                    currentUnits = data.units.map(u => u.name);
+                    renderMappingTable();
+                    alert(`✅ Sucesso! ${currentUnits.length} unidades carregadas diretamente da aba "${data.sheetName}".`);
+                } else {
+                    alert('A planilha retornou, mas nenhuma unidade foi encontrada: ' + (data.error || 'Verifique as permissões'));
+                }
+            } catch (err) {
+                alert('Erro ao conectar com o Webhook: ' + err.message);
+            }
+        });
+
+        // Sincronizar Agora Manualmente
+        btnManualSync.addEventListener('click', async () => {
+            const webhookUrl = webhookUrlInput.value.trim();
+            if (!webhookUrl) {
+                alert('Preencha a URL do Webhook do Google Apps Script antes de sincronizar!');
+                return;
+            }
+
+            if (!confirm('Deseja iniciar a sincronização manual agora? O InsightFlow puxará os números do Meta e Google Ads e atualizará as linhas correspondentes da planilha.')) {
+                return;
+            }
+
+            btnManualSync.disabled = true;
+            syncSpinner.classList.add('fa-spin');
+
+            try {
+                const res = await fetch('/api/sync-sheets', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ force: true })
+                });
+
+                const result = await res.json();
+
+                if (res.ok && result.success) {
+                    alert(`🎉 Sincronização concluída com sucesso!\n\n• Unidades atualizadas: ${result.updatedCount || 0}\n• Horário: ${result.timestamp || new Date().toLocaleTimeString()}\n\nVerifique a sua planilha.`);
+                    loadFirestoreData();
+                } else {
+                    alert(`⚠️ Atenção: ${result.error || result.message || 'Erro desconhecido na sincronização'}`);
+                }
+            } catch (err) {
+                alert('Erro na chamada da sincronização: ' + err.message);
+            } finally {
+                btnManualSync.disabled = false;
+                syncSpinner.classList.remove('fa-spin');
+            }
+        });
+
+        // Inicialização
+        await loadAvailableAdAccounts();
+        await loadFirestoreData();
+    </script>
+</body>
+</html>

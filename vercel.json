@@ -44,10 +44,6 @@
     {
       "path": "/api/cron-daily-insights",
       "schedule": "0 11 * * *"
-    },
-    {
-      "path": "/api/sync-sheets",
-      "schedule": "0 * * * *"
     }
   ]
 }

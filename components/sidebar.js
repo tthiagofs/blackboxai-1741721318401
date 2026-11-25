@@ -11,14 +11,30 @@ let isAdmin = false;
 
 // Inicializar sidebar
 export async function initSidebar(currentPage = '') {
-  // Esperar autenticação
-  onAuthStateChanged(auth, async (user) => {
+  // Se já soubermos que é admin pelo email ou storage, marca como admin para renderização imediata
+  const storedEmail = localStorage.getItem('userEmail') || localStorage.getItem('user_email') || '';
+  if (storedEmail === 'thiagofelipefreire0810@gmail.com' || localStorage.getItem('user_role') === 'admin') {
+    isAdmin = true;
+  }
+
+  // Renderiza imediatamente para que a barra lateral nunca suma ou fique em branco
+  renderSidebar(currentPage);
+
+  const processUser = async (user) => {
     if (user) {
       currentUser = user;
       await checkAdminStatus();
       renderSidebar(currentPage);
     }
-  });
+  };
+
+  // Se o Firebase já tiver o usuário na memória, processa na hora
+  if (auth.currentUser) {
+    await processUser(auth.currentUser);
+  }
+
+  // E também escuta o evento de autenticação
+  onAuthStateChanged(auth, processUser);
 }
 
 // Verificar se usuário é admin

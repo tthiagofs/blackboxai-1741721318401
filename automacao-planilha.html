@@ -52,7 +52,11 @@
     <!-- Layout Principal com Sidebar -->
     <div class="flex min-h-screen w-full bg-gray-50">
         <!-- Sidebar Unificada -->
-        <div id="app-sidebar"></div>
+        <div id="app-sidebar" class="flex-shrink-0"></div>
+        <script type="module">
+            import { initSidebar } from './components/sidebar.js';
+            initSidebar('automacao-planilha');
+        </script>
 
         <!-- Conteúdo Principal -->
         <main class="flex-1 p-6 lg:p-10 max-w-7xl">

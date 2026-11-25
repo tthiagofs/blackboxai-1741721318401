@@ -235,12 +235,19 @@ export default async function handler(req, res) {
                 const row = resJson.data[0];
                 spend = parseFloat(row.spend || 0);
                 if (row.actions && Array.isArray(row.actions)) {
+                  // 1. Mensagens iniciadas no WhatsApp / Direct (onsite_conversion)
                   const conv = row.actions.find(a => a.action_type === 'onsite_conversion.messaging_conversation_started_7d');
-                  if (conv && conv.value) leads = parseInt(conv.value, 10);
-                  else {
-                    const l = row.actions.find(a => a.action_type === 'lead');
-                    if (l && l.value) leads = parseInt(l.value, 10);
-                  }
+                  if (conv && conv.value) leads += parseInt(conv.value, 10) || 0;
+
+                  // 2. Formulários nativos de cadastro (Lead Ads)
+                  const l = row.actions.find(a => a.action_type === 'lead');
+                  if (l && l.value) leads += parseInt(l.value, 10) || 0;
+
+                  // 3. Conversões de lead do Pixel (offsite)
+                  const pixelLeads = row.actions.filter(a => a.action_type && (a.action_type === 'offsite_conversion.fb_pixel_lead' || a.action_type.startsWith('offsite_conversion.custom.')));
+                  pixelLeads.forEach(a => {
+                    if (a.value) leads += parseInt(a.value, 10) || 0;
+                  });
                 }
               }
               metaCache[accId] = { spend, leads };

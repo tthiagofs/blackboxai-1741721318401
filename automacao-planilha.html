@@ -147,14 +147,19 @@
                             </div>
 
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <!-- Aba do Mês -->
+                                <!-- Detecção Automática da Aba -->
                                 <div>
-                                    <label class="block text-xs font-bold text-gray-700 mb-1">Nome da Aba Atual</label>
+                                    <label class="block text-xs font-bold text-gray-700 mb-1">Detecção da Aba da Planilha</label>
                                     <div class="relative">
-                                        <input type="text" id="tabNameInput" value="Novembro" placeholder="Ex: Novembro" class="w-full pl-9 pr-3.5 py-2 bg-gray-50 border border-gray-300 rounded-xl text-xs font-semibold focus:bg-white focus:ring-2 focus:ring-emerald-500 outline-none">
-                                        <i class="fas fa-bookmark absolute left-3 top-2.5 text-gray-400 text-xs"></i>
+                                        <div class="w-full pl-9 pr-3.5 py-2.5 bg-emerald-50/60 border border-emerald-200 rounded-xl text-xs font-semibold text-emerald-900 flex items-center justify-between">
+                                            <span class="flex items-center gap-1.5">
+                                                <i class="fas fa-magic text-emerald-600"></i>
+                                                Automático (Última aba à direita)
+                                            </span>
+                                            <span class="text-[10px] bg-emerald-200/60 text-emerald-800 px-2 py-0.5 rounded font-bold">Com Trava de Mês</span>
+                                        </div>
                                     </div>
-                                    <p class="text-[11px] text-gray-400 mt-1">Deixe em branco para usar automaticamente a aba ativa do mês.</p>
+                                    <p class="text-[11px] text-gray-400 mt-1">Valida se a última aba corresponde ao mês corrente antes de atualizar.</p>
                                 </div>
 
                                 <!-- Linha Limite -->
@@ -359,7 +364,11 @@
 function doGet(e) {
   try {
     var ss = SpreadsheetApp.getActiveSpreadsheet();
-    var sheet = ss.getActiveSheet();
+    var target = getTargetSheet(ss);
+    if (target.error) {
+      return ContentService.createTextOutput(JSON.stringify({ success: false, error: target.error })).setMimeType(ContentService.MimeType.JSON);
+    }
+    var sheet = target.sheet;
     var maxRow = 86; // Linha máxima das unidades
     var data = sheet.getRange(2, 1, maxRow - 1, 3).getValues();
     var units = [];
@@ -368,7 +377,6 @@ function doGet(e) {
       var rowNumber = i + 2;
       var name = String(data[i][0] || '').trim();
       if (!name) continue;
-      // Parar se atingir rodapé consolidado
       if (name.toLowerCase().indexOf('gestor de tr') !== -1 || name.toLowerCase().indexOf('unidades com') !== -1) break;
       units.push({ row: rowNumber, name: name });
     }
@@ -387,12 +395,20 @@ function doPost(e) {
   try {
     var json = JSON.parse(e.postData.contents);
     var updates = json.updates || [];
-    var tabName = json.tabName || '';
     var maxRow = json.maxRow || 86;
     
     var ss = SpreadsheetApp.getActiveSpreadsheet();
-    var sheet = tabName ? ss.getSheetByName(tabName) : ss.getActiveSheet();
-    if (!sheet) sheet = ss.getActiveSheet();
+    var target = getTargetSheet(ss);
+    
+    // SEGURANÇA: Se a aba do mês atual não existe na planilha, abortar imediatamente!
+    if (target.error) {
+      return ContentService.createTextOutput(JSON.stringify({
+        success: false,
+        error: target.error
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+    
+    var sheet = target.sheet;
     
     // Ler nomes das unidades (coluna A, linhas 2 até maxRow)
     var numRows = maxRow - 1;
@@ -421,10 +437,10 @@ function doPost(e) {
     if (colDate === -1) colDate = 17; // Padrão coluna Q
     
     // Preparar Data e Hora atual
-    var nowStr = Utilities.formatDate(new Date(), 'America/Sao_Paulo', 'yyyy-MM-dd HH:mm:ss');
+    var nowStr = Utilities.formatDate(new Date(), 'America/Sao_Paulo', 'dd/MM/yyyy HH:mm');
     var updatedCount = 0;
     
-    // Aplicar atualizações
+    // Aplicar atualizações apenas nas linhas de unidades (até maxRow)
     for (var u = 0; u < updates.length; u++) {
       var item = updates[u];
       var key = String(item.unit || '').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
@@ -445,11 +461,67 @@ function doPost(e) {
     return ContentService.createTextOutput(JSON.stringify({
       success: true,
       updatedCount: updatedCount,
+      targetSheet: target.name,
       timestamp: nowStr
     })).setMimeType(ContentService.MimeType.JSON);
   } catch (err) {
     return ContentService.createTextOutput(JSON.stringify({ success: false, error: err.message })).setMimeType(ContentService.MimeType.JSON);
   }
+}
+
+// Localiza a última aba à direita e valida se corresponde ao mês atual
+function getTargetSheet(ss) {
+  var allSheets = ss.getSheets();
+  var now = new Date();
+  
+  var monthMap = [
+    { num: '01', full: 'Janeiro', keys: ['janeiro', 'jan', '01'] },
+    { num: '02', full: 'Fevereiro', keys: ['fevereiro', 'fev', '02'] },
+    { num: '03', full: 'Março', keys: ['marco', 'março', 'mar', '03'] },
+    { num: '04', full: 'Abril', keys: ['abril', 'abr', '04'] },
+    { num: '05', full: 'Maio', keys: ['maio', 'mai', '05'] },
+    { num: '06', full: 'Junho', keys: ['junho', 'jun', '06'] },
+    { num: '07', full: 'Julho', keys: ['julho', 'jul', '07'] },
+    { num: '08', full: 'Agosto', keys: ['agosto', 'ago', '08'] },
+    { num: '09', full: 'Setembro', keys: ['setembro', 'set', '09'] },
+    { num: '10', full: 'Outubro', keys: ['outubro', 'out', '10'] },
+    { num: '11', full: 'Novembro', keys: ['novembro', 'nov', '11'] },
+    { num: '12', full: 'Dezembro', keys: ['dezembro', 'dez', '12'] }
+  ];
+  
+  var curMonthInfo = monthMap[now.getMonth()];
+  var normalize = function(str) {
+    return String(str || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+  };
+  
+  // 1. Prioridade: A última aba à direita da planilha
+  var rightmostSheet = allSheets[allSheets.length - 1];
+  var rightNameNorm = normalize(rightmostSheet.getName());
+  
+  var matchesRight = curMonthInfo.keys.some(function(k) {
+    return rightNameNorm.indexOf(k) !== -1;
+  });
+  
+  if (matchesRight) {
+    return { sheet: rightmostSheet, name: rightmostSheet.getName() };
+  }
+  
+  // 2. Se a última da direita não bater, procurar nas outras abas
+  for (var i = allSheets.length - 1; i >= 0; i--) {
+    var s = allSheets[i];
+    var sNameNorm = normalize(s.getName());
+    var matchesOther = curMonthInfo.keys.some(function(k) {
+      return sNameNorm.indexOf(k) !== -1;
+    });
+    if (matchesOther) {
+      return { sheet: s, name: s.getName() };
+    }
+  }
+  
+  // 3. SEGURANÇA TOTAL: Se nenhuma aba corresponder ao mês atual, TRAVAR!
+  return {
+    error: '⚠️ Bloqueio de Segurança: A aba do mês atual (' + curMonthInfo.full.toUpperCase() + ') não foi encontrada na planilha! Crie a aba para o mês atual para sincronizar com segurança.'
+  };
 }
                     </pre>
                 </div>
@@ -592,12 +664,13 @@ function doPost(e) {
                         currentUnits = data.unitsList;
                     }
                 }
-
-                // Atualizar campos do formulário
+            } catch (err) {
+                console.warn('Aviso ao ler do Firestore (usando padrão):', err);
+            } finally {
+                // Atualizar campos do formulário SEMPRE
                 toggleAutomation.checked = !!automationConfig.active;
                 updateStatusBadge(automationConfig.active);
-                webhookUrlInput.value = automationConfig.webhookUrl || '';
-                tabNameInput.value = automationConfig.tabName || 'Novembro';
+                webhookUrlInput.value = automationConfig.webhookUrl || 'https://script.google.com/macros/s/AKfycbxoRVz_-a81-vFyplqg74zCw8WmSJKaCvKxMRrDaEWxiQk_XmWFhkUKYBhKO26JUpeV/exec';
                 maxRowInput.value = automationConfig.maxRow || 86;
 
                 if (automationConfig.lastSync) {
@@ -607,11 +680,6 @@ function doPost(e) {
                     document.getElementById('lastSyncStatus').textContent = automationConfig.lastSync.status === 'success' ? '✅ Sucesso' : '⚠️ Erro';
                 }
 
-                renderHoursGrid();
-                renderMappingTable();
-
-            } catch (err) {
-                console.error('Erro ao ler configuração do Firestore:', err);
                 renderHoursGrid();
                 renderMappingTable();
             }
@@ -927,9 +995,19 @@ function doPost(e) {
             }
         });
 
-        // Inicialização
-        await loadAvailableAdAccounts();
-        await loadFirestoreData();
+        // Inicialização protegida aguardando autenticação
+        const runInit = async () => {
+            await loadAvailableAdAccounts();
+            await loadFirestoreData();
+        };
+
+        if (auth.currentUser) {
+            runInit();
+        } else {
+            onAuthStateChanged(auth, (user) => {
+                if (user) runInit();
+            });
+        }
     </script>
 </body>
 </html>

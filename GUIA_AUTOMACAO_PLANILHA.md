@@ -32,13 +32,34 @@ Este guia explica como ativar a sincronização automática das métricas de tr�
 ```javascript
 /**
  * INTEGRAÇÃO INSIGHTFLOW -> GOOGLE SHEETS
- * Atualização automática das métricas de tráfego pago (Meta Ads & Google Ads)
+ * Atualização automática inteligente das métricas de tráfego pago (Meta Ads & Google Ads)
+ * Sempre atualiza a última aba à direita com trava estrita de segurança do mês corrente.
  */
 
+// 1. CARIMBO MANUAL (Sua função original - mantida intacta)
+function onEdit(e) {
+  const sheet = e.source.getActiveSheet();
+  const range = e.range;
+  const row = range.getRow();
+  const col = range.getColumn();
+  if (row < 2 || row > 90) return;
+  const COLUNA_DATA = 17; // Coluna Q
+  if (col !== COLUNA_DATA) {
+    const agora = new Date();
+    const dataFormatada = Utilities.formatDate(agora, "America/Sao_Paulo", "dd/MM/yyyy HH:mm");
+    sheet.getRange(row, COLUNA_DATA).setValue(dataFormatada);
+  }
+}
+
+// 2. LEITURA DE UNIDADES
 function doGet(e) {
   try {
     var ss = SpreadsheetApp.getActiveSpreadsheet();
-    var sheet = ss.getActiveSheet();
+    var target = getTargetSheet(ss);
+    if (target.error) {
+      return ContentService.createTextOutput(JSON.stringify({ success: false, error: target.error })).setMimeType(ContentService.MimeType.JSON);
+    }
+    var sheet = target.sheet;
     var maxRow = 86; // Linha máxima das unidades
     var data = sheet.getRange(2, 1, maxRow - 1, 3).getValues();
     var units = [];
@@ -47,7 +68,6 @@ function doGet(e) {
       var rowNumber = i + 2;
       var name = String(data[i][0] || '').trim();
       if (!name) continue;
-      // Interromper se atingir linhas de resumo
       if (name.toLowerCase().indexOf('gestor de tr') !== -1 || name.toLowerCase().indexOf('unidades com') !== -1) break;
       units.push({ row: rowNumber, name: name });
     }
@@ -62,16 +82,25 @@ function doGet(e) {
   }
 }
 
+// 3. RECEBER DADOS AUTOMÁTICOS
 function doPost(e) {
   try {
     var json = JSON.parse(e.postData.contents);
     var updates = json.updates || [];
-    var tabName = json.tabName || '';
     var maxRow = json.maxRow || 86;
     
     var ss = SpreadsheetApp.getActiveSpreadsheet();
-    var sheet = tabName ? ss.getSheetByName(tabName) : ss.getActiveSheet();
-    if (!sheet) sheet = ss.getActiveSheet();
+    var target = getTargetSheet(ss);
+    
+    // SEGURANÇA TOTAL: Se a aba do mês atual não existe na planilha, TRAVAR!
+    if (target.error) {
+      return ContentService.createTextOutput(JSON.stringify({
+        success: false,
+        error: target.error
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+    
+    var sheet = target.sheet;
     
     // Ler nomes das unidades (coluna A, linhas 2 até maxRow)
     var numRows = maxRow - 1;
@@ -87,29 +116,16 @@ function doPost(e) {
       }
     }
     
-    // Localizar coluna de Data de Atualização na linha 1
-    var headerValues = sheet.getRange(1, 1, 1, 20).getValues()[0];
-    var colDate = -1;
-    for (var c = 0; c < headerValues.length; c++) {
-      var h = String(headerValues[c] || '').toLowerCase();
-      if (h.indexOf('data') !== -1 && h.indexOf('atualiz') !== -1) {
-        colDate = c + 1;
-        break;
-      }
-    }
-    if (colDate === -1) colDate = 17; // Padrão coluna Q
-    
-    // Data e Hora de Brasília
-    var nowStr = Utilities.formatDate(new Date(), 'America/Sao_Paulo', 'yyyy-MM-dd HH:mm:ss');
+    var COLUNA_DATA = 17; // Coluna Q
+    var nowStr = Utilities.formatDate(new Date(), 'America/Sao_Paulo', 'dd/MM/yyyy HH:mm');
     var updatedCount = 0;
     
-    // Aplicar atualizações apenas nas colunas de tráfego
+    // Aplicar atualizações apenas nas colunas de tráfego das unidades (até maxRow)
     for (var u = 0; u < updates.length; u++) {
       var item = updates[u];
       var key = String(item.unit || '').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
       var targetRow = rowMap[key];
       
-      // Validação estrita: linha deve existir e ser <= maxRow (86)
       if (targetRow && targetRow <= maxRow) {
         if (item.spend !== undefined && item.spend !== null) {
           sheet.getRange(targetRow, 2).setValue(item.spend); // Coluna B = Investimento
@@ -117,7 +133,7 @@ function doPost(e) {
         if (item.leads !== undefined && item.leads !== null) {
           sheet.getRange(targetRow, 3).setValue(item.leads); // Coluna C = Leads
         }
-        sheet.getRange(targetRow, colDate).setValue(nowStr); // Coluna Data de Atualização
+        sheet.getRange(targetRow, COLUNA_DATA).setValue(nowStr); // Coluna Q = Data de Atualização
         updatedCount++;
       }
     }
@@ -125,11 +141,67 @@ function doPost(e) {
     return ContentService.createTextOutput(JSON.stringify({
       success: true,
       updatedCount: updatedCount,
+      targetSheet: target.name,
       timestamp: nowStr
     })).setMimeType(ContentService.MimeType.JSON);
   } catch (err) {
     return ContentService.createTextOutput(JSON.stringify({ success: false, error: err.message })).setMimeType(ContentService.MimeType.JSON);
   }
+}
+
+// Localiza a última aba à direita e valida se corresponde ao mês atual
+function getTargetSheet(ss) {
+  var allSheets = ss.getSheets();
+  var now = new Date();
+  
+  var monthMap = [
+    { num: '01', full: 'Janeiro', keys: ['janeiro', 'jan', '01'] },
+    { num: '02', full: 'Fevereiro', keys: ['fevereiro', 'fev', '02'] },
+    { num: '03', full: 'Março', keys: ['marco', 'março', 'mar', '03'] },
+    { num: '04', full: 'Abril', keys: ['abril', 'abr', '04'] },
+    { num: '05', full: 'Maio', keys: ['maio', 'mai', '05'] },
+    { num: '06', full: 'Junho', keys: ['junho', 'jun', '06'] },
+    { num: '07', full: 'Julho', keys: ['julho', 'jul', '07'] },
+    { num: '08', full: 'Agosto', keys: ['agosto', 'ago', '08'] },
+    { num: '09', full: 'Setembro', keys: ['setembro', 'set', '09'] },
+    { num: '10', full: 'Outubro', keys: ['outubro', 'out', '10'] },
+    { num: '11', full: 'Novembro', keys: ['novembro', 'nov', '11'] },
+    { num: '12', full: 'Dezembro', keys: ['dezembro', 'dez', '12'] }
+  ];
+  
+  var curMonthInfo = monthMap[now.getMonth()];
+  var normalize = function(str) {
+    return String(str || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+  };
+  
+  // 1. Prioridade: A última aba à direita da planilha (onde você duplica cada novo mês)
+  var rightmostSheet = allSheets[allSheets.length - 1];
+  var rightNameNorm = normalize(rightmostSheet.getName());
+  
+  var matchesRight = curMonthInfo.keys.some(function(k) {
+    return rightNameNorm.indexOf(k) !== -1;
+  });
+  
+  if (matchesRight) {
+    return { sheet: rightmostSheet, name: rightmostSheet.getName() };
+  }
+  
+  // 2. Se a última da direita não bater, procurar nas outras abas
+  for (var i = allSheets.length - 1; i >= 0; i--) {
+    var s = allSheets[i];
+    var sNameNorm = normalize(s.getName());
+    var matchesOther = curMonthInfo.keys.some(function(k) {
+      return sNameNorm.indexOf(k) !== -1;
+    });
+    if (matchesOther) {
+      return { sheet: s, name: s.getName() };
+    }
+  }
+  
+  // 3. SEGURANÇA TOTAL: Se nenhuma aba corresponder ao mês atual, TRAVAR!
+  return {
+    error: '⚠️ Bloqueio de Segurança: A aba do mês atual (' + curMonthInfo.full.toUpperCase() + ') não foi encontrada na planilha! Crie ou renomeie a aba do mês atual para sincronizar com segurança.'
+  };
 }
 ```
 

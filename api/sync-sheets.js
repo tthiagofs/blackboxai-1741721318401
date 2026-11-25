@@ -77,6 +77,7 @@ export default async function handler(req, res) {
     }
 
     const webhookUrl = config.webhookUrl || 'https://script.google.com/macros/s/AKfycbxoRVz_-a81-vFyplqg74zCw8WmSJKaCvKxMRrDaEWxiQk_XmWFhkUKYBhKO26JUpeV/exec';
+    if (!webhookUrl) {
       return res.status(400).json({ success: false, error: 'URL do Webhook do Google Apps Script não configurada.' });
     }
 
@@ -335,7 +336,7 @@ export default async function handler(req, res) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          tabName: tabName,
+          tabName: '', // Vazio para ativar a busca automática da última aba com validação de mês
           maxRow: maxRow,
           updates: updates
         }),
@@ -348,11 +349,17 @@ export default async function handler(req, res) {
         const errTxt = await postRes.text();
         throw new Error(`Google Apps Script HTTP ${postRes.status}: ${errTxt}`);
       }
+
+      // Se o script da planilha retornou erro de validação (ex: aba do mês ausente)
+      if (sheetResult.success === false) {
+        throw new Error(sheetResult.error || 'Erro reportado pelo Apps Script da planilha');
+      }
+
     } catch (postErr) {
       console.error('❌ [Sync Sheets] Erro ao enviar para o Apps Script:', postErr.message);
-      return res.status(502).json({
+      return res.status(422).json({
         success: false,
-        error: `Erro ao enviar dados para o Google Apps Script: ${postErr.message}`
+        error: postErr.message
       });
     }
 

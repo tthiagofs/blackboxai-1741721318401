@@ -533,6 +533,7 @@ function getTargetSheet(ss) {
     <script type="module">
         import { initSidebar } from './components/sidebar.js';
         import { auth, db } from './config/firebase.js';
+        import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
         import { doc, getDoc, setDoc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 
         // Inicializar Sidebar com aba ativa
@@ -577,7 +578,6 @@ function getTargetSheet(ss) {
         const statusBadge = document.getElementById('statusBadge');
         const toggleAutomation = document.getElementById('toggleAutomation');
         const webhookUrlInput = document.getElementById('webhookUrlInput');
-        const tabNameInput = document.getElementById('tabNameInput');
         const maxRowInput = document.getElementById('maxRowInput');
         const hoursGridContainer = document.getElementById('hoursGridContainer');
         const mappingTableBody = document.getElementById('mappingTableBody');
@@ -605,9 +605,9 @@ function getTargetSheet(ss) {
         }
 
         // Carregar Contas Disponíveis (Meta e Google)
-        async function loadAvailableAdAccounts() {
+        async function loadAvailableAdAccounts(user) {
             try {
-                // 1. Meta Accounts salvas no localStorage ou Firestore
+                // 1. Meta Accounts salvas no localStorage
                 const localFbMap = localStorage.getItem('adAccountsMap');
                 if (localFbMap) {
                     try {
@@ -630,6 +630,40 @@ function getTargetSheet(ss) {
                             }));
                         }
                     } catch (e) {}
+                }
+
+                // 3. Fallback do Firestore do usuário logado
+                if (user?.uid) {
+                    try {
+                        const userSnap = await getDoc(doc(db, 'users', user.uid));
+                        if (userSnap.exists()) {
+                            const uData = userSnap.data();
+                            const conns = uData.connections || {};
+
+                            if (conns.meta?.adAccounts && availableMetaAccounts.length === 0) {
+                                if (typeof conns.meta.adAccounts === 'object') {
+                                    availableMetaAccounts = Object.entries(conns.meta.adAccounts).map(([id, name]) => ({ id, name }));
+                                }
+                            }
+                            if (conns.google?.adAccounts && availableGoogleAccounts.length === 0) {
+                                if (Array.isArray(conns.google.adAccounts)) {
+                                    availableGoogleAccounts = conns.google.adAccounts.map(acc => ({
+                                        id: acc.id || acc.customerId,
+                                        name: acc.name || acc.descriptiveName || acc.id
+                                    }));
+                                }
+                            }
+
+                            if (conns.meta?.accessToken && !localStorage.getItem('fbAccessToken')) {
+                                localStorage.setItem('fbAccessToken', conns.meta.accessToken);
+                            }
+                            if (conns.google?.refreshToken && !localStorage.getItem('googleRefreshToken')) {
+                                localStorage.setItem('googleRefreshToken', conns.google.refreshToken);
+                            }
+                        }
+                    } catch (eUser) {
+                        console.warn('Aviso ao consultar connections do Firestore:', eUser);
+                    }
                 }
 
                 // Atualizar badges de status de tokens
@@ -847,13 +881,11 @@ function getTargetSheet(ss) {
         document.getElementById('configForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const webhookUrl = webhookUrlInput.value.trim();
-            const tabName = tabNameInput.value.trim();
             const maxRow = parseInt(maxRowInput.value, 10) || 86;
 
             const selectedHours = Array.from(document.querySelectorAll('input[name="schedHour"]:checked')).map(cb => cb.value);
 
             automationConfig.webhookUrl = webhookUrl;
-            automationConfig.tabName = tabName;
             automationConfig.maxRow = maxRow;
             automationConfig.schedules = selectedHours;
             automationConfig.active = toggleAutomation.checked;
@@ -861,7 +893,6 @@ function getTargetSheet(ss) {
             try {
                 await setDoc(doc(db, 'system_automations', 'sheets_sync'), {
                     webhookUrl,
-                    tabName,
                     maxRow,
                     schedules: selectedHours,
                     active: toggleAutomation.checked,
@@ -995,17 +1026,25 @@ function getTargetSheet(ss) {
             }
         });
 
-        // Inicialização protegida aguardando autenticação
-        const runInit = async () => {
-            await loadAvailableAdAccounts();
+        // Inicialização imediata com os valores locais para resposta instantânea na tela
+        renderHoursGrid();
+        renderMappingTable();
+        updateStatusBadge(true);
+        if (webhookUrlInput) {
+            webhookUrlInput.value = automationConfig.webhookUrl;
+        }
+
+        // Inicialização assíncrona após login/autenticação
+        const runInit = async (user) => {
+            await loadAvailableAdAccounts(user);
             await loadFirestoreData();
         };
 
         if (auth.currentUser) {
-            runInit();
+            runInit(auth.currentUser);
         } else {
             onAuthStateChanged(auth, (user) => {
-                if (user) runInit();
+                if (user) runInit(user);
             });
         }
     </script>

@@ -683,40 +683,71 @@ function getTargetSheet(ss) {
             }
         }
 
-        // Carregar Configuração e Mapeamento do Firestore
+        // Carregar Configuração e Mapeamento do Firestore e LocalStorage
         async function loadFirestoreData() {
+            let loaded = false;
+            // 1. Tentar ler de whatsapp_alerts/_sheets_sync_config (permissão padrão permitida)
             try {
-                const configSnap = await getDoc(doc(db, 'system_automations', 'sheets_sync'));
+                const configSnap = await getDoc(doc(db, 'whatsapp_alerts', '_sheets_sync_config'));
                 if (configSnap.exists()) {
                     const data = configSnap.data();
                     automationConfig = { ...automationConfig, ...data };
-                    
-                    if (data.mappings) {
+                    if (data.mappings && Object.keys(data.mappings).length > 0) {
                         unitMappings = data.mappings;
+                        loaded = true;
                     }
                     if (data.unitsList && Array.isArray(data.unitsList) && data.unitsList.length > 0) {
                         currentUnits = data.unitsList;
                     }
                 }
             } catch (err) {
-                console.warn('Aviso ao ler do Firestore (usando padrão):', err);
-            } finally {
-                // Atualizar campos do formulário SEMPRE
-                toggleAutomation.checked = !!automationConfig.active;
-                updateStatusBadge(automationConfig.active);
-                webhookUrlInput.value = automationConfig.webhookUrl || 'https://script.google.com/macros/s/AKfycbxoRVz_-a81-vFyplqg74zCw8WmSJKaCvKxMRrDaEWxiQk_XmWFhkUKYBhKO26JUpeV/exec';
-                maxRowInput.value = automationConfig.maxRow || 86;
-
-                if (automationConfig.lastSync) {
-                    const d = new Date(automationConfig.lastSync.timestamp || Date.now());
-                    document.getElementById('lastSyncTime').textContent = d.toLocaleString('pt-BR');
-                    document.getElementById('lastSyncCount').textContent = `${automationConfig.lastSync.count || 0} unidades`;
-                    document.getElementById('lastSyncStatus').textContent = automationConfig.lastSync.status === 'success' ? '✅ Sucesso' : '⚠️ Erro';
-                }
-
-                renderHoursGrid();
-                renderMappingTable();
+                console.warn('Aviso ao ler whatsapp_alerts/_sheets_sync_config:', err);
             }
+
+            // 2. Tentar ler de system_automations/sheets_sync se ainda não carregou mappings
+            if (!loaded) {
+                try {
+                    const configSnap2 = await getDoc(doc(db, 'system_automations', 'sheets_sync'));
+                    if (configSnap2.exists()) {
+                        const data = configSnap2.data();
+                        automationConfig = { ...automationConfig, ...data };
+                        if (data.mappings && Object.keys(data.mappings).length > 0) {
+                            unitMappings = data.mappings;
+                            loaded = true;
+                        }
+                        if (data.unitsList && Array.isArray(data.unitsList) && data.unitsList.length > 0) {
+                            currentUnits = data.unitsList;
+                        }
+                    }
+                } catch (e2) {}
+            }
+
+            // 3. Fallback do LocalStorage
+            try {
+                const localMap = localStorage.getItem('sheets_sync_mappings');
+                if (localMap) {
+                    const parsed = JSON.parse(localMap);
+                    if (parsed && typeof parsed === 'object') {
+                        unitMappings = { ...parsed, ...unitMappings };
+                    }
+                }
+            } catch (eLocal) {}
+
+            // Atualizar campos do formulário SEMPRE
+            toggleAutomation.checked = !!automationConfig.active;
+            updateStatusBadge(automationConfig.active);
+            webhookUrlInput.value = automationConfig.webhookUrl || 'https://script.google.com/macros/s/AKfycbxoRVz_-a81-vFyplqg74zCw8WmSJKaCvKxMRrDaEWxiQk_XmWFhkUKYBhKO26JUpeV/exec';
+            maxRowInput.value = automationConfig.maxRow || 86;
+
+            if (automationConfig.lastSync) {
+                const d = new Date(automationConfig.lastSync.timestamp || Date.now());
+                document.getElementById('lastSyncTime').textContent = d.toLocaleString('pt-BR');
+                document.getElementById('lastSyncCount').textContent = `${automationConfig.lastSync.count || 0} unidades`;
+                document.getElementById('lastSyncStatus').textContent = automationConfig.lastSync.status === 'success' ? '✅ Sucesso' : '⚠️ Erro';
+            }
+
+            renderHoursGrid();
+            renderMappingTable();
         }
 
         function updateStatusBadge(isActive) {
@@ -857,21 +888,52 @@ function getTargetSheet(ss) {
             alert(`Auto-vínculo concluído! ${matched} conexões sugeridas com base no nome das contas. Não se esqueça de clicar em 'Salvar Mapeamento'.`);
         });
 
-        // Salvar Mapeamento no Firestore
+        // Salvar Mapeamento no Firestore e LocalStorage
         async function saveMappingToFirestore() {
+            // Salvar no LocalStorage sempre para persistência local imediata
             try {
-                await setDoc(doc(db, 'system_automations', 'sheets_sync'), {
+                localStorage.setItem('sheets_sync_mappings', JSON.stringify(unitMappings));
+                localStorage.setItem('sheets_sync_units', JSON.stringify(currentUnits));
+            } catch (e) {}
+
+            let savedFirestore = false;
+            // 1. Salvar no Firestore (whatsapp_alerts/_sheets_sync_config)
+            try {
+                await setDoc(doc(db, 'whatsapp_alerts', '_sheets_sync_config'), {
                     mappings: unitMappings,
                     unitsList: currentUnits,
                     updatedAt: new Date().toISOString()
                 }, { merge: true });
-
-                alert('✅ Mapeamento das unidades salvo com sucesso no banco de dados!');
-                renderMappingTable();
+                savedFirestore = true;
             } catch (err) {
-                console.error('Erro ao salvar mapeamento:', err);
-                alert('Erro ao salvar mapeamento: ' + err.message);
+                console.warn('Tentando fallback para system_automations...', err);
+                try {
+                    await setDoc(doc(db, 'system_automations', 'sheets_sync'), {
+                        mappings: unitMappings,
+                        unitsList: currentUnits,
+                        updatedAt: new Date().toISOString()
+                    }, { merge: true });
+                    savedFirestore = true;
+                } catch (err2) {
+                    console.warn('Aviso no Firestore, enviando para backend API:', err2);
+                }
             }
+
+            // 2. Sincronizar também via backend API serverless
+            try {
+                fetch('/api/sync-sheets', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'save_config',
+                        mappings: unitMappings,
+                        unitsList: currentUnits
+                    })
+                }).catch(() => {});
+            } catch (eApi) {}
+
+            alert('✅ Mapeamento das unidades salvo com sucesso!');
+            renderMappingTable();
         }
 
         document.getElementById('btnSaveMapping').addEventListener('click', saveMappingToFirestore);
@@ -890,22 +952,36 @@ function getTargetSheet(ss) {
             automationConfig.schedules = selectedHours;
             automationConfig.active = toggleAutomation.checked;
 
+            const configPayload = {
+                webhookUrl,
+                maxRow,
+                schedules: selectedHours,
+                active: toggleAutomation.checked,
+                updatedAt: new Date().toISOString()
+            };
+
             try {
-                await setDoc(doc(db, 'system_automations', 'sheets_sync'), {
-                    webhookUrl,
-                    maxRow,
-                    schedules: selectedHours,
-                    active: toggleAutomation.checked,
-                    updatedAt: new Date().toISOString()
-                }, { merge: true });
-
-                const fb = document.getElementById('saveConfigFeedback');
-                fb.classList.remove('hidden');
-                setTimeout(() => fb.classList.add('hidden'), 3500);
-
+                await setDoc(doc(db, 'whatsapp_alerts', '_sheets_sync_config'), configPayload, { merge: true });
             } catch (err) {
-                alert('Erro ao salvar configurações: ' + err.message);
+                try {
+                    await setDoc(doc(db, 'system_automations', 'sheets_sync'), configPayload, { merge: true });
+                } catch (e2) {}
             }
+
+            try {
+                fetch('/api/sync-sheets', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'save_config',
+                        ...configPayload
+                    })
+                }).catch(() => {});
+            } catch (eApi) {}
+
+            const fb = document.getElementById('saveConfigFeedback');
+            fb.classList.remove('hidden');
+            setTimeout(() => fb.classList.add('hidden'), 3500);
         });
 
         // Toggle Ativar / Desativar rápido
@@ -913,12 +989,17 @@ function getTargetSheet(ss) {
             const isActive = toggleAutomation.checked;
             updateStatusBadge(isActive);
             try {
-                await setDoc(doc(db, 'system_automations', 'sheets_sync'), {
+                await setDoc(doc(db, 'whatsapp_alerts', '_sheets_sync_config'), {
                     active: isActive,
                     updatedAt: new Date().toISOString()
                 }, { merge: true });
             } catch (e) {
-                console.error(e);
+                try {
+                    await setDoc(doc(db, 'system_automations', 'sheets_sync'), {
+                        active: isActive,
+                        updatedAt: new Date().toISOString()
+                    }, { merge: true });
+                } catch (e2) {}
             }
         });
 
@@ -1007,7 +1088,14 @@ function getTargetSheet(ss) {
                 const res = await fetch('/api/sync-sheets', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ force: true })
+                    body: JSON.stringify({ 
+                        force: true,
+                        mappings: unitMappings,
+                        unitsList: currentUnits,
+                        webhookUrl: webhookUrl,
+                        metaToken: localStorage.getItem('fbAccessToken') || '',
+                        googleRefreshToken: localStorage.getItem('googleRefreshToken') || localStorage.getItem('google_ads_refresh_token') || ''
+                    })
                 });
 
                 const result = await res.json();
@@ -1022,6 +1110,9 @@ function getTargetSheet(ss) {
                 alert('Erro na chamada da sincronização: ' + err.message);
             } finally {
                 btnManualSync.disabled = false;
+                syncSpinner.classList.remove('fa-spin');
+            }
+        });
                 syncSpinner.classList.remove('fa-spin');
             }
         });

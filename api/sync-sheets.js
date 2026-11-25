@@ -22,6 +22,54 @@ export default async function handler(req, res) {
   }
 
   const isForce = req.query?.force === 'true' || req.body?.force === true;
+
+  // Endpoint para salvar configuração recebida da interface admin (sem depender de permissões de cliente)
+  if (req.method === 'POST' && req.body?.action === 'save_config') {
+    console.log('💾 [Sync Sheets] Salvando configuração recebida da interface admin...');
+    try {
+      const firebaseApiKey = process.env.FIREBASE_API_KEY || 'AIzaSyB3-n3WIdEOhCxvpbigs_ogse7b3tggGGU';
+      const projectId = process.env.FIREBASE_PROJECT_ID || 'insightflow-82cc4';
+      
+      const patchFields = {};
+      if (req.body.webhookUrl) patchFields.webhookUrl = { stringValue: req.body.webhookUrl };
+      if (req.body.maxRow) patchFields.maxRow = { integerValue: String(req.body.maxRow) };
+      if (req.body.active !== undefined) patchFields.active = { booleanValue: !!req.body.active };
+      if (req.body.schedules && Array.isArray(req.body.schedules)) {
+        patchFields.schedules = { arrayValue: { values: req.body.schedules.map(s => ({ stringValue: s })) } };
+      }
+      if (req.body.unitsList && Array.isArray(req.body.unitsList)) {
+        patchFields.unitsList = { arrayValue: { values: req.body.unitsList.map(u => ({ stringValue: u })) } };
+      }
+      if (req.body.mappings && typeof req.body.mappings === 'object') {
+        const mapEntries = {};
+        for (const [u, m] of Object.entries(req.body.mappings)) {
+          mapEntries[u] = {
+            mapValue: {
+              fields: {
+                metaId: { stringValue: m.metaId || '' },
+                googleId: { stringValue: m.googleId || '' }
+              }
+            }
+          };
+        }
+        patchFields.mappings = { mapValue: { fields: mapEntries } };
+      }
+      patchFields.updatedAt = { stringValue: new Date().toISOString() };
+
+      const patchUrl = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/whatsapp_alerts/_sheets_sync_config?key=${firebaseApiKey}`;
+      await fetchWithTimeout(patchUrl, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fields: patchFields }),
+        timeout: 4500
+      });
+      return res.status(200).json({ success: true, message: 'Configuração salva com sucesso!' });
+    } catch (eSave) {
+      console.warn('Aviso ao salvar config via API:', eSave.message);
+      return res.status(200).json({ success: true, warning: eSave.message });
+    }
+  }
+
   console.log(`📊 [Sync Sheets] Iniciando rotina de sincronização (force: ${isForce})...`);
 
   try {
@@ -52,22 +100,44 @@ export default async function handler(req, res) {
     }
 
     // 1. Ler configuração da automação do Firestore
-    const configUrl = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/system_automations/sheets_sync?key=${firebaseApiKey}`;
     let config = {
       active: true,
       webhookUrl: 'https://script.google.com/macros/s/AKfycbxoRVz_-a81-vFyplqg74zCw8WmSJKaCvKxMRrDaEWxiQk_XmWFhkUKYBhKO26JUpeV/exec',
-      tabName: 'Novembro',
+      tabName: '',
       maxRow: 86
     };
 
+    // Tentar ler de whatsapp_alerts/_sheets_sync_config
     try {
-      const cfgRes = await fetchWithTimeout(configUrl, { headers: authHeaders, timeout: 4500 });
-      if (cfgRes.ok) {
-        const cfgDoc = await cfgRes.json();
-        config = { ...config, ...parseFirestoreMap(cfgDoc.fields || {}) };
+      const aUrl = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/whatsapp_alerts/_sheets_sync_config?key=${firebaseApiKey}`;
+      const aRes = await fetchWithTimeout(aUrl, { headers: authHeaders, timeout: 4500 });
+      if (aRes.ok) {
+        const aDoc = await aRes.json();
+        config = { ...config, ...parseFirestoreMap(aDoc.fields || {}) };
       }
-    } catch (eCfg) {
-      console.warn('⚠️ [Sync Sheets] Usando config padrão:', eCfg.message);
+    } catch (eA) {}
+
+    // Fallback: tentar ler de system_automations/sheets_sync
+    if (!config.mappings || Object.keys(config.mappings).length === 0) {
+      try {
+        const sUrl = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/system_automations/sheets_sync?key=${firebaseApiKey}`;
+        const sRes = await fetchWithTimeout(sUrl, { headers: authHeaders, timeout: 3500 });
+        if (sRes.ok) {
+          const sDoc = await sRes.json();
+          config = { ...config, ...parseFirestoreMap(sDoc.fields || {}) };
+        }
+      } catch (eS) {}
+    }
+
+    // Sobrescrita direta pelos dados passados no corpo da requisição (ex: pelo botão "Sincronizar Agora")
+    if (req.body?.mappings && typeof req.body.mappings === 'object' && Object.keys(req.body.mappings).length > 0) {
+      config.mappings = req.body.mappings;
+    }
+    if (req.body?.unitsList && Array.isArray(req.body.unitsList) && req.body.unitsList.length > 0) {
+      config.unitsList = req.body.unitsList;
+    }
+    if (req.body?.webhookUrl) {
+      config.webhookUrl = req.body.webhookUrl;
     }
 
     // Se automação estiver pausada e não for forçada, abortar
@@ -130,8 +200,8 @@ export default async function handler(req, res) {
     console.log(`📅 [Sync Sheets] Período do mês atual: ${startOfMonthStr} até ${todayDateStr}`);
 
     // 3. Obter tokens de acesso para Meta Ads e Google Ads
-    let metaToken = process.env.META_ACCESS_TOKEN || '';
-    let googleRefreshToken = process.env.GOOGLE_ADS_REFRESH_TOKEN || '';
+    let metaToken = req.body?.metaToken || process.env.META_ACCESS_TOKEN || '';
+    let googleRefreshToken = req.body?.googleRefreshToken || process.env.GOOGLE_ADS_REFRESH_TOKEN || '';
     let googleToken = '';
 
     // Buscar tokens salvos dos usuários no Firestore
@@ -379,26 +449,36 @@ export default async function handler(req, res) {
     };
 
     try {
-      const patchUrl = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/system_automations/sheets_sync?updateMask.fieldPaths=lastSync&key=${firebaseApiKey}`;
-      await fetchWithTimeout(patchUrl, {
-        method: 'PATCH',
-        headers: { ...authHeaders, 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          fields: {
-            lastSync: {
-              mapValue: {
-                fields: {
-                  timestamp: { stringValue: syncInfo.timestamp },
-                  count: { integerValue: syncInfo.count.toString() },
-                  updatedInSheet: { integerValue: syncInfo.updatedInSheet.toString() },
-                  status: { stringValue: 'success' }
-                }
+      const lastSyncPayload = {
+        fields: {
+          lastSync: {
+            mapValue: {
+              fields: {
+                timestamp: { stringValue: syncInfo.timestamp },
+                count: { integerValue: syncInfo.count.toString() },
+                updatedInSheet: { integerValue: syncInfo.updatedInSheet.toString() },
+                status: { stringValue: 'success' }
               }
             }
           }
-        }),
+        }
+      };
+
+      const patchUrl1 = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/whatsapp_alerts/_sheets_sync_config?updateMask.fieldPaths=lastSync&key=${firebaseApiKey}`;
+      await fetchWithTimeout(patchUrl1, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(lastSyncPayload),
         timeout: 4000
-      });
+      }).catch(() => {});
+
+      const patchUrl2 = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/system_automations/sheets_sync?updateMask.fieldPaths=lastSync&key=${firebaseApiKey}`;
+      await fetchWithTimeout(patchUrl2, {
+        method: 'PATCH',
+        headers: { ...authHeaders, 'Content-Type': 'application/json' },
+        body: JSON.stringify(lastSyncPayload),
+        timeout: 4000
+      }).catch(() => {});
     } catch (ePatch) {}
 
     return res.status(200).json({

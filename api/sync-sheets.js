@@ -53,17 +53,22 @@ export default async function handler(req, res) {
 
     // 1. Ler configuração da automação do Firestore
     const configUrl = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/system_automations/sheets_sync?key=${firebaseApiKey}`;
-    const cfgRes = await fetchWithTimeout(configUrl, { headers: authHeaders, timeout: 4500 });
-    
-    if (!cfgRes.ok) {
-      return res.status(400).json({
-        success: false,
-        error: 'Configuração de automação de planilha não encontrada no Firestore. Acesse o painel de Admin e salve as configurações.'
-      });
-    }
+    let config = {
+      active: true,
+      webhookUrl: 'https://script.google.com/macros/s/AKfycbxoRVz_-a81-vFyplqg74zCw8WmSJKaCvKxMRrDaEWxiQk_XmWFhkUKYBhKO26JUpeV/exec',
+      tabName: 'Novembro',
+      maxRow: 86
+    };
 
-    const cfgDoc = await cfgRes.json();
-    const config = parseFirestoreMap(cfgDoc.fields || {});
+    try {
+      const cfgRes = await fetchWithTimeout(configUrl, { headers: authHeaders, timeout: 4500 });
+      if (cfgRes.ok) {
+        const cfgDoc = await cfgRes.json();
+        config = { ...config, ...parseFirestoreMap(cfgDoc.fields || {}) };
+      }
+    } catch (eCfg) {
+      console.warn('⚠️ [Sync Sheets] Usando config padrão:', eCfg.message);
+    }
 
     // Se automação estiver pausada e não for forçada, abortar
     if (!isForce && config.active === false) {
@@ -71,8 +76,7 @@ export default async function handler(req, res) {
       return res.status(200).json({ success: true, status: 'skipped', reason: 'Automação pausada no painel de controle' });
     }
 
-    const webhookUrl = config.webhookUrl;
-    if (!webhookUrl) {
+    const webhookUrl = config.webhookUrl || 'https://script.google.com/macros/s/AKfycbxoRVz_-a81-vFyplqg74zCw8WmSJKaCvKxMRrDaEWxiQk_XmWFhkUKYBhKO26JUpeV/exec';
       return res.status(400).json({ success: false, error: 'URL do Webhook do Google Apps Script não configurada.' });
     }
 

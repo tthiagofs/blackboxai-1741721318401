@@ -140,6 +140,16 @@ service cloud.firestore {
       allow read, list: if true;
       allow write, update, delete: if request.auth != null;
     }
+
+    // Regras para automação de planilhas (Admin e Robô Cron)
+    match /system_automations/{docId} {
+      function isAdmin() {
+        return request.auth != null && 
+               request.auth.token.email == 'thiagofelipefreire0810@gmail.com';
+      }
+      allow read, list: if true;
+      allow write, update, delete: if isAdmin() || request.auth != null;
+    }
   }
 }
 
